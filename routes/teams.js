@@ -14,6 +14,8 @@ const router = express.Router();
 
 const db = require("../db");
 
+function buildQuery(params) {}
+
 /** GET - Route serving to get all teams.
  * @name router.get('/')
  * @function
@@ -106,26 +108,51 @@ router.post("/create", function(req, res, next) {
 });
 
 //TODO: Finish update statement.
-// See comment to build_conditions, make a build query similar to this?
-// https://stackoverflow.com/questions/31822891/how-to-build-dynamic-query-by-binding-parameters-in-node-js-sql
-/** PUT - Route serving to update a user admin privilege in the application.
+/** PUT - Route serving to update a user admin privilege in the application. Submit through form to update the required data. 
  * @name /update
  * @function
- * @memberof module:routes/users
- * @param {number} req.body.steam_id - Steam ID of the user being created.
- * @param {number} req.body.admin - Integer determining if a user is an admin of the system. Either 1 or 0.
- * @param {number} req.body.super_admin - Integer determining if a user is a super admin of the system. Either 1 or 0.
+ * @memberof module:routes/teams
+ * @param {string} req.body.name - Steam ID of the user being created.
+ * @param {string} req.body.flag - International Flag code by Steam.
+ * @param {string} req.body.logo - Integer determining if a user is a super admin of the system. Either 1 or 0.
+ * @param {list} req.body.auths - An object of type list containing all steam 64 auths on a team.
+ * @param {string} req.body.tag - A string with a shorthand tag for a team.
+ * @param {number} req.body.public_team - Integer determining if a team is a publically usable team. Either 1 or 0.
+ * @param {list} req.body.preferred_names - List containing a 1:1 relation to user auths.
+ * @see https://steamcommunity.com/sharedfiles/filedetails/?id=719079703
  */
 router.put("/update", function(req, res, next) {
-  var steamId = req.body.steam_id;
-  var isAdmin = req.body.admin || 0;
-  var isSuperAdmin = req.body.super_admin || 0;
-  var sql = "UPDATE user SET admin = ?, super_admin = ? WHERE steam_id = ?";
-  db.query(sql, [isAdmin, isSuperAdmin, steamId], function(err, result) {
+  var columns = [];
+  var values = [];
+  var queryStr;
+
+  if (typeof req.body.name !== "undefined") 
+    columns.push("name = " + req.body.name);
+
+  if (typeof req.body.flag !== "undefined") 
+    columns.push("flag = " + req.body.flag);
+
+  if (typeof req.body.logo !== "undefined") 
+    columns.push("logo = " + req.body.logo);
+
+  if (typeof req.body.auths !== "undefined") 
+    columns.push("auths = " + req.body.auths);
+
+  if (typeof req.body.tag !== "undefined") 
+    columns.push("tag = " + req.body.tag);
+
+  if (typeof req.body.public_team !== "public_team") 
+    columns.push("public_team = " + req.body.public_team);
+
+  if (typeof req.body.preferred_names !== "preferred_names") 
+    columns.push("preferred_names = " + req.body.preferred_names);
+
+  var sql = "UPDATE team SET " + columns;
+  db.query(sql, function(err, result) {
     if (err) {
       res.status(500).send({ error: "Something failed!" + err });
     }
-    res.json({ message: "User created successfully" });
+    res.json({ message: "Team edited successfully" });
   });
 });
 
