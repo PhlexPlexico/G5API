@@ -1,0 +1,47 @@
+{
+  "name": "get5apiv1",
+  "version": "0.0.1",
+  "private": true,
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://opensource.org/licenses/MIT"
+    }
+  ],
+  "homepage": "https://github.com/phlexplexico/G5API/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phlexplexico/G5API.git"
+  },
+  "author": {
+    "name": "Phlex Plexico",
+    "email": "flexing@phlexplexi.co",
+    "url": "http://phlexplexi.co"
+  },
+  "engines": {
+    "node": "12.12.0"
+  },
+  "directories": {
+    "docs": "./docs/",
+    "bin": "./bin/",
+    "routes": "./routes/",
+    "config": "./config"
+  },
+  "scripts": {
+    "start": "node ./bin/www",
+    "doc": "jsdoc -c jsdoc.conf.json"
+  },
+  "dependencies": {
+    "config": "^3.2.3",
+    "cookie-parser": "~1.4.4",
+    "cors": "^2.8.5",
+    "debug": "~2.6.9",
+    "express": "~4.16.1",
+    "helmet": "^3.21.2",
+    "http-errors": "~1.6.3",
+    "jade": "^1.11.0",
+    "jsdoc": "^3.6.3",
+    "morgan": "^1.9.1",
+    "mysql": "^2.17.1"
+  }
+}
