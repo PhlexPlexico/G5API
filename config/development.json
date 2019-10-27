@@ -1,0 +1,11 @@
+{
+    "Database" : {
+        "sockFile": "/var/run/mysqld/mysqld.sock",
+        "username": "get5",
+        "password": "qwertyhero123",
+        "db": "get5"
+    },
+    "Server" : {
+        "port": 3301
+    }
+}
