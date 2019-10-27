@@ -3,15 +3,16 @@
  * @requires express
  * @requires db
  */
-var express = require('express');
+var express = require("express");
 /** Express module
  * @const
  */
 const router = express.Router();
 /** Database module.
  * @const
- */ 
-const db = require('../db');
+ */
+
+const db = require("../db");
 
 /** GET - Route serving to get all teams.
  * @name router.get('/')
@@ -21,25 +22,25 @@ const db = require('../db');
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
  */
-router.get('/', function(req, res, next) {
+router.get("/", function(req, res, next) {
   var sql = "SELECT * FROM team";
   db.query(sql, function(err, rows) {
     if (err) {
-      res.status(500).send({ error: 'Something failed!' + err });
+      res.status(500).send({ error: "Something failed!" + err });
     }
     res.json(rows);
-  })
+  });
 });
 
-router.get('/:teamid', function(req, res, next) {
-  teamID = req.param('teamid');
+router.get("/:teamid", function(req, res, next) {
+  teamID = req.param("teamid");
   var sql = "SELECT * FROM team where id = ?";
   db.query(sql, [teamID], function(err, rows) {
     if (err) {
-      res.status(500).send({ error: 'Something failed!' + err });
+      res.status(500).send({ error: "Something failed!" + err });
     }
     res.json(rows);
-  })
+  });
 });
 
 /** POST - Route serving to insert a user into the database.
@@ -57,8 +58,8 @@ router.get('/:teamid', function(req, res, next) {
  * @see https://steamcommunity.com/sharedfiles/filedetails/?id=719079703
  */
 
- //TODO: Test the inserts, make sure lists are inserted as blobs.
-router.post('/create', function(req, res, next) {
+//TODO: Test the inserts, make sure lists are inserted as blobs.
+router.post("/create", function(req, res, next) {
   var userID = req.body.user_id;
   var teamName = req.body.name;
   var flag = req.body.flag;
@@ -67,18 +68,46 @@ router.post('/create', function(req, res, next) {
   var tag = req.body.tag;
   var public_team = req.body.public_team;
   var pref_names = req.body.preferred_names; // Sent in as list, do we worry about verification? Probably.
-  newTeam = [{user_id: userID, name: teamName, flag: flag, logo: logo, auths: auths, tag: tag, public_team: public_team, preferred_names: pref_names}];
+  newTeam = [
+    {
+      user_id: userID,
+      name: teamName,
+      flag: flag,
+      logo: logo,
+      auths: auths,
+      tag: tag,
+      public_team: public_team,
+      preferred_names: pref_names
+    }
+  ];
   // https://github.com/mysqljs/mysql/issues/814#issuecomment-418659750 reference for insert. Need to do things a little differently.
   var sql = "INSERT INTO team SET ?";
-  db.query(sql, [newTeam.map(team.user_id, team.name, team.flag, team.logo, team.auths, team.tag, team.public_team, team.preferred_names)], function(err, result) {
-    if (err) {
-      res.status(500).send({ error: 'Something failed!' + err });
+  db.query(
+    sql,
+    [
+      newTeam.map(
+        team.user_id,
+        team.name,
+        team.flag,
+        team.logo,
+        team.auths,
+        team.tag,
+        team.public_team,
+        team.preferred_names
+      )
+    ],
+    function(err, result) {
+      if (err) {
+        res.status(500).send({ error: "Something failed!" + err });
+      }
+      res.json({ message: "Team created successfully" });
     }
-    res.json({"message": "Team created successfully"});
-  })
+  );
 });
 
 //TODO: Finish update statement.
+// See comment to build_conditions, make a build query similar to this?
+// https://stackoverflow.com/questions/31822891/how-to-build-dynamic-query-by-binding-parameters-in-node-js-sql
 /** PUT - Route serving to update a user admin privilege in the application.
  * @name /update
  * @function
@@ -87,17 +116,17 @@ router.post('/create', function(req, res, next) {
  * @param {number} req.body.admin - Integer determining if a user is an admin of the system. Either 1 or 0.
  * @param {number} req.body.super_admin - Integer determining if a user is a super admin of the system. Either 1 or 0.
  */
-router.put('/update', function(req, res, next) {
+router.put("/update", function(req, res, next) {
   var steamId = req.body.steam_id;
   var isAdmin = req.body.admin || 0;
   var isSuperAdmin = req.body.super_admin || 0;
   var sql = "UPDATE user SET admin = ?, super_admin = ? WHERE steam_id = ?";
   db.query(sql, [isAdmin, isSuperAdmin, steamId], function(err, result) {
     if (err) {
-      res.status(500).send({ error: 'Something failed!' + err });
+      res.status(500).send({ error: "Something failed!" + err });
     }
-    res.json({"message": "User created successfully"});
-  })
+    res.json({ message: "User created successfully" });
+  });
 });
 
 //TODO: Various getters/setters are needed to be imported from Get5-Web. Please see https://github.com/PhlexPlexico/get5-web/blob/master/get5/team.py
