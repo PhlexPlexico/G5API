@@ -1,6 +1,7 @@
-./node_modules/
-./config/prod.json
-./docs/
+node_modules/
+config/prod.json
+config/development.json
+docs/
 # Logs
 logs
 *.log
