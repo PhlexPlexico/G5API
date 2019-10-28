@@ -28,7 +28,7 @@
     "config": "./config"
   },
   "scripts": {
-    "start": "node ./bin/www",
+    "start": "nodemon ./bin/www",
     "doc": "jsdoc -c jsdoc.conf.json"
   },
   "dependencies": {
@@ -42,6 +42,7 @@
     "jade": "^1.11.0",
     "jsdoc": "^3.6.3",
     "morgan": "^1.9.1",
-    "mysql": "^2.17.1"
+    "mysql": "^2.17.1",
+    "nodemon": "^1.19.4"
   }
 }
