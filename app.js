@@ -7,11 +7,11 @@ const bodyParser = require('body-parser');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
-const config = require('config');
 
 //Route Files
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
+const teamsRouter = require('./routes/teams');
 //End Route Files
 
 const app = express();
@@ -42,6 +42,7 @@ app.use(morgan('combined'));
 // Begin Routes
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
+app.use('/teams', teamsRouter);
 
 //END ROUTES
 

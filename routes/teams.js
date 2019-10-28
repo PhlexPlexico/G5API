@@ -11,10 +11,8 @@ const router = express.Router();
 /** Database module.
  * @const
  */
-
 const db = require("../db");
 
-function buildQuery(params) {}
 
 /** GET - Route serving to get all teams.
  * @name router.get('/')
@@ -26,21 +24,27 @@ function buildQuery(params) {}
  */
 router.get("/", function(req, res, next) {
   var sql = "SELECT * FROM team";
+  const reader = new FileReader();
   db.query(sql, function(err, rows) {
     if (err) {
       res.status(500).send({ error: "Something failed!" + err });
     }
+    // Need to perform some data manipulation for each row to change the arrayBuffers to meaningful strings/JSON
     res.json(rows);
   });
 });
 
 router.get("/:teamid", function(req, res, next) {
-  teamID = req.param("teamid");
+  teamID = req.params.teamid;
   var sql = "SELECT * FROM team where id = ?";
+  
   db.query(sql, [teamID], function(err, rows) {
     if (err) {
       res.status(500).send({ error: "Something failed!" + err });
     }
+    console.log(Buffer.byteLength((Buffer.from(rows[0].auths))));
+    console.log(rows[0].auths.toString('utf8'))
+    rows[0].auths = String.fromCharCode.apply(null, new Uint16Array(rows[0].auths));
     res.json(rows);
   });
 });
