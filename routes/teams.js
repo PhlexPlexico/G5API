@@ -14,16 +14,13 @@ const router = express.Router();
 const db = require("../db");
 
 /** GET - Route serving to get all teams.
- * @name router.get('/')
+ * @name /
  * @function
  * @memberof module:routes/teams
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
  */
 router.get("/", function(req, res, next) {
   var sql =
-    "SELECT t.name, t.flag, t.logo, t.tag, t.public_team, " +
+    "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
     "GROUP_CONCAT(ta.auth) as auths, " +
     "GROUP_CONCAT(ta.name) as preferred_names " +
     "FROM team t JOIN team_auth_names ta " +
@@ -38,10 +35,16 @@ router.get("/", function(req, res, next) {
   });
 });
 
+/** GET - Route serving to get all teams.
+ * @name /
+ * @function
+ * @memberof module:routes/teams
+ * @param {int} teamid - The team ID you wish to examine.
+ */
 router.get("/:teamid", function(req, res, next) {
   teamID = req.params.teamid;
   var sql =
-    "SELECT t.name, t.flag, t.logo, t.tag, t.public_team, " +
+    "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
     "GROUP_CONCAT(ta.auth) as auths, " +
     "GROUP_CONCAT(ta.name) as preferred_names " +
     "FROM team t JOIN team_auth_names ta " +
