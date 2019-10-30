@@ -67,7 +67,7 @@ router.get("/:teamid", function(req, res, next) {
  * @param {string} req.body.name - Name inputted by a user.
  * @param {string} req.body.flag - International code for a flag.
  * @param {string} req.body.logo - A string representing the logo stored on the webserver.
- * @param {JSON} req.body.auths - A JSON array containing the Steam64 IDs for players.
+ * @param {JSON} req.body.auths - A JSON KV pair containing the SteamID of a player as the key, and a value, or blank string value as the preferred name.
  * @param {JSON} req.body.preferred_names - A JSON array containing the Steam64 IDs for players. 
                                             This must match the size of the auths if used. Use a blank value if a user does not wish to have a name.
  * @param {string} req.body.tag - A string with a shorthand tag for a team.
@@ -84,7 +84,6 @@ router.post("/create", function(req, res, next) {
   var auths = req.body.auths; // Sent into here as a list? Verify somehow?
   var tag = req.body.tag;
   var public_team = req.body.public_team;
-  var pref_names = req.body.preferred_names; // Sent in as list, do we worry about verification? Probably.
   var teamID = NULL;
   newTeam = [
     {
@@ -121,16 +120,7 @@ router.post("/create", function(req, res, next) {
   // TODO: Insert values into the normalized table. Need to think of inexpensive way of inserting. Bulk insert?
 
   sql = "INSERT INTO team_auth_names (team_id, auth, name) VALUES ?";
-  // Create object.
-  var result = {};
-  auths.forEach((auth, i) => (result[auth] = name[i]));
-  for (let [key, value] of Object.entries(result)) {
-    db.query(sql, [teamid, key, value], function(err, result) {
-      if (err) {
-        res.status(500).send({ error: "Something failed!" + err });
-      }
-    });
-  }
+  // Opting for KeyValue pairs to insert into the database. Can then do builk insert?
   res.json({ message: "Team created successfully" });
 });
 
