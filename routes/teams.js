@@ -21,8 +21,7 @@ const db = require("../db");
 router.get("/", function(req, res, next) {
   var sql =
     "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
-    "GROUP_CONCAT(ta.auth) as auths, " +
-    "GROUP_CONCAT(ta.name) as preferred_names " +
+    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
     "FROM team t JOIN team_auth_names ta " +
     "ON t.id = ta.team_id " +
     "GROUP BY t.name, t.flag, t.logo, t.tag, t.public_team";
@@ -30,7 +29,11 @@ router.get("/", function(req, res, next) {
     if (err) {
       res.status(500).send({ error: "Something failed!" + err });
     }
-    // Need to perform some data manipulation for each row to change the arrayBuffers to meaningful strings/JSON
+    // Need to perform some data manipulation for each row to change the arrayBuffers to meaningful strings/JSON\
+    rows.forEach(function(row){
+      row.auth_name = JSON.parse(row.auth_name);
+    });
+
     res.json(rows);
   });
 });
@@ -45,8 +48,7 @@ router.get("/:teamid", function(req, res, next) {
   teamID = req.params.teamid;
   var sql =
     "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
-    "GROUP_CONCAT(ta.auth) as auths, " +
-    "GROUP_CONCAT(ta.name) as preferred_names " +
+    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
     "FROM team t JOIN team_auth_names ta " +
     "ON t.id = ta.team_id  " +
     "where t.id = ?";
@@ -55,6 +57,7 @@ router.get("/:teamid", function(req, res, next) {
     if (err) {
       res.status(500).send({ error: "Something failed!" + err });
     }
+    rows[0].auth_name = JSON.parse(rows[0].auth_name)
     res.json(rows);
   });
 });
@@ -120,6 +123,7 @@ router.post("/create", function(req, res, next) {
   // TODO: Insert values into the normalized table. Need to think of inexpensive way of inserting. Bulk insert?
 
   sql = "INSERT INTO team_auth_names (team_id, auth, name) VALUES ?";
+  // values.name
   // Opting for KeyValue pairs to insert into the database. Can then do builk insert?
   res.json({ message: "Team created successfully" });
 });
