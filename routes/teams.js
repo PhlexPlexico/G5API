@@ -20,17 +20,17 @@ const db = require("../db");
  */
 router.get("/", function(req, res, next) {
   var sql =
-    "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
     "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
     "FROM team t JOIN team_auth_names ta " +
     "ON t.id = ta.team_id " +
-    "GROUP BY t.name, t.flag, t.logo, t.tag, t.public_team";
+    "GROUP BY t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team";
   db.query(sql, function(err, rows) {
     if (err) {
-      res.status(500).send({ error: "Something failed!" + err });
+      res.send({ error: "Something failed!" + err });
     }
     // Need to perform some data manipulation for each row to change the arrayBuffers to meaningful strings/JSON\
-    rows.forEach(function(row){
+    rows.forEach(function(row) {
       row.auth_name = JSON.parse(row.auth_name);
     });
 
@@ -47,7 +47,7 @@ router.get("/", function(req, res, next) {
 router.get("/:teamid", function(req, res, next) {
   teamID = req.params.teamid;
   var sql =
-    "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
     "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
     "FROM team t JOIN team_auth_names ta " +
     "ON t.id = ta.team_id  " +
@@ -55,10 +55,13 @@ router.get("/:teamid", function(req, res, next) {
 
   db.query(sql, [teamID], function(err, rows) {
     if (err) {
-      res.status(500).send({ error: "Something failed!" + err });
+      res.send({ error: "Something failed!" + err });
     }
-    rows[0].auth_name = JSON.parse(rows[0].auth_name)
-    console.log(Object.values(rows[0].auth_name), Object.keys(rows[0].auth_name))
+    rows[0].auth_name = JSON.parse(rows[0].auth_name);
+    console.log(
+      Object.values(rows[0].auth_name),
+      Object.keys(rows[0].auth_name)
+    );
     res.json(rows);
   });
 });
@@ -85,11 +88,11 @@ router.post("/create", function(req, res, next) {
   var teamName = req.body[0].name;
   var flag = req.body[0].flag;
   var logo = req.body[0].logo;
-  var auths = req.body[0].auths; // Sent into here as a list? Verify somehow?
+  var auths = req.body[0].auth_name;
   var tag = req.body[0].tag;
   var public_team = req.body[0].public_team;
-  var teamID = null;
-  newTeam = [
+  let teamID = null;
+  var newTeam = [
     {
       user_id: userID,
       name: teamName,
@@ -99,28 +102,68 @@ router.post("/create", function(req, res, next) {
       public_team: public_team
     }
   ];
-  var sql = "INSERT INTO team (user_id, name, flag, logo, tag, public_team) ?";
-  db.query(
-    sql,
-    [newTeam.map(item => [item.user_id, item.name, item.flag, item.logo, item.tag, item.public_team])],
-    function(err, result) {
-      if (err) {
-        res.status(500).send({ error: "Something failed!" + err });
+  db.beginTransaction(err => {
+    var sql =
+      "INSERT INTO team (user_id, name, flag, logo, tag, public_team) VALUES ?";
+    db.query(
+      sql,
+      [
+        newTeam.map(item => [
+          item.user_id,
+          item.name,
+          item.flag,
+          item.logo,
+          item.tag,
+          item.public_team
+        ])
+      ],
+      (err, result) => {
+        if (err) {
+          db.rollback(() => {
+            console.log(err);
+          });
+          return res.send({ error: "Something failed!" + err });
+        }
+        teamID = result.insertId;
+        sql = "INSERT INTO team_auth_names (team_id, auth, name) VALUES (?,?,?)";
+        console.log(
+          "Now keys and vals: " +
+            Object.keys(auths) +
+            " " +
+            Object.values(auths)
+        );
+        for(let key in auths){
+          db.query(
+          sql,
+          [teamID, key, auths[key]],
+          function(err, result) {
+            if (err) {
+              db.rollback(() => {
+                console.log(err);
+              });
+              throw err;
+            }
+          }
+        );
+        }
+        
       }
-      teamID = result.insertId;
-    }
-  );
-  // TODO: Insert values into the normalized table. Need to think of inexpensive way of inserting. Bulk insert?
-  sql = "INSERT INTO team_auth_names (team_id, auth, name) VALUES ?";
-  db.query(sql, [teamID, Object.keys(auths), Object.values(auths)],
-  function(err, result) {
-    if (err) {
-      res.status(500).send({ error: "Something failed!" + err });
-    }
-    res.json({ message: "Team created successfully with team ID " + teamID });
+    );
+
+    db.commit(err => {
+      if (err) {
+        db.rollback(() => {
+          console.log(err);
+        });
+        return res.send({ error: "Something failed!" + err });
+      }
+    });
+    return res.json({
+      message: "Team created successfully."
+    });
+    // values.name
+    // Opting for KeyValue pairs to insert into the database. Can then do builk insert?
   });
-  // values.name
-  // Opting for KeyValue pairs to insert into the database. Can then do builk insert?
 });
 
 //TODO: Finish update statement.
@@ -162,7 +205,7 @@ router.put("/update", function(req, res, next) {
   var sql = "UPDATE team SET " + columns + " WHERE id=?";
   db.query(sql, [team_id], function(err, result) {
     if (err) {
-      res.status(500).send({ error: "Something failed!" + err });
+      res.send({ error: "Something failed!" + err });
     }
     //res.json({ message: "Team edited successfully" });
   });
