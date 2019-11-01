@@ -114,7 +114,7 @@ router.post("/create", async (req, res, next) => {
   }
 });
 
-//TODO: Finish update statement.
+// TODO - Update documentation.
 /** PUT - Route serving to update a user admin privilege in the application. Submit through form to update the required data.
  * @name /update
  * @function
@@ -129,31 +129,43 @@ router.post("/create", async (req, res, next) => {
  * @param {number} req.body[0].public_team - Integer determining if a team is a publically usable team. Either 1 or 0.
  * @see https://steamcommunity.com/sharedfiles/filedetails/?id=719079703
  */
-router.put("/update", function(req, res, next) {
+router.put("/update", async (req, res, next) => {
   let teamID = req.body[0].id;
   let teamName = req.body[0].name;
   let teamFlag = req.body[0].flag;
+  let teamLogo = req.body[0].logo;
   let teamAuths = req.body[0].auth_name;
   let teamTag = req.body[0].tag;
   let publicTeam = req.body[0].public_team;
-
+  newTeam = [
+    {
+      user_id: userID,
+      name: teamName,
+      flag: teamFlag,
+      logo: teamLogo,
+      tag: teamTag,
+      public_team: publicTeam
+    }
+  ];
   let sql = "UPDATE team SET name = ?, flag = ?, logo = ?, tag = ?, public_team = ? WHERE id=? and user_id = ?";
   try {
     await withTransaction( db, async () => {
-      const insertTeam = await db.query( sql, [newTeam.map(item => [item.user_id, item.name, item.flag, item.logo, item.tag, item.public_team])] );
-      teamID = insertTeam.insertId;
-      sql = "INSERT INTO team_auth_names (team_id, auth, name) VALUES (?, ?, ?)";
-      console.log("We made it past the first insert.")
-      for(let key in auths){
-        await db.query( sql, [teamID, key, auths[key]]);
+      await db.query( sql, [newTeam.map(item => [item.name, item.flag, item.logo, item.tag, item.public_team, item.user_id])] );
+      sql = "UPDATE team_auth_names SET name = ? WHERE auth = ? AND team_id = ?";
+      for(let key in teamAuths){
+        await db.query( sql, [auths[key], key, teamID]);
       }
-      res.json({message: "Team successfully inserted with ID " + teamID});
+      res.json({message: "Team successfully updated" });
     });
   } catch ( err ) {
     res.status(500).json({message: err});
   }
 });
 
+// TODO: DELETE STMT. Check if team has matches, return not allowed if they have matches in their name.
+router.delete('/delete', async (req,res,next) => {
+  res.status(500).json({message: "NOT IMPLEMENTED."});
+});
 
 async function withTransaction( db, callback ) {
   try {

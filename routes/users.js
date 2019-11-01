@@ -3,10 +3,12 @@
  * @requires express
  * @requires db
  */
-var express = require("express");
+const express = require("express");
+
 /** Express module
  * @const
  */
+
 const router = express.Router();
 /** Database module.
  * @const
@@ -18,65 +20,62 @@ const db = require("../db");
  * @name router.get('/')
  * @function
  * @memberof module:routes/users
- * @inner
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
  */
-router.get("/", function(req, res, next) {
-  var sql = "SELECT * FROM user";
-  db.query(sql, function(err, rows) {
-    if (err) {
-      res.status(500).send({ error: "Something failed!" + err });
-    }
-    res.json(rows);
-  });
+router.get("/", async (req, res, next) => {
+  try {
+    let sql = "SELECT * FROM user";
+    const allUsers = await db.query(sql);
+    res.json(allUsers);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
 });
 
 /** GET - Route serving to get one user by database or steam id.
  * @name router.get('/:userid')
  * @memberof module:routes/users
- * @inner
  * @function
  * @param {string} path - Express path
  * @param {number} request.param.userid - The database or steam ID of the user.
  * @param {callback} middleware - Express middleware.
  */
-router.get("/:userid", function(req, res, next) {
-  userOrSteamID = req.param("userid");
-  var sql = "SELECT * FROM user where id = ? OR steam_id = ?";
-  db.query(sql, [userOrSteamID, userOrSteamID], function(err, rows) {
-    if (err) {
-      res.status(500).send({ error: "Something failed!" + err });
-    }
-    res.json(rows);
-  });
+router.get("/:userid", async (req, res, next) => {
+  try {
+    userOrSteamID = req.params.userid;
+    let sql = "SELECT * FROM user where id = ? OR steam_id = ?";
+    const allUsers = await db.query(sql);
+    res.json(allUsers);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
 });
 
 /** POST - Route serving to insert a user into the database.
  * @name /create
  * @function
  * @memberof module:routes/users
- * @param {number} req.body.steam_id - Steam ID of the user being created.
- * @param {string} req.body.name - Name gathered from Steam. Can be updated.
- * @param {number} req.body.admin - Integer determining if a user is an admin of the system. Either 1 or 0.
- * @param {number} req.body.super_admin - Integer determining if a user is a super admin of the system. Either 1 or 0.
+ * @param {number} req.body[0].steam_id - Steam ID of the user being created.
+ * @param {string} req.body[0].name - Name gathered from Steam. Can be updated.
+ * @param {number} req.body[0].admin - Integer determining if a user is an admin of the system. Either 1 or 0.
+ * @param {number} req.body[0].super_admin - Integer determining if a user is a super admin of the system. Either 1 or 0.
  */
-router.post("/create", function(req, res, next) {
-  var steamId = req.body.steam_id;
-  var steamName = req.body.name;
-  var isAdmin = req.body.admin;
-  var isSuperAdmin = req.body.super_admin;
-  var sql =
-    "INSERT INTO user (steam_id, name, admin, super_admin) VALUES (?,?,?,?)";
-  db.query(sql, [steamId, steamName, isAdmin, isSuperAdmin], function(
-    err,
-    result
-  ) {
-    if (err) {
-      res.status(500).send({ error: "Something failed!" + err });
-    }
-    res.json({ message: "User created successfully" });
-  });
+router.post("/create", async (req, res, next) => {
+  try {
+    await withTransaction(db, async () => {
+      let steamId = req.body[0].steam_id;
+      let steamName = req.body[0].name;
+      let isAdmin = req.body[0].admin;
+      let isSuperAdmin = req.body[0].super_admin;
+      let sql =
+        "INSERT INTO user (steam_id, name, admin, super_admin) VALUES (?,?,?,?)";
+      await db.query(sql, [steamId, steamName, isAdmin, isSuperAdmin]);
+      res.json({ message: "User created successfully" });
+    });
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
 });
 
 /** PUT - Route serving to update a user admin privilege in the application.
@@ -87,17 +86,31 @@ router.post("/create", function(req, res, next) {
  * @param {number} req.body.admin - Integer determining if a user is an admin of the system. Either 1 or 0.
  * @param {number} req.body.super_admin - Integer determining if a user is a super admin of the system. Either 1 or 0.
  */
-router.put("/update", function(req, res, next) {
-  var steamId = req.body.steam_id;
-  var isAdmin = req.body.admin || 0;
-  var isSuperAdmin = req.body.super_admin || 0;
-  var sql = "UPDATE user SET admin = ?, super_admin = ? WHERE steam_id = ?";
-  db.query(sql, [isAdmin, isSuperAdmin, steamId], function(err, result) {
-    if (err) {
-      res.status(500).send({ error: "Something failed!" + err });
-    }
-    res.json({ message: "User created successfully" });
-  });
+router.put("/update", async (req, res, next) => {
+  try {
+    await withTransaction(db, async () => {
+      let steamId = req.body[0].steam_id;
+      let isAdmin = req.body[0].admin || 0;
+      let isSuperAdmin = req.body[0].super_admin || 0;
+      let sql = "UPDATE user SET admin = ?, super_admin = ? WHERE steam_id = ?";
+      await db.query(sql, [isAdmin, isSuperAdmin, steamId]);
+    });
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
 });
+
+async function withTransaction(db, callback) {
+  try {
+    await db.beginTransaction();
+    await callback();
+    await db.commit();
+  } catch (err) {
+    await db.rollback();
+    throw err;
+  } finally {
+    await db.close();
+  }
+}
 
 module.exports = router;
