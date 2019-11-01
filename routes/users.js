@@ -100,6 +100,14 @@ router.put("/update", async (req, res, next) => {
   }
 });
 
+/** Inner function - boilerplate transaction call.
+ * @name withTransaction
+ * @function
+ * @inner
+ * @memberof module:routes/teams
+ * @param {*} db - The database object.
+ * @param {*} callback - The callback function that is operated on, usually a db.query()
+ */
 async function withTransaction(db, callback) {
   try {
     await db.beginTransaction();
