@@ -45,7 +45,7 @@ router.get("/:userid", async (req, res, next) => {
   try {
     userOrSteamID = req.params.userid;
     let sql = "SELECT * FROM user where id = ? OR steam_id = ?";
-    const allUsers = await db.query(sql);
+    const allUsers = await db.query(sql, userOrSteamID);
     res.json(allUsers);
   } catch (err) {
     res.status(500).json({ message: err });

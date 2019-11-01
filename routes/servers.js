@@ -43,9 +43,9 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/:serverid", async (req, res, next) => {
   try {
-    userOrSteamID = req.params.userid;
-    let sql = "SELECT * FROM game_server where id = ? OR steam_id = ?";
-    const allUsers = await db.query(sql);
+    serverID = req.params.userid;
+    let sql = "SELECT * FROM game_server where id = ?";
+    const allUsers = await db.query(sql, serverID);
     res.json(allUsers);
   } catch (err) {
     res.status(500).json({ message: err });
