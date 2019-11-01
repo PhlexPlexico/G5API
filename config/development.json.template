@@ -1,0 +1,11 @@
+{
+  "Database": {
+    "sockFile": "SQL SOCKFILE",
+    "username": "USERNAME",
+    "password": "PASSWORD",
+    "db": "DB NAME"
+  },
+  "Server": {
+    "port": APP_SERVER_PORT
+  }
+}
