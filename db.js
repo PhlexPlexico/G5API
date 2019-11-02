@@ -1,5 +1,5 @@
-var mysql = require('mysql');
-var config = require('config');
+const mysql = require('mysql');
+const config = require('config');
 const util = require( 'util' );
 
 const dbCfg = {
