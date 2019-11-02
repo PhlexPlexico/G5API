@@ -12,6 +12,7 @@ const morgan = require('morgan');
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const teamsRouter = require('./routes/teams');
+const serversRouter = require('./routes/servers');
 //End Route Files
 
 const app = express();
@@ -43,6 +44,7 @@ app.use(morgan('combined'));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/teams', teamsRouter);
+app.use('/servers', serversRouter);
 
 //END ROUTES
 
