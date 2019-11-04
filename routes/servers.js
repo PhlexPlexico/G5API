@@ -44,7 +44,6 @@ router.get("/", async (req, res, next) => {
     let sql = "SELECT * FROM game_server";
     const allServers = await db.query(sql);
     for(let serverRow of allServers) {
-      console.log("Decrypting...");
       serverRow.rcon_password = await decrypt(serverRow.rcon_password);
     }
     res.json(allServers);
@@ -88,7 +87,56 @@ router.get("/:serverid", async (req, res, next) => {
  *
 */
 router.post("/create", async (req, res, next) => {
-  res.status(500).json({message: "NOT IMPLEMENTED."});
+  try{
+    await withTransaction(async () => {
+      let userId = req.body[0].user_id;
+      let ipString = req.body[0].ip_string;
+      let port = req.body[0].port;
+      let displayName =  req.body[0].display_name;
+      let rconPass = await encrypt(req.body[0].rcon_password);
+      let publicServer = req.body[0].public_server;
+      let insertSql = "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server) VALUES (?,?,?,?,?,?)";
+      await db.query(sql, [userId, ipString, port, displayName, rconPass, publicServer]);
+      res.json("Game server inserted successfully!");
+    });
+  } catch ( err ) {
+    res.status(500).json({message: err})
+  }
+});
+
+/** PUT - Update a game server in the database, and encrypt the password. 
+ * @name router.post('/update')
+ * @memberof module:routes/servers
+ * @function
+ * @param {int} req.body[0].user_id - The ID of the user creating the server to claim ownership.
+ * @param {int} req.body[0].server_id - The ID of the server being updated.
+ * @param {string} req.body[0].ip_string - The host of the server. Can be a URL or IP Address.
+ * @param {int} req.body[0].port - The port that the server is used to connect with.
+ * @param {string} req.body[0].display_name - The name that people will see on the game panel.
+ * @param {string} req.body[0].rcon_password - The RCON password of the server. This will be encrypted on the server side.
+ * @param {int} req.body[0].public_server - Integer value evaluating if the server is public.
+ *
+*/
+router.post("/create", async (req, res, next) => {
+  try{
+    await withTransaction(async () => {
+      let userId = req.body[0].user_id;
+      let ipString = req.body[0].ip_string;
+      let port = req.body[0].port;
+      let displayName =  req.body[0].display_name;
+      let rconPass = await encrypt(req.body[0].rcon_password);
+      let publicServer = req.body[0].public_server;
+      let insertSql = "UPDATE game_server SET ip_string = ?, port = ?, display_name = ?, rcon_password = ?, public_server = ? WHERE user_id = ? AND id = ?";
+      updatedServer = await db.query(sql, [userId, ipString, port, displayName, rconPass, publicServer]);
+      console.log(JSON.stringify(updatedServer));
+      if (updatedServer.affectedRows > 0)
+        res.json("Game server updated successfully!");
+      else
+        res.status(401).json({message: "ERROR - Game server not updated."});
+    });
+  } catch ( err ) {
+    res.status(500).json({message: err});
+  }
 });
 
 /** Inner function - boilerplate transaction call.
