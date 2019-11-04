@@ -104,7 +104,7 @@ router.put("/update", async (req, res, next) => {
  * @name withTransaction
  * @function
  * @inner
- * @memberof module:routes/teams
+ * @memberof module:routes/users
  * @param {*} db - The database object.
  * @param {*} callback - The callback function that is operated on, usually a db.query()
  */

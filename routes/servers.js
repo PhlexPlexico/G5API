@@ -32,7 +32,7 @@ const config = require('config');
 /** GET - Route serving to get all game servers.
  * @name router.get('/')
  * @function
- * @memberof module:routes/users
+ * @memberof module:routes/servers
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
  * @param {int} user_id - The user ID that is querying the data.
@@ -95,7 +95,7 @@ router.post("/create", async (req, res, next) => {
       let displayName =  req.body[0].display_name;
       let rconPass = await encrypt(req.body[0].rcon_password);
       let publicServer = req.body[0].public_server;
-      let insertSql = "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server) VALUES (?,?,?,?,?,?)";
+      let sql = "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server) VALUES (?,?,?,?,?,?)";
       await db.query(sql, [userId, ipString, port, displayName, rconPass, publicServer]);
       res.json("Game server inserted successfully!");
     });
@@ -117,7 +117,7 @@ router.post("/create", async (req, res, next) => {
  * @param {int} req.body[0].public_server - Integer value evaluating if the server is public.
  *
 */
-router.post("/create", async (req, res, next) => {
+router.post("/update", async (req, res, next) => {
   try{
     await withTransaction(async () => {
       let userId = req.body[0].user_id;
@@ -126,7 +126,7 @@ router.post("/create", async (req, res, next) => {
       let displayName =  req.body[0].display_name;
       let rconPass = await encrypt(req.body[0].rcon_password);
       let publicServer = req.body[0].public_server;
-      let insertSql = "UPDATE game_server SET ip_string = ?, port = ?, display_name = ?, rcon_password = ?, public_server = ? WHERE user_id = ? AND id = ?";
+      let sql = "UPDATE game_server SET ip_string = ?, port = ?, display_name = ?, rcon_password = ?, public_server = ? WHERE user_id = ? AND id = ?";
       updatedServer = await db.query(sql, [userId, ipString, port, displayName, rconPass, publicServer]);
       console.log(JSON.stringify(updatedServer));
       if (updatedServer.affectedRows > 0)
@@ -136,6 +136,32 @@ router.post("/create", async (req, res, next) => {
     });
   } catch ( err ) {
     res.status(500).json({message: err});
+  }
+});
+
+/** DEL - Delete a game server in the database.
+ * @name router.post('/delete')
+ * @memberof module:routes/servers
+ * @function
+ * @param {int} req.body[0].user_id - The ID of the user creating the server to claim ownership.
+ * @param {int} req.body[0].server_id - The ID of the server being updated.
+ *
+*/
+router.delete("/delete", async (req,res,next) => {
+  try {
+    await withTransaction (async () => {
+      let userId = req.body[0].user_id;
+      let serverId = req.body[0].server_id;
+      let sql = "DELETE FROM game_server WHERE id = ? AND user_id = ?"
+      const delRows = await db.query(sql, [serverId, userId]);
+      if (delRows.affectedRows > 0)
+        res.json("Game server deleted successfully!");
+      else
+        res.status(401).json("ERR - Unauthorized to delete.");
+    });
+  } catch( err ){
+    console.log(err);
+    res.statuss(500).json({message: err});
   }
 });
 
