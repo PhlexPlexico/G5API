@@ -117,7 +117,7 @@ router.post("/create", async (req, res, next) => {
  * @param {int} req.body[0].public_server - Integer value evaluating if the server is public.
  *
 */
-router.post("/update", async (req, res, next) => {
+router.put("/update", async (req, res, next) => {
   try{
     await withTransaction(async () => {
       let userId = req.body[0].user_id;
