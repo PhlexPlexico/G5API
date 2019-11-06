@@ -13,6 +13,7 @@ const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const teamsRouter = require('./routes/teams');
 const serversRouter = require('./routes/servers');
+const vetoesRouter = require('./routes/vetoes');
 //End Route Files
 
 const app = express();
@@ -45,6 +46,7 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/teams', teamsRouter);
 app.use('/servers', serversRouter);
+app.use('/vetoes', vetoesRouter);
 
 //END ROUTES
 

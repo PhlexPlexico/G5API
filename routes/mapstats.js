@@ -94,7 +94,7 @@ router.post("/create", async (req, res, next) => {
  * @param {string} req.body[0].demo_file - The demo file of the match once demo has been finished recording.
  *
 */
-router.post("/update", async (req, res, next) => {
+router.put("/update", async (req, res, next) => {
   try{
     await withTransaction(async () => {
       let mapStatId = req.body[0].map_stats_id;
