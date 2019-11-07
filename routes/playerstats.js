@@ -239,7 +239,7 @@ router.put("/update", async (req, res, next) => {
       if (updatedPlayerStats.affectedRows > 0)
         res.json("Player Stats were updated successfully!");
       else {
-        let sql = "INSERT INTO player_stats SET ?";
+        sql = "INSERT INTO player_stats SET ?";
         // Update values to include match/map/steam_id.
         updateStmt.steam_id = req.body[0].steam_id;
         updateStmt.map_id = req.body[0].map_id;
@@ -251,7 +251,6 @@ router.put("/update", async (req, res, next) => {
       }
     });
   } catch (err) {
-    console.log(err);
     res.status(500).json({ message: err });
   }
 });
