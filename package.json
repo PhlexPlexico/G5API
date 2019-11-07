@@ -44,6 +44,7 @@
     "jsdoc": "^3.6.3",
     "morgan": "^1.9.1",
     "mysql": "^2.17.1",
-    "nodemon": "^1.19.4"
+    "nodemon": "^1.19.4",
+    "randomstring": "^1.1.5"
   }
 }

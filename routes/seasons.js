@@ -116,9 +116,9 @@ router.put("/update", async (req, res, next) => {
   }
 });
 
-/** DEL - Delete all match data associated with a match, including stats, vetoes, etc.
+/** DEL - Delete all match data associated with a match, including stats, vetoes, etc. **NOT IMPLEMENTED**
  * @name router.delete('/delete')
- * @memberof module:routes/matches
+ * @memberof module:routes/seasons
  * @function
  * @param {int} req.body[0].user_id - The ID of the user deleteing. Can check if admin when implemented.
  * @param {int} req.body[0].match_id - The ID of the match to remove all values pertaining to the match.

@@ -16,6 +16,11 @@ const router = express.Router();
 
 const db = require("../db");
 
+/** Random string generator for API keys.
+ * @const
+ */
+const randString = require("randomstring");
+
 /** GET - Route serving to get all matches.
  * @name router.get('/')
  * @function
@@ -93,7 +98,11 @@ router.post("/create", async (req, res, next) => {
         veto_mappool: req.body[0].veto_mappool,
         side_type: req.body[0].side_type || "standard",
         private_match: req.body[0].private_match || 0,
-        enforce_teams: req.body[0].enforce_teams || 1
+        enforce_teams: req.body[0].enforce_teams || 1,
+        api_key: randString.generate({
+          length: 24,
+          capitalization: uppercase
+        })
       };
       let sql = "INSERT INTO `match` SET ?";
       await db.query(sql, [insertSet]);
