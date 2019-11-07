@@ -199,14 +199,6 @@ router.delete("/delete/:team_id", async (req, res, next) => {
     const playerStatCount = await db.query(playerStatSql, teamID);
     const mapStatCount = await db.query(mapStatSql, teamID);
     const matchCount = await db.query(matchSql, [teamID, teamID]);
-    console.log(
-      "PlayerStat: " +
-        JSON.stringify(playerStatCount) +
-        "\nmapStat: " +
-        JSON.stringify(mapStatCount) +
-        "\nMatch: " +
-        JSON.stringify(matchCount)
-    );
     if (
       playerStatCount[0].RECORDS > 0 ||
       mapStatCount[0].RECORDS > 0 ||
@@ -251,9 +243,9 @@ async function withTransaction(db, callback) {
   } catch (err) {
     await db.rollback();
     throw err;
-  } finally {
+  } /* finally {
     await db.close();
-  }
+  } */
 }
 
 //TODO: various getters/setters are needed to be imported from Get5-Web. Please see https://github.com/PhlexPlexico/get5-web/blob/master/get5/models.py

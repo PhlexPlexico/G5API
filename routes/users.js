@@ -116,9 +116,9 @@ async function withTransaction(db, callback) {
   } catch (err) {
     await db.rollback();
     throw err;
-  } finally {
+  } /* finally {
     await db.close();
-  }
+  } */
 }
 
 module.exports = router;

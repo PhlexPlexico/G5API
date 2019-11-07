@@ -68,7 +68,7 @@ router.get("/:vetoid", async (req, res, next) => {
 */
 router.post("/create", async (req, res, next) => {
   try{
-    await withTransaction(async () => {
+    await withTransaction(db, async () => {
       let matchId = req.body[0].match_id;
       let mapName = req.body[0].map_name;
       let teamName = req.body[0].team_name;
@@ -93,7 +93,7 @@ router.post("/create", async (req, res, next) => {
 */
 router.delete("/delete", async (req,res,next) => {
   try {
-    await withTransaction (async () => {
+    await withTransaction (db, async () => {
       // let userId = req.body[0].user_id;
       let matchId = req.body[0].match_id;
       let sql = "DELETE FROM veto WHERE match_id = ?";
@@ -125,9 +125,9 @@ async function withTransaction(db, callback) {
   } catch (err) {
     await db.rollback();
     throw err;
-  } finally {
+  } /* finally {
     await db.close();
-  }
+  } */
 }
 
 module.exports = router;
