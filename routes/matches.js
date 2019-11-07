@@ -29,8 +29,8 @@ router.get("/", async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
     let sql = "SELECT * FROM `match`";
-    const vetoes = await db.query(sql);
-    res.json(vetoes);
+    const matches = await db.query(sql);
+    res.json(matches);
   } catch (err) {
     res.status(500).json({ message: err });
   }
@@ -49,8 +49,8 @@ router.get("/:matchid", async (req, res, next) => {
     //
     serverID = req.params.match_id;
     let sql = "SELECT * FROM `match` where id = ?";
-    const vetos = await db.query(sql, serverID);
-    res.json(vetos);
+    const matches = await db.query(sql, serverID);
+    res.json(matches);
   } catch (err) {
     res.status(500).json({ message: err });
   }
@@ -144,7 +144,6 @@ router.put("/update", async (req, res, next) => {
         if (updateStmt[key] === null) delete updateStmt[key];
       }
       console.log(JSON.stringify(updateStmt));
-      //Object.keys(updateStmt).forEach((key) => (updateStmt[key] == null) && delete updateStmt[key]);
       let sql = "UPDATE `match` SET ? WHERE id = ?";
       await db.query(sql, [updateStmt, req.body[0].match_id]);
       let sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
