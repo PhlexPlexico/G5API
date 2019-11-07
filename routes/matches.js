@@ -106,7 +106,7 @@ router.post("/create", async (req, res, next) => {
       };
       let sql = "INSERT INTO `match` SET ?";
       await db.query(sql, [insertSet]);
-      let sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
+      sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
       for (let key in req.body[0].spectator_auths) {
         await db.query(sql, [req.body[0].match_id, key]);
       }
@@ -155,7 +155,7 @@ router.put("/update", async (req, res, next) => {
       console.log(JSON.stringify(updateStmt));
       let sql = "UPDATE `match` SET ? WHERE id = ?";
       await db.query(sql, [updateStmt, req.body[0].match_id]);
-      let sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
+      sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
       for (let key in req.body[0].spectator_auths) {
         await db.query(sql, [req.body[0].match_id, key]);
       }
@@ -188,8 +188,8 @@ router.delete("/delete", async (req, res, next) => {
         "DELETE FROM map_stats WHERE match_id = ?";
       let spectatorDeleteSql =
         "DELETE FROM match_spectator WHERE match_id = ?";
-      const isMatchCancelled = await db.query(isMatchCancelled, matchId);
-      if (isMatchCancelled[0].cancelled !== 1){
+      const matchCancelledResult = await db.query(isMatchCancelled, matchId);
+      if (matchCancelledResult[0].cancelled !== 1){
         throw "Cannot delete match as it is not cancelled."
       }
       // Do we even allow this? Maybe only when matches are cancelled?
