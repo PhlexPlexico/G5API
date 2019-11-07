@@ -88,7 +88,7 @@ router.get("/:serverid", async (req, res, next) => {
 */
 router.post("/create", async (req, res, next) => {
   try{
-    await withTransaction(async () => {
+    await withTransaction(db, async () => {
       let userId = req.body[0].user_id;
       let ipString = req.body[0].ip_string;
       let port = req.body[0].port;
@@ -119,7 +119,7 @@ router.post("/create", async (req, res, next) => {
 */
 router.put("/update", async (req, res, next) => {
   try{
-    await withTransaction(async () => {
+    await withTransaction(db, async () => {
       let userId = req.body[0].user_id;
       let ipString = req.body[0].ip_string;
       let port = req.body[0].port;
@@ -149,7 +149,7 @@ router.put("/update", async (req, res, next) => {
 */
 router.delete("/delete", async (req,res,next) => {
   try {
-    await withTransaction (async () => {
+    await withTransaction (db, async () => {
       let userId = req.body[0].user_id;
       let serverId = req.body[0].server_id;
       let sql = "DELETE FROM game_server WHERE id = ? AND user_id = ?"
@@ -181,9 +181,9 @@ async function withTransaction(db, callback) {
   } catch (err) {
     await db.rollback();
     throw err;
-  } finally {
+  } /* finally {
     await db.close();
-  }
+  } */
 }
 
 /** Inner function - Supports encryption and decryption for the database keys to get server RCON passwords.

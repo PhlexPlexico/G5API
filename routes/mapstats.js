@@ -68,7 +68,7 @@ router.get("/:matchid", async (req, res, next) => {
 */
 router.post("/create", async (req, res, next) => {
   try{
-    await withTransaction(async () => {
+    await withTransaction(db, async () => {
       let matchId = req.body[0].match_id;
       let mapNum = req.body[0].map_number;
       let mapName = req.body[0].map_name;
@@ -96,7 +96,7 @@ router.post("/create", async (req, res, next) => {
 */
 router.put("/update", async (req, res, next) => {
   try{
-    await withTransaction(async () => {
+    await withTransaction(db, async () => {
       let mapStatId = req.body[0].map_stats_id;
       let endTime = req.body[0].end_time;
       let winner = req.body[0].team1_score;
@@ -125,7 +125,7 @@ router.put("/update", async (req, res, next) => {
 */
 router.delete("/delete", async (req,res,next) => {
   try {
-    await withTransaction (async () => {
+    await withTransaction (db, async () => {
       let userId = req.body[0].user_id;
       let mapStatsId = req.body[0].map_stats_id;
       let sql = "DELETE FROM map_stats WHERE id = ?"
@@ -157,9 +157,9 @@ async function withTransaction(db, callback) {
   } catch (err) {
     await db.rollback();
     throw err;
-  } finally {
+  } /* finally {
     await db.close();
-  }
+  } */
 }
 
 module.exports = router;
