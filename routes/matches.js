@@ -52,9 +52,9 @@ router.get("/", async (req, res, next) => {
 router.get("/:matchid", async (req, res, next) => {
   try {
     //
-    serverID = req.params.match_id;
+    matchId = req.params.match_id;
     let sql = "SELECT * FROM `match` where id = ?";
-    const matches = await db.query(sql, serverID);
+    const matches = await db.query(sql, matchId);
     res.json(matches);
   } catch (err) {
     res.status(500).json({ message: err });
