@@ -1,5 +1,5 @@
 /** Express API router for users in get5.
- * @module routes/users
+ * @module routes/playerstats
  * @requires express
  * @requires db
  */
