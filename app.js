@@ -32,8 +32,8 @@ app.use(cookieParser());
 //app.use(express.static(path.join(__dirname, 'public')));
 
 // API Setup
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// app.use(bodyParser.json());
+// app.use(bodyParser.urlencoded({ extended: true }));
 app.use(helmet());
 
 // enabling CORS for all requests
