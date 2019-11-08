@@ -41,15 +41,15 @@ router.get("/", async (req, res, next) => {
  * @memberof module:routes/seasons
  * @function
  * @param {string} path - Express path
- * @param {number} request.param.match_id - The ID of the match containing the statistics.
+ * @param {number} request.param.season_id - The ID of the season to retrieve basic information.
  * @param {callback} middleware - Express middleware.
  */
 router.get("/:seasonid", async (req, res, next) => {
   try {
     //
-    serverID = req.params.match_id;
+    seasonID = req.params.season_id;
     let sql = "SELECT * FROM season where id = ?";
-    const seasons = await db.query(sql, serverID);
+    const seasons = await db.query(sql, seasonID);
     res.json(seasons);
   } catch (err) {
     res.status(500).json({ message: err });

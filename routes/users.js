@@ -38,12 +38,12 @@ router.get("/", async (req, res, next) => {
  * @memberof module:routes/users
  * @function
  * @param {string} path - Express path
- * @param {number} request.param.userid - The database or steam ID of the user.
+ * @param {number} request.param.user_id - The database or steam ID of the user.
  * @param {callback} middleware - Express middleware.
  */
-router.get("/:userid", async (req, res, next) => {
+router.get("/:user_id", async (req, res, next) => {
   try {
-    userOrSteamID = req.params.userid;
+    userOrSteamID = req.params.user_id;
     let sql = "SELECT * FROM user where id = ? OR steam_id = ?";
     const allUsers = await db.query(sql, userOrSteamID);
     res.json(allUsers);

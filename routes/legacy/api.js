@@ -1,5 +1,5 @@
 /** Express API router for teams in get5.
- * @module routes/teams
+ * @module routes/legacy/api
  * @requires express
  * @requires db
  */
@@ -11,40 +11,114 @@ const router = express.Router();
 /** Database module.
  * @const
  */
-const db = require("../db");
+const db = require("../../db");
 
-/** GET - Route serving to get all teams.
+/** Rate limit includes.
+ * @const
+ */
+const rateLimit = require('express-rate-limit');
+
+/** Basic Rate limiter.
+ * @const 
+ */
+const basicRateLimit = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 60,
+    message: "Too many requests from this IP. Please try again in an hour.",
+    keyGenerator: async (req) => {      
+      try{
+        const api_key = await db.query("SELECT api_key FROM `match` WHERE id = ?", req.params.match_id);
+        if(api_key[0].api_key.localeCompare(req.query.key))
+          return api_key[0].api_key;
+        else
+          return req.ip;
+      } catch (err){
+        return req.ip;
+      }
+    }
+});
+
+/** POST - API Call to finish a match.
  * @name /
  * @function
- * @memberof module:routes/teams
+ * @memberof module:routes/legacy/api
+ * @param {string} req.query.key - The API key given from the game server to compare.
+ * @param {string} req.query.winner - The string for which team won the match. team1 or team2.
+ * @param {int} [req.query.forfeit] - Optional if a team has forfeit a match.
+ * @param {int} req.params.match_id - The given match ID from the path.
  */
-router.get("/", async (req, res, next) => {
-  let sql =
-    "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
-    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
-    "FROM team t JOIN team_auth_names ta " +
-    "ON t.id = ta.team_id " +
-    "GROUP BY t.name, t.flag, t.logo, t.tag, t.public_team";
+router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
   try {
-    const allTeams = await db.query(sql);
-    // do something with someRows and otherRows
-    allTeams.forEach(row => {
-      row.auth_name = JSON.parse(row.auth_name);
+    // Give from API call.
+    let matchID = req.params.match_id || null;
+    let winner = req.query.winner || null;
+    let forfeit = req.query.forfeit || 0;
+
+    // Local data manipulation.
+    let teamIdWinner = null;
+    let end_time = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    let matchFinalized = true;
+    let team1Score = 0;
+    let team2Score = 0;
+
+    // Database calls.
+    let sql =
+      "SELECT * FROM `match` WHERE id = ?";
+    const matchValues = await db.query(sql, matchID);
+
+    if (matchValues[0].end_time !== null && matchValues[0].cancelled !== null)
+      matchFinalized = false;
+
+    // Throw error if wrong.
+    await check_api_key(matchValues[0].api_key, req.params.key, matchFinalized);
+
+    if(winner === "team1")
+      teamIdWinner = matchValues[0].team1_id;
+    else if(winner === "team2")
+      teamIdWinner = matchValues[0].team2_id;  
+    if(forfeit === 1){
+      if(winner === "team1"){
+        team1Score = 1;
+        team2Score = 0;
+      } else if(winner === "team2"){
+        team1Score = 0;
+        team2Score = 1;
+      }
+
+    }
+
+    await withTransaction (db, async () => {
+      let updateStmt = {
+        winner: teamIdWinner,
+        forfeit: forfeit,
+        team1_score: team1Score,
+        team2_score: team2Score,
+        start_time: matchValues[0].start_time || new Date().toISOString().slice(0, 19).replace('T', ' '),
+        end_time: end_time
+      }
+      // Remove any values that may not be updated.
+      for (let key in updateStmt) {
+        if (updateStmt[key] === null) delete updateStmt[key];
+      }
+      let updateSql = "UPDATE `match` SET ? WHERE id = ?";
+      await db.query(updateSql, [updateStmt, matchID]);
+      // Set the server to not be in use.
+      await db.query("UPDATE game_server SET in_use = 0 WHERE id = ?", [matchValues[0].server_id]);
+      res.status(200).send('Success');
     });
-    res.json(allTeams);
   } catch (err) {
-    res.json({ message: err });
+    res.status(500).json({ message: err });
   }
 });
 
-/** GET - Route serving to get team with an ID.
- * @name router.get('/:team_id')
+/** POST - Begin a map within a match series.
+ * @name /
  * @function
- * @memberof module:routes/teams
+ * @memberof module:routes/legacy/api
  * @param {int} teamid - The team ID you wish to examine.
  */
-router.get("/:team_id", async (req, res, next) => {
-  teamID = req.params.team_id;
+router.post("/:match_id/map/:map_number/start", async (req, res, next) => {
+  teamID = req.params.teamid;
   let sql =
     "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
     "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
@@ -57,6 +131,7 @@ router.get("/:team_id", async (req, res, next) => {
     allTeams[0].auth_name = JSON.parse(allTeams[0].auth_name);
     res.json(allTeams);
   } catch (err) {
+    console.log(err);
     res.status(500).json({ message: err });
   }
 });
@@ -64,7 +139,7 @@ router.get("/:team_id", async (req, res, next) => {
 /** POST - Route serving to insert a team into the database.
  * @name /create
  * @function
- * @memberof module:routes/teams
+ * @memberof module:routes/legacy/api
  * @param {int} req.body[0].user_id - The ID of the user creating the team to claim ownership.
  * @param {string} req.body[0].name - Team name inputted by a user.
  * @param {string} req.body[0].flag - International code for a flag.
@@ -126,7 +201,7 @@ router.post("/create", async (req, res, next) => {
 /** PUT - Route serving to udpate a team into the database.
  * @name /update
  * @function
- * @memberof module:routes/teams
+ * @memberof module:routes/legacy/api
  * @param {int} req.body[0].user_id - The ID of the user creating the team to claim ownership.
  * @param {string} req.body[0].name - Team name inputted by a user.
  * @param {string} req.body[0].flag - International code for a flag.
@@ -183,7 +258,7 @@ router.put("/update", async (req, res, next) => {
 /** DELETE - Route serving to delete a team from the database. The team will only be deleted if their foreign key references have been removed, as we want to keep statistics of all teams over time.
  * @name /delete/:team_id
  * @function
- * @memberof module:routes/teams
+ * @memberof module:routes/legacy/api
  * @param {int} req.params.team_id - The ID of the team to be deleted.
  */
 router.delete("/delete/:team_id", async (req, res, next) => {
@@ -231,7 +306,7 @@ router.delete("/delete/:team_id", async (req, res, next) => {
  * @name withTransaction
  * @function
  * @inner
- * @memberof module:routes/teams
+ * @memberof module:routes/legacy/api
  * @param {*} db - The database object.
  * @param {*} callback - The callback function that is operated on, usually a db.query()
  */
@@ -246,6 +321,14 @@ async function withTransaction(db, callback) {
   } /* finally {
     await db.close();
   } */
+}
+
+async function check_api_key(match_api_key, given_api_key, match_finished) {
+    if (match_api_key.localeCompare(given_api_key) !== 0)
+        throw "Not a correct API Key.";
+    if (match_finished === 1)
+        throw "Match is already finalized.";
+    return;
 }
 
 //TODO: various getters/setters are needed to be imported from Get5-Web. Please see https://github.com/PhlexPlexico/get5-web/blob/master/get5/models.py
