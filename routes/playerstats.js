@@ -37,19 +37,19 @@ router.get("/", async (req, res, next) => {
 });
 
 /** GET - Route serving to get all player stats via a given user.
- * @name router.get('/:steamid')
+ * @name router.get('/:steam_id')
  * @memberof module:routes/playerstats
  * @function
  * @param {string} path - Express path
- * @param {number} request.param.match_id - The ID of the match containing the statistics.
+ * @param {number} request.param.steam_id - The ID of the match containing the statistics.
  * @param {callback} middleware - Express middleware.
  */
-router.get("/:steamid", async (req, res, next) => {
+router.get("/:steam_id", async (req, res, next) => {
   try {
     //
-    serverID = req.params.match_id;
+    steamID = req.params.steam_id;
     let sql = "SELECT * FROM player_stats where steam_id = ?";
-    const playerStats = await db.query(sql, serverID);
+    const playerStats = await db.query(sql, steamID);
     res.json(playerStats);
   } catch (err) {
     res.status(500).json({ message: err });
@@ -57,19 +57,19 @@ router.get("/:steamid", async (req, res, next) => {
 });
 
 /** GET - Route serving to get all player stats within a match.
- * @name router.get('/match/:matchid')
+ * @name router.get('/match/:match_id')
  * @memberof module:routes/playerstats
  * @function
  * @param {string} path - Express path
  * @param {number} request.param.match_id - The ID of the match containing the statistics.
  * @param {callback} middleware - Express middleware.
  */
-router.get("/match/:matchid", async (req, res, next) => {
+router.get("/match/:match_id", async (req, res, next) => {
   try {
     //
-    serverID = req.params.match_id;
+    matchID = req.params.match_id;
     let sql = "SELECT * FROM player_stats where match_id = ?";
-    const playerStats = await db.query(sql, serverID);
+    const playerStats = await db.query(sql, matchID);
     res.json(playerStats);
   } catch (err) {
     res.status(500).json({ message: err });

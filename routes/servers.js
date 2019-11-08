@@ -53,18 +53,18 @@ router.get("/", async (req, res, next) => {
 });
 
 /** GET - Route serving to get one game server by database id.
- * @name router.get('/:serverid')
+ * @name router.get('/:server_id')
  * @memberof module:routes/servers
  * @function
  * @param {string} path - Express path
- * @param {number} request.param.serverid - The ID of the game server.
+ * @param {number} request.param.server_id - The ID of the game server.
  * @param {callback} middleware - Express middleware.
  * @param {int} user_id - The user ID that is querying the data. Check if they own it or are an admin.
  */
-router.get("/:serverid", async (req, res, next) => {
+router.get("/:server_id", async (req, res, next) => {
   try {
     // 
-    serverID = req.params.serverid;
+    serverID = req.params.server_id;
     let sql = "SELECT * FROM game_server where id = ?";
     const server = await db.query(sql, serverID);
     server[0].rcon_password = await decrypt(server[0].rcon_password);

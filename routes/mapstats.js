@@ -37,19 +37,18 @@ router.get("/", async (req, res, next) => {
 });
 
 /** GET - Route serving to get a set of map stats from a match.
- * @name router.get('/:serverid')
+ * @name router.get('/:match_id')
  * @memberof module:routes/mapstats
  * @function
  * @param {string} path - Express path
  * @param {number} request.param.match_id - The ID of the match containing the statistics.
  * @param {callback} middleware - Express middleware.
  */
-router.get("/:matchid", async (req, res, next) => {
+router.get("/:match_id", async (req, res, next) => {
   try {
-    // 
-    serverID = req.params.match_id;
+    matchID = req.params.match_id;
     let sql = "SELECT * FROM map_stats where match_id = ?";
-    const mapStats = await db.query(sql, serverID);
+    const mapStats = await db.query(sql, matchID);
     res.json(mapStats);
   } catch (err) {
     res.status(500).json({ message: err });
