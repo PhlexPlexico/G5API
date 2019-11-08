@@ -160,7 +160,7 @@ router.post("/:match_id/map/:map_number/start", basicRateLimit, async (req, res,
     await check_api_key(matchValues[0].api_key, req.params.key, matchFinalized);
 
     // Begin transaction
-    await withTransaction(db, () => {
+    await withTransaction(db, async () => {
       if(matchValues[0].start_time === null){
         // Update match stats to have a start time.
         updateStmt = {
