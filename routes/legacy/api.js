@@ -609,7 +609,7 @@ router.post("/:match_id/map/:map_number/player/:steam_id/update", playerStatRate
         k3: player3k,
         k4: player4k,
         k5: player5k,
-        firstdeath_Ct: playerFirstDeathCT,
+        firstdeath_ct: playerFirstDeathCT,
         firstdeath_t: playerFirstDeathT,
         firstkill_ct: playerFirstKillCT,
         firstkill_t: playerFirstKillT

@@ -106,7 +106,7 @@ router.get("/match/:match_id", async (req, res, next) => {
  * @param {int} [req.body[0].k3] - Amount of 3 kill rounds.
  * @param {int} [req.body[0].k4] - Amount of 4 kill rounds.
  * @param {int} [req.body[0].k5] - Amount of ace (5 kill) rounds.
- * @param {int} [req.body[0].firstdeath_Ct] - Amount of times player died first as Counter-Terrorist.
+ * @param {int} [req.body[0].firstdeath_ct] - Amount of times player died first as Counter-Terrorist.
  * @param {int} [req.body[0].firstdeath_t] - Amount of times player died first as Terrorist.
  * @param {int} [req.body[0].firstkill_ct] - Amount of times player has gotten first kill as Counter-Terrorist.
  * @param {int} [req.body[0].firstkill_t] - Amount of times player has gotten first kill as Terrorist.
@@ -141,7 +141,7 @@ router.post("/create", async (req, res, next) => {
         k3: req.body[0].k3 || null,
         k4: req.body[0].k4 || null,
         k5: req.body[0].k5 || null,
-        firstdeath_Ct: req.body[0].firstdeath_Ct || null,
+        firstdeath_ct: req.body[0].firstdeath_ct || null,
         firstdeath_t: req.body[0].firstdeath_t || null,
         firstkill_ct: req.body[0].firstkill_ct || null,
         firstkill_t: req.body[0].firstkill_t || null
@@ -188,7 +188,7 @@ router.post("/create", async (req, res, next) => {
  * @param {int} [req.body[0].k3] - Amount of 3 kill rounds.
  * @param {int} [req.body[0].k4] - Amount of 4 kill rounds.
  * @param {int} [req.body[0].k5] - Amount of ace (5 kill) rounds.
- * @param {int} [req.body[0].firstdeath_Ct] - Amount of times player died first as Counter-Terrorist.
+ * @param {int} [req.body[0].firstdeath_ct] - Amount of times player died first as Counter-Terrorist.
  * @param {int} [req.body[0].firstdeath_t] - Amount of times player died first as Terrorist.
  * @param {int} [req.body[0].firstkill_ct] - Amount of times player has gotten first kill as Counter-Terrorist.
  * @param {int} [req.body[0].firstkill_t] - Amount of times player has gotten first kill as Terrorist.
@@ -219,7 +219,7 @@ router.put("/update", async (req, res, next) => {
         k3: req.body[0].k3 || null,
         k4: req.body[0].k4 || null,
         k5: req.body[0].k5 || null,
-        firstdeath_Ct: req.body[0].firstdeath_Ct || null,
+        firstdeath_ct: req.body[0].firstdeath_ct || null,
         firstdeath_t: req.body[0].firstdeath_t || null,
         firstkill_ct: req.body[0].firstkill_ct || null,
         firstkill_t: req.body[0].firstkill_t || null

@@ -8,9 +8,14 @@
   "Server": {
     "port": APP_SERVER_PORT
   },
-    "Keys" : {
-        "dbKey": "Database 16 Byte Key.",
-        "steamAPIKey": "API Key For Steam Calls."
-    }
-}
+  "Keys" : {
+    "dbKey": "Database 16 Byte Key.",
+    "steamAPIKey": "API Key For Steam Calls."
+  },
+  "dev": {
+    "driver": "mysql",
+    "user": "get5",
+    "password": "",
+    "database": "get5"
+  }
 }
