@@ -1,11 +1,13 @@
 # G5API - API Backend for Get5
 _**Status: Early Alpha.**_
 
-G5API is a replacement for the get5-webpanel. _Currently_ this is the backend only, as it will allow the plugin to interface with a database, as well as make various calls to functionality that is seen in the [get5-webpanel](https://github.com/phlexplexico/get5-webpanel)
+G5API is going to be a replacement for the get5-webpanel. _Currently_ this is the backend only, as it will allow the plugin to interface with a database, as well as make various calls to functionality that is seen in the [get5-webpanel](https://github.com/phlexplexico/get5-webpanel)
 
 
 ## What does it do?
 Currently, nothing. Right now, this is a very early build to try my hand at using Express as a middleware, and try some JavaScript technologies so that others may create their own front-end applications, with all the difficult back-end stuff being completed. 
+
+As it stands, this API provides no security for the basic CRUD operations for the tables, however the API calls received from the plugin should work, and they are found under the `legacy` folder in `routes`.
 
 
 ## Why?
