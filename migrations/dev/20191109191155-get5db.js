@@ -15,7 +15,7 @@ exports.setup = function(options, seedLink) {
   seed = seedLink;
 };
 
-exports.up = function(db) {
+exports.up = function(db, callback) {
   async.series([
     db.createTable('user', {
       id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11 },
@@ -39,7 +39,7 @@ exports.up = function(db) {
         },
         length: 11 
       },
-      ip_string: { type: 'string' length: 32 },
+      ip_string: { type: 'string', length: 32 },
       port: { type: 'int', length: 11 },
       rcon_password: { type: 'string', length: 128 },
       display_name: { type: 'string', length: 32 },
@@ -98,7 +98,7 @@ exports.up = function(db) {
         },
         length: 11 
       },
-      name: { type: string, length: 40 },
+      name: { type: 'string', length: 40 },
       start_date: 'datetime',
       end_date: 'datetime'
     }),
@@ -308,7 +308,7 @@ exports.up = function(db) {
       match_id: {
         type: 'int', 
         foreignKey: {
-          name: 'match_id_map_stats_fk',
+          name: 'match_id_player_stats_fk',
           table: 'match',
           rules: {
             onDelete: 'CASCADE',
@@ -322,7 +322,7 @@ exports.up = function(db) {
       map_id: {
         type: 'int', 
         foreignKey: {
-          name: 'map_id_player_stats_fk',
+          name: 'map_stats_id_player_stats_fk',
           table: 'map_stats',
           rules: {
             onDelete: 'CASCADE',
@@ -375,8 +375,7 @@ exports.up = function(db) {
       firstkill_ct: { type: 'int', length: 11 },
       firstkill_t: { type: 'int', length: 11 }
     })
-  ]);
-  return 
+  ], callback());
 };
 
 exports.down = function(db) {
