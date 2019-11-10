@@ -18,6 +18,10 @@ The intent will to be provide similar functionality with the use of NodeJS and e
 ## Building
 In order to build this application, I've opted to use [Yarn](https://yarnpkg.com/lang/en/).
 
+First you will need to copy over the ```development.json.template``` and update any values that are required.
+
+Migrate dev database: ```yarn migrate-dev up:dev```
+
 Build and run: ```yarn start```
 
 Docs: ```yarn doc```
