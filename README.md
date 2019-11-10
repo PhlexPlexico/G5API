@@ -9,6 +9,8 @@ Currently, nothing. Right now, this is a very early build to try my hand at usin
 
 As it stands, this API provides no security for the basic CRUD operations for the tables, however the API calls received from the plugin should work, and they are found under the `legacy` folder in `routes`.
 
+## What does it NOT do?
+Basically every "advanced" feature the current web panel has, from editing matches while in game (should be done with a front-end and calls to steam), to displaying any of the data. This is simply a back-end to get myself used to JavaScript and Node. Maybe eventually I will work on a front-end in React or Vue, but it depends on how long I stay motivated with this.
 
 ## Why?
 [Get5-webpanel](https://github.com/phlexplexico/get5-webpanel) is a rather now out-dated webpanel. Being built all on Flask, with ORM (SQLAlchemy), and Jinja2, its tech spans a few years old. While it works really well for now, it is becoming increasingly harder to deploy to more modern hardware (such as Ubuntu 19). With Python2 now being outdated in 2020, it makes sense to move that project over to something newer.
