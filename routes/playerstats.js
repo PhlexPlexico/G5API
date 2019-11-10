@@ -119,38 +119,36 @@ router.post("/create", async (req, res, next) => {
         map_id: req.body[0].map_id,
         team_id: req.body[0].team_id,
         steam_id: req.body[0].steam_id,
-        name: req.body[0].name || null,
-        kills: req.body[0].kills || null,
-        deaths: req.body[0].deaths || null,
-        roundsplayed: req.body[0].roundsplayed || null,
-        assists: req.body[0].assists || null,
-        flashbang_assists: req.body[0].flashbang_assists || null,
-        teamkills: req.body[0].teamkills || null,
-        suicides: req.body[0].suicides || null,
-        headshot_kills: req.body[0].headshot_kills || null,
-        damage: req.body[0].damage || null,
-        bomb_plants: req.body[0].bomb_plants || null,
-        bomb_defuses: req.body[0].bomb_defuses || null,
-        v1: req.body[0].v1 || null,
-        v2: req.body[0].v2 || null,
-        v3: req.body[0].v3 || null,
-        v4: req.body[0].v4 || null,
-        v5: req.body[0].v5 || null,
-        k1: req.body[0].k1 || null,
-        k2: req.body[0].k2 || null,
-        k3: req.body[0].k3 || null,
-        k4: req.body[0].k4 || null,
-        k5: req.body[0].k5 || null,
-        firstdeath_ct: req.body[0].firstdeath_ct || null,
-        firstdeath_t: req.body[0].firstdeath_t || null,
-        firstkill_ct: req.body[0].firstkill_ct || null,
-        firstkill_t: req.body[0].firstkill_t || null
+        name: req.body[0].name,
+        kills: req.body[0].kills,
+        deaths: req.body[0].deaths,
+        roundsplayed: req.body[0].roundsplayed,
+        assists: req.body[0].assists,
+        flashbang_assists: req.body[0].flashbang_assists,
+        teamkills: req.body[0].teamkills,
+        suicides: req.body[0].suicides,
+        headshot_kills: req.body[0].headshot_kills,
+        damage: req.body[0].damage,
+        bomb_plants: req.body[0].bomb_plants,
+        bomb_defuses: req.body[0].bomb_defuses,
+        v1: req.body[0].v1,
+        v2: req.body[0].v2,
+        v3: req.body[0].v3,
+        v4: req.body[0].v4,
+        v5: req.body[0].v5,
+        k1: req.body[0].k1,
+        k2: req.body[0].k2,
+        k3: req.body[0].k3,
+        k4: req.body[0].k4,
+        k5: req.body[0].k5,
+        firstdeath_ct: req.body[0].firstdeath_ct,
+        firstdeath_t: req.body[0].firstdeath_t,
+        firstkill_ct: req.body[0].firstkill_ct,
+        firstkill_t: req.body[0].firstkill_t
       };
       let sql = "INSERT INTO player_stats SET ?";
       // Remove any values that may not be inserted off the hop.
-      for (let key in updateStmt) {
-        if (updateStmt[key] === null) delete updateStmt[key];
-      }
+      insertSet = await db.buildUpdateStatement(insertSet);
       await db.query(sql, [insertSet]);
       res.json("Player Stats inserted successfully!");
     });
@@ -197,37 +195,35 @@ router.put("/update", async (req, res, next) => {
   try {
     await withTransaction(db, async () => {
       let updateStmt = {
-        name: req.body[0].name || null,
-        kills: req.body[0].kills || null,
-        deaths: req.body[0].deaths || null,
-        roundsplayed: req.body[0].roundsplayed || null,
-        assists: req.body[0].assists || null,
-        flashbang_assists: req.body[0].flashbang_assists || null,
-        teamkills: req.body[0].teamkills || null,
-        suicides: req.body[0].suicides || null,
-        headshot_kills: req.body[0].headshot_kills || null,
-        damage: req.body[0].damage || null,
-        bomb_plants: req.body[0].bomb_plants || null,
-        bomb_defuses: req.body[0].bomb_defuses || null,
-        v1: req.body[0].v1 || null,
-        v2: req.body[0].v2 || null,
-        v3: req.body[0].v3 || null,
-        v4: req.body[0].v4 || null,
-        v5: req.body[0].v5 || null,
-        k1: req.body[0].k1 || null,
-        k2: req.body[0].k2 || null,
-        k3: req.body[0].k3 || null,
-        k4: req.body[0].k4 || null,
-        k5: req.body[0].k5 || null,
-        firstdeath_ct: req.body[0].firstdeath_ct || null,
-        firstdeath_t: req.body[0].firstdeath_t || null,
-        firstkill_ct: req.body[0].firstkill_ct || null,
-        firstkill_t: req.body[0].firstkill_t || null
+        name: req.body[0].name,
+        kills: req.body[0].kills,
+        deaths: req.body[0].deaths,
+        roundsplayed: req.body[0].roundsplayed,
+        assists: req.body[0].assists,
+        flashbang_assists: req.body[0].flashbang_assists,
+        teamkills: req.body[0].teamkills,
+        suicides: req.body[0].suicides,
+        headshot_kills: req.body[0].headshot_kills,
+        damage: req.body[0].damage,
+        bomb_plants: req.body[0].bomb_plants,
+        bomb_defuses: req.body[0].bomb_defuses,
+        v1: req.body[0].v1,
+        v2: req.body[0].v2,
+        v3: req.body[0].v3,
+        v4: req.body[0].v4,
+        v5: req.body[0].v5,
+        k1: req.body[0].k1,
+        k2: req.body[0].k2,
+        k3: req.body[0].k3,
+        k4: req.body[0].k4,
+        k5: req.body[0].k5,
+        firstdeath_ct: req.body[0].firstdeath_ct,
+        firstdeath_t: req.body[0].firstdeath_t,
+        firstkill_ct: req.body[0].firstkill_ct,
+        firstkill_t: req.body[0].firstkill_t
       };
       // Remove any values that may not be updated.
-      for (let key in updateStmt) {
-        if (updateStmt[key] === null) delete updateStmt[key];
-      }
+      updateStmt = await db.buildUpdateStatement(updateStmt);
       let sql =
         "UPDATE player_stats SET ? WHERE map_id = ? AND match_id = ? AND steam_id = ?";
       const updatedPlayerStats = await db.query(sql, [

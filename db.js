@@ -29,6 +29,12 @@ function makeDb( config ) {
     rollback() {
       return util.promisify( connection.rollback )
         .call( connection );
+    },
+    async buildUpdateStatement(objValues){
+      for (let key in objValues) {
+        if (objValues[key] === null) delete objValues[key];
+      }
+      return objValues;
     }
   };
 }
