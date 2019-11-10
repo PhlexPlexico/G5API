@@ -138,21 +138,18 @@ router.put("/update", async (req, res, next) => {
     await withTransaction(db, async () => {
       // Use passport auth here, and then also check user to see if they own or are admin of match.
       let updateStmt = {
-        user_id: req.body[0].user_id || null,
-        end_time: req.body[0].end_time || null,
-        winner: req.body[0].winner || null,
-        plugin_version: req.body[0].plugin_version || null,
-        forfeit: req.body[0].forfeit || null,
-        cancelled: req.body[0].cancelled || null,
-        team1_score: req.body[0].team1_score || null,
-        team2_score: req.body[0].team2_score || null,
-        private_match: req.body[0].private_match || null
+        user_id: req.body[0].user_id,
+        end_time: req.body[0].end_time,
+        winner: req.body[0].winner,
+        plugin_version: req.body[0].plugin_version,
+        forfeit: req.body[0].forfeit,
+        cancelled: req.body[0].cancelled,
+        team1_score: req.body[0].team1_score,
+        team2_score: req.body[0].team2_score,
+        private_match: req.body[0].private_match
       };
       // Remove any values that may not be updated.
-      for (let key in updateStmt) {
-        if (updateStmt[key] === null) delete updateStmt[key];
-      }
-      console.log(JSON.stringify(updateStmt));
+      updateStmt = await db.buildUpdateStatement(updateStmt);
       let sql = "UPDATE `match` SET ? WHERE id = ?";
       await db.query(sql, [updateStmt, req.body[0].match_id]);
       sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";

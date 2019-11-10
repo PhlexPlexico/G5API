@@ -117,18 +117,23 @@ router.post("/create", async (req, res, next) => {
  * @param {int} req.body[0].public_server - Integer value evaluating if the server is public.
  *
 */
+// TODO: Query if user is admin/super_admin to edit servers.
 router.put("/update", async (req, res, next) => {
   try{
     await withTransaction(db, async () => {
-      let userId = req.body[0].user_id;
-      let ipString = req.body[0].ip_string;
-      let port = req.body[0].port;
-      let displayName =  req.body[0].display_name;
-      let rconPass = await encrypt(req.body[0].rcon_password);
-      let publicServer = req.body[0].public_server;
-      let sql = "UPDATE game_server SET ip_string = ?, port = ?, display_name = ?, rcon_password = ?, public_server = ? WHERE user_id = ? AND id = ?";
-      updatedServer = await db.query(sql, [userId, ipString, port, displayName, rconPass, publicServer]);
-      console.log(JSON.stringify(updatedServer));
+      let userId =  req.body[0].user_id;
+      let serverId = req.body[0].server_id;
+      let updateStmt = {
+      ipString: req.body[0].ip_string,
+      port: req.body[0].port,
+      displayName: req.body[0].display_name,
+      rconPass: await encrypt(req.body[0].rcon_password),
+      publicServer: req.body[0].public_server
+      };
+      // Remove any unwanted nulls.
+      updateStmt = await db.buildUpdateStatement(updateStmt);
+      let sql = "UPDATE game_server SET ? WHERE user_id = ? AND id = ?";
+      updatedServer = await db.query(sql, [updateStmt, userId, server_id]);
       if (updatedServer.affectedRows > 0)
         res.json("Game server updated successfully!");
       else

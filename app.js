@@ -15,6 +15,7 @@ const teamsRouter = require('./routes/teams');
 const serversRouter = require('./routes/servers');
 const vetoesRouter = require('./routes/vetoes');
 const matchesRouter = require('./routes/matches');
+const mapstatsRouter = require('./routes/mapstats');
 const playerstatsRouter = require('./routes/playerstats');
 const legacyAPICalls = require('./routes/legacy/api');
 //End Route Files
@@ -51,6 +52,7 @@ app.use('/teams', teamsRouter);
 app.use('/servers', serversRouter);
 app.use('/vetoes', vetoesRouter);
 app.use('/matches', matchesRouter);
+app.use('/mapstats', mapstatsRouter);
 app.use('/playerstats', playerstatsRouter);
 app.use('/match', legacyAPICalls);
 

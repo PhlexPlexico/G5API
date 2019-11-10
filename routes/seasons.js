@@ -97,15 +97,13 @@ router.put("/update", async (req, res, next) => {
   try {
       await withTransaction(db, async () => {
       let updateStmt = {
-        user_id: req.body[0].user_id || null,
-        name: req.body[0].name || null,
-        start_date: req.body[0].start_date || null,
-        end_date: req.body[0].end_date || null,
+        user_id: req.body[0].user_id,
+        name: req.body[0].name,
+        start_date: req.body[0].start_date,
+        end_date: req.body[0].end_date,
       };
       // Remove any values that may not be updated.
-      for (let key in updateStmt) {
-        if (updateStmt[key] === null) delete updateStmt[key];
-      }
+      updateStmt = await db.buildUpdateStatement(updateStmt);
       let sql = "UPDATE season SET ? WHERE id = ?";
       await db.query(sql, [updateStmt, req.body[0].season_id]);
       res.json("Season updated successfully!");

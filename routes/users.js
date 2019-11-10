@@ -82,9 +82,9 @@ router.post("/create", async (req, res, next) => {
  * @name /update
  * @function
  * @memberof module:routes/users
- * @param {number} req.body.steam_id - Steam ID of the user being created.
- * @param {number} req.body.admin - Integer determining if a user is an admin of the system. Either 1 or 0.
- * @param {number} req.body.super_admin - Integer determining if a user is a super admin of the system. Either 1 or 0.
+ * @param {number} req.body[0].steam_id - Steam ID of the user being created.
+ * @param {number} [req.body[0].admin] - Integer determining if a user is an admin of the system. Either 1 or 0.
+ * @param {number} [req.body[0].super_admin] - Integer determining if a user is a super admin of the system. Either 1 or 0.
  */
 router.put("/update", async (req, res, next) => {
   try {

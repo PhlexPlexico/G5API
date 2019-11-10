@@ -86,30 +86,36 @@ router.post("/create", async (req, res, next) => {
  * @memberof module:routes/mapstats
  * @function
  * @param {int} req.body[0].map_stats_id - The ID of the map stat being updated, for end times, score, winner, and demo files.
- * @param {DateTime} req.body[0].end_time - The Date Time that the map has ended.
- * @param {int} req.body[0].winner - The ID of the team that was victorious.
- * @param {int} req.body[0].team1_score - The score of team1 defined in the match object.
- * @param {int} req.body[0].team2_score - The score of team2 defined in the match object.
- * @param {string} req.body[0].demo_file - The demo file of the match once demo has been finished recording.
+ * @param {DateTime} [req.body[0].end_time] - The Date Time that the map has ended.
+ * @param {int} [req.body[0].winner] - The ID of the team that was victorious.
+ * @param {int} [req.body[0].team1_score] - The score of team1 defined in the match object.
+ * @param {int} [req.body[0].team2_score] - The score of team2 defined in the match object.
+ * @param {string} [req.body[0].map_name] - The map the stats are recording from in the match series.
+ * @param {string} [req.body[0].demo_file] - The demo file of the match once demo has been finished recording.
  *
 */
 router.put("/update", async (req, res, next) => {
   try{
     await withTransaction(db, async () => {
       let mapStatId = req.body[0].map_stats_id;
-      let endTime = req.body[0].end_time;
-      let winner = req.body[0].team1_score;
-      let team1Score =  req.body[0].team2_score;
-      let team2Score = await encrypt(req.body[0].rcon_password);
-      let demoFile = req.body[0].demo_file;
-      let sql = "UPDATE map_stats SET end_time = ?, winner = ?, team1_score = ?, team2_score = ?, demoFile = ? WHERE id = ?";
-      updateMapStats = await db.query(sql, [endTime, winner, team1Score, team2Score, demoFile, mapStatId]);
+      let updatedValues = {
+        end_time: req.body[0].end_time,
+        team1_score: req.body[0].team1_score,
+        team2_score: req.body[0].team2_score,
+        winner: req.body[0].winner,
+        demoFile: req.body[0].demo_file,
+        map_name: req.body[0].map_name
+      };
+      updatedvalues = await db.buildUpdateStatement(updatedValues);
+      let sql = "UPDATE map_stats SET ? WHERE id = ?";
+      updateMapStats = await db.query(sql, [updatedValues, mapStatId]);
       if (updateMapStats.affectedRows > 0)
         res.json("Map Stats updated successfully!");
       else
         res.status(401).json({message: "ERROR - Maps Stats not updated or found."});
     });
   } catch ( err ) {
+    console.log(err);
     res.status(500).json({message: err});
   }
 });
