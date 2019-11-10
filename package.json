@@ -30,7 +30,9 @@
   "scripts": {
     "start": "nodemon ./bin/www",
     "doc": "jsdoc -c jsdoc.conf.json",
-    "migrate-dev": "node ./node_modules/db-migrate/bin/db-migrate --config config/development.json"
+    "migrate-dev": "node ./node_modules/db-migrate/bin/db-migrate --config config/development.json",
+    "migrate-dev-upgrade": "node ./node_modules/db-migrate/bin/db-migrate --config config/development.json up:dev",
+    "migrate-dev-downgrade": "node ./node_modules/db-migrate/bin/db-migrate --config config/development.json down:dev"
   },
   "dependencies": {
     "aes-js": "^3.1.2",
