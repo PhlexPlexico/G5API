@@ -67,7 +67,7 @@ router.get("/:match_id", async (req, res, next) => {
 */
 router.post("/create", async (req, res, next) => {
   try{
-    await withTransaction(db, async () => {
+    await db.withTransaction(db, async () => {
       let matchId = req.body[0].match_id;
       let mapNum = req.body[0].map_number;
       let mapName = req.body[0].map_name;
@@ -96,7 +96,7 @@ router.post("/create", async (req, res, next) => {
 */
 router.put("/update", async (req, res, next) => {
   try{
-    await withTransaction(db, async () => {
+    await db.withTransaction(db, async () => {
       let mapStatId = req.body[0].map_stats_id;
       let updatedValues = {
         end_time: req.body[0].end_time,
@@ -130,7 +130,7 @@ router.put("/update", async (req, res, next) => {
 */
 router.delete("/delete", async (req,res,next) => {
   try {
-    await withTransaction (db, async () => {
+    await db.withTransaction (db, async () => {
       let userId = req.body[0].user_id;
       let mapStatsId = req.body[0].map_stats_id;
       let sql = "DELETE FROM map_stats WHERE id = ?"
@@ -146,25 +146,5 @@ router.delete("/delete", async (req,res,next) => {
   }
 });
 
-/** Inner function - boilerplate transaction call.
- * @name withTransaction
- * @function
- * @inner
- * @memberof module:routes/servers
- * @param {*} db - The database object.
- * @param {*} callback - The callback function that is operated on, usually a db.query()
- */
-async function withTransaction(db, callback) {
-  try {
-    await db.beginTransaction();
-    await callback();
-    await db.commit();
-  } catch (err) {
-    await db.rollback();
-    throw err;
-  } /* finally {
-    await db.close();
-  } */
-}
 
 module.exports = router;

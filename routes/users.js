@@ -27,9 +27,9 @@ const config = require('config');
  * @param {callback} middleware - Express middleware.
  */
 router.get("/", async (req, res) => {
-//router.get("/", async (req, res) => {
+  let token = req.token;
+  console.log(req.token);
   try {
-    console.log(req.user);
     let sql = "SELECT * FROM user";
     const allUsers = await db.query(sql);
     res.json(allUsers);
@@ -39,12 +39,12 @@ router.get("/", async (req, res) => {
 });
 
 router.get('/me', async (req, res) => {
-  var token = req.headers['x-access-token'];
+  var token = req.headers['x-api-key'];
   if (!token) return res.status(401).send({ auth: false, message: 'No token provided.' });
   
   jwt.verify(token, config.get("Server.sharedSecret"), function(err, decoded) {
     if (err) return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
-    
+    console.log(decoded);
     res.status(200).send(decoded);
   });
 });
@@ -79,7 +79,7 @@ router.get("/:user_id", async (req, res, next) => {
  */
 router.post("/create", async (req, res, next) => {
   try {
-    await withTransaction(db, async () => {
+    await db.withTransaction(db, async () => {
       let steamId = req.body[0].steam_id;
       let steamName = req.body[0].name;
       let isAdmin = req.body[0].admin;
@@ -104,7 +104,7 @@ router.post("/create", async (req, res, next) => {
  */
 router.put("/update", async (req, res, next) => {
   try {
-    await withTransaction(db, async () => {
+    await db.withTransaction(db, async () => {
       let steamId = req.body[0].steam_id;
       let isAdmin = req.body[0].admin || 0;
       let isSuperAdmin = req.body[0].super_admin || 0;
@@ -115,26 +115,5 @@ router.put("/update", async (req, res, next) => {
     res.status(500).json({ message: err });
   }
 });
-
-/** Inner function - boilerplate transaction call.
- * @name withTransaction
- * @function
- * @inner
- * @memberof module:routes/users
- * @param {*} db - The database object.
- * @param {*} callback - The callback function that is operated on, usually a db.query()
- */
-async function withTransaction(db, callback) {
-  try {
-    await db.beginTransaction();
-    await callback();
-    await db.commit();
-  } catch (err) {
-    await db.rollback();
-    throw err;
-  } /* finally {
-    await db.close();
-  } */
-}
 
 module.exports = router;

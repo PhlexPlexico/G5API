@@ -88,7 +88,7 @@ router.get("/:server_id", async (req, res, next) => {
 */
 router.post("/create", async (req, res, next) => {
   try{
-    await withTransaction(db, async () => {
+    await db.withTransaction(db, async () => {
       let userId = req.body[0].user_id;
       let ipString = req.body[0].ip_string;
       let port = req.body[0].port;
@@ -120,7 +120,7 @@ router.post("/create", async (req, res, next) => {
 // TODO: Query if user is admin/super_admin to edit servers.
 router.put("/update", async (req, res, next) => {
   try{
-    await withTransaction(db, async () => {
+    await db.withTransaction(db, async () => {
       let userId =  req.body[0].user_id;
       let serverId = req.body[0].server_id;
       let updateStmt = {
@@ -154,7 +154,7 @@ router.put("/update", async (req, res, next) => {
 */
 router.delete("/delete", async (req,res,next) => {
   try {
-    await withTransaction (db, async () => {
+    await db.withTransaction (db, async () => {
       let userId = req.body[0].user_id;
       let serverId = req.body[0].server_id;
       let sql = "DELETE FROM game_server WHERE id = ? AND user_id = ?"
@@ -170,26 +170,6 @@ router.delete("/delete", async (req,res,next) => {
   }
 });
 
-/** Inner function - boilerplate transaction call.
- * @name withTransaction
- * @function
- * @inner
- * @memberof module:routes/servers
- * @param {*} db - The database object.
- * @param {*} callback - The callback function that is operated on, usually a db.query()
- */
-async function withTransaction(db, callback) {
-  try {
-    await db.beginTransaction();
-    await callback();
-    await db.commit();
-  } catch (err) {
-    await db.rollback();
-    throw err;
-  } /* finally {
-    await db.close();
-  } */
-}
 
 /** Inner function - Supports encryption and decryption for the database keys to get server RCON passwords.
  * @name decrypt

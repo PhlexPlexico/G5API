@@ -83,7 +83,7 @@ router.get("/:match_id", async (req, res, next) => {
  */
 router.post("/create", async (req, res, next) => {
   try {
-    await withTransaction(db, async () => {
+    await db.withTransaction(db, async () => {
       let insertSet = {
         user_id: req.body[0].user_id,
         server_id: req.body[0].server_id,
@@ -135,7 +135,7 @@ router.post("/create", async (req, res, next) => {
  */
 router.put("/update", async (req, res, next) => {
   try {
-    await withTransaction(db, async () => {
+    await db.withTransaction(db, async () => {
       // Use passport auth here, and then also check user to see if they own or are admin of match.
       let updateStmt = {
         user_id: req.body[0].user_id,
@@ -174,7 +174,7 @@ router.put("/update", async (req, res, next) => {
  */
 router.delete("/delete", async (req, res, next) => {
   try {
-    await withTransaction(db, async () => {
+    await db.withTransaction(db, async () => {
       //TODO: Use passport to check steam ID and grab user identification here.
       let matchId = req.body[0].match_id;
       let isMatchCancelled = "SELECT cancelled from `match` WHERE id = ?";
@@ -202,26 +202,5 @@ router.delete("/delete", async (req, res, next) => {
     res.status(500).json({ message: err });
   }
 });
-
-/** Inner function - boilerplate transaction call.
- * @name withTransaction
- * @function
- * @inner
- * @memberof module:routes/vetoes
- * @param {*} db - The database object.
- * @param {*} callback - The callback function that is operated on, usually a db.query()
- */
-async function withTransaction(db, callback) {
-  try {
-    await db.beginTransaction();
-    await callback();
-    await db.commit();
-  } catch (err) {
-    await db.rollback();
-    throw err;
-  } /*finally {
-    await db.close();
-  }*/
-}
 
 module.exports = router;

@@ -35,11 +35,29 @@ function makeDb( config ) {
         if (objValues[key] === null) delete objValues[key];
       }
       return objValues;
+    },
+    /** Inner function - boilerplate transaction call.
+    * @name withTransaction
+    * @function
+    * @inner
+    * @memberof module:routes/vetoes
+    * @param {*} db - The database object.
+    * @param {*} callback - The callback function that is operated on, usually a db.query()
+    */
+    async withTransaction(db, callback) {
+      try {
+        await db.beginTransaction();
+        await callback();
+        await db.commit();
+      } catch (err) {
+        await db.rollback();
+        throw err;
+      } /* finally {
+        await db.close();
+      } */
     }
   };
 }
-
-
 
 const conn = makeDb( dbCfg );
 

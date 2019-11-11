@@ -98,7 +98,7 @@ router.post("/create", async (req, res, next) => {
     "INSERT INTO team (user_id, name, flag, logo, tag, public_team) VALUES ?";
 
   try {
-    await withTransaction(db, async () => {
+    await db.withTransaction(db, async () => {
       const insertTeam = await db.query(sql, [
         newTeam.map(item => [
           item.user_id,
@@ -157,7 +157,7 @@ router.put("/update", async (req, res, next) => {
   let sql =
     "UPDATE team SET name = ?, flag = ?, logo = ?, tag = ?, public_team = ? WHERE id=? and user_id = ?";
   try {
-    await withTransaction(db, async () => {
+    await db.withTransaction(db, async () => {
       await db.query(sql, [
         newTeam.map(item => [
           item.name,
@@ -215,7 +215,7 @@ router.delete("/delete/:team_id", async (req, res, next) => {
         matchCount[0].RECORDS;
     }
     // Otherwise, let's continue with delete. Start with auths.
-    await withTransaction(db, async () => {
+    await db.withTransaction(db, async () => {
       let deleteTeamAuthSql = "DELETE FROM team_auth_names WHERE team_id = ?";
       let deleteTeamsql = "DELETE FROM team WHERE id = ?";
       await db.query(deleteTeamAuthSql, teamID);
@@ -227,26 +227,6 @@ router.delete("/delete/:team_id", async (req, res, next) => {
   res.json({ message: "Team has been delete succesfully!" });
 });
 
-/** Inner function - boilerplate transaction call.
- * @name withTransaction
- * @function
- * @inner
- * @memberof module:routes/teams
- * @param {*} db - The database object.
- * @param {*} callback - The callback function that is operated on, usually a db.query()
- */
-async function withTransaction(db, callback) {
-  try {
-    await db.beginTransaction();
-    await callback();
-    await db.commit();
-  } catch (err) {
-    await db.rollback();
-    throw err;
-  } /* finally {
-    await db.close();
-  } */
-}
 
 //TODO: various getters/setters are needed to be imported from Get5-Web. Please see https://github.com/PhlexPlexico/get5-web/blob/master/get5/models.py
 
