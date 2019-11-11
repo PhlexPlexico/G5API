@@ -24,6 +24,7 @@ const passport = require('./auth');
 const jwt = require('jsonwebtoken');
 const bearerToken = require('express-bearer-token');
 const config = require('config');
+const session = require('express-session');
 const app = express();
 
 // view engine setup
@@ -40,7 +41,14 @@ app.use(cookieParser());
 // app.use(bodyParser.json());
 // app.use(bodyParser.urlencoded({ extended: true }));
 app.use(helmet());
+app.use(session({
+    secret: config.get("Server.sharedSecret"),
+    name: 'testlhost',
+    resave: true,
+    saveUninitialized: true}));
+
 app.use(passport.initialize());
+app.use(passport.session());
 app.use(bearerToken());
 
 // enabling CORS for all requests
@@ -69,16 +77,21 @@ app.get('/auth/steam', passport.authenticate('steam', { failureRedirect: '/' }),
   res.redirect('/');
 });
 
-app.get('/auth/steam/return', 
+// Deal with setting JWT cookie during sign in. We can now check cookie + OAuth to see if we're logged in.
+app.get('/auth/steam/return',
   (req, res, next) => {
-    passport.authenticate('steam', function(err, user, info){ 
-      let payload = {
-        steamid: user.id
-      };
-      let token = jwt.sign(payload, config.get("Server.sharedSecret"), {expiresIn : 60*60*24});
-      res.cookie('token', token, { httpOnly: true /* TODO: Set secure: true */ }); 
-      res.redirect('/');
-    })(req, res, next)
+      req.url = req.originalUrl;
+      next();
+  }, 
+  passport.authenticate('steam', { failureRedirect: '/' }),
+  (req, res) => {
+    // TODO: Think about tokens, and whether they should be used or not. In the event of sessions not working.
+    // let payload = {
+    //     steamid: req.user.id
+    //   };
+    //   let token = jwt.sign(payload, config.get("Server.sharedSecret"), {expiresIn : 60*60*24});
+    // res.cookie('token', token, { httpOnly: true /* TODO: Set secure: true */ }); 
+    res.redirect('/');
   });
 // END Steam API Calls.
 
