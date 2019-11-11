@@ -16,6 +16,7 @@ const router = express.Router();
 
 const db = require("../db");
 
+const passport = require('../auth');
 /** GET - Route serving to get all users.
  * @name router.get('/')
  * @function
@@ -23,8 +24,10 @@ const db = require("../db");
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
  */
-router.get("/", async (req, res, next) => {
+//router.get("/", passport.authenticate('steam'), async (req, res) => {
+router.get("/", async (req, res) => {
   try {
+    console.log(req.user);
     let sql = "SELECT * FROM user";
     const allUsers = await db.query(sql);
     res.json(allUsers);

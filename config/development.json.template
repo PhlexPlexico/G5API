@@ -1,21 +1,21 @@
 {
   "Database": {
-    "sockFile": "SQL SOCKFILE",
-    "username": "USERNAME",
-    "password": "PASSWORD",
-    "db": "DB NAME"
+    "sockFile": "/tmp/mysql.sock",
+    "username": "get5_user",
+    "password": "",
+    "db": "get5"
   },
   "Server": {
-    "port": APP_SERVER_PORT
-  },
-  "Keys" : {
+    "port": 3301,
+    "hostname": "localhost",
     "dbKey": "Database 16 Byte Key.",
     "steamAPIKey": "API Key For Steam Calls."
   },
   "dev": {
     "driver": "mysql",
-    "user": "get5",
+    "user": "get5_user",
     "password": "",
-    "database": "get5"
+    "database": "get5test",
+    "multipleStatements": true
   }
 }

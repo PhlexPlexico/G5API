@@ -20,6 +20,9 @@ const playerstatsRouter = require('./routes/playerstats');
 const legacyAPICalls = require('./routes/legacy/api');
 //End Route Files
 
+const passport = require('./auth');
+
+
 const app = express();
 
 // view engine setup
@@ -36,6 +39,8 @@ app.use(cookieParser());
 // app.use(bodyParser.json());
 // app.use(bodyParser.urlencoded({ extended: true }));
 app.use(helmet());
+app.use(passport.initialize());
+app.use(passport.session());
 
 // enabling CORS for all requests
 app.use(cors());
@@ -57,6 +62,21 @@ app.use('/playerstats', playerstatsRouter);
 app.use('/match', legacyAPICalls);
 
 //END ROUTES
+
+// Steam API Calls.
+app.get('/auth/steam', passport.authenticate('steam', { failureRedirect: '/' }), (req, res) => {
+  res.redirect('/');
+});
+
+app.get('/auth/steam/return', passport.authenticate('steam', { failureRedirect: '/' }), (req, res, next) => {
+      req.url = req.originalUrl;
+      next();
+  }, 
+  passport.authenticate('steam', { failureRedirect: '/' }),
+  (req, res) => {
+    res.redirect('/');
+});
+// END Steam API Calls.
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
