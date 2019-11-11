@@ -16,9 +16,16 @@ const router = express.Router();
 
 const db = require("../db");
 
-const passport = require('../auth');
-const jwt = require('jsonwebtoken');
-const config = require('config');
+/** Ensures the user was authenticated through steam OAuth.
+ * @function
+ * @memberof module:routes/users
+ * @function
+ * @inner */
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) { return next(); }
+  res.redirect('/auth/steam');
+}
+
 /** GET - Route serving to get all users.
  * @name router.get('/')
  * @function
@@ -27,8 +34,6 @@ const config = require('config');
  * @param {callback} middleware - Express middleware.
  */
 router.get("/", async (req, res) => {
-  let token = req.token;
-  console.log(req.token);
   try {
     let sql = "SELECT * FROM user";
     const allUsers = await db.query(sql);
@@ -38,16 +43,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get('/me', async (req, res) => {
-  var token = req.headers['x-api-key'];
-  if (!token) return res.status(401).send({ auth: false, message: 'No token provided.' });
-  
-  jwt.verify(token, config.get("Server.sharedSecret"), function(err, decoded) {
-    if (err) return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
-    console.log(decoded);
-    res.status(200).send(decoded);
-  });
-});
 
 /** GET - Route serving to get one user by database or steam id.
  * @name router.get('/:userid')
@@ -77,18 +72,23 @@ router.get("/:user_id", async (req, res, next) => {
  * @param {number} req.body[0].admin - Integer determining if a user is an admin of the system. Either 1 or 0.
  * @param {number} req.body[0].super_admin - Integer determining if a user is a super admin of the system. Either 1 or 0.
  */
-router.post("/create", async (req, res, next) => {
+router.post("/create", ensureAuthenticated, async (req, res, next) => {
   try {
-    await db.withTransaction(db, async () => {
-      let steamId = req.body[0].steam_id;
-      let steamName = req.body[0].name;
-      let isAdmin = req.body[0].admin;
-      let isSuperAdmin = req.body[0].super_admin;
-      let sql =
-        "INSERT INTO user (steam_id, name, admin, super_admin) VALUES (?,?,?,?)";
-      await db.query(sql, [steamId, steamName, isAdmin, isSuperAdmin]);
-      res.json({ message: "User created successfully" });
-    });
+    if (req.user.super_admin === 1 || req.user.admin === 1 ){
+      await db.withTransaction(db, async () => {
+        let steamId = req.body[0].steam_id;
+        let steamName = req.body[0].name;
+        let isAdmin = req.body[0].admin;
+        let isSuperAdmin = req.body[0].super_admin;
+        // Check if user is allowed to create?
+        let sql =
+          "INSERT INTO user (steam_id, name, admin, super_admin) VALUES (?,?,?,?)";
+        await db.query(sql, [steamId, steamName, isAdmin, isSuperAdmin]);
+        res.json({ message: "User created successfully" });
+      });
+    } else {
+      res.status(401).json({message: "You are not authorized to do this."});
+    }
   } catch (err) {
     res.status(500).json({ message: err });
   }
@@ -98,19 +98,23 @@ router.post("/create", async (req, res, next) => {
  * @name /update
  * @function
  * @memberof module:routes/users
- * @param {number} req.body[0].steam_id - Steam ID of the user being created.
+ * @param {number} req.body[0].steam_id - Steam ID of the user being edited.
  * @param {number} [req.body[0].admin] - Integer determining if a user is an admin of the system. Either 1 or 0.
  * @param {number} [req.body[0].super_admin] - Integer determining if a user is a super admin of the system. Either 1 or 0.
  */
-router.put("/update", async (req, res, next) => {
+router.put("/update", ensureAuthenticated, async (req, res, next) => {
   try {
-    await db.withTransaction(db, async () => {
-      let steamId = req.body[0].steam_id;
-      let isAdmin = req.body[0].admin || 0;
-      let isSuperAdmin = req.body[0].super_admin || 0;
-      let sql = "UPDATE user SET admin = ?, super_admin = ? WHERE steam_id = ?";
-      await db.query(sql, [isAdmin, isSuperAdmin, steamId]);
-    });
+    if (req.user.super_admin === 1 || req.user.admin === 1 ){
+      await db.withTransaction(db, async () => {
+        let steamId = req.body[0].steam_id;
+        let isAdmin = req.body[0].admin || 0;
+        let isSuperAdmin = req.body[0].super_admin || 0;
+        let sql = "UPDATE user SET admin = ?, super_admin = ? WHERE steam_id = ?";
+        await db.query(sql, [isAdmin, isSuperAdmin, steamId]);
+      });
+    } else {
+      res.status(401).json({message: "You are not authorized to do this."});
+    }
   } catch (err) {
     res.status(500).json({ message: err });
   }

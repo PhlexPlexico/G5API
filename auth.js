@@ -21,8 +21,8 @@ passport.use(new SteamStrategy({
       profile.identifier = identifier;
       try {
         let sql = "SELECT * FROM user WHERE steam_id = ?";
-        const allUsers = await db.query(sql, [profile.id]);
-        if (allUsers.length < 1) {
+        let curUser = await db.query(sql, [profile.id]);
+        if (curUser.length < 1) {
           sql = "INSERT INTO user SET ?";
           let newUser = {
             steam_id: profile.id,
@@ -32,19 +32,25 @@ passport.use(new SteamStrategy({
             created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
           }
           await db.withTransaction(db, async () => {
-            await db.query(sql, [newUser]);
+            curUser = await db.query(sql, [newUser]);
           });
         }
-      } catch ( err ) {
+      
+        return done(null, {
+          steam_id: profile.id,
+          name: profile.displayName,
+          super_admin: curUser[0].super_admin,
+          admin: curUser[0].admin,
+          id: curUser[0].id
+        });
+      }
+      catch ( err ) {
         console.log("ERRORERRORERRORERRORERRORERRORERRORERROR " + err + "ERRORERRORERRORERRORERRORERRORERRORERROR");
         return done(null, null);
       }
-      return done(null, {
-        id: profile.id,
-        name: profile.displayName,
-      });
     });
   }
 ));
+
 
 module.exports = passport;

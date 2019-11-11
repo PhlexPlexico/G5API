@@ -16,6 +16,17 @@ const router = express.Router();
 
 const db = require("../db");
 
+/** Ensures the user was authenticated through steam OAuth.
+ * @function
+ * @memberof module:routes/users
+ * @function
+ * @inner */
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) { return next(); }
+  res.redirect('/auth/steam');
+}
+
+
 /** GET - Route serving to get all game servers.
  * @name router.get('/')
  * @function
@@ -65,16 +76,24 @@ router.get("/:match_id", async (req, res, next) => {
  * @param {DateTime} req.body[0].start_time - The start time, as DateTime.
  *
 */
-router.post("/create", async (req, res, next) => {
+router.post("/create", ensureAuthenticated, async (req, res, next) => {
   try{
+    // Get the match and see if the user owns said match, or is an admin.
     await db.withTransaction(db, async () => {
+      let userProfile = req.user.id;
       let matchId = req.body[0].match_id;
       let mapNum = req.body[0].map_number;
       let mapName = req.body[0].map_name;
       let startTime =  req.body[0].start_time;
+      let matchQuery = "SELECT * FROM `match` WHERE id = ?"
       let sql = "INSERT INTO map_stats (match_id, map_number, map_name, start_time) VALUES (?,?,?,?)";
-      await db.query(sql, [matchId, mapNum, mapName, startTime]);
-      res.json("Map stats inserted successfully!");
+      const matchRecord = await db.query(matchQuery, [matchId]);
+      if(req.user.super_admin === 1 || req.user.admin === 1 || userProfile === matchRecord[0].user_id){
+        await db.query(sql, [matchId, mapNum, mapName, startTime]);
+        res.json("Map stats inserted successfully!");
+      } else {
+        res.status(401).json({message: "You are not authorized to perform this action."});
+      }
     });
   } catch ( err ) {
     res.status(500).json({message: err})
@@ -94,10 +113,12 @@ router.post("/create", async (req, res, next) => {
  * @param {string} [req.body[0].demo_file] - The demo file of the match once demo has been finished recording.
  *
 */
-router.put("/update", async (req, res, next) => {
+router.put("/update", ensureAuthenticated, async (req, res, next) => {
   try{
     await db.withTransaction(db, async () => {
       let mapStatId = req.body[0].map_stats_id;
+      let userProfile = req.user.id;
+      let matchQuery = "SELECT a.user_id FROM `match` a, map_stats b WHERE b.id = ?";
       let updatedValues = {
         end_time: req.body[0].end_time,
         team1_score: req.body[0].team1_score,
@@ -108,11 +129,17 @@ router.put("/update", async (req, res, next) => {
       };
       updatedvalues = await db.buildUpdateStatement(updatedValues);
       let sql = "UPDATE map_stats SET ? WHERE id = ?";
-      updateMapStats = await db.query(sql, [updatedValues, mapStatId]);
-      if (updateMapStats.affectedRows > 0)
-        res.json("Map Stats updated successfully!");
-      else
-        res.status(401).json({message: "ERROR - Maps Stats not updated or found."});
+
+      const matchOwner = await db.query(matchQuery, [mapStatId]);
+      if(req.user.super_admin === 1 || req.user.admin === 1 || userProfile === matchOwner[0].user_id){
+        updateMapStats = await db.query(sql, [updatedValues, mapStatId]);
+        if (updateMapStats.affectedRows > 0)
+          res.json("Map Stats updated successfully!");
+        else
+          res.status(401).json({message: "ERROR - Maps Stats not updated or found."});
+      } else {
+
+      }
     });
   } catch ( err ) {
     console.log(err);
@@ -124,21 +151,26 @@ router.put("/update", async (req, res, next) => {
  * @name router.post('/delete')
  * @memberof module:routes/mapstats
  * @function
- * @param {int} req.body[0].user_id - The ID of the user deleteing. Can check if admin when implemented.
  * @param {int} req.body[0].map_stats_id - The ID of the map stats being removed.
  *
 */
-router.delete("/delete", async (req,res,next) => {
+router.delete("/delete", ensureAuthenticated, async (req,res,next) => {
   try {
     await db.withTransaction (db, async () => {
-      let userId = req.body[0].user_id;
+      let userProfile = req.user.id; // Brought in from steam passport.
       let mapStatsId = req.body[0].map_stats_id;
-      let sql = "DELETE FROM map_stats WHERE id = ?"
-      const delRows = await db.query(sql, [mapStatsId]);
-      if (delRows.affectedRows > 0)
-        res.json("Map Stats deleted successfully!");
-      else
-        res.status(401).json("ERR - Unauthorized to delete OR not found.");
+      let deleteSql = "DELETE FROM map_stats WHERE id = ?"
+      let ownerSql = "SELECT a.user_id FROM `match` a, map_stats b WHERE b.id = ?";
+      const matchOwner = await db.query(ownerSql, [mapStatId]);
+      if(req.user.super_admin === 1 || req.user.admin === 1 || userProfile === matchOwner[0].user_id){
+        const delRows = await db.query(deleteSql, [mapStatsId]);
+        if (delRows.affectedRows > 0)
+          res.json("Map Stats deleted successfully!");
+        else
+          res.status(401).json("ERR - Unauthorized to delete OR not found.");
+      } else {
+        res.status(401).json("You are not authorized to perform this action.");
+      }
     });
   } catch( err ){
     console.log(err);

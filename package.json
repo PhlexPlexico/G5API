@@ -45,6 +45,7 @@
     "express": "~4.16.1",
     "express-bearer-token": "^2.4.0",
     "express-rate-limit": "^5.0.0",
+    "express-session": "^1.17.0",
     "helmet": "^3.21.2",
     "http-errors": "~1.6.3",
     "jade": "^1.11.0",
