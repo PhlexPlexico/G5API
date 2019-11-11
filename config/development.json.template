@@ -9,7 +9,8 @@
     "port": 3301,
     "hostname": "localhost",
     "dbKey": "Database 16 Byte Key.",
-    "steamAPIKey": "API Key For Steam Calls."
+    "steamAPIKey": "API Key For Steam Calls.",
+    "sharedSecret": "a secure secret for jwt sigining."
   },
   "dev": {
     "driver": "mysql",

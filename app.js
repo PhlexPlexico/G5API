@@ -21,8 +21,8 @@ const legacyAPICalls = require('./routes/legacy/api');
 //End Route Files
 
 const passport = require('./auth');
-
-
+const jwt = require('jsonwebtoken');
+const config = require('config');
 const app = express();
 
 // view engine setup
@@ -68,14 +68,26 @@ app.get('/auth/steam', passport.authenticate('steam', { failureRedirect: '/' }),
   res.redirect('/');
 });
 
-app.get('/auth/steam/return', passport.authenticate('steam', { failureRedirect: '/' }), (req, res, next) => {
+// app.get('/auth/steam/return', passport.authenticate('steam', { failureRedirect: '/' }), (req, res, next) => {
+//       req.url = req.originalUrl;
+//       next();
+//   }, 
+//   passport.authenticate('steam', { failureRedirect: '/' }),
+//   (req, res) => {
+//     res.redirect('/');
+// });
+app.get('/auth/steam/return', 
+  (req, res, next) => {
+    passport.authenticate('steam', function(err, user, info){ 
+      var payload = {
+        user: user.identifier
+      };
+      var token = jwt.sign(payload, config.get("Server.sharedSecret"), {expiresIn : 60*60*24});
+      res.cookie('token', token, { httpOnly: true /* TODO: Set secure: true */ }); 
       req.url = req.originalUrl;
-      next();
-  }, 
-  passport.authenticate('steam', { failureRedirect: '/' }),
-  (req, res) => {
-    res.redirect('/');
-});
+      res.redirect('/');
+    })(req, res, next)
+  });
 // END Steam API Calls.
 
 // catch 404 and forward to error handler

@@ -2,7 +2,6 @@
 const config = require('config');
 const SteamStrategy = require('passport-steam').Strategy;
 const passport = require('passport');
-const jwt = require('express-jwt');
 passport.serializeUser((user, done) => {
   done(null, user);
 });
@@ -19,7 +18,6 @@ passport.use(new SteamStrategy({
   (identifier, profile, done) => {
     process.nextTick(function () {
       profile.identifier = identifier;
-      console.log("\n\n\n HERE: " + profile.id + "\n\n\n");
       return done(null, {
         id: profile.id,
         name: profile.displayName,

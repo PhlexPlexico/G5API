@@ -17,6 +17,8 @@ const router = express.Router();
 const db = require("../db");
 
 const passport = require('../auth');
+const jwt = require('jsonwebtoken');
+const config = require('config');
 /** GET - Route serving to get all users.
  * @name router.get('/')
  * @function
@@ -24,8 +26,8 @@ const passport = require('../auth');
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
  */
-//router.get("/", passport.authenticate('steam'), async (req, res) => {
 router.get("/", async (req, res) => {
+//router.get("/", async (req, res) => {
   try {
     console.log(req.user);
     let sql = "SELECT * FROM user";
@@ -34,6 +36,17 @@ router.get("/", async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err });
   }
+});
+
+router.get('/me', async (req, res) => {
+  var token = req.headers['x-access-token'];
+  if (!token) return res.status(401).send({ auth: false, message: 'No token provided.' });
+  
+  jwt.verify(token, config.get("Server.sharedSecret"), function(err, decoded) {
+    if (err) return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
+    
+    res.status(200).send(decoded);
+  });
 });
 
 /** GET - Route serving to get one user by database or steam id.
