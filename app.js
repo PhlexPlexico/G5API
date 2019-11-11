@@ -22,6 +22,7 @@ const legacyAPICalls = require('./routes/legacy/api');
 
 const passport = require('./auth');
 const jwt = require('jsonwebtoken');
+const bearerToken = require('express-bearer-token');
 const config = require('config');
 const app = express();
 
@@ -40,7 +41,7 @@ app.use(cookieParser());
 // app.use(bodyParser.urlencoded({ extended: true }));
 app.use(helmet());
 app.use(passport.initialize());
-app.use(passport.session());
+app.use(bearerToken());
 
 // enabling CORS for all requests
 app.use(cors());
@@ -68,23 +69,14 @@ app.get('/auth/steam', passport.authenticate('steam', { failureRedirect: '/' }),
   res.redirect('/');
 });
 
-// app.get('/auth/steam/return', passport.authenticate('steam', { failureRedirect: '/' }), (req, res, next) => {
-//       req.url = req.originalUrl;
-//       next();
-//   }, 
-//   passport.authenticate('steam', { failureRedirect: '/' }),
-//   (req, res) => {
-//     res.redirect('/');
-// });
 app.get('/auth/steam/return', 
   (req, res, next) => {
     passport.authenticate('steam', function(err, user, info){ 
-      var payload = {
-        user: user.identifier
+      let payload = {
+        steamid: user.id
       };
-      var token = jwt.sign(payload, config.get("Server.sharedSecret"), {expiresIn : 60*60*24});
+      let token = jwt.sign(payload, config.get("Server.sharedSecret"), {expiresIn : 60*60*24});
       res.cookie('token', token, { httpOnly: true /* TODO: Set secure: true */ }); 
-      req.url = req.originalUrl;
       res.redirect('/');
     })(req, res, next)
   });

@@ -67,7 +67,7 @@ router.get("/:seasonid", async (req, res, next) => {
  */
 router.post("/create", async (req, res, next) => {
   try {
-    await withTransaction(db, async () => {
+    await db.withTransaction(db, async () => {
       let insertSet = {
         user_id: req.body[0].user_id,
         name: req.body[0].name,
@@ -95,7 +95,7 @@ router.post("/create", async (req, res, next) => {
  */
 router.put("/update", async (req, res, next) => {
   try {
-      await withTransaction(db, async () => {
+      await db.withTransaction(db, async () => {
       let updateStmt = {
         user_id: req.body[0].user_id,
         name: req.body[0].name,
@@ -131,26 +131,5 @@ router.delete("/delete", async (req, res, next) => {
     res.status(500).json({ message: err });
   }
 });
-
-/** Inner function - boilerplate transaction call.
- * @name withTransaction
- * @function
- * @inner
- * @memberof module:routes/vetoes
- * @param {*} db - The database object.
- * @param {*} callback - The callback function that is operated on, usually a db.query()
- */
-async function withTransaction(db, callback) {
-  try {
-    await db.beginTransaction();
-    await callback();
-    await db.commit();
-  } catch (err) {
-    await db.rollback();
-    throw err;
-  } /*finally {
-    await db.close();
-  }*/
-}
 
 module.exports = router;
