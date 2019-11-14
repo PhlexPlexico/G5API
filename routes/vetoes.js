@@ -16,6 +16,16 @@ const router = express.Router();
 
 const db = require("../db");
 
+/** Ensures the user was authenticated through steam OAuth.
+ * @function
+ * @memberof module:routes/vetoes
+ * @function
+ * @inner */
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) { return next(); }
+  res.redirect('/auth/steam');
+}
+
 /** GET - Route serving to get all vetoes.
  * @name router.get('/')
  * @function
@@ -24,7 +34,6 @@ const db = require("../db");
  * @param {callback} middleware - Express middleware.
  * @param {int} user_id - The user ID that is querying the data.
  */
-// TODO: Once users are taken care of, and we track which user is logged in whe need to give a different SQL string, one for public servers, one for all servers.
 router.get("/", async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
@@ -66,8 +75,13 @@ router.get("/:vetoid", async (req, res, next) => {
  * @param {string} req.body[0].pick_or_ban - Whether it was a pick or ban.
  *
 */
-router.post("/create", async (req, res, next) => {
+router.post("/create", ensureAuthenticated, async (req, res, next) => {
   try{
+    let checkUserSql = "SELECT * FROM `match` WHERE id = ? AND user_id = ?";
+    const checkUser = await db.query(checkUserSql, [req.body[0].match_id, req.user.id]);
+    if (checkUser.length < 1 || req.user.super_admin !== 1 || req.user.admin !== 1) {
+      res.status(401).json({message: "User is not authorized to perform action."});
+    }
     await db.withTransaction(db, async () => {
       let matchId = req.body[0].match_id;
       let mapName = req.body[0].map_name;
@@ -91,8 +105,13 @@ router.post("/create", async (req, res, next) => {
  * @param {int} req.body[0].match_id - The ID of the match for vetoes to remove.
  *
 */
-router.delete("/delete", async (req,res,next) => {
+router.delete("/delete", ensureAuthenticated, async (req,res,next) => {
   try {
+    let checkUserSql = "SELECT * FROM `match` WHERE id = ? AND user_id = ?";
+    const checkUser = await db.query(checkUserSql, [req.body[0].match_id, req.user.id]);
+    if (checkUser.length < 1 || req.user.super_admin !== 1 || req.user.admin !== 1) {
+      res.status(401).json({message: "User is not authorized to perform action."});
+    }
     await db.withTransaction (db, async () => {
       // let userId = req.body[0].user_id;
       let matchId = req.body[0].match_id;

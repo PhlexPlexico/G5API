@@ -16,6 +16,16 @@ const router = express.Router();
 
 const db = require("../db");
 
+/** Ensures the user was authenticated through steam OAuth.
+ * @function
+ * @memberof module:routes/playerstats
+ * @function
+ * @inner */
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) { return next(); }
+  res.redirect('/auth/steam');
+}
+
 /** GET - Route serving to get all player statistics.
  * @name router.get('/')
  * @function
@@ -24,7 +34,6 @@ const db = require("../db");
  * @param {callback} middleware - Express middleware.
  * @param {int} user_id - The user ID that is querying the data.
  */
-// TODO: Once users are taken care of, and we track which user is logged in whe need to give a different SQL string, one for all matches, one for user matches.
 router.get("/", async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
@@ -111,7 +120,7 @@ router.get("/match/:match_id", async (req, res, next) => {
  * @param {int} [req.body[0].firstkill_ct] - Amount of times player has gotten first kill as Counter-Terrorist.
  * @param {int} [req.body[0].firstkill_t] - Amount of times player has gotten first kill as Terrorist.
  */
-router.post("/create", async (req, res, next) => {
+router.post("/create", ensureAuthenticated, async (req, res, next) => {
   try {
     await db.withTransaction(db, async () => {
       let insertSet = {
@@ -193,6 +202,9 @@ router.post("/create", async (req, res, next) => {
  */
 router.put("/update", async (req, res, next) => {
   try {
+    if (req.user.super_admin !== 1 || req.user.admin !== 1) {
+      res.status(401).json("Cannot update player stats where you are not match owner.")
+    }
     await db.withTransaction(db, async () => {
       let updateStmt = {
         name: req.body[0].name,
