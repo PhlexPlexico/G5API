@@ -16,6 +16,16 @@ const router = express.Router();
 
 const db = require("../db");
 
+/** Ensures the user was authenticated through steam OAuth.
+ * @function
+ * @memberof module:routes/seasons
+ * @function
+ * @inner */
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) { return next(); }
+  res.redirect('/auth/steam');
+}
+
 /** GET - Route serving to get all seasons.
  * @name router.get('/')
  * @function
@@ -24,12 +34,30 @@ const db = require("../db");
  * @param {callback} middleware - Express middleware.
  * @param {int} user_id - The user ID that is querying the data.
  */
-// TODO: Once users are taken care of, and we track which user is logged in whe need to give a different SQL string, one for all matches, one for user matches.
 router.get("/", async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
     let sql = "SELECT * FROM `season`";
     const seasons = await db.query(sql);
+    res.json(seasons);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
+
+/** GET - Route serving to get all seasons.
+ * @name router.get('/myseasons')
+ * @function
+ * @memberof module:routes/seasons
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware.
+ * @param {int} user_id - The user ID that is querying the data.
+ */
+router.get("/myseasons", ensureAuthenticated, async (req, res, next) => {
+  try {
+    // Check if admin, if they are use this query.
+    let sql = "SELECT * FROM `season` WHERE user_id = ?";
+    const seasons = await db.query(sql, [req.user.id]);
     res.json(seasons);
   } catch (err) {
     res.status(500).json({ message: err });
@@ -60,16 +88,15 @@ router.get("/:seasonid", async (req, res, next) => {
  * @name router.post('/create')
  * @memberof module:routes/seasons
  * @function
- * @param {int} req.body[0].user_id - The ID of the user creating the match.
  * @param {string} req.body[0].name - The name of the Season to be created.
  * @param {DateTime} req.body[0].start_date - Season start date.
  * @param {DateTime} req.body[0].end_date - Optional season end date.
  */
-router.post("/create", async (req, res, next) => {
+router.post("/create", ensureAuthenticated, async (req, res, next) => {
   try {
     await db.withTransaction(db, async () => {
       let insertSet = {
-        user_id: req.body[0].user_id,
+        user_id: req.user.id,
         name: req.body[0].name,
         start_date: req.body[0].start_date,
         end_date: req.body[0].end_date,
@@ -93,8 +120,13 @@ router.post("/create", async (req, res, next) => {
  * @param {DateTime} req.body[0].start_date - Season start date.
  * @param {DateTime} req.body[0].end_date - Season end date.
  */
-router.put("/update", async (req, res, next) => {
+router.put("/update", ensureAuthenticated, async (req, res, next) => {
   try {
+      let userCheckSql = "SELECT * FROM season WHERE user_id = ?";
+      const checkUser = await db.query(userCheckSql, [req.user.id]);
+      if (checkUser.length < 1){
+        res.status(401).json({message: "User is not authorized to perform update."});
+      }
       await db.withTransaction(db, async () => {
       let updateStmt = {
         user_id: req.body[0].user_id,

@@ -13,12 +13,23 @@ const router = express.Router();
  */
 const db = require("../db");
 
+
+/** Ensures the user was authenticated through steam OAuth.
+ * @function
+ * @memberof module:routes/teams
+ * @function
+ * @inner */
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) { return next(); }
+  res.redirect('/auth/steam');
+}
+
 /** GET - Route serving to get all teams.
  * @name /
  * @function
  * @memberof module:routes/teams
  */
-router.get("/", async (req, res, next) => {
+router.get("/", ensureAuthenticated, async (req, res, next) => {
   let sql =
     "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
     "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
@@ -37,13 +48,39 @@ router.get("/", async (req, res, next) => {
   }
 });
 
+
+/** GET - Route serving to get all teams.
+ * @name /
+ * @function
+ * @memberof module:routes/teams
+ */
+router.get("/myteams", ensureAuthenticated, async (req, res, next) => {
+  let sql =
+    "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
+    "FROM team t JOIN team_auth_names ta " +
+    "ON t.id = ta.team_id " +
+    "WHERE t.user_id = ?" +
+    "GROUP BY t.name, t.flag, t.logo, t.tag, t.public_team";
+  try {
+    const allTeams = await db.query(sql, [req.user.id]);
+    // do something with someRows and otherRows
+    allTeams.forEach(row => {
+      row.auth_name = JSON.parse(row.auth_name);
+    });
+    res.json(allTeams);
+  } catch (err) {
+    res.json({ message: err });
+  }
+});
+
 /** GET - Route serving to get team with an ID.
  * @name router.get('/:team_id')
  * @function
  * @memberof module:routes/teams
  * @param {int} teamid - The team ID you wish to examine.
  */
-router.get("/:team_id", async (req, res, next) => {
+router.get("/:team_id", ensureAuthenticated, async (req, res, next) => {
   teamID = req.params.team_id;
   let sql =
     "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
@@ -75,8 +112,8 @@ router.get("/:team_id", async (req, res, next) => {
  * @see https://steamcommunity.com/sharedfiles/filedetails/?id=719079703
  */
 
-router.post("/create", async (req, res, next) => {
-  let userID = req.body[0].user_id;
+router.post("/create", ensureAuthenticated, async (req, res, next) => {
+  let userID = req.user.id;
   let teamName = req.body[0].name;
   let flag = req.body[0].flag;
   let logo = req.body[0].logo;
@@ -136,7 +173,12 @@ router.post("/create", async (req, res, next) => {
  * @param {number} req.body[0].public_team - Integer determining if a team is a publically usable team. Either 1 or 0.
  * @see https://steamcommunity.com/sharedfiles/filedetails/?id=719079703
  */
-router.put("/update", async (req, res, next) => {
+router.put("/update", ensureAuthenticated, async (req, res, next) => {
+  let checkUserSql = "SELECT * FROM team WHERE user_id = ?";
+    const checkUser = await db.query(checkUserSql, [req.user.id]);
+    if (checkUser.length < 1 || req.user.super_admin !== 1 || req.user.admin !== 1) {
+      res.status(401).json({message: "User is not authorized to perform action."});
+    }
   let teamID = req.body[0].id;
   let teamName = req.body[0].name;
   let teamFlag = req.body[0].flag;
@@ -186,8 +228,13 @@ router.put("/update", async (req, res, next) => {
  * @memberof module:routes/teams
  * @param {int} req.params.team_id - The ID of the team to be deleted.
  */
-router.delete("/delete/:team_id", async (req, res, next) => {
+router.delete("/delete/:team_id", ensureAuthenticated, async (req, res, next) => {
   let teamID = req.params.team_id;
+  let checkUserSql = "SELECT * FROM game_server WHERE user_id = ?";
+    const checkUser = await db.query(checkUserSql, [req.user.id]);
+    if (checkUser.length < 1 || req.user.super_admin !== 1) {
+      res.status(401).json({message: "User is not authorized to perform action."});
+    }
   try {
     // First find any matches/mapstats/playerstats associated with the team.
     let playerStatSql =

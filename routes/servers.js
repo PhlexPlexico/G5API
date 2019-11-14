@@ -29,6 +29,17 @@ const crypto = require('crypto');
  */
 const config = require('config');
 
+
+/** Ensures the user was authenticated through steam OAuth.
+ * @function
+ * @memberof module:routes/servers
+ * @function
+ * @inner */
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) { return next(); }
+  res.redirect('/auth/steam');
+}
+
 /** GET - Route serving to get all game servers.
  * @name router.get('/')
  * @function
@@ -37,12 +48,31 @@ const config = require('config');
  * @param {callback} middleware - Express middleware.
  * @param {int} user_id - The user ID that is querying the data.
  */
-// TODO: Once users are taken care of, and we track which user is logged in whe need to give a different SQL string, one for public servers, one for all servers.
 router.get("/", async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
-    let sql = "SELECT * FROM game_server";
+    let sql = "SELECT gs.id, gs.in_use, gs.display_name, gs.ip_string, gs.port, usr.name FROM game_server gs, user usr where gs.public_server=1 AND usr.id = gs.user_id";
     const allServers = await db.query(sql);
+    res.json(allServers);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
+
+
+/** GET - Route serving to get all game servers.
+ * @name router.get('/myservers')
+ * @function
+ * @memberof module:routes/servers
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware.
+ * @param {int} user_id - The user ID that is querying the data.
+ */
+router.get("/myservers", ensureAuthenticated, async (req, res, next) => {
+  try {
+    // Check if admin, if they are use this query.
+    let sql = "SELECT * FROM game_server where id = ?";
+    const allServers = await db.query(sql, [req.user.id]);
     for(let serverRow of allServers) {
       serverRow.rcon_password = await decrypt(serverRow.rcon_password);
     }
@@ -61,12 +91,12 @@ router.get("/", async (req, res, next) => {
  * @param {callback} middleware - Express middleware.
  * @param {int} user_id - The user ID that is querying the data. Check if they own it or are an admin.
  */
-router.get("/:server_id", async (req, res, next) => {
+router.get("/:server_id", ensureAuthenticated, async (req, res, next) => {
   try {
     // 
     serverID = req.params.server_id;
-    let sql = "SELECT * FROM game_server where id = ?";
-    const server = await db.query(sql, serverID);
+    let sql = "SELECT * FROM game_server where id = ? AND user_id = ?";
+    const server = await db.query(sql, [serverID, req.user.id]);
     server[0].rcon_password = await decrypt(server[0].rcon_password);
     res.json(server);
   } catch (err) {
@@ -108,7 +138,7 @@ router.post("/create", async (req, res, next) => {
  * @name router.post('/update')
  * @memberof module:routes/servers
  * @function
- * @param {int} req.body[0].user_id - The ID of the user creating the server to claim ownership.
+* @param {int} req.body[0].user_id - The ID of the user creating the server to claim ownership.
  * @param {int} req.body[0].server_id - The ID of the server being updated.
  * @param {string} req.body[0].ip_string - The host of the server. Can be a URL or IP Address.
  * @param {int} req.body[0].port - The port that the server is used to connect with.
@@ -117,8 +147,12 @@ router.post("/create", async (req, res, next) => {
  * @param {int} req.body[0].public_server - Integer value evaluating if the server is public.
  *
 */
-// TODO: Query if user is admin/super_admin to edit servers.
-router.put("/update", async (req, res, next) => {
+router.put("/update", ensureAuthenticated, async (req, res, next) => {
+  let userCheckSql = "SELECT * FROM game_server WHERE user_id = ?";
+  const checkUser = await db.query(userCheckSql, [req.user.id]);
+  if (checkUser.length < 1 || req.user.super_admin !== 1){
+    res.status(401).json({message: "User is not authorized to perform action."});
+  }
   try{
     await db.withTransaction(db, async () => {
       let userId =  req.body[0].user_id;
@@ -152,8 +186,13 @@ router.put("/update", async (req, res, next) => {
  * @param {int} req.body[0].server_id - The ID of the server being updated.
  *
 */
-router.delete("/delete", async (req,res,next) => {
+router.delete("/delete", ensureAuthenticated, async (req,res,next) => {
   try {
+    let checkUserSql = "SELECT * FROM game_server WHERE user_id = ?";
+    const checkUser = await db.query(checkUserSql, [req.user.id]);
+    if (checkUser.length < 1 || req.user.super_admin !== 1) {
+      res.status(401).json({message: "User is not authorized to perform action."});
+    }
     await db.withTransaction (db, async () => {
       let userId = req.body[0].user_id;
       let serverId = req.body[0].server_id;

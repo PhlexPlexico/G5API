@@ -18,7 +18,7 @@ const db = require("../db");
 
 /** Ensures the user was authenticated through steam OAuth.
  * @function
- * @memberof module:routes/users
+ * @memberof module:routes/mapstats
  * @function
  * @inner */
 function ensureAuthenticated(req, res, next) {
