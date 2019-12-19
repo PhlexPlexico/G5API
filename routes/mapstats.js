@@ -35,7 +35,6 @@ function ensureAuthenticated(req, res, next) {
  * @param {callback} middleware - Express middleware.
  * @param {int} user_id - The user ID that is querying the data.
  */
-// TODO: Once users are taken care of, and we track which user is logged in whe need to give a different SQL string, one for public servers, one for all servers.
 router.get("/", async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.

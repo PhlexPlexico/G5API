@@ -89,6 +89,94 @@ router.get("/:match_id", async (req, res, next) => {
   }
 });
 
+/** GET - Route serving to forfeit a match.
+ * @name router.get('/:match_id/forfeit/:winner')
+ * @memberof module:routes/matches
+ * @function
+ * @param {string} path - Express path
+ * @param {number} request.param.match_id - The ID of the match containing the statistics.
+ * @param {number} request.param.winner - The team which one. 1 for team1, 2 for team2.
+ * @param {callback} middleware - Express middleware.
+ */
+router.get("/:match_id/forfeit/:winner", ensureAuthenticated, async (req, res, next) => {
+  try {
+    let matchID = parseInt(req.params.match_id);
+    let winner = parseInt(req.params.winner);
+    let winningTeamId;
+    let matchTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    let sql = "SELECT * FROM `match` where id = ?";
+    const matches = await db.query(sql, matchID);
+    // Check if match owner is the the one calling or is a super_admin.
+    if (matches[0].user_id !== req.user.id){
+      if(req.user.super_admin === 0)
+        res.status(401).json({ message: 'Cannot forfeit a match you don\'t own.' });
+    }
+    if (winner !== 1 || winner !== 2){
+      res.status(401).json({ message: 'You did not choose a correct team (1 or 2). Spectators cannot win.' });
+    } else if(winner === 1){
+      winningTeamId = matches[0].team1_id;
+    } else if(winner === 2){
+      winningTeamId = matches[0].team2_id;
+    }
+    // Check for mapstats and create if none.
+    sql = "SELECT * FROM map_stats where match_id = ?";
+    const map_stat = await db.query(sql, matchID);
+    if(map_stat.length > 0){
+      await db.withTransaction(db, async () => {
+        let eTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        sql = "UPDATE map_stats SET end_time = ?, map_name = ? WHERE match_id = ? AND map_number = 0";
+        await db.query(sql, [eTime, '', matchID]);
+      });
+    }
+    else {
+      let allTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      sql = "INSERT INTO map_stats (match_id, map_number, map_name, start_time, end_time) VALUES (?,?,?,?)";
+      await db.withTransaction(db, async () => { 
+        await db.query(sql, [matchID, 0, '', allTime, allTime]);
+      });
+    }
+    // Now update match values.
+    await db.withTransaction(db, async() => {
+      sql = "UPDATE `match` SET ? WHERE id = ?";
+      let updateSet = {
+        team1_score: (winner === 1) ? 16 : 0,
+        team2_score: (winner === 2) ? 16 : 0,
+        start_time: matchTime,
+        end_time: matchTime,
+        forfeit: 1,
+        winner: winningTeamId
+      }
+      await db.query(sql, [updateSet, matchID]);
+      // Update match server to set not in use.
+      sql = "UPDATE game_server SET in_use = 0 WHERE match_id = ?";
+      await db.query(sql, [matchID]);
+    });
+    res.redirect("/mymatches");
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
+
+
+/** GET - Route serving to get a set of matches with a limit for recent matches.
+ * @name router.get('/limit/:limit')
+ * @memberof module:routes/matches
+ * @function
+ * @param {string} path - Express path
+ * @param {number} request.param.limiter - The number to limit the query by.
+ * @param {callback} middleware - Express middleware.
+ */
+router.get("/limit/:limiter", async (req, res, next) => {
+  try {
+    let lim = parseInt(req.params.limiter);
+    let sql = "SELECT * FROM `match` ORDER BY end_time DESC LIMIT ?";
+    const matches = await db.query(sql, lim);
+    res.json(matches);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
+
 /** POST - Create a veto object from a given match.
  * @name router.post('/create')
  * @memberof module:routes/matches
@@ -241,5 +329,9 @@ router.delete("/delete", async (req, res, next) => {
     res.status(500).json({ message: err });
   }
 });
+
+
+// Helper functions
+
 
 module.exports = router;
