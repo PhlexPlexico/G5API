@@ -193,7 +193,8 @@ exports.up = function(db, callback) {
       veto_first: { type: 'string', length: 5 },
       side_type: { type: 'string', length: 32 },
       private_match: { type: 'boolean', defaultValue: false, notNull: true },
-      enforce_teams: { type: 'boolean', defaultValue: false, notNull: true }
+      enforce_teams: { type: 'boolean', defaultValue: false, notNull: true },
+      min_player_ready: {type: 'int', defaultValue: 5, notNull: true}
     }),
     db.createTable('match_spectator', {
       id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11, notNull: true },
