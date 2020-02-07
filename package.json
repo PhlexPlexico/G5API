@@ -1,5 +1,5 @@
 {
-  "name": "get5apiv1",
+  "name": "G5APIv1",
   "version": "0.0.1",
   "private": true,
   "licenses": [
@@ -30,6 +30,7 @@
   "scripts": {
     "start": "nodemon ./bin/www",
     "doc": "jsdoc -c jsdoc.conf.json",
+    "docclean": "rm -rf ./docs",
     "migrate-dev": "node ./node_modules/db-migrate/bin/db-migrate --config config/development.json",
     "migrate-prod": "node ./node_modules/db-migrate/bin/db-migrate --env prod --config config/production.json",
     "migrate-dev-upgrade": "node ./node_modules/db-migrate/bin/db-migrate --config config/development.json up:dev",
