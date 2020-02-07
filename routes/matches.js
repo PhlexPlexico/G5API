@@ -331,7 +331,7 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
 });
 
 /** PUT - Create a veto object from a given match.
- * @name router.post('/update')
+ * @name router.put('/update')
  * @memberof module:routes/matches
  * @function
  * @param {int} req.body[0].match_id - The ID of the user creating the match.

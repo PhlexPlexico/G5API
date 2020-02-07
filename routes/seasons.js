@@ -115,7 +115,7 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
 });
 
 /** PUT - Create a veto object from a given match.
- * @name router.post('/update')
+ * @name router.put('/update')
  * @memberof module:routes/seasons
  * @function
  * @param {int} req.body[0].season_id - The ID of the season being modified.
@@ -158,8 +158,6 @@ router.put("/update", ensureAuthenticated, async (req, res, next) => {
  * @param {int} req.body[0].match_id - The ID of the match to remove all values pertaining to the match.
  *
  */
-
- 
 router.delete("/delete", async (req, res, next) => {
   try {
     throw "NOT IMPLEMENTED";

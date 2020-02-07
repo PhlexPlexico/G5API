@@ -98,7 +98,7 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
 
 
 /** DEL - Delete all vetoes associated with a match.
- * @name router.post('/delete')
+ * @name router.delete('/delete')
  * @memberof module:routes/vetoes
  * @function
  * @param {int} req.body[0].user_id - The ID of the user deleteing. Can check if admin when implemented.

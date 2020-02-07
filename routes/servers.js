@@ -135,7 +135,7 @@ router.post("/create", async (req, res, next) => {
 });
 
 /** PUT - Update a game server in the database, and encrypt the password. 
- * @name router.post('/update')
+ * @name router.put('/update')
  * @memberof module:routes/servers
  * @function
 * @param {int} req.body[0].user_id - The ID of the user creating the server to claim ownership.
@@ -179,7 +179,7 @@ router.put("/update", ensureAuthenticated, async (req, res, next) => {
 });
 
 /** DEL - Delete a game server in the database.
- * @name router.post('/delete')
+ * @name router.delete('/delete')
  * @memberof module:routes/servers
  * @function
  * @param {int} req.body[0].user_id - The ID of the user creating the server to claim ownership.

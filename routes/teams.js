@@ -25,9 +25,11 @@ function ensureAuthenticated(req, res, next) {
 }
 
 /** GET - Route serving to get all teams.
- * @name /
+ * @name router.get('/')
  * @function
  * @memberof module:routes/teams
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware.
  */
 router.get("/", async (req, res, next) => {
   let sql =
@@ -49,10 +51,12 @@ router.get("/", async (req, res, next) => {
 });
 
 
-/** GET - Route serving to get all teams.
- * @name /
+/** GET - Route serving to get an auth'd users teams.
+ * @name router.get('/myteams')
  * @function
  * @memberof module:routes/teams
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware.
  */
 router.get("/myteams", ensureAuthenticated, async (req, res, next) => {
   let sql =
@@ -99,7 +103,7 @@ router.get("/:team_id", async (req, res, next) => {
 });
 
 /** POST - Route serving to insert a team into the database.
- * @name /create
+ * @name router.post('/create')
  * @function
  * @memberof module:routes/teams
  * @param {int} req.body[0].user_id - The ID of the user creating the team to claim ownership.
@@ -161,7 +165,7 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
 });
 
 /** PUT - Route serving to udpate a team into the database.
- * @name /update
+ * @name router.put('/update')
  * @function
  * @memberof module:routes/teams
  * @param {int} req.body[0].user_id - The ID of the user creating the team to claim ownership.
@@ -223,7 +227,7 @@ router.put("/update", ensureAuthenticated, async (req, res, next) => {
 });
 
 /** DELETE - Route serving to delete a team from the database. The team will only be deleted if their foreign key references have been removed, as we want to keep statistics of all teams over time.
- * @name /delete/:team_id
+ * @name router.delete('/delete/:team_id')
  * @function
  * @memberof module:routes/teams
  * @param {int} req.params.team_id - The ID of the team to be deleted.
@@ -275,7 +279,6 @@ router.delete("/delete/:team_id", ensureAuthenticated, async (req, res, next) =>
 });
 
 
-//TODO: various getters/setters are needed to be imported from Get5-Web. Please see https://github.com/PhlexPlexico/get5-web/blob/master/get5/models.py
 /** GET - Route serving to get a teams recent matches.
  * @name router.get('/:team_id/recent')
  * @function
