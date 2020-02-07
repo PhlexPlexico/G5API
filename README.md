@@ -8,7 +8,9 @@ G5API is going to be a replacement for the get5-webpanel. _Currently_ this is th
 Currently, very basic CRUD operations, as well as legacy calls that the get5-web api used, as referenced [here](https://github.com/PhlexPlexico/get5-web/blob/development/get5/api.py). Right now, this is a very early build to try my hand at using Express as a middleware, and try some JavaScript technologies so that others may create their own front-end applications, with all the difficult back-end stuff being completed. 
 
 
-This API should be complete enough to do basic operations to the game. **Server operations are currently not in place** and these will exist in different routes. I was thinking sending to game server should be within the `/server` route, as it would make sense that a match should interact with the server, and make any rcon request to the game server. 
+This API should be complete enough to do basic operations to the game. **Server operations are currently not in place** and these will exist in different routes. ~~I was thinking sending to game server should be within the `/server` route, as it would make sense that a match should interact with the server, and make any rcon request to the game server?~~
+
+Server interaction will most likely take place in `/match/:match_id/server/{rcon|start|etc}`. These command should probably be logged in the database for audit purposes as well.
 
 ## What does it NOT do?
 Basically every "advanced" feature the current web panel has, from editing matches while in game (should be done with a front-end and calls to steam), to displaying any of the data. This is simply a back-end to get myself used to JavaScript and Node. Maybe eventually I will work on a front-end in React or Vue, but it depends on how long I stay motivated with this.
