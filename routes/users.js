@@ -22,8 +22,10 @@ const db = require("../db");
  * @function
  * @inner */
 function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
-  res.redirect('/auth/steam');
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.redirect("/auth/steam");
 }
 
 /** GET - Route serving to get all users.
@@ -43,7 +45,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-
 /** GET - Route serving to get one user by database or steam id.
  * @name router.get('/:userid')
  * @memberof module:routes/users
@@ -56,7 +57,7 @@ router.get("/:user_id", async (req, res, next) => {
   try {
     userOrSteamID = req.params.user_id;
     let sql = "SELECT * FROM user where id = ? OR steam_id = ?";
-    const allUsers = await db.query(sql, userOrSteamID);
+    const allUsers = await db.query(sql, [userOrSteamID,userOrSteamID]);
     res.json(allUsers);
   } catch (err) {
     res.status(500).json({ message: err });
@@ -74,7 +75,7 @@ router.get("/:user_id", async (req, res, next) => {
  */
 router.post("/create", ensureAuthenticated, async (req, res, next) => {
   try {
-    if (req.user.super_admin === 1 || req.user.admin === 1 ){
+    if (req.user.super_admin === 1 || req.user.admin === 1) {
       await db.withTransaction(db, async () => {
         let steamId = req.body[0].steam_id;
         let steamName = req.body[0].name;
@@ -87,7 +88,7 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
         res.json({ message: "User created successfully" });
       });
     } else {
-      res.status(401).json({message: "You are not authorized to do this."});
+      res.status(401).json({ message: "You are not authorized to do this." });
     }
   } catch (err) {
     res.status(500).json({ message: err });
@@ -104,17 +105,52 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
  */
 router.put("/update", ensureAuthenticated, async (req, res, next) => {
   try {
-    if (req.user.super_admin === 1 || req.user.admin === 1 ){
+    if (req.user.super_admin === 1 || req.user.admin === 1) {
       await db.withTransaction(db, async () => {
         let steamId = req.body[0].steam_id;
         let isAdmin = req.body[0].admin || 0;
         let isSuperAdmin = req.body[0].super_admin || 0;
-        let sql = "UPDATE user SET admin = ?, super_admin = ? WHERE steam_id = ?";
+        let sql =
+          "UPDATE user SET admin = ?, super_admin = ? WHERE steam_id = ?";
         await db.query(sql, [isAdmin, isSuperAdmin, steamId]);
       });
     } else {
-      res.status(401).json({message: "You are not authorized to do this."});
+      res.status(401).json({ message: "You are not authorized to do this." });
     }
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
+
+/** GET - Route serving to get a users' steam URL.
+ * @name /:user_id/steam
+ * @function
+ * @memberof module:routes/users
+ * @param {number} req.params.user_id - Steam ID or user ID of the user being edited.
+ */
+router.get("/:user_id/steam", async (req, res, next) => {
+  try {
+    userOrSteamID = req.params.user_id;
+    let sql = "SELECT steam_id FROM user where id = ? OR steam_id = ?";
+    const allUsers = await db.query(sql, [userOrSteamID,userOrSteamID]);
+    res.json({"url:": "https://steamcommunity.com/profiles/"+allUsers[0].steam_id});
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
+
+/** GET - Route serving to get a users' recent matches.
+ * @name /:user_id/recent
+ * @function
+ * @memberof module:routes/users
+ * @param {number} req.params.user_id - Steam ID or user ID of the user being edited.
+ */
+router.get("/:user_id/recent", async (req, res, next) => {
+  try {
+    userOrSteamID = req.params.user_id;
+    let sql = "SELECT rec_matches.* FROM user u, `match` rec_matches WHERE u.id = ? OR u.steam_id = ? LIMIT 5";
+    const recentMatches = await db.query(sql, [userOrSteamID, userOrSteamID]);
+    res.json(recentMatches);
   } catch (err) {
     res.status(500).json({ message: err });
   }

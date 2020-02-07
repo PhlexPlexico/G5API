@@ -29,13 +29,13 @@ function ensureAuthenticated(req, res, next) {
  * @function
  * @memberof module:routes/teams
  */
-router.get("/", ensureAuthenticated, async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   let sql =
     "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
     "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
     "FROM team t JOIN team_auth_names ta " +
     "ON t.id = ta.team_id " +
-    "GROUP BY t.name, t.flag, t.logo, t.tag, t.public_team";
+    "GROUP BY t.id, t.name, t.flag, t.logo, t.tag, t.public_team";
   try {
     const allTeams = await db.query(sql);
     // do something with someRows and otherRows
@@ -80,7 +80,7 @@ router.get("/myteams", ensureAuthenticated, async (req, res, next) => {
  * @memberof module:routes/teams
  * @param {int} teamid - The team ID you wish to examine.
  */
-router.get("/:team_id", ensureAuthenticated, async (req, res, next) => {
+router.get("/:team_id", async (req, res, next) => {
   teamID = req.params.team_id;
   let sql =
     "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
@@ -276,5 +276,81 @@ router.delete("/delete/:team_id", ensureAuthenticated, async (req, res, next) =>
 
 
 //TODO: various getters/setters are needed to be imported from Get5-Web. Please see https://github.com/PhlexPlexico/get5-web/blob/master/get5/models.py
+/** GET - Route serving to get a teams recent matches.
+ * @name router.get('/:team_id/recent')
+ * @function
+ * @memberof module:routes/teams
+ * @param {int} teamid - The team ID you wish to examine.
+ */
+router.get("/:team_id/recent", async(req, res, next) => {
+  try {
+    teamId = req.params.team_id;
+    let sql = "SELECT rec_matches.* FROM team t, `match` rec_matches WHERE t.id = ? AND (rec_matches.team1_id = ? OR rec_matches.team2_id = ?) ORDER BY rec_matches.id DESC LIMIT 5";
+    const recentMatches = await db.query(sql, [teamId, teamId, teamId]);
+    res.json(recentMatches);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
 
+/** GET - Route serving to get a teams recent matches.
+ * @name router.get('/:team_id/result/:match_id')
+ * @function
+ * @memberof module:routes/teams
+ * @param {int} req.params.teamid - The team ID you wish to examine for results.
+ * @param {int} req.params.matchid - The match ID you wish to examine for results.
+ */
+router.get("/:team_id/result/:match_id", async(req, res, next) => {
+  try {
+    let otherTeam = null;
+    let myScore = 0;
+    let otherTeamScore = 0;
+    let matchId = req.params.match_id;
+    let teamId = req.params.team_id;
+    let matchSql = "SELECT * FROM `match` WHERE id = ?";
+    let teamSql = "SELECT * FROM team WHERE id = ?";
+    let statusString = "";
+    const curMatch = await db.query(matchSql, [matchId]);
+    if (curMatch.length === 0){
+      res.status(404).json({"result": "Team did not participate in match."});
+      return;
+    }
+    if (curMatch[0].team1_id === teamId){
+      otherTeam = await db.query(teamSql, [curMatch[0].team2_id]);
+      myScore = curMatch[0].team1_score;
+      otherTeamScore = curMatch[0].team2_score;
+    } else {
+      otherTeam = await db.query(teamSql, [curMatch[0].team1_id]);
+      myScore = curMatch[0].team2_score;
+      otherTeamScore = curMatch[0].team1_score;
+    }
+    // If match is a bo1, just get the map score.
+    if (curMatch[0].max_maps === 1) {
+      let mapSql = "SELECT team1_id, team1_score, team2_score FROM map_stats WHERE match_id = ? LIMIT 1";
+      const mapStatBo1 = await db.query(mapSql, [matchId]);
+      if (mapStatBo1.length > 0) {
+        if (mapStatBo1[0].team1_id === teamId) {
+          myScore = mapStatBo1[0].team1_score;
+          otherTeamScore = mapStatBo1[0].team2_score;
+        } else {
+          myScore = mapStatBo1[0].team2_score;
+          otherTeamScore = mapStatBo1[0].team1_score;
+        }
+      }
+    }
+    // Start building the return string.
+    if (curMatch[0].end_time === null && (curMatch[0].cancelled === false || curMatch[0].cancelled === null) && curMatch[0].start_time !== null)
+        statusString = "Live, "+ myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
+    else if (myScore < otherTeamScore) 
+      statusString = "Lost, "+ myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
+    else if (myScore > otherTeamScore) 
+      statusString = "Won, "+ myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
+    else
+      statusString = "Tied, "+ myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
+    res.json({"result" : statusString});
+
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
 module.exports = router;
