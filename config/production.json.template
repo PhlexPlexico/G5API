@@ -12,11 +12,11 @@
     "steamAPIKey": "API Key For Steam Calls.",
     "sharedSecret": "a secure secret for jwt sigining."
   },
-  "dev": {
+  "prod": {
     "driver": "mysql",
     "user": "get5_user",
     "password": "",
-    "database": "get5test",
+    "database": "get5",
     "multipleStatements": true
   }
 }
