@@ -1,3 +1,5 @@
+/*Database driver. This should probably be converted to pools.
+TODO: Convert to pooled connection.*/
 const mysql = require('mysql');
 const config = require('config');
 const util = require( 'util' );

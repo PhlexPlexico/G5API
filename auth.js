@@ -1,4 +1,8 @@
-// Passport stuff.
+/* Passport stuff
+This is not required to be modified. 
+All this does is check if the user exists in the database and
+if they don't will add them with basic user access.
+*/
 const config = require('config');
 const SteamStrategy = require('passport-steam').Strategy;
 const passport = require('passport');
