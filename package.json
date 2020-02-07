@@ -16,7 +16,7 @@
   "author": {
     "name": "Phlex Plexico",
     "email": "flexing@phlexplexi.co",
-    "url": "http://phlexplexi.co"
+    "url": "https://phlexplexi.co"
   },
   "engines": {
     "node": ">=11.15.0"
