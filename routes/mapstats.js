@@ -40,6 +40,10 @@ router.get("/", async (req, res, next) => {
     // Check if admin, if they are use this query.
     let sql = "SELECT * FROM map_stats";
     const allStats = await db.query(sql);
+    if (allStats.length === 0){
+      res.status(404).json({message: "No stats found."});
+      return;
+    }
     res.json(allStats);
   } catch (err) {
     res.status(500).json({ message: err });
@@ -59,6 +63,10 @@ router.get("/:match_id", async (req, res, next) => {
     matchID = req.params.match_id;
     let sql = "SELECT * FROM map_stats where match_id = ?";
     const mapStats = await db.query(sql, matchID);
+    if (mapStats.length === 0){
+      res.status(404).json({message: "No stats found."});
+      return;
+    }
     res.json(mapStats);
   } catch (err) {
     res.status(500).json({ message: err });

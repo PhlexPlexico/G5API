@@ -46,6 +46,10 @@ router.get("/", async (req, res, next) => {
     // Check if admin, if they are use this query.
     let sql = "SELECT * FROM `match` WHERE cancelled = 0";
     const matches = await db.query(sql);
+    if (matches.length === 0){
+      res.status(404).json({message: "No matches found."});
+      return;
+    }
     res.json(matches);
   } catch (err) {
     res.status(500).json({ message: err });
@@ -65,6 +69,10 @@ router.get("/mymatches", ensureAuthenticated, async (req, res, next) => {
     // Check if admin, if they are use this query.
     let sql = "SELECT * FROM `match` WHERE user_id = ?";
     const matches = await db.query(sql, [req.user.id]);
+    if (matches.length === 0){
+      res.status(404).json({message: "No matches found."});
+      return;
+    }
     res.json(matches);
   } catch (err) {
     res.status(500).json({ message: err });
@@ -85,14 +93,18 @@ router.get("/:match_id", async (req, res, next) => {
     matchID = req.params.match_id;
     let sql = "SELECT * FROM `match` where id = ?";
     const matches = await db.query(sql, matchID);
+    if (matches.length === 0){
+      res.status(404).json({message: "No matches found."});
+      return;
+    }
     res.json(matches);
   } catch (err) {
     res.status(500).json({ message: err });
   }
 });
 
-/** GET - Route serving to forfeit a match.
- * @name router.get('/:match_id/forfeit/:winner')
+/** PUT - Route serving to forfeit a match.
+ * @name router.put('/:match_id/forfeit/:winner')
  * @memberof module:routes/matches
  * @function
  * @param {string} path - Express path
@@ -100,7 +112,7 @@ router.get("/:match_id", async (req, res, next) => {
  * @param {number} request.params.winner - The team which one. 1 for team1, 2 for team2.
  * @param {callback} middleware - Express middleware.
  */
-router.get(
+router.put(
   "/:match_id/forfeit/:winner",
   ensureAuthenticated,
   async (req, res, next) => {
@@ -212,6 +224,10 @@ router.get("/:match_id/config", async (req, res, next) => {
     let sql = "SELECT * FROM `match` WHERE id = ?";
     let matchID = parseInt(req.params.match_id);
     const matchInfo = await db.query(sql, [matchID]);
+    if (matchInfo.length === 0){
+      res.status(404).json({message: "No match found."});
+      return;
+    }
     let matchJSON = {
       matchid: matchID,
       match_title: matchInfo[0].title,
@@ -335,6 +351,10 @@ router.put("/update", ensureAuthenticated, async (req, res, next) => {
     let userId = req.user.id;
     let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
     const matchRow = await db.query(matchUserId, req.body[0].match_id);
+    if (matchRow.length === 0){
+      res.status(404).json({message: "No match found."});
+      return;
+    }
     if (
       req.user.super_admin ||
       req.user.admin === 1 ||
@@ -394,6 +414,10 @@ router.delete("/delete", async (req, res, next) => {
       let mapStatDeleteSql = "DELETE FROM map_stats WHERE match_id = ?";
       let spectatorDeleteSql = "DELETE FROM match_spectator WHERE match_id = ?";
       const matchCancelledResult = await db.query(isMatchCancelled, matchId);
+      if (matchCancelledResult.length === 0){
+        res.status(404).json({message: "No match found."});
+        return;
+      }
       if (matchCancelledResult[0].cancelled !== 1) {
         throw "Cannot delete match as it is not cancelled.";
       } else if (matchCancelledResult[0].user_id !== userId) {

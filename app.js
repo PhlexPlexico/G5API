@@ -14,6 +14,7 @@ const usersRouter = require('./routes/users');
 const teamsRouter = require('./routes/teams');
 const serversRouter = require('./routes/servers');
 const vetoesRouter = require('./routes/vetoes');
+const seasonsRouter = require('./routes/seasons');
 const matchesRouter = require('./routes/matches');
 const mapstatsRouter = require('./routes/mapstats');
 const playerstatsRouter = require('./routes/playerstats');
@@ -68,6 +69,7 @@ app.use('/vetoes', vetoesRouter);
 app.use('/matches', matchesRouter);
 app.use('/mapstats', mapstatsRouter);
 app.use('/playerstats', playerstatsRouter);
+app.use('/seasons', seasonsRouter);
 app.use('/match', legacyAPICalls);
 
 //END ROUTES

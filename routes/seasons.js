@@ -72,12 +72,16 @@ router.get("/myseasons", ensureAuthenticated, async (req, res, next) => {
  * @param {number} request.param.season_id - The ID of the season to retrieve basic information.
  * @param {callback} middleware - Express middleware.
  */
-router.get("/:seasonid", async (req, res, next) => {
+router.get("/:season_id", async (req, res, next) => {
   try {
     //
     seasonID = req.params.season_id;
     let sql = "SELECT * FROM season where id = ?";
     const seasons = await db.query(sql, seasonID);
+    if (seasons.length === 0){
+      res.status(404).json({message: "No season found."});
+      return;
+    }
     res.json(seasons);
   } catch (err) {
     res.status(500).json({ message: err });
