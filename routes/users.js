@@ -65,7 +65,7 @@ router.get("/:user_id", async (req, res, next) => {
 });
 
 /** POST - Route serving to insert a user into the database.
- * @name /create
+ * @name router.post('/create')
  * @function
  * @memberof module:routes/users
  * @param {number} req.body[0].steam_id - Steam ID of the user being created.
@@ -96,7 +96,7 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
 });
 
 /** PUT - Route serving to update a user admin privilege in the application.
- * @name /update
+ * @name router.put('/update')
  * @function
  * @memberof module:routes/users
  * @param {number} req.body[0].steam_id - Steam ID of the user being edited.
@@ -123,7 +123,7 @@ router.put("/update", ensureAuthenticated, async (req, res, next) => {
 });
 
 /** GET - Route serving to get a users' steam URL.
- * @name /:user_id/steam
+ * @name router.get('/:user_id/steam')
  * @function
  * @memberof module:routes/users
  * @param {number} req.params.user_id - Steam ID or user ID of the user being edited.
@@ -140,7 +140,7 @@ router.get("/:user_id/steam", async (req, res, next) => {
 });
 
 /** GET - Route serving to get a users' recent matches.
- * @name /:user_id/recent
+ * @name router.get('/:user_id/recent')
  * @function
  * @memberof module:routes/users
  * @param {number} req.params.user_id - Steam ID or user ID of the user being edited.

@@ -108,7 +108,7 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
 });
 
 /** PUT - Update a map stats object when it is completed.
- * @name router.post('/update')
+ * @name router.put('/update')
  * @memberof module:routes/mapstats
  * @function
  * @param {int} req.body[0].map_stats_id - The ID of the map stat being updated, for end times, score, winner, and demo files.
@@ -155,7 +155,7 @@ router.put("/update", ensureAuthenticated, async (req, res, next) => {
 });
 
 /** DEL - Delete a game server in the database.
- * @name router.post('/delete')
+ * @name router.delete('/delete')
  * @memberof module:routes/mapstats
  * @function
  * @param {int} req.body[0].map_stats_id - The ID of the map stats being removed.
