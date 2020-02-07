@@ -87,12 +87,6 @@ app.get('/auth/steam/return',
   }, 
   passport.authenticate('steam', { failureRedirect: '/' }),
   (req, res) => {
-    // TODO: Think about tokens, and whether they should be used or not. In the event of sessions not working.
-    // let payload = {
-    //     steamid: req.user.id
-    //   };
-    //   let token = jwt.sign(payload, config.get("Server.sharedSecret"), {expiresIn : 60*60*24});
-    // res.cookie('token', token, { httpOnly: true /* TODO: Set secure: true */ }); 
     res.redirect('/');
   });
 // END Steam API Calls.
