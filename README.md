@@ -8,6 +8,8 @@ G5API is going to be a replacement for the get5-webpanel. _Currently_ this is th
 Currently, very basic CRUD operations, as well as legacy calls that the get5-web api used, as referenced [here](https://github.com/PhlexPlexico/get5-web/blob/development/get5/api.py). Right now, this is a very early build to try my hand at using Express as a middleware, and try some JavaScript technologies so that others may create their own front-end applications, with all the difficult back-end stuff being completed. 
 
 
+This API should be complete enough to do basic operations to the game. **Server operations are currently not in place** and these will exist in different routes. I was thinking sending to game server should be within the `/server` route, as it would make sense that a match should interact with the server, and make any rcon request to the game server. 
+
 ## What does it NOT do?
 Basically every "advanced" feature the current web panel has, from editing matches while in game (should be done with a front-end and calls to steam), to displaying any of the data. This is simply a back-end to get myself used to JavaScript and Node. Maybe eventually I will work on a front-end in React or Vue, but it depends on how long I stay motivated with this.
 
@@ -21,10 +23,15 @@ In order to build this application, I've opted to use [Yarn](https://yarnpkg.com
 
 First you will need to copy over the ```development.json.template``` and update any values that are required. These include server values, and database passwords and connections.
 
+If you wish to roll a production build, please copy ```production.json.template``` and fill out all the values.
+
 ### Migrate dev database: 
 ```yarn migrate-dev up:dev```
 
 The database must be existing before you run this, and you can change which database to use in the `development.json` area. **Please Note this only works with Node <= 11.15.0.** The entire App can work with Node v12, but there is currently an outstanding issue with the migrate function. Also note that there are some tables that have changed. I've opted to normalizing the spectators and team authentication values, as BLOBS were not playing nicely with Node. My current fork deals with inserting into these tables, so I hope that it will eventually be a smooth transition where you can keep all your data from the old app.
+
+### Migrate production database:
+```yarn migrate-prod-upgrade```
 
 ### Build and run: 
 ```yarn start``` 

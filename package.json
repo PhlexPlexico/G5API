@@ -31,11 +31,11 @@
     "start": "nodemon ./bin/www",
     "doc": "jsdoc -c jsdoc.conf.json",
     "migrate-dev": "node ./node_modules/db-migrate/bin/db-migrate --config config/development.json",
-    "migrate-prod": "node ./node_modules/db-migrate/bin/db-migrate --config config/production.json",
+    "migrate-prod": "node ./node_modules/db-migrate/bin/db-migrate --env prod --config config/production.json",
     "migrate-dev-upgrade": "node ./node_modules/db-migrate/bin/db-migrate --config config/development.json up:dev",
     "migrate-dev-downgrade": "node ./node_modules/db-migrate/bin/db-migrate --config config/development.json down:dev",
-    "migrate-prod-upgrade": "node ./node_modules/db-migrate/bin/db-migrate --config config/production.json up:prod",
-    "migrate-prod-downgrade": "node ./node_modules/db-migrate/bin/db-migrate --config config/production.json down:prod"
+    "migrate-prod-upgrade": "node ./node_modules/db-migrate/bin/db-migrate --env prod --config config/production.json up:prod",
+    "migrate-prod-downgrade": "node ./node_modules/db-migrate/bin/db-migrate --env prod --config config/production.json down:prod"
   },
   "dependencies": {
     "aes-js": "^3.1.2",
