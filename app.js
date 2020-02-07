@@ -44,7 +44,7 @@ app.use(cookieParser());
 app.use(helmet());
 app.use(session({
     secret: config.get("Server.sharedSecret"),
-    name: 'testlhost',
+    name: 'G5API',
     resave: true,
     saveUninitialized: true}));
 
