@@ -59,6 +59,7 @@
     "nodemon": "^1.19.4",
     "passport": "^0.4.0",
     "passport-steam": "^1.0.11",
-    "randomstring": "^1.1.5"
+    "randomstring": "^1.1.5",
+    "rcon-srcds": "^1.0.0"
   }
 }
