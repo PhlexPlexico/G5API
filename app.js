@@ -10,15 +10,16 @@ const morgan = require('morgan');
 
 //Route Files
 const indexRouter = require('./routes/index');
-const usersRouter = require('./routes/users');
-const teamsRouter = require('./routes/teams');
-const serversRouter = require('./routes/servers');
-const vetoesRouter = require('./routes/vetoes');
-const seasonsRouter = require('./routes/seasons');
+const leaderboardRouter = require('./routes/leaderboard');
+const legacyAPICalls = require('./routes/legacy/api');
 const matchesRouter = require('./routes/matches');
 const mapstatsRouter = require('./routes/mapstats');
 const playerstatsRouter = require('./routes/playerstats');
-const legacyAPICalls = require('./routes/legacy/api');
+const seasonsRouter = require('./routes/seasons');
+const serversRouter = require('./routes/servers');
+const teamsRouter = require('./routes/teams');
+const usersRouter = require('./routes/users');
+const vetoesRouter = require('./routes/vetoes');
 //End Route Files
 
 const passport = require('./auth');
@@ -71,7 +72,7 @@ app.use('/mapstats', mapstatsRouter);
 app.use('/playerstats', playerstatsRouter);
 app.use('/seasons', seasonsRouter);
 app.use('/match', legacyAPICalls);
-
+app.use('/leaderboard', leaderboardRouter);
 //END ROUTES
 
 // Steam API Calls.
