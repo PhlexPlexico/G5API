@@ -1,0 +1,22 @@
+{
+  "Database": {
+    "sockFile": "/tmp/mysql.sock",
+    "username": "get5_user",
+    "password": "",
+    "db": "get5"
+  },
+  "Server": {
+    "port": 3301,
+    "hostname": "localhost",
+    "dbKey": "Database 16 Byte Key.",
+    "steamAPIKey": "API Key For Steam Calls.",
+    "sharedSecret": "a secure secret for jwt sigining."
+  },
+  "dev": {
+    "driver": "mysql",
+    "user": "get5_user",
+    "password": "",
+    "database": "get5test",
+    "multipleStatements": true
+  }
+}
