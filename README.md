@@ -16,9 +16,9 @@ Server interaction will most likely take place in `/match/:match_id/server/{rcon
 Basically every "advanced" feature the current web panel has, from editing matches while in game (should be done with a front-end and calls to steam), to displaying any of the data. This is simply a back-end to get myself used to JavaScript and Node. Maybe eventually I will work on a front-end in React or Vue, but it depends on how long I stay motivated with this.
 
 ## Why?
-[Get5-webpanel](https://github.com/phlexplexico/get5-webpanel) is a rather now out-dated webpanel. Being built all on Flask, with ORM (SQLAlchemy), and Jinja2, its tech spans a few years old. While it works really well for now, it is becoming increasingly harder to deploy to more modern hardware (such as Ubuntu 19). With Python2 now being outdated in 2020, it makes sense to move that project over to something newer.
+[Get5-webpanel](https://github.com/phlexplexico/get5-webpanel) is a now out-dated webpanel, with python2.7 being officially EOL. Being built all on Flask, with ORM (SQLAlchemy), and Jinja2, its tech spans more than a few years old. While it works really well for now, it is becoming increasingly harder to deploy to more modern hardware (such as Ubuntu 19).
 
-The intent will to be provide similar functionality with the use of NodeJS and Express, and this API will take care of session authentication as well, via the use of `passport-steam`.
+The intent will to be provide similar functionality with the use of NodeJS and Express, and this API will take care of session authentication as well, via the use of `passport-steam`, and rcon server commands via `rcon-srcds`, as well as more normalization in the database.
 
 ## Building
 In order to build this application, I've opted to use [Yarn](https://yarnpkg.com/lang/en/).
@@ -30,7 +30,7 @@ If you wish to roll a production build, please copy ```production.json.template`
 ### Migrate dev database: 
 ```yarn migrate-dev up:dev```
 
-The database must be existing before you run this, and you can change which database to use in the `development.json` area. **Please Note this only works with Node <= 11.15.0.** The entire App can work with Node v12, but there is currently an outstanding issue with the migrate function. Also note that there are some tables that have changed. I've opted to normalizing the spectators and team authentication values, as BLOBS were not playing nicely with Node. My current fork deals with inserting into these tables, so I hope that it will eventually be a smooth transition where you can keep all your data from the old app.
+The database must be existing before you run this, and you can change which database to use in the `development.json` area. **Please Note this only works with Node <= 11.15.0.** The entire App can work with Node v12, but there is currently an outstanding issue with the migrate function. Also note that there are some tables that have changed. I've opted to normalizing the spectators and team authentication values, as BLOBS were not playing nicely with Node. My current fork deals with inserting into these tables, so I hope that it will eventually be a smooth transition where you can keep all your data from the old Flask app.
 
 ### Migrate production database:
 ```yarn migrate-prod-upgrade```
@@ -43,8 +43,10 @@ Spins up a development server where you can make all your calls. Since steam aut
 ### Docs: 
 ```yarn doc```
 
+This will generate all the API information that I've created in the app, in the hopes of making it more readable and easier to pickup for anyone who wants to try more implementation, or even creating a front-end for this API.
+
 ### Coverage Tests
-Currently not implemented.
+Currently not implemented. These will most likely be created with [Supertest](https://npmjs.com/package/supertest) and [Jest](https://jestjs.io). 
 
 ~~```yarn test```~~
 
