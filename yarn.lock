@@ -2337,6 +2337,11 @@ rc@^1.0.1, rc@^1.1.6, rc@^1.2.7, rc@^1.2.8:
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
 
+rcon-srcds@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/rcon-srcds/-/rcon-srcds-1.0.0.tgz#8b89a9fd6861fbb58f557d9175ff8f82e57b248c"
+  integrity sha512-9NdjZNvRf5fIV0DrvuA18A39N7gi5q/NqGac6x1zIg4vXFpcpBtD0zbpO+Jxh0zcsQz9IJ7bImaeXX68w4D9dg==
+
 read@1.0.x:
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/read/-/read-1.0.7.tgz#b3da19bd052431a97671d44a42634adf710b40c4"
