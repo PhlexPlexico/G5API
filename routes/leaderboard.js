@@ -80,6 +80,7 @@ router.get("/", async (req, res) => {
         }
         let winName = winningTeam[0].name;
         let loseName = losingTeam[0].name;
+        // Instantiate the object, needed only once.
         if(!teamStandings[winName]) {
           teamStandings[winName] = {};
           teamStandings[winName].wins = 0;
