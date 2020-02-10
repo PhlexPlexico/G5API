@@ -40,6 +40,7 @@ exports.up = function(db, callback) {
         },
         length: 11 
       },
+      in_use: { type: 'boolean', defaultValue: false, notNull: true },
       ip_string: { type: 'string', length: 32 },
       port: { type: 'int', length: 11 },
       rcon_password: { type: 'string', length: 128 },
