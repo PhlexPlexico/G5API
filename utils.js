@@ -1,11 +1,26 @@
 /** Utilities class for help with basic functions.
  * @module utils
  */
+
+ /** AES Module for Encryption/Decryption
+ * @const
+ */
+const aes = require('aes-js');
+
+/** Crypto for assigning random  */
+const crypto = require('crypto');
+
+/** Config to get database key.
+ * @const
+ */
+const config = require('config');
+
+
 class Utils {
 
  /** Function to get an HLTV rating for a user.
  * @function
- * @memberof module:routes/leaderboard
+ * @memberof module:utils
  * @param {integer} [kills=0] - Amount of kills.
  * @param {integer} [roundsplayed=0] - Amount of rounds played.
  * @param {integer} [deaths=0] - Amount of deaths.
@@ -44,6 +59,60 @@ class Utils {
       return 0;
     }
   };
+
+  /** Inner function - Supports encryption and decryption for the database keys to get server RCON passwords.
+ * @name decrypt
+ * @function
+ * @inner
+ * @memberof module:utils
+ * @param {string} source - The source to be decrypted.
+ */
+  static decrypt(source) {
+    try{
+      if(source === null)
+        return;
+      let byteSource = aes.utils.hex.toBytes(source.substring(32));
+      let IV = aes.utils.hex.toBytes(source.substring(0,32));
+      let key = aes.utils.utf8.toBytes(config.get("Server.dbKey"));
+      let aesCbc = new aes.ModeOfOperation.ofb(key, IV);
+      let decryptedBytes = aesCbc.decrypt(byteSource);
+      let decryptedText = aes.utils.utf8.fromBytes(decryptedBytes);
+      return decryptedText;
+    } catch ( err ){
+      console.log(err);
+      // fail silently.
+      return null;
+    }
+}
+
+/** Inner function - Supports encryption and decryption for the database keys to get server RCON passwords.
+ * @name encrypt
+ * @function
+ * @inner
+ * @memberof module:utils
+ * @param {string} source - The source to be decrypted.
+ */
+  static encrypt(source) {
+    try{
+      if(source === null)
+        return;
+      
+      let byteSource = aes.utils.utf8.toBytes(source);
+      let IV = crypto.randomBytes(16);
+      let key = aes.utils.utf8.toBytes(config.get("Server.dbKey"));
+      let aesCbc = new aes.ModeOfOperation.ofb(key, IV);
+      let encryptedBytes = aesCbc.encrypt(byteSource);
+      let encryptedHex = aes.utils.hex.fromBytes(encryptedBytes);
+      let hexIV = aes.utils.hex.fromBytes(IV);
+      console.log(encryptedHex);
+      encryptedHex = hexIV + encryptedHex;
+      console.log(encryptedHex);
+      return encryptedHex;
+    } catch ( err ){
+      console.log(err);
+      throw err
+    }
+  }
 }
 
 module.exports = Utils;
