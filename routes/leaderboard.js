@@ -55,7 +55,7 @@ router.get("/players", async (req, res) => {
   }
 });
 
-/** GET - Route serving to get a lifetime leaderboard for players.
+/** GET - Route serving to get a seasonal leaderboard for players.
  * @name router.get('/players/:season_id')
  * @function
  * @memberof module:routes/leaderboard
@@ -174,7 +174,6 @@ router.get("/:season_id", async (req, res) => {
 const getPlayerLeaderboard = async (seasonId = null) => { 
   let allPlayers = [];
   let playerStats;
-  console.log("Made it!");
   /* Logic:
   * 1. Get all player values where match is not cancelled or forfeit.
   * 2. Grab raw values, and calculate things like HSP and KDR for each user. Get names and cache 'em even.
@@ -217,7 +216,6 @@ const getPlayerLeaderboard = async (seasonId = null) => {
   for(let player of playerStats){
     // Players can have multiple names. Avoid collision by combining everything, then performing averages.
     if(!allPlayers.some(el => el.steamId === player.steam_id)) {
-      console.log(player);
       allPlayers.push({
         steamId: player.steam_id,
         name: player.name, // TODO: Use steam helper if name is null, get from steam?

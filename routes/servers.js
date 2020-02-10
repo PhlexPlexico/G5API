@@ -16,19 +16,20 @@ const router = express.Router();
 
 const db = require("../db");
 
-/** AES Module for Encryption/Decryption
- * @const
- */
-const aes = require('aes-js');
+// /** AES Module for Encryption/Decryption
+//  * @const
+//  */
+// const aes = require('aes-js');
 
-/** Crypto for assigning random  */
-const crypto = require('crypto');
+// /** Crypto for assigning random  */
+// const crypto = require('crypto');
 
 /** Config to get database key.
  * @const
  */
 const config = require('config');
 
+const Utils = require('../utils');
 
 /** Ensures the user was authenticated through steam OAuth.
  * @function
@@ -71,10 +72,11 @@ router.get("/", async (req, res, next) => {
 router.get("/myservers", ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
-    let sql = "SELECT * FROM game_server where id = ?";
-    const allServers = await db.query(sql, [req.user.id]);
+    let sql = "SELECT * FROM game_server where user_id = ?";
+    //const allServers = await db.query(sql, [req.user.id]);
+    const allServers = await db.query(sql, req.user.id);
     for(let serverRow of allServers) {
-      serverRow.rcon_password = await decrypt(serverRow.rcon_password);
+      serverRow.rcon_password = await Utils.decrypt(serverRow.rcon_password);
     }
     res.json(allServers);
   } catch (err) {
@@ -97,7 +99,7 @@ router.get("/:server_id", ensureAuthenticated, async (req, res, next) => {
     serverID = req.params.server_id;
     let sql = "SELECT * FROM game_server where id = ? AND user_id = ?";
     const server = await db.query(sql, [serverID, req.user.id]);
-    server[0].rcon_password = await decrypt(server[0].rcon_password);
+    server[0].rcon_password = await Utils.decrypt(server[0].rcon_password);
     res.json(server);
   } catch (err) {
     res.status(500).json({ message: err });
@@ -123,13 +125,14 @@ router.post("/create", async (req, res, next) => {
       let ipString = req.body[0].ip_string;
       let port = req.body[0].port;
       let displayName =  req.body[0].display_name;
-      let rconPass = await encrypt(req.body[0].rcon_password);
+      let rconPass = await Utils.encrypt(req.body[0].rcon_password);
       let publicServer = req.body[0].public_server;
       let sql = "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server) VALUES (?,?,?,?,?,?)";
-      await db.query(sql, [userId, ipString, port, displayName, rconPass, publicServer]);
+      await db.query(sql, [userId, ipString, port, rconPass, displayName, publicServer]);
       res.json("Game server inserted successfully!");
     });
   } catch ( err ) {
+    console.log(err);
     res.status(500).json({message: err})
   }
 });
@@ -161,7 +164,7 @@ router.put("/update", ensureAuthenticated, async (req, res, next) => {
       ipString: req.body[0].ip_string,
       port: req.body[0].port,
       displayName: req.body[0].display_name,
-      rconPass: await encrypt(req.body[0].rcon_password),
+      rconPass: await Utils.encrypt(req.body[0].rcon_password),
       publicServer: req.body[0].public_server
       };
       // Remove any unwanted nulls.
@@ -209,59 +212,5 @@ router.delete("/delete", ensureAuthenticated, async (req,res,next) => {
   }
 });
 
-
-/** Inner function - Supports encryption and decryption for the database keys to get server RCON passwords.
- * @name decrypt
- * @function
- * @inner
- * @memberof module:routes/servers
- * @param {string} source - The source to be decrypted.
- */
-async function decrypt(source) {
-  try{
-    if(source === null)
-      return;
-    let byteSource = aes.utils.hex.toBytes(source.substring(32));
-    let IV = aes.utils.hex.toBytes(source.substring(0,32));
-    let key = aes.utils.utf8.toBytes(config.get("Keys.dbKey"));
-    let aesCbc = new aes.ModeOfOperation.ofb(key, IV);
-    let decryptedBytes = aesCbc.decrypt(byteSource);
-    let decryptedText = aes.utils.utf8.fromBytes(decryptedBytes);
-    return decryptedText;
-  } catch ( err ){
-    console.log(err);
-    // fail silently.
-    return null;
-  }
-}
-
-/** Inner function - Supports encryption and decryption for the database keys to get server RCON passwords.
- * @name encrypt
- * @function
- * @inner
- * @memberof module:routes/servers
- * @param {string} source - The source to be decrypted.
- */
-async function encrypt(source) {
-  try{
-    if(source === null)
-      return;
-    
-    let byteSource = aes.utils.utf8.toBytes(source);
-    let IV = crypto.randomBytes(16);
-    let key = aes.utils.utf8.toBytes(config.get("Keys.dbKey"));
-    let aesCbc = new aes.ModeOfOperation.ofb(key, IV);
-    let encryptedBytes = aesCbc.encrypt(byteSource);
-    let encryptedHex = aes.utils.hex.fromBytes(encryptedBytes);
-    let hexIV = aes.utils.hex.fromBytes(IV);
-    console.log(encryptedHex);
-    encryptedHex = hexIV + encryptedHex;
-    console.log(encryptedHex);
-    return encryptedHex;
-  } catch ( err ){
-    console.log(err);
-    throw err
-  }
-}
 
 module.exports = router;
