@@ -1,4 +1,4 @@
-/** Express API router for users in get5.
+/** Express API router for leaderboards in get5.
  * @module routes/leaderboard
  * @requires express
  * @requires db
@@ -16,6 +16,11 @@ const router = express.Router();
 
 const db = require("../db");
 
+/** Util helpers.
+ @const
+ */
+ const utils = require("../utils");
+
 /** GET - Route serving to get lifetime leaderboard of teams.
  * @name router.get('/')
  * @function
@@ -32,22 +37,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-/** GET - Route serving to get a season leaderboard of teams.
- * @name router.get('/:season_id')
- * @function
- * @memberof module:routes/leaderboard
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
- */
-router.get("/:season_id", async (req, res) => {
-  try {
-    let seasonId = req.params.season_id;
-    let leaderboard = await getTeamLeaderboard(seasonId);
-    res.json(leaderboard);
-  } catch (err) {
-    res.status(500).json({ message: err });
-  }
-});
 
 /** GET - Route serving to get a lifetime leaderboard for players.
  * @name router.get('/players')
@@ -61,15 +50,54 @@ router.get("/players", async (req, res) => {
     let leaderboard = await getPlayerLeaderboard();
     res.json(leaderboard);
   } catch (err) {
-    res.status(500).json({ message: err });
+    console.log(err);
+    res.status(500).json({ "message": err });
   }
 });
+
+/** GET - Route serving to get a lifetime leaderboard for players.
+ * @name router.get('/players/:season_id')
+ * @function
+ * @memberof module:routes/leaderboard
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware.
+ * @param {integer} season_id - Season ID to examine.
+ */
+router.get("/players/:season_id", async (req, res) => {
+  try {
+    let seasonId = req.params.season_id;
+    let leaderboard = await getPlayerLeaderboard(seasonId);
+    res.json(leaderboard);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ "message": err });
+  }
+});
+
+/** GET - Route serving to get a season leaderboard of teams.
+ * @name router.get('/:season_id')
+ * @function
+ * @memberof module:routes/leaderboard
+ * @param {string} path - Express path
+ * @param {integer} season_id - The season ID to query over for matches.
+ * @param {callback} middleware - Express middleware.
+ */
+router.get("/:season_id", async (req, res) => {
+  try {
+    let seasonId = req.params.season_id;
+    let leaderboard = await getTeamLeaderboard(seasonId);
+    res.json(leaderboard);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ "message": err });
+  }
+});
+
 
 /** Function to get the current team leaderboard standings in a season, or all time.
  * @function
  * @memberof module:routes/leaderboard
  * @param {string} [seasonId=null] - Season ID to filter.
- * @function
  * @inner */
  const getTeamLeaderboard = async (seasonId = null) => {
   try {
@@ -142,21 +170,23 @@ router.get("/players", async (req, res) => {
  * @memberof module:routes/leaderboard
  * @param {string} [seasonId=null] - Season ID to filter.
  * @function
- * @inner */
+ */
 const getPlayerLeaderboard = async (seasonId = null) => { 
-  let allPlayers = {};
+  let allPlayers = [];
   let playerStats;
+  console.log("Made it!");
   /* Logic:
   * 1. Get all player values where match is not cancelled or forfeit.
   * 2. Grab raw values, and calculate things like HSP and KDR for each user. Get names and cache 'em even.
   * 3. Insert into list of objects for each user.
   */
-  let playerStatSql = `SELECT  steam_id, name, sum(kills), 
-    sum(deaths), sum(assists), sum(k3), 
-    sum(k4), sum(k5), sum(v1), 
-    sum(v2), sum(v3), sum(v4), 
-    sum(v5), sum(roundsplayed), sum(flashbang_assists), 
-    sum(damage), sum(headshot_kills) 
+  let playerStatSql = `SELECT  steam_id, name, sum(kills) as kills, 
+    sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
+    sum(k2) as k2, sum(k3) as k3, 
+    sum(k4) as k4, sum(k5) as k5, sum(v1) as v1, 
+    sum(v2) as v2, sum(v3) as v3, sum(v4) as v4, 
+    sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba, 
+    sum(damage) as dmg, sum(headshot_kills) as hsk
     FROM    player_stats 
     WHERE   match_id IN (
         SELECT  id 
@@ -164,13 +194,14 @@ const getPlayerLeaderboard = async (seasonId = null) => {
         WHERE   cancelled=0
     )
     GROUP BY steam_id, name`;
-  let playerStatSqlSeasons = `SELECT  steam_id, name, sum(kills), 
-    sum(deaths), sum(assists), sum(k3), 
-    sum(k4), sum(k5), sum(v1), 
-    sum(v2), sum(v3), sum(v4), 
-    sum(v5), sum(roundsplayed), sum(flashbang_assists), 
-    sum(damage), sum(headshot_kills) 
-    FROM    player_stats, \`match\` 
+  let playerStatSqlSeasons = `SELECT  steam_id, name, sum(kills) as kills, 
+    sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
+    sum(k2) as k2, sum(k3) as k3, 
+    sum(k4) as k4, sum(k5) as k5, sum(v1) as v1, 
+    sum(v2) as v2, sum(v3) as v3, sum(v4) as v4, 
+    sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba, 
+    sum(damage) as dmg, sum(headshot_kills) as hsk
+    FROM    player_stats
     WHERE   match_id IN (
         SELECT  id 
         FROM    \`match\` 
@@ -183,13 +214,58 @@ const getPlayerLeaderboard = async (seasonId = null) => {
     playerStats = await db.query(playerStatSql);
   else
     playerStats = await db.query(playerStatSqlSeasons, [seasonId]);
-
   for(let player of playerStats){
     // Players can have multiple names. Avoid collision by combining everything, then performing averages.
-    if(!allPlayers.steamId) {
-
+    if(!allPlayers.some(el => el.steamId === player.steam_id)) {
+      console.log(player);
+      allPlayers.push({
+        steamId: player.steam_id,
+        name: player.name, // TODO: Use steam helper if name is null, get from steam?
+        kills: player.kills,
+        deaths: player.deaths,
+        assists: player.assists,
+        k1: player.k1,
+        k2: player.k2,
+        k3: player.k3,
+        k4: player.k4,
+        k5: player.k5,
+        v1: player.v1,
+        v2: player.v2,
+        v3: player.v3,
+        v4: player.v4,
+        v5: player.v5,
+        trp: player.trp,
+        fba: player.fba,
+        total_damage: player.dmg,
+        hsk: player.hsk,
+        hsp: player.kills === 0 ? 0 : ((player.hsk / player.kills) * 100).toFixed(2),
+        average_rating: utils.getRating(player.kills, player.trp, player.deaths, player.k1, player.k2, player.k3, player.k4, player.k5)
+      });
+    } else {
+      let collisionPlayer = allPlayers.find((user) => {return user.steamId === player.steam_id});
+      // Update name, or concat name?
+      collisionPlayer.name = (collisionPlayer.name + "/" + player.name).replace(/\/+$/, "");
+      collisionPlayer.kills += player.kills;
+      collisionPlayer.deaths += player.deaths;
+      collisionPlayer.assists += player.assists;
+      collisionPlayer.k1 += player.k1;
+      collisionPlayer.k2 += player.k2;
+      collisionPlayer.k3 += player.k3;
+      collisionPlayer.k4 += player.k4;
+      collisionPlayer.k5 += player.k5;
+      collisionPlayer.v1 += player.v1;
+      collisionPlayer.v2 += player.v2;
+      collisionPlayer.v3 += player.v3;
+      collisionPlayer.v4 += player.v4;
+      collisionPlayer.v5 += player.v5;
+      collisionPlayer.trp += player.trp;
+      collisionPlayer.fba += player.fba;
+      collisionPlayer.hsk += player.hsk;
+      collisionPlayer.total_damage += player.total_damage;
+      collisionPlayer.hsp = collisionPlayer.kills === 0 ? 0 : ((collisionPlayer.hsk / collisionPlayer.kills) * 100).toFixed(2);
+      collisionPlayer.average_rating = utils.getRating(collisionPlayer.kills, collisionPlayer.trp, collisionPlayer.k1, collisionPlayer.k2, collisionPlayer.k3, collisionPlayer.k4, collisionPlayer.k5);
     }
   }
-  
+  return allPlayers;
 };
 module.exports = router;
