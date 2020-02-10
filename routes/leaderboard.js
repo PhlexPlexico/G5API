@@ -32,9 +32,43 @@ router.get("/", async (req, res) => {
   }
 });
 
-/** Function to get the current leaderboard standings in a season, or all time.
+/** GET - Route serving to get a season leaderboard of teams.
+ * @name router.get('/:season_id')
  * @function
  * @memberof module:routes/leaderboard
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware.
+ */
+router.get("/:season_id", async (req, res) => {
+  try {
+    let seasonId = req.params.season_id;
+    let leaderboard = await getTeamLeaderboard(seasonId);
+    res.json(leaderboard);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
+
+/** GET - Route serving to get a lifetime leaderboard for players.
+ * @name router.get('/players')
+ * @function
+ * @memberof module:routes/leaderboard
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware.
+ */
+router.get("/players", async (req, res) => {
+  try {
+    let leaderboard = await getPlayerLeaderboard();
+    res.json(leaderboard);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+});
+
+/** Function to get the current team leaderboard standings in a season, or all time.
+ * @function
+ * @memberof module:routes/leaderboard
+ * @param {string} [seasonId=null] - Season ID to filter.
  * @function
  * @inner */
  const getTeamLeaderboard = async (seasonId = null) => {
@@ -48,7 +82,8 @@ router.get("/", async (req, res) => {
     let allMatches = null;
     let winningRounds,
       losingRounds = 0;
-    let teamStandings = {};
+    let teamStandings = [];
+    let teamValues = {};
     let matchSql = "";
     if (!seasonId) {
       matchSql =
@@ -81,27 +116,18 @@ router.get("/", async (req, res) => {
         let winName = winningTeam[0].name;
         let loseName = losingTeam[0].name;
         // Instantiate the object, needed only once.
-        if(!teamStandings[winName]) {
-          teamStandings[winName] = {};
-          teamStandings[winName].wins = 0;
-          teamStandings[winName].losses = 0;
-          teamStandings[winName].rounddiff = 0;
+        if(!teamStandings.some(el => el.name === winName)) {
+          teamStandings.push({name: winName, wins: 0, losses: 0, rounddiff: 0})
         }
-        if (!teamStandings[loseName]){
-          teamStandings[loseName] = {};
-          teamStandings[loseName].wins = 0;
-          teamStandings[loseName].losses = 0;
-          teamStandings[loseName].rounddiff = 0;
+        if(!teamStandings.some(el => el.name === loseName)) {
+          teamStandings.push({name: loseName, wins: 0, losses: 0, rounddiff: 0})
         }
-        console.log("Win rounds: " + winningRounds + "\nLosing: " + losingRounds);
-        teamStandings[winName].teamid = winningTeam[0].id;
-        teamStandings[winName].wins += 1;
-        teamStandings[winName].rounddiff +=
-          winningRounds - losingRounds;
-        teamStandings[loseName].teamid = losingTeam[0].id;
-        teamStandings[loseName].losses += 1;
-        teamStandings[loseName].rounddiff +=
-          losingRounds - winningRounds;
+        let winners = teamStandings.find((team) => {return team.name === winName});
+        winners.wins += 1;
+        winners.rounddiff += (winningRounds - losingRounds);
+        let losers = teamStandings.find((team) => {return team.name === loseName});
+        losers.losses += 1;
+        losers.rounddiff += (losingRounds - winningRounds);
       }
     }
     return teamStandings;
@@ -111,4 +137,59 @@ router.get("/", async (req, res) => {
   }
 };
 
+/** Function to get the current player leaderboard standings in a season, or all time.
+ * @function
+ * @memberof module:routes/leaderboard
+ * @param {string} [seasonId=null] - Season ID to filter.
+ * @function
+ * @inner */
+const getPlayerLeaderboard = async (seasonId = null) => { 
+  let allPlayers = {};
+  let playerStats;
+  /* Logic:
+  * 1. Get all player values where match is not cancelled or forfeit.
+  * 2. Grab raw values, and calculate things like HSP and KDR for each user. Get names and cache 'em even.
+  * 3. Insert into list of objects for each user.
+  */
+  let playerStatSql = `SELECT  steam_id, name, sum(kills), 
+    sum(deaths), sum(assists), sum(k3), 
+    sum(k4), sum(k5), sum(v1), 
+    sum(v2), sum(v3), sum(v4), 
+    sum(v5), sum(roundsplayed), sum(flashbang_assists), 
+    sum(damage), sum(headshot_kills) 
+    FROM    player_stats 
+    WHERE   match_id IN (
+        SELECT  id 
+        FROM    \`match\` 
+        WHERE   cancelled=0
+    )
+    GROUP BY steam_id, name`;
+  let playerStatSqlSeasons = `SELECT  steam_id, name, sum(kills), 
+    sum(deaths), sum(assists), sum(k3), 
+    sum(k4), sum(k5), sum(v1), 
+    sum(v2), sum(v3), sum(v4), 
+    sum(v5), sum(roundsplayed), sum(flashbang_assists), 
+    sum(damage), sum(headshot_kills) 
+    FROM    player_stats, \`match\` 
+    WHERE   match_id IN (
+        SELECT  id 
+        FROM    \`match\` 
+        WHERE   cancelled=0
+        AND season_id = ?
+    )
+    GROUP BY steam_id, name`;
+  
+  if(!seasonId)
+    playerStats = await db.query(playerStatSql);
+  else
+    playerStats = await db.query(playerStatSqlSeasons, [seasonId]);
+
+  for(let player of playerStats){
+    // Players can have multiple names. Avoid collision by combining everything, then performing averages.
+    if(!allPlayers.steamId) {
+
+    }
+  }
+  
+};
 module.exports = router;
