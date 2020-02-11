@@ -105,19 +105,21 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
  */
 router.put("/update", ensureAuthenticated, async (req, res, next) => {
   try {
-    if (req.user.super_admin === 1 || req.user.admin === 1) {
+    let isAdmin = req.body[0].admin === null ? 0 : req.body[0].admin;
+    let isSuperAdmin = req.body[0].super_admin === null ? 0 : req.body[0].super_admin;
+    if (isSuperAdmin === 1 || isAdmin === 1) {
       await db.withTransaction(db, async () => {
         let steamId = req.body[0].steam_id;
-        let isAdmin = req.body[0].admin || 0;
-        let isSuperAdmin = req.body[0].super_admin || 0;
         let sql =
           "UPDATE user SET admin = ?, super_admin = ? WHERE steam_id = ?";
         await db.query(sql, [isAdmin, isSuperAdmin, steamId]);
       });
+      res.status(200).json({message: "User successfully updated!"});
     } else {
       res.status(401).json({ message: "You are not authorized to do this." });
     }
   } catch (err) {
+    console.log(err);
     res.status(500).json({ message: err });
   }
 });
