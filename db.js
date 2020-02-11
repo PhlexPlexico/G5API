@@ -1,6 +1,5 @@
-/*Database driver. This should probably be converted to pools.
-TODO: Convert to pooled connection.*/
-const mysql = require('mysql');
+/*Database driver. This should probably be converted to pools.*/
+const mysql = require('mysql2/promise');
 const config = require('config');
 const util = require( 'util' );
 
@@ -8,59 +7,47 @@ const dbCfg = {
   socketPath: config.get("Database.sockFile"),
   user: config.get("Database.username"),
   password: config.get("Database.password"),
-  database: config.get("Database.db")
+  database: config.get("Database.db"),
+  connectionLimit: config.get("Database.connectionLimit")
 }
+const connection = mysql.createPool( dbCfg );
 
-function makeDb( config ) {
-  const connection = mysql.createConnection( config );  return {
-    query( sql, args ) {
-      return util.promisify( connection.query )
-        .call( connection, sql, args );
-    },
-    close() {
-      return util.promisify( connection.end ).call( connection );
-    },
-    beginTransaction() {
-      return util.promisify( connection.beginTransaction )
-        .call( connection );
-    },
-    commit() {
-      return util.promisify( connection.commit )
-        .call( connection );
-    },
-    rollback() {
-      return util.promisify( connection.rollback )
-        .call( connection );
-    },
-    async buildUpdateStatement(objValues){
-      for (let key in objValues) {
-        if (objValues[key] === null) delete objValues[key];
-      }
-      return objValues;
-    },
-    /** Inner function - boilerplate transaction call.
-    * @name withTransaction
-    * @function
-    * @inner
-    * @memberof module:routes/vetoes
-    * @param {*} db - The database object.
-    * @param {*} callback - The callback function that is operated on, usually a db.query()
-    */
-    async withTransaction(db, callback) {
-      try {
-        await db.beginTransaction();
-        await callback();
-        await db.commit();
-      } catch (err) {
-        await db.rollback();
-        throw err;
-      } /* finally {
-        await db.close();
-      } */
+class Database {
+  async query(sql, args) {
+      const result = await connection.query(sql, args);
+      return result[0];
+  }
+  async buildUpdateStatement(objValues){
+    for (let key in objValues) {
+      if (objValues[key] === null) delete objValues[key];
     }
-  };
+    return objValues;
+  }
+
+  async getConnection () {
+    return await connection.getConnection();
+  }
+  /** Inner function - boilerplate transaction call.
+  * @name withTransaction
+  * @function
+  * @inner
+  * @memberof module:routes/vetoes
+  * @param {*} db - The database object.
+  * @param {*} callback - The callback function that is operated on, usually a db.query()
+  */
+  async withTransaction(db, callback) {
+    const singleConn = await connection.getConnection();
+    await singleConn.beginTransaction();
+    try {
+      await callback();
+      await singleConn.commit();
+    } catch (err) {
+      await singleConn.rollback();
+      throw err;
+    } finally {
+      await singleConn.close();
+    } 
+  }
 }
 
-const conn = makeDb( dbCfg );
-
-module.exports = conn;
+module.exports = new Database();

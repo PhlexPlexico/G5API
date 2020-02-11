@@ -219,49 +219,49 @@ const getPlayerLeaderboard = async (seasonId = null) => {
       allPlayers.push({
         steamId: player.steam_id,
         name: player.name, // TODO: Use steam helper if name is null, get from steam?
-        kills: player.kills,
-        deaths: player.deaths,
-        assists: player.assists,
-        k1: player.k1,
-        k2: player.k2,
-        k3: player.k3,
-        k4: player.k4,
-        k5: player.k5,
-        v1: player.v1,
-        v2: player.v2,
-        v3: player.v3,
-        v4: player.v4,
-        v5: player.v5,
-        trp: player.trp,
-        fba: player.fba,
-        total_damage: player.dmg,
-        hsk: player.hsk,
-        hsp: player.kills === 0 ? 0 : ((player.hsk / player.kills) * 100).toFixed(2),
-        average_rating: utils.getRating(player.kills, player.trp, player.deaths, player.k1, player.k2, player.k3, player.k4, player.k5)
+        kills: parseFloat(player.kills),
+        deaths: parseFloat(player.deaths),
+        assists: parseFloat(player.assists),
+        k1: parseFloat(player.k1),
+        k2: parseFloat(player.k2),
+        k3: parseFloat(player.k3),
+        k4: parseFloat(player.k4),
+        k5: parseFloat(player.k5),
+        v1: parseFloat(player.v1),
+        v2: parseFloat(player.v2),
+        v3: parseFloat(player.v3),
+        v4: parseFloat(player.v4),
+        v5: parseFloat(player.v5),
+        trp: parseFloat(player.trp),
+        fba: parseFloat(player.fba),
+        total_damage: parseFloat(player.dmg),
+        hsk: parseFloat(player.hsk),
+        hsp: parseFloat(player.kills) === 0 ? 0 : ((parseFloat(player.hsk) / parseFloat(player.kills)) * 100).toFixed(2),
+        average_rating: utils.getRating(parseFloat(player.kills), parseFloat(player.trp), parseFloat(player.deaths), parseFloat(player.k1), parseFloat(player.k2), parseFloat(player.k3), parseFloat(player.k4), parseFloat(player.k5))
       });
     } else {
       let collisionPlayer = allPlayers.find((user) => {return user.steamId === player.steam_id});
       // Update name, or concat name?
       collisionPlayer.name = (collisionPlayer.name + "/" + player.name).replace(/\/+$/, "");
-      collisionPlayer.kills += player.kills;
-      collisionPlayer.deaths += player.deaths;
-      collisionPlayer.assists += player.assists;
-      collisionPlayer.k1 += player.k1;
-      collisionPlayer.k2 += player.k2;
-      collisionPlayer.k3 += player.k3;
-      collisionPlayer.k4 += player.k4;
-      collisionPlayer.k5 += player.k5;
-      collisionPlayer.v1 += player.v1;
-      collisionPlayer.v2 += player.v2;
-      collisionPlayer.v3 += player.v3;
-      collisionPlayer.v4 += player.v4;
-      collisionPlayer.v5 += player.v5;
-      collisionPlayer.trp += player.trp;
-      collisionPlayer.fba += player.fba;
-      collisionPlayer.hsk += player.hsk;
-      collisionPlayer.total_damage += player.total_damage;
-      collisionPlayer.hsp = collisionPlayer.kills === 0 ? 0 : ((collisionPlayer.hsk / collisionPlayer.kills) * 100).toFixed(2);
-      collisionPlayer.average_rating = utils.getRating(collisionPlayer.kills, collisionPlayer.trp, collisionPlayer.k1, collisionPlayer.k2, collisionPlayer.k3, collisionPlayer.k4, collisionPlayer.k5);
+      collisionPlayer.kills += parseFloat(player.kills);
+      collisionPlayer.deaths += parseFloat(player.deaths);
+      collisionPlayer.assists += parseFloat(player.assists);
+      collisionPlayer.k1 += parseFloat(player.k1);
+      collisionPlayer.k2 += parseFloat(player.k2);
+      collisionPlayer.k3 += parseFloat(player.k3);
+      collisionPlayer.k4 += parseFloat(player.k4);
+      collisionPlayer.k5 += parseFloat(player.k5);
+      collisionPlayer.v1 += parseFloat(player.v1);
+      collisionPlayer.v2 += parseFloat(player.v2);
+      collisionPlayer.v3 += parseFloat(player.v3);
+      collisionPlayer.v4 += parseFloat(player.v4);
+      collisionPlayer.v5 += parseFloat(player.v5);
+      collisionPlayer.trp += parseFloat(player.trp);
+      collisionPlayer.fba += parseFloat(player.fba);
+      collisionPlayer.hsk += parseFloat(player.hsk);
+      collisionPlayer.total_damage += parseFloat(player.dmg);
+      collisionPlayer.hsp = parseFloat(collisionPlayer.kills) === 0 ? 0 : ((parseFloat(collisionPlayer.hsk) / parseFloat(collisionPlayer.kills)) * 100).toFixed(2);
+      collisionPlayer.average_rating = utils.getRating(parseFloat(collisionPlayer.kills), parseFloat(collisionPlayer.trp), parseFloat(collisionPlayer.k1), parseFloat(collisionPlayer.k2), parseFloat(collisionPlayer.k3), parseFloat(collisionPlayer.k4), parseFloat(collisionPlayer.k5));
     }
   }
   return allPlayers;
