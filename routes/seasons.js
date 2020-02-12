@@ -16,15 +16,9 @@ const router = express.Router();
 
 const db = require("../db");
 
-/** Ensures the user was authenticated through steam OAuth.
- * @function
- * @memberof module:routes/seasons
- * @function
- * @inner */
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
-  res.redirect('/auth/steam');
-}
+/** Utility class for various methods used throughout.
+* @const */
+const Utils = require('../utils');
 
 /** GET - Route serving to get all seasons.
  * @name router.get('/')
@@ -53,7 +47,7 @@ router.get("/", async (req, res, next) => {
  * @param {callback} middleware - Express middleware.
  * @param {int} user_id - The user ID that is querying the data.
  */
-router.get("/myseasons", ensureAuthenticated, async (req, res, next) => {
+router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
     let sql = "SELECT * FROM `season` WHERE user_id = ?";
@@ -96,7 +90,7 @@ router.get("/:season_id", async (req, res, next) => {
  * @param {DateTime} req.body[0].start_date - Season start date.
  * @param {DateTime} req.body[0].end_date - Optional season end date.
  */
-router.post("/create", ensureAuthenticated, async (req, res, next) => {
+router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     await db.withTransaction(db, async () => {
       let insertSet = {
@@ -124,7 +118,7 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
  * @param {DateTime} req.body[0].start_date - Season start date.
  * @param {DateTime} req.body[0].end_date - Season end date.
  */
-router.put("/update", ensureAuthenticated, async (req, res, next) => {
+router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
       let userCheckSql = "SELECT * FROM season WHERE user_id = ?";
       const checkUser = await db.query(userCheckSql, [req.user.id]);

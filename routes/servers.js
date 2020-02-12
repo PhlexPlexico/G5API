@@ -16,30 +16,16 @@ const router = express.Router();
 
 const db = require("../db");
 
-// /** AES Module for Encryption/Decryption
-//  * @const
-//  */
-// const aes = require('aes-js');
-
-// /** Crypto for assigning random  */
-// const crypto = require('crypto');
-
 /** Config to get database key.
  * @const
  */
 const config = require('config');
 
+/** Utility class for various methods used throughout.
+* @const */
 const Utils = require('../utils');
 
-/** Ensures the user was authenticated through steam OAuth.
- * @function
- * @memberof module:routes/servers
- * @function
- * @inner */
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
-  res.redirect('/auth/steam');
-}
+
 
 /** GET - Route serving to get all game servers.
  * @name router.get('/')
@@ -69,7 +55,7 @@ router.get("/", async (req, res, next) => {
  * @param {callback} middleware - Express middleware.
  * @param {int} user_id - The user ID that is querying the data.
  */
-router.get("/myservers", ensureAuthenticated, async (req, res, next) => {
+router.get("/myservers", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
     let sql = "SELECT * FROM game_server where user_id = ?";
@@ -93,7 +79,7 @@ router.get("/myservers", ensureAuthenticated, async (req, res, next) => {
  * @param {callback} middleware - Express middleware.
  * @param {int} user_id - The user ID that is querying the data. Check if they own it or are an admin.
  */
-router.get("/:server_id", ensureAuthenticated, async (req, res, next) => {
+router.get("/:server_id", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // 
     serverID = req.params.server_id;
@@ -118,7 +104,7 @@ router.get("/:server_id", ensureAuthenticated, async (req, res, next) => {
  * @param {int} req.body[0].public_server - Integer value evaluating if the server is public.
  *
 */
-router.post("/create", async (req, res, next) => {
+router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try{
     await db.withTransaction(db, async () => {
       let userId = req.body[0].user_id;
@@ -150,7 +136,7 @@ router.post("/create", async (req, res, next) => {
  * @param {int} req.body[0].public_server - Integer value evaluating if the server is public.
  *
 */
-router.put("/update", ensureAuthenticated, async (req, res, next) => {
+router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   let userCheckSql = "SELECT * FROM game_server WHERE user_id = ?";
   const checkUser = await db.query(userCheckSql, [req.user.id]);
   if (checkUser.length < 1 || req.user.super_admin !== 1){
@@ -189,7 +175,7 @@ router.put("/update", ensureAuthenticated, async (req, res, next) => {
  * @param {int} req.body[0].server_id - The ID of the server being updated.
  *
 */
-router.delete("/delete", ensureAuthenticated, async (req,res,next) => {
+router.delete("/delete", Utils.ensureAuthenticated, async (req,res,next) => {
   try {
     let checkUserSql = "SELECT * FROM game_server WHERE user_id = ?";
     const checkUser = await db.query(checkUserSql, [req.user.id]);

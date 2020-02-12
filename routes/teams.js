@@ -14,15 +14,9 @@ const router = express.Router();
 const db = require("../db");
 
 
-/** Ensures the user was authenticated through steam OAuth.
- * @function
- * @memberof module:routes/teams
- * @function
- * @inner */
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
-  res.redirect('/auth/steam');
-}
+/** Utility class for various methods used throughout.
+* @const */
+const Utils = require('../utils');
 
 /** GET - Route serving to get all teams.
  * @name router.get('/')
@@ -58,7 +52,7 @@ router.get("/", async (req, res, next) => {
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
  */
-router.get("/myteams", ensureAuthenticated, async (req, res, next) => {
+router.get("/myteams", Utils.ensureAuthenticated, async (req, res, next) => {
   let sql =
     "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
     "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
@@ -116,7 +110,7 @@ router.get("/:team_id", async (req, res, next) => {
  * @see https://steamcommunity.com/sharedfiles/filedetails/?id=719079703
  */
 
-router.post("/create", ensureAuthenticated, async (req, res, next) => {
+router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   let userID = req.user.id;
   let teamName = req.body[0].name;
   let flag = req.body[0].flag;
@@ -177,7 +171,7 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
  * @param {number} req.body[0].public_team - Integer determining if a team is a publically usable team. Either 1 or 0.
  * @see https://steamcommunity.com/sharedfiles/filedetails/?id=719079703
  */
-router.put("/update", ensureAuthenticated, async (req, res, next) => {
+router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   let checkUserSql = "SELECT * FROM team WHERE user_id = ?";
     const checkUser = await db.query(checkUserSql, [req.user.id]);
     if (checkUser.length < 1 || req.user.super_admin !== 1 || req.user.admin !== 1) {
@@ -232,7 +226,7 @@ router.put("/update", ensureAuthenticated, async (req, res, next) => {
  * @memberof module:routes/teams
  * @param {int} req.params.team_id - The ID of the team to be deleted.
  */
-router.delete("/delete/:team_id", ensureAuthenticated, async (req, res, next) => {
+router.delete("/delete/:team_id", Utils.ensureAuthenticated, async (req, res, next) => {
   let teamID = req.params.team_id;
   let checkUserSql = "SELECT * FROM game_server WHERE user_id = ?";
     const checkUser = await db.query(checkUserSql, [req.user.id]);

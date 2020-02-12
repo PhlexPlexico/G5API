@@ -2,18 +2,12 @@ var express = require('express');
 var router = express.Router();
 
 
-/** Ensures the user was authenticated through steam OAuth.
- * @function
- * @memberof module:routes/mapstats
- * @function
- * @inner */
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
-  res.redirect('/auth/steam');
-}
+/** Utility class for various methods used throughout.
+* @const */
+const Utils = require('../utils');
 
 /* GET home page. */
-router.get('/', ensureAuthenticated, function(req, res, next) {
+router.get('/', Utils.ensureAuthenticated, function(req, res, next) {
   res.json({message: "Welcome to G5API!"});
 });
 

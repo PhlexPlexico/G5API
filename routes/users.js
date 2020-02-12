@@ -16,17 +16,9 @@ const router = express.Router();
 
 const db = require("../db");
 
-/** Ensures the user was authenticated through steam OAuth.
- * @function
- * @memberof module:routes/users
- * @function
- * @inner */
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.redirect("/auth/steam");
-}
+/** Utility class for various methods used throughout.
+* @const */
+const Utils = require('../utils');
 
 /** GET - Route serving to get all users.
  * @name router.get('/')
@@ -73,7 +65,7 @@ router.get("/:user_id", async (req, res, next) => {
  * @param {number} req.body[0].admin - Integer determining if a user is an admin of the system. Either 1 or 0.
  * @param {number} req.body[0].super_admin - Integer determining if a user is a super admin of the system. Either 1 or 0.
  */
-router.post("/create", ensureAuthenticated, async (req, res, next) => {
+router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     if (req.user.super_admin === 1 || req.user.admin === 1) {
       await db.withTransaction(db, async () => {
@@ -103,7 +95,7 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
  * @param {number} [req.body[0].admin] - Integer determining if a user is an admin of the system. Either 1 or 0.
  * @param {number} [req.body[0].super_admin] - Integer determining if a user is a super admin of the system. Either 1 or 0.
  */
-router.put("/update", ensureAuthenticated, async (req, res, next) => {
+router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     let isAdmin = req.body[0].admin === null ? 0 : req.body[0].admin;
     let isSuperAdmin = req.body[0].super_admin === null ? 0 : req.body[0].super_admin;

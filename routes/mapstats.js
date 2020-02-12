@@ -16,15 +16,9 @@ const router = express.Router();
 
 const db = require("../db");
 
-/** Ensures the user was authenticated through steam OAuth.
- * @function
- * @memberof module:routes/mapstats
- * @function
- * @inner */
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
-  res.redirect('/auth/steam');
-}
+/** Utility class for various methods used throughout.
+* @const */
+const Utils = require('../utils');
 
 
 /** GET - Route serving to get all game servers.
@@ -83,7 +77,7 @@ router.get("/:match_id", async (req, res, next) => {
  * @param {DateTime} req.body[0].start_time - The start time, as DateTime.
  *
 */
-router.post("/create", ensureAuthenticated, async (req, res, next) => {
+router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try{
     // Get the match and see if the user owns said match, or is an admin.
     await db.withTransaction(db, async () => {
@@ -120,7 +114,7 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
  * @param {string} [req.body[0].demo_file] - The demo file of the match once demo has been finished recording.
  *
 */
-router.put("/update", ensureAuthenticated, async (req, res, next) => {
+router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   try{
     await db.withTransaction(db, async () => {
       let mapStatId = req.body[0].map_stats_id;
@@ -161,7 +155,7 @@ router.put("/update", ensureAuthenticated, async (req, res, next) => {
  * @param {int} req.body[0].map_stats_id - The ID of the map stats being removed.
  *
 */
-router.delete("/delete", ensureAuthenticated, async (req,res,next) => {
+router.delete("/delete", Utils.ensureAuthenticated, async (req,res,next) => {
   try {
     await db.withTransaction (db, async () => {
       let userProfile = req.user.id; // Brought in from steam passport.
