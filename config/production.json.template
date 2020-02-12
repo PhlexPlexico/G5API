@@ -18,6 +18,7 @@
     "user": "get5_user",
     "password": "",
     "database": "get5",
-    "multipleStatements": true
+    "multipleStatements": true,
+    "flags": { "ENV": "MYSQL_FLAGS" }
   }
 }
