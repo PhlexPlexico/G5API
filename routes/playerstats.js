@@ -16,15 +16,9 @@ const router = express.Router();
 
 const db = require("../db");
 
-/** Ensures the user was authenticated through steam OAuth.
- * @function
- * @memberof module:routes/playerstats
- * @function
- * @inner */
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
-  res.redirect('/auth/steam');
-}
+/** Utility class for various methods used throughout.
+* @const */
+const Utils = require('../utils');
 
 /** GET - Route serving to get all player statistics.
  * @name router.get('/')
@@ -120,7 +114,7 @@ router.get("/match/:match_id", async (req, res, next) => {
  * @param {int} [req.body[0].firstkill_ct] - Amount of times player has gotten first kill as Counter-Terrorist.
  * @param {int} [req.body[0].firstkill_t] - Amount of times player has gotten first kill as Terrorist.
  */
-router.post("/create", ensureAuthenticated, async (req, res, next) => {
+router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     await db.withTransaction(db, async () => {
       let insertSet = {
@@ -200,7 +194,7 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
  * @param {int} [req.body[0].firstkill_ct] - Amount of times player has gotten first kill as Counter-Terrorist.
  * @param {int} [req.body[0].firstkill_t] - Amount of times player has gotten first kill as Terrorist.
  */
-router.put("/update", async (req, res, next) => {
+router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     if (req.user.super_admin !== 1 || req.user.admin !== 1) {
       res.status(401).json("Cannot update player stats where you are not match owner.")

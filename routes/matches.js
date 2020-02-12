@@ -21,18 +21,9 @@ const db = require("../db");
  */
 const randString = require("randomstring");
 
-/** Ensures the user was authenticated through steam OAuth.
- * @function
- * @memberof module:routes/users
- * @function
- * @inner */
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.redirect("/auth/steam");
-}
-
+/** Utility class for various methods used throughout.
+* @const */
+const Utils = require('../utils');
 /** GET - Route serving to get all matches.
  * @name router.get('/')
  * @function
@@ -64,7 +55,7 @@ router.get("/", async (req, res, next) => {
  * @param {callback} middleware - Express middleware.
  * @param {int} user_id - The user ID that is querying the data.
  */
-router.get("/mymatches", ensureAuthenticated, async (req, res, next) => {
+router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
     let sql = "SELECT * FROM `match` WHERE user_id = ?";
@@ -114,7 +105,7 @@ router.get("/:match_id", async (req, res, next) => {
  */
 router.put(
   "/:match_id/forfeit/:winner",
-  ensureAuthenticated,
+  Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
       let matchID = parseInt(req.params.match_id);
@@ -294,7 +285,7 @@ router.get("/:match_id/config", async (req, res, next) => {
  * @param {boolean} req.body[0].private_match - Boolean value representing whether the match is limited visibility to users on the team or who is on map stats. Defaults to false.
  * @param {boolean} req.body[0].enforce_teams - Boolean value representing whether the server will enforce teams on match start. Defaults to true.
  */
-router.post("/create", ensureAuthenticated, async (req, res, next) => {
+router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     await db.withTransaction(db, async () => {
       let insertSet = {
@@ -346,7 +337,7 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
  * @param {JSON} req.body[0].spectator_auths - JSON array of spectator auths.
  * @param {boolean} req.body[0].private_match - Boolean value representing whether the match is limited visibility to users on the team or who is on map stats.
  */
-router.put("/update", ensureAuthenticated, async (req, res, next) => {
+router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     let userId = req.user.id;
     let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
@@ -402,7 +393,7 @@ router.put("/update", ensureAuthenticated, async (req, res, next) => {
  * @param {int} req.body[0].match_id - The ID of the match to remove all values pertaining to the match.
  *
  */
-router.delete("/delete", async (req, res, next) => {
+router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     await db.withTransaction(db, async () => {
       let userId = req.user.id;
