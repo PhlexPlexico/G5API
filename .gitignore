@@ -2,6 +2,7 @@ node_modules/
 config/prod.json
 config/development.json
 docs/
+coverage/
 # Logs
 logs
 *.log
