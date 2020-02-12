@@ -113,6 +113,15 @@ class Utils {
       throw err
     }
   }
+  /** Ensures the user was authenticated through steam OAuth.
+  * @function
+  * @memberof module:routes/servers
+  * @function
+  * @inner */
+  static ensureAuthenticated(req, res, next) {
+    if (req.isAuthenticated()) { return next(); }
+    res.redirect('/auth/steam');
+  }
 }
 
 module.exports = Utils;

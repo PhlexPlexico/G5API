@@ -16,15 +16,9 @@ const router = express.Router();
 
 const db = require("../db");
 
-/** Ensures the user was authenticated through steam OAuth.
- * @function
- * @memberof module:routes/vetoes
- * @function
- * @inner */
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
-  res.redirect('/auth/steam');
-}
+/** Utility class for various methods used throughout.
+* @const */
+const Utils = require('../utils');
 
 /** GET - Route serving to get all vetoes.
  * @name router.get('/')
@@ -45,20 +39,20 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get a set of map stats from a match.
- * @name router.get('/:vetoid')
+/** GET - Route serving to get all vetoes of a match.
+ * @name router.get('/:matchid')
  * @memberof module:routes/vetoes
  * @function
  * @param {string} path - Express path
- * @param {number} request.param.veto_id - The ID of the match containing the statistics.
+ * @param {number} request.param.match_id - The ID of the match containing the statistics.
  * @param {callback} middleware - Express middleware.
  */
-router.get("/:vetoid", async (req, res, next) => {
+router.get("/:matchid", async (req, res, next) => {
   try {
     // 
-    serverID = req.params.match_id;
-    let sql = "SELECT * FROM veto where id = ?";
-    const vetos = await db.query(sql, serverID);
+    matchId = req.params.match_id;
+    let sql = "SELECT * FROM veto where match_id = ?";
+    const vetos = await db.query(sql, matchId);
     res.json(vetos);
   } catch (err) {
     res.status(500).json({ message: err });
@@ -75,7 +69,7 @@ router.get("/:vetoid", async (req, res, next) => {
  * @param {string} req.body[0].pick_or_ban - Whether it was a pick or ban.
  *
 */
-router.post("/create", ensureAuthenticated, async (req, res, next) => {
+router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try{
     let checkUserSql = "SELECT * FROM `match` WHERE id = ? AND user_id = ?";
     const checkUser = await db.query(checkUserSql, [req.body[0].match_id, req.user.id]);
@@ -105,7 +99,7 @@ router.post("/create", ensureAuthenticated, async (req, res, next) => {
  * @param {int} req.body[0].match_id - The ID of the match for vetoes to remove.
  *
 */
-router.delete("/delete", ensureAuthenticated, async (req,res,next) => {
+router.delete("/delete", Utils.ensureAuthenticated, async (req,res,next) => {
   try {
     let checkUserSql = "SELECT * FROM `match` WHERE id = ? AND user_id = ?";
     const checkUser = await db.query(checkUserSql, [req.body[0].match_id, req.user.id]);
