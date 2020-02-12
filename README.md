@@ -46,11 +46,13 @@ Spins up a development server where you can make all your calls. Since steam aut
 This will generate all the API information that I've created in the app, in the hopes of making it more readable and easier to pickup for anyone who wants to try more implementation, or even creating a front-end for this API.
 
 ### Coverage Tests
-Currently not implemented. These will most likely be created with [Supertest](https://npmjs.com/package/supertest) and [Jest](https://jestjs.io). 
+WIP - These will most likely be created with [Supertest](https://npmjs.com/package/supertest) and [Jest](https://jestjs.io).
 
-~~```yarn test```~~
+Steam OAuth will be mocked in order to check if a user is "logged in", and create a temporary database (`get5test`) that will insert new values, and check various features of routes.
 
-~~Will require `development.json` to exist in projects `config` folder).~~
+```yarn test```
+
+Will *require* `development.json` to exist in projects `config` folder.
 
 ## Contribution
 Sure! If you have a knack for APIs and a penchant for JavaScript, I could always use help! Create a fork of this application, make your changes, and submit a PR. I will be using the [Issues](https://github.com/g5api/issues) page to track what calls still need to be completed. This project won't be finished anytime soon, as I would like to make sure there is a proper handle on authentication with the API, as well as proper security implemented to prevent any unwanted uses with the application. 
