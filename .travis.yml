@@ -15,8 +15,8 @@ before_install:
 install:
   - yarn install
   - cp config/development.json.template config/development.json
-  - sed -i '' -e 's/\"get5_user"/\"get5\"/g' config/development.json
-  - sed -i '' -e "s/\"Database 16 Byte Key.\"/\"$DBKEY\"/g" config/development.json
+  - sed -i -e 's/\"get5_user"/\"get5\"/g' config/development.json
+  - sed -i -e "s/\"Database 16 Byte Key.\"/\"$DBKEY\"/g" config/development.json
 
 script:
   - yarn test
