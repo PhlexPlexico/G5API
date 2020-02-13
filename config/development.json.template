@@ -3,7 +3,7 @@
     "host": "127.0.0.1",
     "port": 3306,
     "username": "get5_user",
-    "password": "",
+    "password": "replace_me",
     "db": "get5",
     "connectionLimit": 15
   },
@@ -17,7 +17,7 @@
   "dev": {
     "driver": "mysql",
     "user": "get5_user",
-    "password": "",
+    "password": "replace_me",
     "database": "get5test",
     "multipleStatements": true,
     "flags": { "ENV": "MYSQL_FLAGS" }
