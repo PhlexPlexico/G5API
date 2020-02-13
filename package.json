@@ -19,7 +19,7 @@
     "url": "https://phlexplexi.co"
   },
   "engines": {
-    "node": ">=11.15.0"
+    "node": ">=11.9"
   },
   "directories": {
     "docs": "./docs/",
