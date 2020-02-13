@@ -4,7 +4,7 @@
     "port": 3306,
     "username": "get5_user",
     "password": "replace_me",
-    "db": "get5",
+    "db": "get5test",
     "connectionLimit": 15
   },
   "Server": {
