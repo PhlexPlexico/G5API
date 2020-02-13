@@ -10,12 +10,13 @@ services:
   - mysql
 
 before_install:
-  - mysql -e 'CREATE USER 'get5'@'localhost'; GRANT ALL PRIVILEGES ON *.* TO 'get5'@'localhost'; CREATE DATABASE get5test'
+  - mysql -e 'CREATE USER 'get5'@'localhost' IDENTIFIED BY '$DBPASSWORD'; GRANT ALL PRIVILEGES ON *.* TO 'get5'@'localhost'; CREATE DATABASE get5test'
 
 install:
   - yarn install
   - cp config/development.json.template config/development.json
   - sed -i -e 's/\"get5_user"/\"get5\"/g' config/development.json
+  - sed -i -e 's/\"replace_me"/\"$DBPASSWORD\"/g' config/development.json
   - sed -i -e "s/\"Database 16 Byte Key.\"/\"$DBKEY\"/g" config/development.json
 
 script:
