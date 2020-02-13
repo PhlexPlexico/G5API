@@ -39,7 +39,7 @@
     "migrate-drop-prod": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --config config/production.json db:drop get5",
     "migrate-prod-upgrade": "db-migrate --env prod --config config/production.json up:prod",
     "migrate-prod-downgrade": "db-migrate --env prod --config config/production.json down:prod",
-    "test": "yarn migrate-drop-dev && yarn migrate-create-dev && jest --testTimeout=10000 --detectOpenHandles --forceExit"
+    "test": "yarn migrate-drop-dev && yarn migrate-create-dev && yarn migrate-dev-upgrade && jest --testTimeout=10000 --detectOpenHandles --forceExit"
   },
   "dependencies": {
     "aes-js": "^3.1.2",
