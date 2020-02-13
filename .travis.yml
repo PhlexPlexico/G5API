@@ -10,7 +10,7 @@ services:
   - mysql
 
 before_install:
-  - mysql -e 'CREATE USER 'get5'@'localhost' IDENTIFIED BY '$DBPASSWORD'; GRANT ALL PRIVILEGES ON *.* TO 'get5'@'localhost'; CREATE DATABASE get5test'
+  - mysql -e "CREATE USER 'get5'@'localhost' IDENTIFIED BY "$DBPASSWORD"; GRANT ALL PRIVILEGES ON *.* TO 'get5'@'localhost'; CREATE DATABASE get5test"
 
 install:
   - yarn install
