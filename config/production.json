@@ -1,0 +1,23 @@
+{
+    "Database": {
+      "sockFile": "/tmp/mysql.sock",
+      "username": "root",
+      "password": "qwertyhero123",
+      "db": "get5"
+    },
+    "Server": {
+      "port": 3301,
+      "hostname": "http://localhost",
+      "dbKey": "Database 16 Byte Key.",
+      "steamAPIKey": "D2B10E1AEB2134CF38DC50B3A8528011",
+      "sharedSecret": "this_is_totally_secure"
+    },
+    "prod": {
+      "driver": "mysql",
+      "user": "get5",
+      "password": "qwertyhero123",
+      "database": "get5lol",
+      "multipleStatements": true
+    }
+  }
+  
