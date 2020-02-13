@@ -1,5 +1,5 @@
 node_modules/
-config/prod.json
+config/production.json
 config/development.json
 docs/
 coverage/
