@@ -4,7 +4,8 @@ const config = require('config');
 const util = require( 'util' );
 
 const dbCfg = {
-  socketPath: config.get("Database.sockFile"),
+  host: config.get("Database.host"),
+  port: config.get("Database.port"),
   user: config.get("Database.username"),
   password: config.get("Database.password"),
   database: config.get("Database.db"),

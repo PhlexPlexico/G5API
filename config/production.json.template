@@ -1,6 +1,7 @@
 {
   "Database": {
-    "sockFile": "/tmp/mysql.sock",
+    "host": "127.0.0.1",
+    "port": 3306,
     "username": "get5_user",
     "password": "",
     "db": "get5",
