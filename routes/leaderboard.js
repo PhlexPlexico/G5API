@@ -19,7 +19,7 @@ const db = require("../db");
 /** Util helpers.
  @const
  */
- const utils = require("../utils");
+ const utils = require("../utility/utils");
 
 /** GET - Route serving to get lifetime leaderboard of teams.
  * @name router.get('/')

@@ -23,7 +23,7 @@ const randString = require("randomstring");
 
 /** Utility class for various methods used throughout.
 * @const */
-const Utils = require('../utils');
+const Utils = require('../utility/utils');
 /** GET - Route serving to get all matches.
  * @name router.get('/')
  * @function

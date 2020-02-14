@@ -22,7 +22,7 @@ const usersRouter = require('./routes/users');
 const vetoesRouter = require('./routes/vetoes');
 //End Route Files
 
-const passport = require('./auth');
+const passport = require('./utility/auth');
 const jwt = require('jsonwebtoken');
 const bearerToken = require('express-bearer-token');
 const config = require('config');

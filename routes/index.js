@@ -4,7 +4,7 @@ var router = express.Router();
 
 /** Utility class for various methods used throughout.
 * @const */
-const Utils = require('../utils');
+const Utils = require('../utility/utils');
 
 /* GET home page. */
 router.get('/', Utils.ensureAuthenticated, function(req, res, next) {
