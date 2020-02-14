@@ -6,7 +6,6 @@ function Strategy(name, strategyCallback) {
     throw new TypeError("DevStrategy requires a Strategy name");
   }
   passport.Strategy.call(this);
-  console.log(user);
   this.name = name;
   this._identifier = user;
   // Callback supplied to OAuth2 strategies handling verification
