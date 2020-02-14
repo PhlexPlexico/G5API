@@ -18,7 +18,7 @@ const db = require("../db");
 
 /** Utility class for various methods used throughout.
 * @const */
-const Utils = require('../utils');
+const Utils = require('../utility/utils');
 
 
 /** GET - Route serving to get all game servers.

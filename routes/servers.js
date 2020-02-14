@@ -23,7 +23,7 @@ const config = require('config');
 
 /** Utility class for various methods used throughout.
 * @const */
-const Utils = require('../utils');
+const Utils = require('../utility/utils');
 
 
 
