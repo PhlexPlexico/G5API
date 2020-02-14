@@ -20,7 +20,6 @@ function strategyForEnvironment() {
   let strategy;
   switch(process.env.NODE_ENV) {
     case 'development':
-      console.log("MOCKING");
       strategy = new MockStrategy('steam', returnStrategy);
     break;
     default:
