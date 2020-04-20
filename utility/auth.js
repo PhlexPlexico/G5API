@@ -19,15 +19,15 @@ passport.deserializeUser((obj, done) => {
 function strategyForEnvironment() {
   let strategy;
   switch(process.env.NODE_ENV) {
-    case 'development':
+    case 'testing':
       strategy = new MockStrategy('steam', returnStrategy);
-    break;
     default:
-    strategy = new SteamStrategy({
-      returnURL: config.get("Server.hostname")+":"+config.get("Server.port")+'/auth/steam/return',
-      realm: config.get("Server.hostname")+":"+config.get("Server.port"),
-      apiKey: config.get("Server.steamAPIKey"),
-    }, returnStrategy);
+      console.log("IN DEFAULT " + process.env.NODE_ENV);
+      strategy = new SteamStrategy({
+        returnURL: config.get("Server.hostname")+":"+config.get("Server.port")+'/auth/steam/return',
+        realm: config.get("Server.hostname")+":"+config.get("Server.port"),
+        apiKey: config.get("Server.steamAPIKey"),
+      }, returnStrategy);
   }
   return strategy;
 }
