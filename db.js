@@ -14,6 +14,10 @@ const dbCfg = {
 const connection = mysql.createPool( dbCfg );
 
 class Database {
+  constructor() {
+    this.setupAdmins();
+  }
+
   async query(sql, args) {
       const result = await connection.query(sql, args);
       return result[0];
@@ -48,6 +52,22 @@ class Database {
     } finally {
       await singleConn.close();
     } 
+  }
+
+  async setupAdmins() {
+    try {
+      await this.withTransaction(this, async () => {
+        let listOfAdmins = config.get("admins.steam_ids").split(',');
+        let listofSuperAdmins = config.get("super_admins.steam_ids").split(',');
+        // Get list of admins from database and compare list and add new admins.
+        let updateAdmins = "UPDATE user SET admin = 1 WHERE steam_id IN (?)";
+        let updateSuperAdmins = "UPDATE user SET super_admin = 1 WHERE steam_id in(?)";
+        await this.query(updateAdmins, [listOfAdmins]);
+        await this.query(updateSuperAdmins, [listofSuperAdmins]);
+      });
+    } catch (err) {
+      console.log("Failed to import users. Error: " + err);
+    }
   }
 }
 

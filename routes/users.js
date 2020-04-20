@@ -29,10 +29,12 @@ const Utils = require('../utility/utils');
  */
 router.get("/", async (req, res) => {
   try {
+    
     let sql = "SELECT * FROM user";
     const allUsers = await db.query(sql);
     res.json(allUsers);
   } catch (err) {
+    console.log(err);
     res.status(500).json({ message: err });
   }
 });
