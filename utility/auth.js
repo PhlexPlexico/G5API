@@ -22,7 +22,6 @@ function strategyForEnvironment() {
     case 'testing':
       strategy = new MockStrategy('steam', returnStrategy);
     default:
-      console.log("IN DEFAULT " + process.env.NODE_ENV);
       strategy = new SteamStrategy({
         returnURL: config.get("Server.hostname")+":"+config.get("Server.port")+'/auth/steam/return',
         realm: config.get("Server.hostname")+":"+config.get("Server.port"),
