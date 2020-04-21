@@ -27,27 +27,27 @@ const jwt = require('jsonwebtoken');
 const bearerToken = require('express-bearer-token');
 const config = require('config');
 const session = require('express-session');
-const MySQLStore = require('express-mysql-session')(session);
+const redis = require('redis');
+// Messy but avoids any open file handles.
+const redisClient = process.env.NODE_ENV !== "development" ? redis.createClient({password: config.get("Database.redisPass")}) : require('redis-mock').createClient();
+const redisStore = require('connect-redis')(session);
 const app = express();
-
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
 
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 //app.use(express.static(path.join(__dirname, 'public')));
-const dbCfg = {
-  host: config.get("Database.host"),
-  port: config.get("Database.port"),
-  user: config.get("Database.username"),
-  password: config.get("Database.password"),
-  database: config.get("Database.db")+"_session",
-}
-
-var sessionStore = new MySQLStore(dbCfg);
+redisClient.on('error', (err) => {
+  console.log('Redis error: ', err);
+});
+const redisCfg = {
+  host: config.get("Database.redisHost"),
+  port: config.get("Database.redisPort"),
+  client: redisClient,
+  ttl: config.get("Database.redisTTL"),
+  
+};
 // API Setup
 // app.use(bodyParser.json());
 // app.use(bodyParser.urlencoded({ extended: true }));
@@ -58,7 +58,7 @@ app.use(session({
     name: 'G5API',
     resave: false,
     saveUninitialized: true,
-    store: sessionStore,
+    store: new redisStore(redisCfg),
     cookie: { maxAge: 3600000 }}));
 
 app.use(passport.initialize());
@@ -118,6 +118,10 @@ app.use(function(err, req, res, next) {
   // render the error page
   res.status(err.status || 500);
   res.json({error: err.message});
+});
+
+process.on("exit", function(){
+    redisClient.end();
 });
 
 module.exports = app;

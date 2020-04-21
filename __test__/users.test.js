@@ -1,7 +1,6 @@
 const supertest = require('supertest')
 const app = require('../app')
 const request = supertest.agent(app);
-//const agent1 = supertest.agent(app);
 let adminCheck = 0;
 describe('Authenticate User', () => {
   it('Should create a user with mock values.', async done => {
@@ -91,3 +90,4 @@ describe('Attempt New User', () => {
     expect(401, done);
   });
 });
+
