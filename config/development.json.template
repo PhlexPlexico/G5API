@@ -5,7 +5,11 @@
     "username": "get5_user",
     "password": "",
     "db": "get5test",
-    "connectionLimit": 15
+    "connectionLimit": 15,
+    "redisHost": "localhost",
+    "redisPort": 6379,
+    "redisTTL": 86400,
+    "redisPass": "super_secure"
   },
   "Server": {
     "port": 3301,

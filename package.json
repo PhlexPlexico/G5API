@@ -39,15 +39,13 @@
     "migrate-drop-prod": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --env prod --config config/production.json db:drop",
     "migrate-prod-upgrade": "db-migrate --env prod --config config/production.json up:prod",
     "migrate-prod-downgrade": "db-migrate --env prod --config config/production.json down:prod",
-    "migrate-session-create-dev": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --config config/development.json db:create get5test_session",
-    "migrate-session-drop-dev": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --config config/development.json db:drop get5test_session",
-    "migrate-session-create-prod": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --env prod --config config/production.json db:create get5session",
-    "prod": "NODE_ENV=production && yarn migrate-session-create-prod && yarn migrate-create-prod && yarn migrate-prod-upgrade",
-    "test": "NODE_ENV=development && yarn migrate-session-drop-dev && yarn migrate-session-create-dev && yarn migrate-drop-dev && yarn migrate-create-dev && yarn migrate-dev-upgrade && jest --testTimeout=10000 --detectOpenHandles --forceExit"
+    "prod": "NODE_ENV=production yarn migrate-create-prod && yarn migrate-prod-upgrade",
+    "test": "NODE_ENV=development && yarn migrate-drop-dev && yarn migrate-create-dev && yarn migrate-dev-upgrade && jest --testTimeout=10000 --detectOpenHandles --forceExit"
   },
   "dependencies": {
     "aes-js": "^3.1.2",
     "config": "^3.2.3",
+    "connect-redis": "^4.0.4",
     "cookie-parser": "~1.4.4",
     "cors": "^2.8.5",
     "db-migrate": "^0.11.6",
@@ -68,7 +66,9 @@
     "passport": "^0.4.0",
     "passport-steam": "^1.0.14",
     "randomstring": "^1.1.5",
-    "rcon-srcds": "^1.0.0"
+    "rcon-srcds": "^1.0.0",
+    "redis": "^3.0.2",
+    "redis-mock": "^0.49.0"
   },
   "devDependencies": {
     "jest": "^25.1.0",

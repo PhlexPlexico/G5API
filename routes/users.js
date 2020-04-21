@@ -115,8 +115,6 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       // If we're updating ourselves we need to update their session. Force a reload of session.
       console.log(req.user.id);
       if(req.user.steam_id === req.body[0].steam_id) {
-        req.session.passport.user.admin = isAdmin;
-        req.session.passport.user.super_admin = isSuperAdmin;
         req.user.super_admin = isSuperAdmin;
         req.user.admin = isAdmin;
         req.login(req.user, (err) => {
