@@ -4,7 +4,7 @@ branches:
     - master
 
 node_js:
-  - 11.9
+  - 13.13.0
   
 services:
   - mysql
@@ -17,6 +17,7 @@ install:
   - cp config/development.json.template config/development.json
   - sed -i -e 's/\"get5_user"/\"get5\"/g' config/development.json
   - sed -i -e "s/\"Database 16 Byte Key.\"/\"$DBKEY\"/g" config/development.json
+  - sed -i -e "s/\"super_admins,go,here\"/\"$STEAMID\"/g" config/development.json
 
 script:
   - yarn test
