@@ -42,6 +42,7 @@
     "migrate-session-create-dev": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --config config/development.json db:create get5test_session",
     "migrate-session-drop-dev": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --config config/development.json db:drop get5test_session",
     "migrate-session-create-prod": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --env prod --config config/production.json db:create get5session",
+    "prod": "NODE_ENV=production && yarn migrate-session-create-prod && yarn migrate-create-prod && yarn migrate-prod-upgrade",
     "test": "NODE_ENV=development && yarn migrate-session-drop-dev && yarn migrate-session-create-dev && yarn migrate-drop-dev && yarn migrate-create-dev && yarn migrate-dev-upgrade && jest --testTimeout=10000 --detectOpenHandles --forceExit"
   },
   "dependencies": {
