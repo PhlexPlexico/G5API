@@ -27,6 +27,7 @@ const jwt = require('jsonwebtoken');
 const bearerToken = require('express-bearer-token');
 const config = require('config');
 const session = require('express-session');
+const MySQLStore = require('express-mysql-session')(session);
 const app = express();
 
 // view engine setup
@@ -38,16 +39,27 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 //app.use(express.static(path.join(__dirname, 'public')));
+const dbCfg = {
+  host: config.get("Database.host"),
+  port: config.get("Database.port"),
+  user: config.get("Database.username"),
+  password: config.get("Database.password"),
+  database: config.get("Database.db")+"_session",
+}
 
+var sessionStore = new MySQLStore(dbCfg);
 // API Setup
 // app.use(bodyParser.json());
 // app.use(bodyParser.urlencoded({ extended: true }));
+
 app.use(helmet());
 app.use(session({
     secret: config.get("Server.sharedSecret"),
     name: 'G5API',
-    resave: true,
-    saveUninitialized: true}));
+    resave: false,
+    saveUninitialized: true,
+    store: sessionStore,
+    cookie: { maxAge: 3600000 }}));
 
 app.use(passport.initialize());
 app.use(passport.session());

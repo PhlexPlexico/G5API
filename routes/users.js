@@ -85,6 +85,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(401).json({ message: "You are not authorized to do this." });
     }
   } catch (err) {
+    console.log(err);
     res.status(500).json({ message: err });
   }
 });
@@ -96,18 +97,33 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  * @param {number} req.body[0].steam_id - Steam ID of the user being edited.
  * @param {number} [req.body[0].admin] - Integer determining if a user is an admin of the system. Either 1 or 0.
  * @param {number} [req.body[0].super_admin] - Integer determining if a user is a super admin of the system. Either 1 or 0.
+ * @param {String} [req.body[0].name] - Display name of the user being updated.
  */
 router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let isAdmin = req.body[0].admin === null ? 0 : req.body[0].admin;
-    let isSuperAdmin = req.body[0].super_admin === null ? 0 : req.body[0].super_admin;
-    if (isSuperAdmin === 1 || isAdmin === 1) {
+    let userToBeUpdated = await db.query("SELECT name, admin, super_admin FROM user WHERE id = ?", [req.body[0].steam_id]);
+    let isAdmin = req.body[0].admin === null ? userToBeUpdated[0].admin : req.body[0].admin;
+    let isSuperAdmin = req.body[0].super_admin === null ? userToBeUpdated[0].super_admin : req.body[0].super_admin;
+    let displayName = req.body[0].name === null ? getCurUsername[0].name : req.body[0].name;
+    if (req.user.super_admin === 1 || req.user.admin === 1) {
       await db.withTransaction(db, async () => {
         let steamId = req.body[0].steam_id;
         let sql =
-          "UPDATE user SET admin = ?, super_admin = ? WHERE steam_id = ?";
-        await db.query(sql, [isAdmin, isSuperAdmin, steamId]);
+          "UPDATE user SET admin = ?, super_admin = ?, name = ? WHERE steam_id = ?";
+        await db.query(sql, [isAdmin, isSuperAdmin, displayName, steamId]);
       });
+      // If we're updating ourselves we need to update their session. Force a reload of session.
+      console.log(req.user.id);
+      if(req.user.steam_id === req.body[0].steam_id) {
+        req.session.passport.user.admin = isAdmin;
+        req.session.passport.user.super_admin = isSuperAdmin;
+        req.user.super_admin = isSuperAdmin;
+        req.user.admin = isAdmin;
+        req.login(req.user, (err) => {
+          if (err) return next(new Error('Error updating user profile'));
+          console.log('USER UPDATED *******', req.user);
+        });
+      }
       res.status(200).json({message: "User successfully updated!"});
     } else {
       res.status(401).json({ message: "You are not authorized to do this." });
@@ -129,7 +145,7 @@ router.get("/:user_id/steam", async (req, res, next) => {
     userOrSteamID = req.params.user_id;
     let sql = "SELECT steam_id FROM user where id = ? OR steam_id = ?";
     const allUsers = await db.query(sql, [userOrSteamID,userOrSteamID]);
-    res.json({"url:": "https://steamcommunity.com/profiles/"+allUsers[0].steam_id});
+    res.json({"url": "https://steamcommunity.com/profiles/"+allUsers[0].steam_id});
   } catch (err) {
     res.status(500).json({ message: err });
   }

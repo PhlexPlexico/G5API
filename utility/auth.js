@@ -42,9 +42,9 @@ function returnStrategy (identifier, profile, done) {
       let adminList = config.get("admins.steam_ids").split(',');
       let sql = "SELECT * FROM user WHERE steam_id = ?";
       // If we are an admin, check!
-      if (superAdminList.indexOf(profile.id) >= 0) {
+      if (superAdminList.indexOf(profile.id.toString()) >= 0) {
         isSuperAdmin = 1;
-      } else if (adminList.indexOf(profile.id) >= 0) {
+      } else if (adminList.indexOf(profile.id.toString()) >= 0) {
         isAdmin = 1;
       }
       let curUser = await db.query(sql, [profile.id]);
@@ -62,7 +62,7 @@ function returnStrategy (identifier, profile, done) {
         });
         sql = "SELECT * FROM user WHERE steam_id = ?";
         curUser = await db.query(sql, [profile.id]);
-      }      
+      }
       return done(null, {
         steam_id: profile.id,
         name: profile.displayName,

@@ -23,9 +23,9 @@
     "flags": { "ENV": "MYSQL_FLAGS" }
   },
   "admins": {
-    "steam_ids": ""
+    "steam_ids": "admins,go,here"
   },
   "super_admins": {
-    "steam_ids": ""
+    "steam_ids": "super_admins,go,here"
   }
 }

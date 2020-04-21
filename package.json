@@ -36,10 +36,13 @@
     "migrate-dev-downgrade": "db-migrate --config config/development.json down:dev",
     "migrate-dev-upgrade": "db-migrate --config config/development.json up:dev",
     "migrate-drop-dev": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --config config/development.json db:drop get5test",
-    "migrate-drop-prod": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --env prod --config config/production.json db:drop get5",
+    "migrate-drop-prod": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --env prod --config config/production.json db:drop",
     "migrate-prod-upgrade": "db-migrate --env prod --config config/production.json up:prod",
     "migrate-prod-downgrade": "db-migrate --env prod --config config/production.json down:prod",
-    "test": "NODE_ENV=development yarn migrate-drop-dev && yarn migrate-create-dev && yarn migrate-dev-upgrade && jest --testTimeout=10000 --detectOpenHandles --forceExit"
+    "migrate-session-create-dev": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --config config/development.json db:create get5test_session",
+    "migrate-session-drop-dev": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --config config/development.json db:drop get5test_session",
+    "migrate-session-create-prod": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --env prod --config config/production.json db:create get5session",
+    "test": "NODE_ENV=development && yarn migrate-session-drop-dev && yarn migrate-session-create-dev && yarn migrate-drop-dev && yarn migrate-create-dev && yarn migrate-dev-upgrade && jest --testTimeout=10000 --detectOpenHandles --forceExit"
   },
   "dependencies": {
     "aes-js": "^3.1.2",
@@ -51,6 +54,7 @@
     "debug": "~4.1.1",
     "express": "~4.17.1",
     "express-bearer-token": "^2.4.0",
+    "express-mysql-session": "^2.1.4",
     "express-rate-limit": "^5.0.0",
     "express-session": "^1.17.0",
     "helmet": "^3.21.2",
