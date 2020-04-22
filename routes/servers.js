@@ -19,15 +19,14 @@ const db = require("../db");
 /** Config to get database key.
  * @const
  */
-const config = require('config');
+const config = require("config");
 
 /** Utility class for various methods used throughout.
-* @const */
-const Utils = require('../utility/utils');
+ * @const */
+const Utils = require("../utility/utils");
 
-
-
-/** GET - Route serving to get all game servers.
+/** GET - Route serving to get all game servers. If we are admin, we show more information.
+ *  If general public, then we show minimal details and only public servers.
  * @name router.get('/')
  * @function
  * @memberof module:routes/servers
@@ -37,36 +36,49 @@ const Utils = require('../utility/utils');
  */
 router.get("/", async (req, res, next) => {
   try {
-    // Check if admin, if they are use this query.
-    let sql = "SELECT gs.id, gs.in_use, gs.display_name, gs.ip_string, gs.port, usr.name FROM game_server gs, user usr where gs.public_server=1 AND usr.id = gs.user_id";
+    // Check if admin or super admin, adjust by providing rcon password or not.
+    let sql = "";
+    if (Utils.superAdminCheck(req.user)){
+      sql =
+        "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name FROM game_server gs, user usr WHERE usr.id = gs.user_id";
+    } else if (Utils.adminCheck(req.user)){
+      sql =
+        "SELECT gs.id, gs.in_use, gs.display_name, gs.ip_string, gs.port, gs.public_server, usr.name FROM game_server gs, user usr WHERE usr.id = gs.user_id";
+    } else {
+      sql =
+        "SELECT gs.id, gs.in_use, gs.display_name, usr.name FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id";
+    }
     const allServers = await db.query(sql);
+    if (Utils.superAdminCheck(req.user)) {
+      for (let serverRow of allServers) {
+        serverRow.rcon_password = await Utils.decrypt(serverRow.rcon_password);
+      }
+    }
     res.json(allServers);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
-
-/** GET - Route serving to get all game servers.
+/** GET - Route serving to get all personal game servers.
  * @name router.get('/myservers')
  * @function
  * @memberof module:routes/servers
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
- * @param {int} user_id - The user ID that is querying the data.
  */
 router.get("/myservers", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
-    let sql = "SELECT * FROM game_server where user_id = ?";
-    //const allServers = await db.query(sql, [req.user.id]);
+    let sql =
+      "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name FROM game_server gs, user usr WHERE usr.id = gs.user_id AND usr.id=?";
     const allServers = await db.query(sql, req.user.id);
-    for(let serverRow of allServers) {
+    for (let serverRow of allServers) {
       serverRow.rcon_password = await Utils.decrypt(serverRow.rcon_password);
     }
     res.json(allServers);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -81,53 +93,73 @@ router.get("/myservers", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.get("/:server_id", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    // 
-    serverID = req.params.server_id;
-    let sql = "SELECT * FROM game_server where id = ? AND user_id = ?";
-    const server = await db.query(sql, [serverID, req.user.id]);
+    let serverID = req.params.server_id;
+    let sql = "";
+    let server;
+    if(Utils.superAdminCheck(req.user)){
+      sql =
+        "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.id = ?";
+      server = await db.query(sql, [serverID]);
+    }
+    else {
+      sql =
+        "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.server_id = ? AND usr.id = ?";
+      server = await db.query(sql, [serverID, req.user.id]);
+    }
+    if(server.length < 1){
+      res.status(401).json({message: "User is not authorized to view server info."});
+    }
     server[0].rcon_password = await Utils.decrypt(server[0].rcon_password);
     res.json(server);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
-/** POST - Create a game server in the database, and encrypt the password. 
+/** POST - Create a game server in the database, and encrypt the password.
  * @name router.post('/create')
  * @memberof module:routes/servers
  * @function
- * @param {int} req.body[0].user_id - The ID of the user creating the server to claim ownership.
+ * @param {int} req.user.id - The ID of the user creating the server to claim ownership.
  * @param {string} req.body[0].ip_string - The host of the server. Can be a URL or IP Address.
  * @param {int} req.body[0].port - The port that the server is used to connect with.
  * @param {string} req.body[0].display_name - The name that people will see on the game panel.
  * @param {string} req.body[0].rcon_password - The RCON password of the server. This will be encrypted on the server side.
  * @param {int} req.body[0].public_server - Integer value evaluating if the server is public.
  *
-*/
+ */
 router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
-  try{
+  try {
     await db.withTransaction(db, async () => {
-      let userId = req.body[0].user_id;
+      let userId = req.user.id;
       let ipString = req.body[0].ip_string;
       let port = req.body[0].port;
-      let displayName =  req.body[0].display_name;
+      let displayName = req.body[0].display_name;
       let rconPass = await Utils.encrypt(req.body[0].rcon_password);
       let publicServer = req.body[0].public_server;
-      let sql = "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server) VALUES (?,?,?,?,?,?)";
-      await db.query(sql, [userId, ipString, port, rconPass, displayName, publicServer]);
+      let sql =
+        "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server) VALUES (?,?,?,?,?,?)";
+      await db.query(sql, [
+        userId,
+        ipString,
+        port,
+        rconPass,
+        displayName,
+        publicServer,
+      ]);
       res.json("Game server inserted successfully!");
     });
-  } catch ( err ) {
+  } catch (err) {
     console.log(err);
-    res.status(500).json({message: err})
+    res.status(500).json({ message: err.toString() });
   }
 });
 
-/** PUT - Update a game server in the database, and encrypt the password. 
+/** PUT - Update a game server in the database, and encrypt the password.
  * @name router.put('/update')
  * @memberof module:routes/servers
  * @function
-* @param {int} req.body[0].user_id - The ID of the user creating the server to claim ownership.
+ * @param {int} req.body[0].user_id - The ID of the user creating the server to claim ownership.
  * @param {int} req.body[0].server_id - The ID of the server being updated.
  * @param {string} req.body[0].ip_string - The host of the server. Can be a URL or IP Address.
  * @param {int} req.body[0].port - The port that the server is used to connect with.
@@ -135,23 +167,25 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  * @param {string} req.body[0].rcon_password - The RCON password of the server. This will be encrypted on the server side.
  * @param {int} req.body[0].public_server - Integer value evaluating if the server is public.
  *
-*/
+ */
 router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   let userCheckSql = "SELECT * FROM game_server WHERE user_id = ?";
   const checkUser = await db.query(userCheckSql, [req.user.id]);
-  if (checkUser.length < 1 || req.user.super_admin !== 1){
-    res.status(401).json({message: "User is not authorized to perform action."});
+  if (checkUser.length < 1 || Utils.superAdminCheck(req.user)) {
+    res
+      .status(401)
+      .json({ message: "User is not authorized to perform action." });
   }
-  try{
+  try {
     await db.withTransaction(db, async () => {
-      let userId =  req.body[0].user_id;
+      let userId = req.body[0].user_id;
       let serverId = req.body[0].server_id;
       let updateStmt = {
-      ipString: req.body[0].ip_string,
-      port: req.body[0].port,
-      displayName: req.body[0].display_name,
-      rconPass: await Utils.encrypt(req.body[0].rcon_password),
-      publicServer: req.body[0].public_server
+        ipString: req.body[0].ip_string,
+        port: req.body[0].port,
+        displayName: req.body[0].display_name,
+        rconPass: await Utils.encrypt(req.body[0].rcon_password),
+        publicServer: req.body[0].public_server,
       };
       // Remove any unwanted nulls.
       updateStmt = await db.buildUpdateStatement(updateStmt);
@@ -160,10 +194,10 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       if (updatedServer.affectedRows > 0)
         res.json("Game server updated successfully!");
       else
-        res.status(401).json({message: "ERROR - Game server not updated."});
+        res.status(500).json({ message: "ERROR - Game server not updated." });
     });
-  } catch ( err ) {
-    res.status(500).json({message: err});
+  } catch (err) {
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -171,32 +205,38 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
  * @name router.delete('/delete')
  * @memberof module:routes/servers
  * @function
- * @param {int} req.body[0].user_id - The ID of the user creating the server to claim ownership.
  * @param {int} req.body[0].server_id - The ID of the server being updated.
  *
-*/
-router.delete("/delete", Utils.ensureAuthenticated, async (req,res,next) => {
+ */
+router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     let checkUserSql = "SELECT * FROM game_server WHERE user_id = ?";
     const checkUser = await db.query(checkUserSql, [req.user.id]);
-    if (checkUser.length < 1 || req.user.super_admin !== 1) {
-      res.status(401).json({message: "User is not authorized to perform action."});
+    if (checkUser.length < 1 || Utils.superAdminCheck(req.user)) {
+      res
+        .status(401)
+        .json({ message: "User is not authorized to perform action." });
     }
-    await db.withTransaction (db, async () => {
-      let userId = req.body[0].user_id;
+    await db.withTransaction(db, async () => {
+      let userId = req.user.id;
       let serverId = req.body[0].server_id;
-      let sql = "DELETE FROM game_server WHERE id = ? AND user_id = ?"
-      const delRows = await db.query(sql, [serverId, userId]);
+      let sql = "";
+      let delRows = null;
+      if(Util.superAdminheck(req.user)){
+        sql = "DELETE FROM game_server WHERE id = ?";
+        delRows = await db.query(sql, [serverId]);
+      } else {
+        sql = "DELETE FROM game_server WHERE id = ? AND user_id = ?";
+        delRows = await db.query(sql, [serverId, userId]);
+      }
       if (delRows.affectedRows > 0)
         res.json("Game server deleted successfully!");
-      else
-        res.status(401).json("ERR - Unauthorized to delete.");
+      else res.status(500).json({ message: "Error! Unable to delete record. "});
     });
-  } catch( err ){
+  } catch (err) {
     console.log(err);
-    res.statuss(500).json({message: err});
+    res.statuss(500).json({ message: err });
   }
 });
-
 
 module.exports = router;

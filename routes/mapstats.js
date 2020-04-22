@@ -40,7 +40,7 @@ router.get("/", async (req, res, next) => {
     }
     res.json(allStats);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -63,7 +63,7 @@ router.get("/:match_id", async (req, res, next) => {
     }
     res.json(mapStats);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -97,7 +97,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       }
     });
   } catch ( err ) {
-    res.status(500).json({message: err})
+    res.status(500).json({ message: err.toString() })
   }
 });
 
@@ -144,7 +144,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
     });
   } catch ( err ) {
     console.log(err);
-    res.status(500).json({message: err});
+    res.status(500).json({ message: err.toString() });
   }
 });
 

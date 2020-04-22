@@ -115,13 +115,41 @@ class Utils {
   }
   /** Ensures the user was authenticated through steam OAuth.
   * @function
-  * @memberof module:routes/servers
-  * @function
+  * @memberof module:utils
   * @inner */
   static ensureAuthenticated(req, res, next) {
     if (req.isAuthenticated()) { return next(); }
     res.redirect('/auth/steam');
   }
+
+  /** Checks if a user is an admin in the system during their session.
+  * @function
+  * @memberof module:utils
+  * @inner
+  * @name adminCheck
+  * @param {user} User - the users session object. 
+  */
+  static adminCheck(user) {
+    if(user) 
+      return (user.super_admin === 0 && user.admin === 0) ? false : true;
+    else
+      return false;
+  }
+
+  /** Checks if a user is a super admin in the system during their session.
+  * @function
+  * @memberof module:utils
+  * @inner
+  * @name superAdminCheck
+  * @param {user} User - the users session object. 
+  */
+  static superAdminCheck(user) {
+    if(user) 
+      return (user.super_admin === 0) ? false : true;
+    else
+      return false;
+  }
+
 }
 
 module.exports = Utils;

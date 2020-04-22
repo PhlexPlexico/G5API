@@ -147,7 +147,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
       res.status(200).send('Success');
     });
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -223,7 +223,7 @@ router.post("/:match_id/map/:map_number/start", basicRateLimit, async (req, res,
     });
     res.status(200).send('Success');
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -280,7 +280,7 @@ router.post("/:match_id/map/:map_number/update", updateMapRateLimit, async (req,
     });
 
   }catch (err){
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -346,7 +346,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     });
     res.status(200).send('Success');
   } catch (err) {
-    res.status(500).json({message: err});
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -397,7 +397,7 @@ router.post("/:match_id/map/:map_number/demo", basicRateLimit, async (req, res, 
     });
     res.status(200).send('Success');
   } catch (err) {
-    res.status(500).json({message: err});
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -475,7 +475,7 @@ router.post("/:match_id/map/:map_number/finish", basicRateLimit, async (req, res
     });
     res.status(200).send('Success');
   } catch (err) {
-    res.status(500).json({message: err});
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -628,7 +628,7 @@ router.post("/:match_id/map/:map_number/player/:steam_id/update", playerStatRate
     });
     res.status(200).send('Success');
   } catch (err) {
-    res.status(500).json({message: err});
+    res.status(500).json({ message: err.toString() });
   }
 });
 
