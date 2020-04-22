@@ -35,7 +35,7 @@ router.get("/", async (req, res, next) => {
     const playerStats = await db.query(sql);
     res.json(playerStats);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -55,7 +55,7 @@ router.get("/:steam_id", async (req, res, next) => {
     const playerStats = await db.query(sql, steamID);
     res.json(playerStats);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -75,7 +75,7 @@ router.get("/match/:match_id", async (req, res, next) => {
     const playerStats = await db.query(sql, matchID);
     res.json(playerStats);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -156,7 +156,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       res.json("Player Stats inserted successfully!");
     });
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -253,7 +253,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       }
     });
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -269,7 +269,7 @@ router.delete("/delete", async (req, res, next) => {
   try {
     throw "NOT IMPLEMENTED";
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 

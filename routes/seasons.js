@@ -35,7 +35,7 @@ router.get("/", async (req, res, next) => {
     const seasons = await db.query(sql);
     res.json(seasons);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -54,7 +54,7 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
     const seasons = await db.query(sql, [req.user.id]);
     res.json(seasons);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -78,7 +78,7 @@ router.get("/:season_id", async (req, res, next) => {
     }
     res.json(seasons);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -104,7 +104,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       res.json("Season inserted successfully!");
     });
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -140,7 +140,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
     });
   } catch (err) {
     console.log(err);
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -156,7 +156,7 @@ router.delete("/delete", async (req, res, next) => {
   try {
     throw "NOT IMPLEMENTED";
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 

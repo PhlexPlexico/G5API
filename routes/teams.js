@@ -92,7 +92,7 @@ router.get("/:team_id", async (req, res, next) => {
     allTeams[0].auth_name = JSON.parse(allTeams[0].auth_name);
     res.json(allTeams);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -154,7 +154,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       res.json({ message: "Team successfully inserted with ID " + teamID });
     });
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -216,7 +216,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       res.json({ message: "Team successfully updated" });
     });
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -267,7 +267,7 @@ router.delete("/delete/:team_id", Utils.ensureAuthenticated, async (req, res, ne
       await db.query(deleteTeamsql, teamID);
     });
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
   res.json({ message: "Team has been delete succesfully!" });
 });
@@ -286,7 +286,7 @@ router.get("/:team_id/recent", async(req, res, next) => {
     const recentMatches = await db.query(sql, [teamId, teamId, teamId]);
     res.json(recentMatches);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -347,7 +347,7 @@ router.get("/:team_id/result/:match_id", async(req, res, next) => {
     res.json({"result" : statusString});
 
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 module.exports = router;

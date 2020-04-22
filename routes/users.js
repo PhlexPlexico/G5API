@@ -34,8 +34,7 @@ router.get("/", async (req, res) => {
     const allUsers = await db.query(sql);
     res.json(allUsers);
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -54,7 +53,7 @@ router.get("/:user_id", async (req, res, next) => {
     const allUsers = await db.query(sql, [userOrSteamID,userOrSteamID]);
     res.json(allUsers);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -86,7 +85,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
     }
   } catch (err) {
     console.log(err);
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -113,13 +112,11 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
         await db.query(sql, [isAdmin, isSuperAdmin, displayName, steamId]);
       });
       // If we're updating ourselves we need to update their session. Force a reload of session.
-      console.log(req.user.id);
       if(req.user.steam_id === req.body[0].steam_id) {
         req.user.super_admin = isSuperAdmin;
         req.user.admin = isAdmin;
         req.login(req.user, (err) => {
           if (err) return next(new Error('Error updating user profile'));
-          console.log('USER UPDATED *******', req.user);
         });
       }
       res.status(200).json({message: "User successfully updated!"});
@@ -128,7 +125,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
     }
   } catch (err) {
     console.log(err);
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -145,7 +142,7 @@ router.get("/:user_id/steam", async (req, res, next) => {
     const allUsers = await db.query(sql, [userOrSteamID,userOrSteamID]);
     res.json({"url": "https://steamcommunity.com/profiles/"+allUsers[0].steam_id});
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -162,7 +159,7 @@ router.get("/:user_id/recent", async (req, res, next) => {
     const recentMatches = await db.query(sql, [userOrSteamID, userOrSteamID]);
     res.json(recentMatches);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 

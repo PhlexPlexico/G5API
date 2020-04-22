@@ -33,7 +33,7 @@ router.get("/", async (req, res) => {
     let leaderboard = await getTeamLeaderboard();
     res.json(leaderboard);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 

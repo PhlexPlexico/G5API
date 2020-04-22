@@ -35,7 +35,7 @@ router.get("/", async (req, res, next) => {
     const vetoes = await db.query(sql);
     res.json(vetoes);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -55,7 +55,7 @@ router.get("/:matchid", async (req, res, next) => {
     const vetos = await db.query(sql, matchId);
     res.json(vetos);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -86,7 +86,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       res.json("Veto inserted successfully!");
     });
   } catch ( err ) {
-    res.status(500).json({message: err})
+    res.status(500).json({ message: err.toString() })
   }
 });
 

@@ -40,8 +40,9 @@
     "migrate-prod-upgrade": "db-migrate --env prod --config config/production.json up:prod",
     "migrate-prod-downgrade": "db-migrate --env prod --config config/production.json down:prod",
     "prod": "NODE_ENV=production yarn migrate-create-prod && yarn migrate-prod-upgrade",
-    "test": "NODE_ENV=development && yarn migrate-drop-dev && yarn migrate-create-dev && yarn migrate-dev-upgrade && yarn test:user",
-    "test:user": "jest --testTimeout=10000 --detectOpenHandles --forceExit --config ./jest_config/jest.users.config.js"
+    "test": "NODE_ENV=development && yarn migrate-drop-dev && yarn migrate-create-dev && yarn migrate-dev-upgrade && yarn test:user && yarn test:gameservers",
+    "test:user": "jest --testTimeout=10000 --detectOpenHandles --forceExit --config ./jest_config/jest.users.config.js",
+    "test:gameservers": "jest --testTimeout=10000 --detectOpenHandles --forceExit --config ./jest_config/jest.gameservers.config.js"
   },
   "dependencies": {
     "aes-js": "^3.1.2",

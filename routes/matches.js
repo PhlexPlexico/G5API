@@ -43,7 +43,7 @@ router.get("/", async (req, res, next) => {
     }
     res.json(matches);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -66,7 +66,7 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
     }
     res.json(matches);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -90,7 +90,7 @@ router.get("/:match_id", async (req, res, next) => {
     }
     res.json(matches);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -178,7 +178,7 @@ router.put(
       });
       res.redirect("/mymatches");
     } catch (err) {
-      res.status(500).json({ message: err });
+      res.status(500).json({ message: err.toString() });
     }
   }
 );
@@ -198,7 +198,7 @@ router.get("/limit/:limiter", async (req, res, next) => {
     const matches = await db.query(sql, lim);
     res.json(matches);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -261,7 +261,7 @@ router.get("/:match_id/config", async (req, res, next) => {
     res.json(matchJSON);
   } catch (err) {
     console.log(err);
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -317,7 +317,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       res.json("Match inserted successfully!");
     });
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -381,7 +381,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
     }
   } catch (err) {
     console.log(err);
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -426,7 +426,7 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
       else res.status(401).json("Match is not found.");
     });
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
