@@ -103,7 +103,7 @@ router.get("/:server_id", /*Utils.ensureAuthenticated,*/ async (req, res, next) 
     } else {
       sql =
         "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.id = ? AND usr.id = ?";
-      server = await db.query(sql, [serverID, 1]);
+      server = await db.query(sql, [serverID, req.user.id]);
     }
     if(server.length < 1){
       res
@@ -173,34 +173,36 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
 router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   let userCheckSql = "SELECT user_id FROM game_server WHERE id = ?";
   const checkUser = await db.query(userCheckSql, [req.body[0].server_id]);
-  if (!(checkUser[0].user_id === req.user.id) || !(Utils.superAdminCheck(req.user))) {
+  if (checkUser[0].user_id != req.user.id && !(Utils.superAdminCheck(req.user))) {
     res
       .status(401)
       .json({ message: "User is not authorized to perform action." });
-  }
-  try {
-    await db.withTransaction(db, async () => {
-      let userId = req.user.id;
-      let serverId = req.body[0].server_id;
-      let updateStmt = {
-        ip_string: req.body[0].ip_string,
-        port: req.body[0].port,
-        display_name: req.body[0].display_name,
-        rcon_password: req.body[0].rcon_password == null ? null : await Utils.encrypt(req.body[0].rcon_password),
-        public_server: req.body[0].public_server,
-        user_id: req.body[0].user_id
-      };
-      // Remove any unwanted nulls.
-      updateStmt = await db.buildUpdateStatement(updateStmt);
-      let sql = "UPDATE game_server SET ? WHERE user_id = ? AND id = ?";
-      updatedServer = await db.query(sql, [updateStmt, userId, serverId]);
-      if (updatedServer.affectedRows > 0)
-        res.json({ message: "Game server updated successfully!" });
-      else
-        res.status(500).json({ message: "ERROR - Game server not updated." });
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.toString() });
+      return;
+  } else {
+    try {
+      await db.withTransaction(db, async () => {
+        let userId = req.user.id;
+        let serverId = req.body[0].server_id;
+        let updateStmt = {
+          ip_string: req.body[0].ip_string,
+          port: req.body[0].port,
+          display_name: req.body[0].display_name,
+          rcon_password: req.body[0].rcon_password == null ? null : await Utils.encrypt(req.body[0].rcon_password),
+          public_server: req.body[0].public_server,
+          user_id: req.body[0].user_id
+        };
+        // Remove any unwanted nulls.
+        updateStmt = await db.buildUpdateStatement(updateStmt);
+        let sql = "UPDATE game_server SET ? WHERE user_id = ? AND id = ?";
+        updatedServer = await db.query(sql, [updateStmt, userId, serverId]);
+        if (updatedServer.affectedRows > 0)
+          res.json({ message: "Game server updated successfully!" });
+        else
+          res.status(500).json({ message: "ERROR - Game server not updated." });
+      });
+    } catch (err) {
+      res.status(500).json({ message: err.toString() });
+    }
   }
 });
 
@@ -212,33 +214,34 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
  *
  */
 router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
-  try {
-    let userCheckSql = "SELECT user_id FROM game_server WHERE id = ?";
+  let userCheckSql = "SELECT user_id FROM game_server WHERE id = ?";
     const checkUser = await db.query(userCheckSql, [req.body[0].server_id]);
-    if (!(checkUser[0].user_id === req.user.id) || !(Utils.superAdminCheck(req.user))) {
+    if (checkUser[0].user_id != req.user.id && !(Utils.superAdminCheck(req.user))) {
       res
         .status(401)
         .json({ message: "User is not authorized to perform action." });
+        return;
+    } else {
+    try {
+      await db.withTransaction(db, async () => {
+        let userId = req.user.id;
+        let serverId = req.body[0].server_id;
+        let sql = "";
+        let delRows = null;
+        if(Utils.superAdminCheck(req.user)){
+          sql = "DELETE FROM game_server WHERE id = ?";
+          delRows = await db.query(sql, [serverId]);
+        } else {
+          sql = "DELETE FROM game_server WHERE id = ? AND user_id = ?";
+          delRows = await db.query(sql, [serverId, userId]);
+        }
+        if (delRows.affectedRows > 0)
+          res.json({ message: "Game server deleted successfully!" });
+        else res.status(500).json({ message: "Error! Unable to delete record. "});
+      });
+    } catch (err) {
+      res.status(500).json({ message: err.toString() });
     }
-    await db.withTransaction(db, async () => {
-      let userId = req.user.id;
-      let serverId = req.body[0].server_id;
-      let sql = "";
-      let delRows = null;
-      if(Utils.superAdminCheck(req.user)){
-        sql = "DELETE FROM game_server WHERE id = ?";
-        delRows = await db.query(sql, [serverId]);
-      } else {
-        sql = "DELETE FROM game_server WHERE id = ? AND user_id = ?";
-        delRows = await db.query(sql, [serverId, userId]);
-      }
-      if (delRows.affectedRows > 0)
-        res.json({ message: "Game server deleted successfully!" });
-      else res.status(500).json({ message: "Error! Unable to delete record. "});
-    });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: err.toString() });
   }
 });
 
