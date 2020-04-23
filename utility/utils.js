@@ -104,9 +104,7 @@ class Utils {
       let encryptedBytes = aesCbc.encrypt(byteSource);
       let encryptedHex = aes.utils.hex.fromBytes(encryptedBytes);
       let hexIV = aes.utils.hex.fromBytes(IV);
-      console.log(encryptedHex);
       encryptedHex = hexIV + encryptedHex;
-      console.log(encryptedHex);
       return encryptedHex;
     } catch ( err ){
       console.log(err);

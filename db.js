@@ -24,7 +24,7 @@ class Database {
   }
   async buildUpdateStatement(objValues){
     for (let key in objValues) {
-      if (objValues[key] === null) delete objValues[key];
+      if (objValues[key] == null) delete objValues[key];
     }
     return objValues;
   }
