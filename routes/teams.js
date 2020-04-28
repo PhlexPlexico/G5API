@@ -88,7 +88,12 @@ router.get("/:team_id", async (req, res, next) => {
     "where t.id = ?";
   try {
     const allTeams = await db.query(sql, teamID);
-    // do something with someRows and otherRows
+    // Oddly enough, if a team doesn't exist, it still returns null!
+    // Check this and return a 404 if we don't exist.
+    if(allTeams[0].id === null) {
+      res.status(404).json({message: "No team found for id " + teamID});
+      return;
+    }
     allTeams[0].auth_name = JSON.parse(allTeams[0].auth_name);
     res.json(allTeams);
   } catch (err) {
@@ -115,7 +120,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   let teamName = req.body[0].name;
   let flag = req.body[0].flag;
   let logo = req.body[0].logo;
-  let auths = req.body[0].auth_name; // Sent into here as a list? Verify somehow?
+  let auths = req.body[0].auth_name;
   let tag = req.body[0].tag;
   let public_team = req.body[0].public_team;
   let teamID = null;
@@ -147,7 +152,6 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       teamID = insertTeam.insertId;
       sql =
         "INSERT INTO team_auth_names (team_id, auth, name) VALUES (?, ?, ?)";
-      console.log("We made it past the first insert.");
       for (let key in auths) {
         await db.query(sql, [teamID, key, auths[key]]);
       }
@@ -173,10 +177,11 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   let checkUserSql = "SELECT * FROM team WHERE user_id = ?";
-    const checkUser = await db.query(checkUserSql, [req.user.id]);
-    if (checkUser.length < 1 || req.user.super_admin !== 1 || req.user.admin !== 1) {
-      res.status(401).json({message: "User is not authorized to perform action."});
-    }
+  const checkUser = await db.query(checkUserSql, [req.user.id]);
+  if (checkUser[0].user_id != req.user.id && !(Utils.superAdminCheck(req.user))) {
+    res.status(401).json({message: "User is not authorized to perform action."});
+    return;
+  }
   let teamID = req.body[0].id;
   let teamName = req.body[0].name;
   let teamFlag = req.body[0].flag;
@@ -184,34 +189,33 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   let teamAuths = req.body[0].auth_name;
   let teamTag = req.body[0].tag;
   let publicTeam = req.body[0].public_team;
-  newTeam = [
-    {
-      user_id: userID,
+  let userId = req.body[0].user_id;
+  updateTeam = {
+      user_id: userId,
       name: teamName,
       flag: teamFlag,
       logo: teamLogo,
       tag: teamTag,
       public_team: publicTeam
-    }
-  ];
+    };
+    updateTeam = await db.buildUpdateStatement(updateTeam);
   let sql =
-    "UPDATE team SET name = ?, flag = ?, logo = ?, tag = ?, public_team = ? WHERE id=? and user_id = ?";
+    "UPDATE team SET ? WHERE id=?";
   try {
     await db.withTransaction(db, async () => {
       await db.query(sql, [
-        newTeam.map(item => [
-          item.name,
-          item.flag,
-          item.logo,
-          item.tag,
-          item.public_team,
-          item.user_id
-        ])
+        updateTeam,
+        teamID
       ]);
       sql =
         "UPDATE team_auth_names SET name = ? WHERE auth = ? AND team_id = ?";
       for (let key in teamAuths) {
-        await db.query(sql, [auths[key], key, teamID]);
+        let updateTeamAuth = await db.query(sql, [teamAuths[key], key, teamID]);
+        if(updateTeamAuth.affectedRows < 1){
+          // Insert a new auth if it doesn't exist. Technically "updating a team".
+          let insertSql = "INSERT INTO team_auth_names (team_id, auth, name) VALUES (?, ?, ?)";
+          await db.query(insertSql, [teamID, teamAuths[key], key]);
+        }
       }
       res.json({ message: "Team successfully updated" });
     });

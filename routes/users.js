@@ -112,7 +112,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
         await db.query(sql, [isAdmin, isSuperAdmin, displayName, steamId]);
       });
       // If we're updating ourselves we need to update their session. Force a reload of session.
-      if(req.user.steam_id === req.body[0].steam_id) {
+      if(req.user.steam_id == req.body[0].steam_id) {
         req.user.super_admin = isSuperAdmin;
         req.user.admin = isAdmin;
         req.login(req.user, (err) => {
