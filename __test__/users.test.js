@@ -15,7 +15,6 @@ describe('Get All Users', () => {
     const result = await request.get('/users').
     expect('Content-Type', /json/);
     expect(result.statusCode).toEqual(200);
-    console.log(result.body);
     done();
   });
 });
