@@ -193,8 +193,8 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
         };
         // Remove any unwanted nulls.
         updateStmt = await db.buildUpdateStatement(updateStmt);
-        let sql = "UPDATE game_server SET ? WHERE user_id = ? AND id = ?";
-        updatedServer = await db.query(sql, [updateStmt, userId, serverId]);
+        let sql = "UPDATE game_server SET ? WHERE id = ?";
+        updatedServer = await db.query(sql, [updateStmt, serverId]);
         if (updatedServer.affectedRows > 0)
           res.json({ message: "Game server updated successfully!" });
         else

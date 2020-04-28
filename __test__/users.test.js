@@ -15,6 +15,7 @@ describe('Get All Users', () => {
     const result = await request.get('/users').
     expect('Content-Type', /json/);
     expect(result.statusCode).toEqual(200);
+    console.log(result.body);
     done();
   });
 });
@@ -61,7 +62,7 @@ describe('Update User', () => {
   it('Should update the existing test user to remove admin privileges.', async done => {
     let updatedUserData = [{
       id: 1,
-      steam_id: 76561198025644200,
+      steam_id: '76561198025644194',
       name: "Get Updated Kid",
       admin: 0,
       super_admin: 0
