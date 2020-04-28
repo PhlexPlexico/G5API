@@ -8,7 +8,9 @@ G5API is going to be a replacement for the get5-webpanel. _Currently_ this is th
 Currently, very basic CRUD operations, as well as legacy calls that the get5-web api used, as referenced [here](https://github.com/PhlexPlexico/get5-web/blob/development/get5/api.py). Right now, this is a very early build to try my hand at using Express as a middleware, and try some JavaScript technologies so that others may create their own front-end applications, with all the difficult back-end stuff being completed. 
 
 
-This API should be complete enough to do basic operations to the game. **Server operations are currently not in place** and these will exist in different routes. ~~I was thinking sending to game server should be within the `/server` route, as it would make sense that a match should interact with the server, and make any rcon request to the game server?~~
+This API should be complete enough to do basic operations to the game. **Server operations are currently not in place** and these will exist in different routes.
+
+For the get5_api plugin, there are legacy routes currently put into place located in `/legacy/{}`
 
 Server interaction will most likely take place in `/match/:match_id/server/{rcon|start|etc}`. These command should probably be logged in the database for audit purposes as well.
 
@@ -48,7 +50,7 @@ This will generate all the API information that I've created in the app, in the 
 ### Coverage Tests
 WIP - These will most likely be created with [Supertest](https://npmjs.com/package/supertest) and [Jest](https://jestjs.io).
 
-Steam OAuth will be mocked in order to check if a user is "logged in", and create a temporary database (`get5test`) that will insert new values, and check various features of routes.
+Steam OAuth will be mocked in order to check if a user is "logged in", and create a temporary database (`get5test`) that will insert new values, and check various features of routes. If you wish to alter the "user" it authenticates as, you can edit `utility/mockProfile.js` to the values you prefer.
 
 ```yarn test```
 
