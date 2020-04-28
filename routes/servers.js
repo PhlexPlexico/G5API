@@ -173,7 +173,12 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
 router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   let userCheckSql = "SELECT user_id FROM game_server WHERE id = ?";
   const checkUser = await db.query(userCheckSql, [req.body[0].server_id]);
-  if (checkUser[0].user_id != req.user.id && !(Utils.superAdminCheck(req.user))) {
+  if (checkUser[0] == null) {
+    res
+        .status(404)
+        .json({ message: "Server does not exist." });
+        return;
+  } else if (checkUser[0].user_id != req.user.id && !(Utils.superAdminCheck(req.user))) {
     res
       .status(401)
       .json({ message: "User is not authorized to perform action." });
@@ -215,13 +220,18 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
   let userCheckSql = "SELECT user_id FROM game_server WHERE id = ?";
-    const checkUser = await db.query(userCheckSql, [req.body[0].server_id]);
-    if (checkUser[0].user_id != req.user.id && !(Utils.superAdminCheck(req.user))) {
-      res
-        .status(401)
-        .json({ message: "User is not authorized to perform action." });
+  const checkUser = await db.query(userCheckSql, [req.body[0].server_id]);
+  if (checkUser[0] == null) {
+    res
+        .status(404)
+        .json({ message: "Server does not exist." });
         return;
-    } else {
+  } else if (checkUser[0].user_id != req.user.id && !(Utils.superAdminCheck(req.user))) {
+    res
+      .status(401)
+      .json({ message: "User is not authorized to perform action." });
+      return;
+  } else {
     try {
       await db.withTransaction(db, async () => {
         let userId = req.user.id;

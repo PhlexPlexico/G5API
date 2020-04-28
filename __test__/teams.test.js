@@ -65,6 +65,29 @@ describe('Create Team', () => {
             })
             .end(done);
     });
+    it('Should create a single team for later tests.', async done => {
+        let privateTeamData = [{
+            name: 'Private Collection #2',
+            flag: 'US',
+            logo: null,
+            tag: 'PRVSHLF2',
+            public_team: 1,
+            auth_name: {
+                "76561198025644200": "Not Phlex",
+                "76561198025644194": "Actually Phlex"
+            }
+        }];
+        request
+            .post('/teams/create')
+            .set("Content-Type", "application/json")
+            .set("Accept", "application/json")
+            .send(privateTeamData)
+            .expect(200)
+            .expect((result) => {
+                expect(result.body.message).toMatch(/successfully/);
+            })
+            .end(done);
+    });
 });
 
 describe('Get a single team.', () => {
@@ -99,6 +122,29 @@ describe('Update a team', () => {
             })
             .end(done);
     });
+    it('Should update a team to update the new users name.',  done => {
+        let updateTeamData = [{
+            id: 1,
+            name: 'Bottom Shelf',
+            flag: 'US',
+            logo: null,
+            tag: 'BTMSHLF',
+            public_team: 1,
+            auth_name: {
+                "12345": "New team member EDITED!"
+            }
+        }];
+        request
+            .put("/teams/update")
+            .set("Content-Type", "application/json")
+            .set("Accept", "application/json")
+            .send(updateTeamData)
+            .expect(200)
+            .expect((result) => {
+                expect(result.body.message).toMatch(/successfully/);
+            })
+            .end(done);
+    });
     it('Should update the second team to change users.',  done => {
         let updateTeamData = [{
             id: 2,
@@ -112,6 +158,73 @@ describe('Update a team', () => {
             .expect(200)
             .expect((result) => {
                 expect(result.body.message).toMatch(/successfully/);
+            })
+            .end(done);
+    });
+});
+
+describe('Delete a team', () => {
+    it('Should delete a first team.',  done => {
+        let deleteTeamData = [{
+            team_id: 1
+        }];
+        request
+            .delete("/teams/delete")
+            .set("Content-Type", "application/json")
+            .set("Accept", "application/json")
+            .send(deleteTeamData)
+            .expect(200)
+            .expect((result) => {
+                expect(result.body.message).toMatch(/successfully/);
+            })
+            .end(done);
+    });
+});
+
+describe('Bad Actor Time', () => {
+    it('Should delete a team it doesn\'t own.',  done => {
+        let deleteTeamData = [{
+            team_id: 2
+        }];
+        request
+            .delete("/teams/delete")
+            .set("Content-Type", "application/json")
+            .set("Accept", "application/json")
+            .send(deleteTeamData)
+            .expect(401)
+            .expect((result) => {
+                expect(result.body.message).toMatch(/not authorized/);
+            })
+            .end(done);
+    });
+    it('Should update the team it no longer owns.',  done => {
+        let updateTeamData = [{
+            id: 2,
+            user_id: 1
+        }];
+        request
+            .put("/teams/update")
+            .set("Content-Type", "application/json")
+            .set("Accept", "application/json")
+            .send(updateTeamData)
+            .expect(401)
+            .expect((result) => {
+                expect(result.body.message).toMatch(/not authorized/);
+            })
+            .end(done);
+    });
+    it('Should delete a team it doesn\'t exist.',  done => {
+        let deleteTeamData = [{
+            team_id: 99
+        }];
+        request
+            .delete("/teams/delete")
+            .set("Content-Type", "application/json")
+            .set("Accept", "application/json")
+            .send(deleteTeamData)
+            .expect(404)
+            .expect((result) => {
+                expect(result.body.message).toMatch(/does not exist/);
             })
             .end(done);
     });

@@ -166,19 +166,24 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  * @name router.put('/update')
  * @function
  * @memberof module:routes/teams
- * @param {int} req.body[0].user_id - The ID of the user creating the team to claim ownership.
- * @param {string} req.body[0].name - Team name inputted by a user.
- * @param {string} req.body[0].flag - International code for a flag.
- * @param {string} req.body[0].logo - A string representing the logo stored on the webserver.
- * @param {JSON} req.body[0].auth_name - A JSON KV pair containing the SteamID of a player as the key, and a value, or blank string value as the preferred name. If no preferred name, than an empty string accompnies the value.
- * @param {string} req.body[0].tag - A string with a shorthand tag for a team.
- * @param {number} req.body[0].public_team - Integer determining if a team is a publically usable team. Either 1 or 0.
+ * @param {int} req.user.id - The ID of the user updating values.
+ * @param {int} req.body[0].id - The ID of the team to be updated.
+ * @param {int} [req.body[0].user_id] - The ID to update the user parameter.
+ * @param {string} [req.body[0].name] - Team name inputted by a user.
+ * @param {string} [req.body[0].flag] - International code for a flag.
+ * @param {string} [req.body[0].logo] - A string representing the logo stored on the webserver.
+ * @param {JSON} [req.body[0].auth_name] - A JSON KV pair containing the SteamID of a player as the key, and a value, or blank string value as the preferred name. If no preferred name, than an empty string accompnies the value.
+ * @param {string} [req.body[0].tag] - A string with a shorthand tag for a team.
+ * @param {number} [req.body[0].public_team] - Integer determining if a team is a publically usable team. Either 1 or 0.
  * @see https://steamcommunity.com/sharedfiles/filedetails/?id=719079703
  */
 router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
-  let checkUserSql = "SELECT * FROM team WHERE user_id = ?";
-  const checkUser = await db.query(checkUserSql, [req.user.id]);
-  if (checkUser[0].user_id != req.user.id && !(Utils.superAdminCheck(req.user))) {
+  let checkUserSql = "SELECT * FROM team WHERE id = ?";
+  const checkUser = await db.query(checkUserSql, [req.body[0].id]);
+  if(checkUser[0] == null) {
+    res.status(404).json({message: "Team does not exist."});
+    return;
+  } else if (checkUser[0].user_id != req.user.id && !(Utils.superAdminCheck(req.user))) {
     res.status(401).json({message: "User is not authorized to perform action."});
     return;
   }
@@ -214,7 +219,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
         if(updateTeamAuth.affectedRows < 1){
           // Insert a new auth if it doesn't exist. Technically "updating a team".
           let insertSql = "INSERT INTO team_auth_names (team_id, auth, name) VALUES (?, ?, ?)";
-          await db.query(insertSql, [teamID, teamAuths[key], key]);
+          await db.query(insertSql, [teamID, key, teamAuths[key]]);
         }
       }
       res.json({ message: "Team successfully updated" });
@@ -225,18 +230,22 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
 });
 
 /** DELETE - Route serving to delete a team from the database. The team will only be deleted if their foreign key references have been removed, as we want to keep statistics of all teams over time.
- * @name router.delete('/delete/:team_id')
+ * @name router.delete('/delete/')
  * @function
  * @memberof module:routes/teams
- * @param {int} req.params.team_id - The ID of the team to be deleted.
+ * @param {int} req.body[0].team_id - The ID of the team being updated.
  */
-router.delete("/delete/:team_id", Utils.ensureAuthenticated, async (req, res, next) => {
-  let teamID = req.params.team_id;
-  let checkUserSql = "SELECT * FROM game_server WHERE user_id = ?";
-    const checkUser = await db.query(checkUserSql, [req.user.id]);
-    if (checkUser.length < 1 || req.user.super_admin !== 1) {
-      res.status(401).json({message: "User is not authorized to perform action."});
-    }
+router.delete("/delete/", Utils.ensureAuthenticated, async (req, res, next) => {
+  let teamID = req.body[0].team_id;
+  let checkUserSql = "SELECT * FROM team WHERE id = ?";
+  const checkUser = await db.query(checkUserSql, [teamID]);
+  if(checkUser[0] == null) {
+    res.status(404).json({message: "Team does not exist."});
+    return;
+  } else if (checkUser[0].user_id != req.user.id && !(Utils.superAdminCheck(req.user))) {
+    res.status(401).json({message: "User is not authorized to perform action."});
+    return;
+  }
   try {
     // First find any matches/mapstats/playerstats associated with the team.
     let playerStatSql =
@@ -273,7 +282,7 @@ router.delete("/delete/:team_id", Utils.ensureAuthenticated, async (req, res, ne
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
-  res.json({ message: "Team has been delete succesfully!" });
+  res.json({ message: "Team has been deleted successfully!" });
 });
 
 
