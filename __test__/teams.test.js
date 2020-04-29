@@ -88,6 +88,29 @@ describe('Create Team', () => {
             })
             .end(done);
     });
+    it('Should create another single team for later tests.', async done => {
+        let privateTeamData = [{
+            name: 'Private Collection #3',
+            flag: 'CA',
+            logo: null,
+            tag: 'PRVSHLF3',
+            public_team: 1,
+            auth_name: {
+                "76561198025644200": "Not Phlex",
+                "12345678901011121": "Actually Phlex"
+            }
+        }];
+        request
+            .post('/teams/create')
+            .set("Content-Type", "application/json")
+            .set("Accept", "application/json")
+            .send(privateTeamData)
+            .expect(200)
+            .expect((result) => {
+                expect(result.body.message).toMatch(/successfully/);
+            })
+            .end(done);
+    });
 });
 
 describe('Get a single team.', () => {

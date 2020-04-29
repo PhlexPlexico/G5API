@@ -22,8 +22,8 @@ const db = require("../db");
 const randString = require("randomstring");
 
 /** Utility class for various methods used throughout.
-* @const */
-const Utils = require('../utility/utils');
+ * @const */
+const Utils = require("../utility/utils");
 /** GET - Route serving to get all matches.
  * @name router.get('/')
  * @function
@@ -37,8 +37,8 @@ router.get("/", async (req, res, next) => {
     // Check if admin, if they are use this query.
     let sql = "SELECT * FROM `match` WHERE cancelled = 0";
     const matches = await db.query(sql);
-    if (matches.length === 0){
-      res.status(404).json({message: "No matches found."});
+    if (matches.length === 0) {
+      res.status(404).json({ message: "No matches found." });
       return;
     }
     res.json(matches);
@@ -60,8 +60,8 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
     // Check if admin, if they are use this query.
     let sql = "SELECT * FROM `match` WHERE user_id = ?";
     const matches = await db.query(sql, [req.user.id]);
-    if (matches.length === 0){
-      res.status(404).json({message: "No matches found."});
+    if (matches.length === 0) {
+      res.status(404).json({ message: "No matches found." });
       return;
     }
     res.json(matches);
@@ -84,8 +84,8 @@ router.get("/:match_id", async (req, res, next) => {
     matchID = req.params.match_id;
     let sql = "SELECT * FROM `match` where id = ?";
     const matches = await db.query(sql, matchID);
-    if (matches.length === 0){
-      res.status(404).json({message: "No matches found."});
+    if (matches.length === 0) {
+      res.status(404).json({ message: "No matches found." });
       return;
     }
     res.json(matches);
@@ -99,86 +99,86 @@ router.get("/:match_id", async (req, res, next) => {
  * @memberof module:routes/matches
  * @function
  * @param {string} path - Express path
- * @param {number} request.params.match_id - The ID of the match containing the statistics.
- * @param {number} request.params.winner - The team which one. 1 for team1, 2 for team2.
+ * @param {number} req.body[0].match_id - The ID of the match containing the statistics.
+ * @param {number} req.body[0].winner - The team which one. 1 for team1, 2 for team2.
  * @param {callback} middleware - Express middleware.
  */
 router.put(
-  "/:match_id/forfeit/:winner",
+  "/forfeit/",
   Utils.ensureAuthenticated,
   async (req, res, next) => {
-    try {
-      let matchID = parseInt(req.params.match_id);
-      let winner = parseInt(req.params.winner);
-      let winningTeamId;
-      let matchTime = new Date()
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", " ");
-      let sql = "SELECT * FROM `match` where id = ?";
-      const matches = await db.query(sql, matchID);
-      // Check if match owner is the the one calling or is a super_admin.
-      if (matches[0].user_id !== req.user.id) {
-        if (req.user.super_admin === 0)
-          res
-            .status(401)
-            .json({ message: "Cannot forfeit a match you don't own." });
-      }
-      if (winner !== 1 || winner !== 2) {
-        res
-          .status(401)
-          .json({
+    let userId = req.user.id;
+    let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
+    const matchRow = await db.query(matchUserId, req.body[0].match_id ;
+    if (matchRow.length === 0) {
+      res.status(404).json({ message: "No match found." });
+      return;
+    } else if (
+      matchRow[0].user_id != req.user.id &&
+      !Utils.superAdminCheck(req.user)
+    ) {
+      res
+        .status(401)
+        .json({ message: "User is not authorized to perform action." });
+      return;
+    } else {
+      try {
+        let matchID = parseInt(req.body[0].match_id);
+        let winner = parseInt(req.body[0].winner);
+        let winningTeamId;
+        let matchTime = new Date().toISOString().slice(0, 19).replace("T", " ");
+        let sql = "SELECT * FROM `match` where id = ?";
+        const matches = await db.query(sql, matchID);
+        if (winner !== 1 || winner !== 2) {
+          res.status(401).json({
             message:
-              "You did not choose a correct team (1 or 2). Spectators cannot win."
+              "You did not choose a correct team (1 or 2). Spectators cannot win.",
           });
-      } else if (winner === 1) {
-        winningTeamId = matches[0].team1_id;
-      } else if (winner === 2) {
-        winningTeamId = matches[0].team2_id;
-      }
-      // Check for mapstats and create if none.
-      sql = "SELECT * FROM map_stats where match_id = ?";
-      const map_stat = await db.query(sql, matchID);
-      if (map_stat.length > 0) {
-        await db.withTransaction(db, async () => {
-          let eTime = new Date()
-            .toISOString()
-            .slice(0, 19)
-            .replace("T", " ");
+          return;
+        } else if (winner === 1) {
+          winningTeamId = matches[0].team1_id;
+        } else if (winner === 2) {
+          winningTeamId = matches[0].team2_id;
+        }
+        // Check for mapstats and create if none.
+        sql = "SELECT * FROM map_stats where match_id = ?";
+        const map_stat = await db.query(sql, matchID);
+        if (map_stat.length > 0) {
+          await db.withTransaction(db, async () => {
+            let eTime = new Date().toISOString().slice(0, 19).replace("T", " ");
+            sql =
+              "UPDATE map_stats SET end_time = ?, map_name = ? WHERE match_id = ? AND map_number = 0";
+            await db.query(sql, [eTime, "", matchID]);
+          });
+        } else {
+          let allTime = new Date().toISOString().slice(0, 19).replace("T", " ");
           sql =
-            "UPDATE map_stats SET end_time = ?, map_name = ? WHERE match_id = ? AND map_number = 0";
-          await db.query(sql, [eTime, "", matchID]);
-        });
-      } else {
-        let allTime = new Date()
-          .toISOString()
-          .slice(0, 19)
-          .replace("T", " ");
-        sql =
-          "INSERT INTO map_stats (match_id, map_number, map_name, start_time, end_time) VALUES (?,?,?,?)";
+            "INSERT INTO map_stats (match_id, map_number, map_name, start_time, end_time) VALUES (?,?,?,?)";
+          await db.withTransaction(db, async () => {
+            await db.query(sql, [matchID, 0, "", allTime, allTime]);
+          });
+        }
+        // Now update match values.
         await db.withTransaction(db, async () => {
-          await db.query(sql, [matchID, 0, "", allTime, allTime]);
+          sql = "UPDATE `match` SET ? WHERE id = ?";
+          let updateSet = {
+            team1_score: winner === 1 ? 16 : 0,
+            team2_score: winner === 2 ? 16 : 0,
+            start_time: matchTime,
+            end_time: matchTime,
+            forfeit: 1,
+            winner: winningTeamId,
+          };
+          await db.query(sql, [updateSet, matchID]);
+          // Update match server to set not in use.
+          sql = "UPDATE game_server SET in_use = 0 WHERE match_id = ?";
+          await db.query(sql, [matchID]);
         });
+        //TODO: Add in RCON Call to end the match if running.
+        res.redirect("/mymatches");
+      } catch (err) {
+        res.status(500).json({ message: err.toString() });
       }
-      // Now update match values.
-      await db.withTransaction(db, async () => {
-        sql = "UPDATE `match` SET ? WHERE id = ?";
-        let updateSet = {
-          team1_score: winner === 1 ? 16 : 0,
-          team2_score: winner === 2 ? 16 : 0,
-          start_time: matchTime,
-          end_time: matchTime,
-          forfeit: 1,
-          winner: winningTeamId
-        };
-        await db.query(sql, [updateSet, matchID]);
-        // Update match server to set not in use.
-        sql = "UPDATE game_server SET in_use = 0 WHERE match_id = ?";
-        await db.query(sql, [matchID]);
-      });
-      res.redirect("/mymatches");
-    } catch (err) {
-      res.status(500).json({ message: err.toString() });
     }
   }
 );
@@ -215,8 +215,8 @@ router.get("/:match_id/config", async (req, res, next) => {
     let sql = "SELECT * FROM `match` WHERE id = ?";
     let matchID = parseInt(req.params.match_id);
     const matchInfo = await db.query(sql, [matchID]);
-    if (matchInfo.length === 0){
-      res.status(404).json({message: "No match found."});
+    if (matchInfo.length === 0) {
+      res.status(404).json({ message: "No match found." });
       return;
     }
     let matchJSON = {
@@ -237,14 +237,14 @@ router.get("/:match_id/config", async (req, res, next) => {
       team2: {},
       cvars: {
         get5_web_api_url: "http://" + req.get("host") + "/",
-        get5_check_auths: matchInfo[0].enforce_teams
+        get5_check_auths: matchInfo[0].enforce_teams,
       },
       spectators: {},
       maplist:
         matchInfo[0].veto_mappool !== null
           ? matchInfo[0].veto_mappool.split(" ")
           : null,
-      min_spectators_to_ready: 0
+      min_spectators_to_ready: 0,
     };
     if (matchInfo[0].max_maps === 2) {
       matchJSON.bo2_series = true;
@@ -269,7 +269,7 @@ router.get("/:match_id/config", async (req, res, next) => {
  * @name router.post('/create')
  * @memberof module:routes/matches
  * @function
- * @param {int} req.body[0].user_id - The ID of the user creating the match.
+ * @param {int} req.user.id - The ID of the user creating the match.
  * @param {int} req.body[0].server_id - The server ID the match is being designated to. NULL if to be provided later.
  * @param {int} req.body[0].team1_id - The ID of team one.
  * @param {int} req.body[0].team2_id - The ID of team two.
@@ -289,7 +289,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     await db.withTransaction(db, async () => {
       let insertSet = {
-        user_id: req.body[0].user_id,
+        user_id: req.user.id,
         server_id: req.body[0].server_id,
         team1_id: req.body[0].team1_id,
         team2_id: req.body[0].team2_id,
@@ -305,8 +305,8 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
         enforce_teams: req.body[0].enforce_teams || 1,
         api_key: randString.generate({
           length: 24,
-          capitalization: uppercase
-        })
+          capitalization: uppercase,
+        }),
       };
       let sql = "INSERT INTO `match` SET ?";
       await db.query(sql, [insertSet]);
@@ -325,32 +325,36 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  * @name router.put('/update')
  * @memberof module:routes/matches
  * @function
- * @param {int} req.body[0].match_id - The ID of the user creating the match.
- * @param {int} req.body[0].user_id - The ID of the user creating the match.
- * @param {DateTime} req.body[0].end_time - The end time of the match.
- * @param {int} req.body[0].winner - The ID of the team who won the series.
- * @param {string} req.body[0].plugin_version - The version of the get5 plugin running on the server.
- * @param {boolean} req.body[0].forfeit - Boolean value representing whether the match was forfeit.
- * @param {string} req.body[0].cancelled - Boolean value representing whether the match was cancelled.
- * @param {int} req.body[0].team1_score - The score of team1 during the series.
- * @param {string} req.body[0].team2_score - The score of team2 during the series.
- * @param {JSON} req.body[0].spectator_auths - JSON array of spectator auths.
- * @param {boolean} req.body[0].private_match - Boolean value representing whether the match is limited visibility to users on the team or who is on map stats.
+ * @param {int} req.user.id - The ID of the user updating the match.
+ * @param {int} req.body[0].match_id - The ID of the match to be updated.
+ * @param {int} req.body[0].user_id - The optional user id to pass the match off to.
+ * @param {DateTime} [req.body[0].end_time]- The end time of the match.
+ * @param {int} [req.body[0].winner] - The ID of the team who won the series.
+ * @param {string} [req.body[0].plugin_version] - The version of the get5 plugin running on the server.
+ * @param {boolean} [req.body[0].forfeit] - Boolean value representing whether the match was forfeit.
+ * @param {string} [req.body[0].cancelled] - Boolean value representing whether the match was cancelled.
+ * @param {int} [req.body[0].team1_score] - The score of team1 during the series.
+ * @param {string} [req.body[0].team2_score]- The score of team2 during the series.
+ * @param {JSON} [req.body[0].spectator_auths ]- JSON array of spectator auths.
+ * @param {boolean} [req.body[0].private_match] - Boolean value representing whether the match is limited visibility to users on the team or who is on map stats.
  */
 router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     let userId = req.user.id;
     let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
     const matchRow = await db.query(matchUserId, req.body[0].match_id);
-    if (matchRow.length === 0){
-      res.status(404).json({message: "No match found."});
+    if (matchRow.length === 0) {
+      res.status(404).json({ message: "No match found." });
       return;
-    }
-    if (
-      req.user.super_admin ||
-      req.user.admin === 1 ||
-      matchRow[0].user_id === userId
+    } else if (
+      matchRow[0].user_id != req.user.id &&
+      !Utils.superAdminCheck(req.user)
     ) {
+      res
+        .status(401)
+        .json({ message: "User is not authorized to perform action." });
+      return;
+    } else {
       await db.withTransaction(db, async () => {
         // Use passport auth here, and then also check user to see if they own or are admin of match.
         let updateStmt = {
@@ -362,7 +366,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
           cancelled: req.body[0].cancelled,
           team1_score: req.body[0].team1_score,
           team2_score: req.body[0].team2_score,
-          private_match: req.body[0].private_match
+          private_match: req.body[0].private_match,
         };
         // Remove any values that may not be updated.
         updateStmt = await db.buildUpdateStatement(updateStmt);
@@ -374,10 +378,6 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
         }
         res.json("Match updated successfully!");
       });
-    } else {
-      res
-        .status(401)
-        .json({ message: "You are not authorized to perform this task." });
     }
   } catch (err) {
     console.log(err);
@@ -389,44 +389,63 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
  * @name router.delete('/delete')
  * @memberof module:routes/matches
  * @function
- * @param {int} req.body[0].user_id - The ID of the user deleteing. Can check if admin when implemented.
+ * @param {int} req.user.id - The ID of the user deleteing. Can check if admin when implemented.
  * @param {int} req.body[0].match_id - The ID of the match to remove all values pertaining to the match.
  *
  */
 router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
-  try {
-    await db.withTransaction(db, async () => {
-      let userId = req.user.id;
-      let matchId = req.body[0].match_id;
-      let isMatchCancelled =
-        "SELECT cancelled, user_id from `match` WHERE id = ?";
-      // First find any matches/mapstats/playerstats associated with the team.
-      let playerStatDeleteSql = "DELETE FROM player_stats WHERE match_id = ?";
-      let mapStatDeleteSql = "DELETE FROM map_stats WHERE match_id = ?";
-      let spectatorDeleteSql = "DELETE FROM match_spectator WHERE match_id = ?";
-      const matchCancelledResult = await db.query(isMatchCancelled, matchId);
-      if (matchCancelledResult.length === 0){
-        res.status(404).json({message: "No match found."});
-        return;
-      }
-      if (matchCancelledResult[0].cancelled !== 1) {
-        throw "Cannot delete match as it is not cancelled.";
-      } else if (matchCancelledResult[0].user_id !== userId) {
-        res
-          .status(401)
-          .json("You do not have authorized access to delete these matches.");
-      }
-      // Do we even allow this? Maybe only when matches are cancelled?
-      let deleteMatchsql = "DELETE FROM `match` WHERE id = ?";
-      const deletePlayerStatRows = await db.query(playerStatDeleteSql, matchId);
-      const deleteMapStatRows = await db.query(mapStatDeleteSql, matchId);
-      const deleteSpectatorRows = await db.query(spectatorDeleteSql, matchId);
-      const delRows = await db.query(sql, matchId);
-      if (delRows.affectedRows > 0) res.json("Match deleted successfully!");
-      else res.status(401).json("Match is not found.");
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.toString() });
+  let userId = req.user.id;
+  let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
+  const matchRow = await db.query(matchUserId, req.body[0].match_id);
+  if (matchRow.length === 0) {
+    res.status(404).json({ message: "No match found." });
+    return;
+  } else if (
+    matchRow[0].user_id != req.user.id &&
+    !Utils.superAdminCheck(req.user)
+  ) {
+    res
+      .status(401)
+      .json({ message: "User is not authorized to perform action." });
+    return;
+  } else {
+    try {
+      await db.withTransaction(db, async () => {
+        let matchId = req.body[0].match_id;
+        let isMatchCancelled =
+          "SELECT cancelled, user_id from `match` WHERE id = ?";
+        // First find any matches/mapstats/playerstats associated with the team.
+        let playerStatDeleteSql = "DELETE FROM player_stats WHERE match_id = ?";
+        let mapStatDeleteSql = "DELETE FROM map_stats WHERE match_id = ?";
+        let spectatorDeleteSql =
+          "DELETE FROM match_spectator WHERE match_id = ?";
+        const matchCancelledResult = await db.query(isMatchCancelled, matchId);
+        if (matchCancelledResult.length === 0) {
+          res.status(404).json({ message: "No match found." });
+          return;
+        }
+        if (matchCancelledResult[0].cancelled !== 1) {
+          throw "Cannot delete match as it is not cancelled.";
+        } else if (matchCancelledResult[0].user_id !== userId) {
+          res
+            .status(401)
+            .json("You do not have authorized access to delete these matches.");
+        }
+        // Do we even allow this? Maybe only when matches are cancelled?
+        let deleteMatchsql = "DELETE FROM `match` WHERE id = ?";
+        const deletePlayerStatRows = await db.query(
+          playerStatDeleteSql,
+          matchId
+        );
+        const deleteMapStatRows = await db.query(mapStatDeleteSql, matchId);
+        const deleteSpectatorRows = await db.query(spectatorDeleteSql, matchId);
+        const delRows = await db.query(sql, matchId);
+        if (delRows.affectedRows > 0) res.json("Match deleted successfully!");
+        else res.status(401).json("Match is not found.");
+      });
+    } catch (err) {
+      res.status(500).json({ message: err.toString() });
+    }
   }
 });
 
@@ -451,7 +470,7 @@ async function build_team_dict(team, teamNumber, matchData) {
         ? matchData.team1_series_score
         : matchData.team2_series_score,
     matchtext:
-      teamNumber === 1 ? matchData.team1_string : matchData.team2_string
+      teamNumber === 1 ? matchData.team1_string : matchData.team2_string,
   };
   for (let key in teamData) {
     if (teamData[key] === null) delete teamData[key];
