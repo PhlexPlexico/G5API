@@ -54,11 +54,17 @@ Once running, please run the secure installation, then create a get5 user after 
 
 #### CentOS
 ```curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash```
+
 After installation of nvm either close the terminal or run `source ~/.bashrc`.
+
 ```nvm install 13.8.0; sudo yum update && sudo yum install redis mariadb-server```
+
 Either mysql or mariadb is acceptable. Please start the database server once it is ready:
+
 ```sudo systemctl start mariadb; sudo systemctl enable mariadb```.
+
 Once running, please run the secure installation, then create a get5 user after logging in:
+
 ```CREATE USER 'get5'@'localhost' IDENTIFIED BY 'sup3r_s3cUr3_p4ssw0rD'; GRANT ALL PRIVILEGES ON get5test.* TO 'get5'@'localhost'; GRANT ALL PRIVILEGES ON get5.* TO 'get5'@'localhost';```
 
 #### After Installation
