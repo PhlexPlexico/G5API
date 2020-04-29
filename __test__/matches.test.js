@@ -19,6 +19,6 @@ describe('Get all matches', () => {
 });
 describe('Create a match', () => {
     it('Should create a single match that is ready to be played with teams.', async done => {
-
+      done();
     });
 });

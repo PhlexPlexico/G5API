@@ -109,7 +109,7 @@ router.put(
   async (req, res, next) => {
     let userId = req.user.id;
     let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
-    const matchRow = await db.query(matchUserId, req.body[0].match_id ;
+    const matchRow = await db.query(matchUserId, req.body[0].match_id);
     if (matchRow.length === 0) {
       res.status(404).json({ message: "No match found." });
       return;
