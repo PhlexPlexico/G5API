@@ -44,12 +44,19 @@ Redis is required as a session store when running, to aid with persisting user a
 
 #### Ubuntu/Debian
 It's preferable to use node version manager (nvm) to control node installations. It makes it easier to swap between projects.
+
 ```curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash```
+
 After installation
+
 ```nvm install 13.8.0; sudo apt update && sudo apt install mariadb-server redis-server```
+
 Either mysql or mariadb is acceptable. Please start the database server once it is ready:
+
 ```sudo service mariadb start; sudo service mariadb enable```.
+
 Once running, please run the secure installation, then create a get5 user after logging in:
+
 ```CREATE USER 'get5'@'localhost' IDENTIFIED BY 'sup3r_s3cUr3_p4ssw0rD'; GRANT ALL PRIVILEGES ON get5test.* TO 'get5'@'localhost'; GRANT ALL PRIVILEGES ON get5.* TO 'get5'@'localhost';```
 
 #### CentOS
