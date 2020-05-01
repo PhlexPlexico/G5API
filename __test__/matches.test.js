@@ -37,7 +37,6 @@ describe('Create a match', () => {
         .set("Accept", "application/json")
         .send(newMatchData)
         .expect((result) => {
-          console.log(result.body);
           expect(result.body.message).toMatch(/successfully/);
         })
         .expect(200)
