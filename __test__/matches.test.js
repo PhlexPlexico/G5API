@@ -29,7 +29,7 @@ describe('Create a match', () => {
           title: "Map {MAPNUMBER} of {MAXMAPS}",
           veto_mappool: "de_dust2, de_cache, de_mirage",
           skip_veto: 0
-        },
+        }
       ];
       request
         .post("/matches/create")
@@ -38,6 +38,7 @@ describe('Create a match', () => {
         .send(newMatchData)
         .expect(200)
         .expect((result) => {
+          console.log(result.body);
           expect(result.body.message).toMatch(/successfully/);
         })
         .end(done);
@@ -51,7 +52,7 @@ describe('Update a match', () => {
         match_id: 1,
         start_time: new Date().toISOString().slice(0, 19).replace('T', ' '),
         plugin_version: '0.7.2'
-      },
+      }
     ];
     request
       .put("/matches/update")
@@ -90,7 +91,7 @@ describe('Perform being a bad actor', () => {
         {
           match_id: 1,
           user_id: 2
-        },
+        }
       ];
       request
         .put("/matches/update")
@@ -114,7 +115,7 @@ describe('Perform being a bad actor', () => {
       {
         match_id: 1,
         forfeit: 1
-      },
+      }
     ];
     request
       .put("/matches/update")
@@ -131,7 +132,7 @@ describe('Perform being a bad actor', () => {
     let updatedMatchData = [
       {
         match_id: 1
-      },
+      }
     ];
     request
       .delete("/matches/delete")
