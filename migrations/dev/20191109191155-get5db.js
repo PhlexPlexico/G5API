@@ -174,7 +174,7 @@ exports.up = function(db, callback) {
           mapping: 'id'
         },
         length: 11,
-        notNull: true 
+        notNull: false,
       },
       team1_score: { type: 'int', notNull: true, length: 11 },
       team2_score: { type: 'int', notNull: true, length: 11 },
@@ -193,9 +193,24 @@ exports.up = function(db, callback) {
       veto_mappool: { type: 'string', length: 500 },
       veto_first: { type: 'string', length: 5 },
       side_type: { type: 'string', length: 32 },
+      plugin_version: { type: 'string', length: 32, defaultValue: 'unknown', notNull: false},
       private_match: { type: 'boolean', defaultValue: false, notNull: true },
       enforce_teams: { type: 'boolean', defaultValue: false, notNull: true },
-      min_player_ready: {type: 'int', defaultValue: 5, notNull: true}
+      min_player_ready: {type: 'int', defaultValue: 5, notNull: true},
+      season_id: {
+        type: 'int', 
+        foreignKey: {
+          name: 'season_id_match_fk',
+          table: 'season',
+          rules: {
+            onDelete: 'CASCADE',
+            onUpdate: 'RESTRICT'
+          },
+          mapping: 'id'
+        },
+        length: 11,
+        notNull: false 
+      }
     }),
     db.createTable('match_spectator', {
       id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11, notNull: true },

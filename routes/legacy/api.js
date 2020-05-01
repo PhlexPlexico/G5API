@@ -90,9 +90,9 @@ const playerStatRateLimit = rateLimit({
 router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
   try {
     // Give from API call.
-    let matchID = req.params.match_id || null;
-    let winner = req.query.winner || null;
-    let forfeit = req.query.forfeit || 0;
+    let matchID = req.params.match_id == null ? null : req.params.match_id;
+    let winner = req.query.winner == null ? null : req.query.winner;
+    let forfeit = req.query.forfeit == null ? 0 : req.query.forfeit;
 
     // Local data manipulation.
     let teamIdWinner = null;
@@ -127,7 +127,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
 
     }
 
-    await withTransaction (db, async () => {
+    await db.withTransaction (db, async () => {
       let updateStmt = {
         winner: teamIdWinner,
         forfeit: forfeit,
@@ -163,9 +163,9 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
 router.post("/:match_id/map/:map_number/start", basicRateLimit, async (req, res, next) => {
   try {
     // Give from API call.
-    let matchID = req.params.match_id || null;
-    let mapNumber = req.params.map_number || null;
-    let mapName = req.query.mapname || null;
+    let matchID = req.params.match_id == null ? null : req.params.match_id;
+    let mapNumber = req.params.map_number == null ? null : req.params.map_number;
+    let mapName = req.query.mapname == null ? null : req.query.mapname;
     // Data manipulation inside function.
     let startTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
     let updateStmt = {};
@@ -185,7 +185,7 @@ router.post("/:match_id/map/:map_number/start", basicRateLimit, async (req, res,
     await check_api_key(matchValues[0].api_key, req.query.key, matchFinalized);
 
     // Begin transaction
-    await withTransaction(db, async () => {
+    await db.withTransaction(db, async () => {
       if(matchValues[0].start_time === null){
         // Update match stats to have a start time.
         updateStmt = {
@@ -240,8 +240,8 @@ router.post("/:match_id/map/:map_number/start", basicRateLimit, async (req, res,
 router.post("/:match_id/map/:map_number/update", updateMapRateLimit, async (req, res, next) => {
   try{
     // Give from API call.
-    let matchID = req.params.match_id || null;
-    let mapNumber = req.params.map_number || null;
+    let matchID = req.params.match_id == null ? null : req.params.match_id;
+    let mapNumber = req.params.map_number == null ? null : req.params.map_number;
     let team1Score = req.query.team1_score;
     let team2Score = req.query.team2_score;
     // Data manipulation inside function.
@@ -259,7 +259,7 @@ router.post("/:match_id/map/:map_number/update", updateMapRateLimit, async (req,
     // Throw error if wrong key or finished match.
     await check_api_key(matchValues[0].api_key, req.query.key, matchFinalized);
 
-    await withTransaction(db, async ()  => {
+    await db.withTransaction(db, async ()  => {
       // Get or create mapstats.
       sql = "SELECT * FROM map_stats WHERE match_id = ? AND map_number = ?";
       const mapStats = await db.query(sql, [matchID, mapNumber]);
@@ -297,10 +297,10 @@ router.post("/:match_id/map/:map_number/update", updateMapRateLimit, async (req,
 router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
   try {
     // Give from API call.
-    let matchID = req.params.match_id || null;
-    let teamString = req.query.teamString || null;
-    let mapBan = req.query.map || null;
-    let pickOrBan = req.query.pick_or_veto || null;
+    let matchID = req.params.match_id == null ? null : req.params.match_id;
+    let teamString = req.query.teamString == null ? null : req.query.teamString;
+    let mapBan = req.query.map == null ? null : req.query.map;
+    let pickOrBan = req.query.pick_or_veto == null ? null : req.query.pick_or_veto;
     // Data manipulation inside function.
     let insertStmt = {};
     let insertSql;
@@ -330,7 +330,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     else
       teamNameString = teamName[0].name;
     // Insert into veto now.
-    await withTransaction(db, async () =>{
+    await db.withTransaction(db, async () =>{
       insertStmt = {
         match_id: matchID,
         team_name: teamNameString,
@@ -362,9 +362,9 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
 router.post("/:match_id/map/:map_number/demo", basicRateLimit, async (req, res, next) => {
   try {
     // Give from API call.
-    let matchID = req.params.match_id || null;
-    let mapNum = req.params.map_number || null;
-    let demoFile = req.query.demoFile || null;
+    let matchID = req.params.match_id == null ? null : req.params.match_id;
+    let mapNum = req.params.map_number == null ? null : req.params.map_number;
+    let demoFile = req.query.demoFile == null ? null : req.query.demoFile;
     // Data manipulation inside function.
     let updateStmt = {};
     let updateSql;
@@ -384,7 +384,7 @@ router.post("/:match_id/map/:map_number/demo", basicRateLimit, async (req, res, 
       res.status(404).send('Failed to find map stats object.');
 
     // Update map stats with new demo file link.
-    await withTransaction(db, async () =>{
+    await db.withTransaction(db, async () =>{
       updateStmt = {
         demoFile: demoFile,
       };
@@ -413,9 +413,9 @@ router.post("/:match_id/map/:map_number/demo", basicRateLimit, async (req, res, 
 router.post("/:match_id/map/:map_number/finish", basicRateLimit, async (req, res, next) => {
   try {
     // Give from API call.
-    let matchID = req.params.match_id || null;
-    let mapNum = req.params.map_number || null;
-    let winner = req.query.winner || null;
+    let matchID = req.params.match_id == null ? null : req.params.match_id;
+    let mapNum = req.params.map_number == null ? null : req.params.map_number;
+    let winner = req.query.winner == null ? null : req.query.winner;
     // Data manipulation inside function.
     let updateStmt = {};
     let updateSql;
@@ -442,7 +442,7 @@ router.post("/:match_id/map/:map_number/finish", basicRateLimit, async (req, res
       res.status(404).send('Failed to find map stats object.');
 
     // Update map stats with new demo file link.
-    await withTransaction(db, async () =>{
+    await db.withTransaction(db, async () =>{
       if(winner === "team1"){
         teamIdWinner = matchValues[0].team1_id;
         team1Score = matchValues[0].team1_score + 1;
@@ -518,36 +518,36 @@ router.post("/:match_id/map/:map_number/finish", basicRateLimit, async (req, res
 router.post("/:match_id/map/:map_number/player/:steam_id/update", playerStatRateLimit, async (req, res, next) => {
   try {
     // Give from API call.
-    let matchID = parseInt(req.params.match_id) || null;
-    let mapNum = parseInt(req.params.map_number) || null;
-    let steamId = req.params.steam_id || null;
-    let playerName = req.query.name || null;
-    let playerTeam = req.query.team || null;
-    let playerKills = parseInt(req.query.kills) || null;
-    let playerAssists = parseInt(req.query.assists) || null;
-    let playerDeaths = parseInt(req.query.deaths) || null;
-    let playerFBA = parseInt(req.query.flashbang_assists) || null;
-    let playerTKs = parseInt(req.query.teamkills )|| null;
-    let playerSuicide = parseInt(req.query.suicides) || null;
-    let playerDamage = parseInt(req.query.damage) || null;
-    let playerHSK = parseInt(req.query.headshot_kills) || null;
-    let playerRoundsPlayed = parseInt(req.query.roundsplayed) || null;
-    let playerBombsPlanted = parseInt(req.query.bomb_plants) || null;
-    let playerBombsDefused = parseInt(req.query.bomb_defuses) || null;
-    let player1k = parseInt(req.query['1kill_rounds']) || null;
-    let player2k = parseInt(req.query['2kill_rounds']) || null;
-    let player3k = parseInt(req.query['3kill_rounds']) || null;
-    let player4k = parseInt(req.query['4kill_rounds']) || null;
-    let player5k = parseInt(req.query['5kill_rounds']) || null;
-    let player1v1 = parseInt(req.query.v1) || null;
-    let player1v2 = parseInt(req.query.v2) || null;
-    let player1v3 = parseInt(req.query.v3) || null;
-    let player1v4 = parseInt(req.query.v4) || null;
-    let player1v5 = parseInt(req.query.v5) || null;
-    let playerFirstKillT = parseInt(req.query.firstkill_t) || null;
-    let playerFirstKillCT = parseInt(req.query.firstkill_ct) || null;
-    let playerFirstDeathCT = parseInt(req.query.firstdeath_ct) || null;
-    let playerFirstDeathT = parseInt(req.query.firstdeath_t) || null;
+    let matchID = req.params.match_id == null ? null : parseInt(req.params.match_id);
+    let mapNum = req.params.map_number == null ? null : parseInt(req.params.map_number);
+    let steamId = req.params.steam_id == null ? null : req.params.steam_id;
+    let playerName = req.query.name == null ? null : req.query.name;
+    let playerTeam = req.query.team == null ? null : req.query.team;
+    let playerKills = req.query.kills == null ? null : parseInt(req.query.kills);
+    let playerAssists = req.query.assists == null ? null : parseInt(req.query.assists) ;
+    let playerDeaths = req.query.deaths == null ? null : parseInt(req.query.deaths);
+    let playerFBA = req.query.flashbang_assists == null ? null : parseInt(req.query.flashbang_assists);
+    let playerTKs = req.query.teamkills == null ? null : parseInt(req.query.teamkills);
+    let playerSuicide = req.query.suicides == null ? null : parseInt(req.query.suicides);
+    let playerDamage = req.query.damage == null ? null : parseInt(req.query.damage);
+    let playerHSK = req.query.headshot_kills == null ? null : parseInt(req.query.headshot_kills);
+    let playerRoundsPlayed = req.query.roundsplayed == null ? null : parseInt(req.query.roundsplayed);
+    let playerBombsPlanted = req.query.bomb_plants == null ? null : parseInt(req.query.bomb_plants);
+    let playerBombsDefused = req.query.bomb_defuses == null ? null : parseInt(req.query.bomb_defuses);
+    let player1k = req.query['1kill_rounds'] == null ? null : parseInt(req.query['1kill_rounds']);
+    let player2k = req.query['2kill_rounds'] == null ? null : parseInt(req.query['2kill_rounds']);
+    let player3k = req.query['3kill_rounds'] == null ? null : parseInt(req.query['3kill_rounds']);
+    let player4k = req.query['4kill_rounds'] == null ? null : parseInt(req.query['4kill_rounds']);
+    let player5k = req.query['5kill_rounds'] == null ? null : parseInt(req.query['5kill_rounds']);
+    let player1v1 = req.query.v1 == null ? null : parseInt(req.query.v1);
+    let player1v2 = req.query.v2 == null ? null : parseInt(req.query.v2);
+    let player1v3 = req.query.v3 == null ? null : parseInt(req.query.v3);
+    let player1v4 = req.query.v4 == null ? null : parseInt(req.query.v4);
+    let player1v5 = req.query.v5 == null ? null : parseInt(req.query.v5);
+    let playerFirstKillT = req.query.firstkill_t == null ? null : parseInt(req.query.firstkill_t);
+    let playerFirstKillCT = req.query.firstkill_ct == null ? null : parseInt(req.query.firstkill_ct);
+    let playerFirstDeathCT = req.query.firstdeath_ct == null ? null : parseInt(req.query.firstdeath_ct);
+    let playerFirstDeathT = req.query.firstdeath_t == null ? null : parseInt(req.query.firstdeath_t);
     // Data manipulation inside function.
     let updateStmt = {};
     let updateSql;
@@ -576,7 +576,7 @@ router.post("/:match_id/map/:map_number/player/:steam_id/update", playerStatRate
     const playerStatValues = await db.query(sql, [matchID, mapStatValues[0].id, steamId]);
 
     // Update player stats. ACID transaction.
-    await withTransaction(db, async () =>{
+    await db.withTransaction(db, async () =>{
       if(playerTeam === "team1")
         playerTeamId = matchValues[0].team1_id;
       else if (playerTeam === "team2")
@@ -632,27 +632,6 @@ router.post("/:match_id/map/:map_number/player/:steam_id/update", playerStatRate
   }
 });
 
-
-/** Inner function - boilerplate transaction call.
- * @name withTransaction
- * @function
- * @inner
- * @memberof module:routes/legacy/api
- * @param {*} db - The database object.
- * @param {*} callback - The callback function that is operated on, usually a db.query()
- */
-async function withTransaction(db, callback) {
-  try {
-    await db.beginTransaction();
-    await callback();
-    await db.commit();
-  } catch (err) {
-    await db.rollback();
-    throw err;
-  } /* finally {
-    await db.close();
-  } */
-}
 
 async function check_api_key(match_api_key, given_api_key, match_finished) {
     if (match_api_key.localeCompare(given_api_key) !== 0)

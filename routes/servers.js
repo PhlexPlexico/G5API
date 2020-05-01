@@ -150,6 +150,8 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
         displayName,
         publicServer,
       ]);
+      // TODO: RCON INTEGRATION TO ENSURE SUCCESSFUL INSERT.
+      // Alternatively, if ping fails, still allow insert and warn user.
       res.json({ message: "Game server inserted successfully!" });
     });
   } catch (err) {
@@ -200,6 +202,9 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
         updateStmt = await db.buildUpdateStatement(updateStmt);
         let sql = "UPDATE game_server SET ? WHERE id = ?";
         updatedServer = await db.query(sql, [updateStmt, serverId]);
+        // TODO: PING SERVER WITH NEW VALUES TO ENSURE THEY WORK.
+        // Alternatively, allow them to update, but give a warning that 
+        // the server is not reachable.
         if (updatedServer.affectedRows > 0)
           res.json({ message: "Game server updated successfully!" });
         else
