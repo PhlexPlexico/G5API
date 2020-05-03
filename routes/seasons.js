@@ -33,6 +33,10 @@ router.get("/", async (req, res, next) => {
     // Check if admin, if they are use this query.
     let sql = "SELECT * FROM `season`";
     const seasons = await db.query(sql);
+    if (seasons.length === 0) {
+      res.status(404).json({ message: "No seasons found." });
+      return;
+    }
     res.json(seasons);
   } catch (err) {
     res.status(500).json({ message: err.toString() });
@@ -52,6 +56,10 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
     // Check if admin, if they are use this query.
     let sql = "SELECT * FROM `season` WHERE user_id = ?";
     const seasons = await db.query(sql, [req.user.id]);
+    if (seasons.length === 0) {
+      res.status(404).json({ message: "No seasons found." });
+      return;
+    }
     res.json(seasons);
   } catch (err) {
     res.status(500).json({ message: err.toString() });
@@ -68,7 +76,6 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.get("/:season_id", async (req, res, next) => {
   try {
-    //
     seasonID = req.params.season_id;
     let sql = "SELECT * FROM season where id = ?";
     const seasons = await db.query(sql, seasonID);
@@ -88,7 +95,7 @@ router.get("/:season_id", async (req, res, next) => {
  * @function
  * @param {string} req.body[0].name - The name of the Season to be created.
  * @param {DateTime} req.body[0].start_date - Season start date.
- * @param {DateTime} req.body[0].end_date - Optional season end date.
+ * @param {DateTime} [req.body[0].end_date] - Optional season end date.
  */
 router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
@@ -101,7 +108,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       };
       let sql = "INSERT INTO season SET ?";
       await db.query(sql, [insertSet]);
-      res.json("Season inserted successfully!");
+      res.json({ message: "Season inserted successfully!" });
     });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
@@ -113,50 +120,84 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  * @memberof module:routes/seasons
  * @function
  * @param {int} req.body[0].season_id - The ID of the season being modified.
- * @param {int} req.body[0].user_id - The ID of the user modifying the season.
- * @param {string} req.body[0].name - The name of the Season to be updated.
- * @param {DateTime} req.body[0].start_date - Season start date.
- * @param {DateTime} req.body[0].end_date - Season end date.
+ * @param {int} [req.body[0].user_id] - The ID of the user to give the season to.
+ * @param {string} [req.body[0].name] - The name of the Season to be updated.
+ * @param {DateTime} [req.body[0].start_date] - Season start date.
+ * @param {DateTime} [req.body[0].end_date] - Season end date.
  */
 router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
-  try {
-      let userCheckSql = "SELECT * FROM season WHERE user_id = ?";
-      const checkUser = await db.query(userCheckSql, [req.user.id]);
-      if (checkUser.length < 1){
-        res.status(401).json({message: "User is not authorized to perform update."});
-      }
-      await db.withTransaction(db, async () => {
-      let updateStmt = {
-        user_id: req.body[0].user_id,
-        name: req.body[0].name,
-        start_date: req.body[0].start_date,
-        end_date: req.body[0].end_date,
-      };
-      // Remove any values that may not be updated.
-      updateStmt = await db.buildUpdateStatement(updateStmt);
-      let sql = "UPDATE season SET ? WHERE id = ?";
-      await db.query(sql, [updateStmt, req.body[0].season_id]);
-      res.json("Season updated successfully!");
-    });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: err.toString() });
+  let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
+  const seasonRow = await db.query(seasonUserId, req.body[0].season_id);
+  if (seasonRow.length === 0) {
+    res.status(404).json({ message: "No match found." });
+    return;
+  } else if (
+    seasonRow[0].user_id != req.user.id &&
+    !Utils.superAdminCheck(req.user)
+  ) {
+    res
+      .status(401)
+      .json({ message: "User is not authorized to perform action." });
+    return;
+  } else {
+    try {
+        await db.withTransaction(db, async () => {
+          let updateStmt = {
+            user_id: req.body[0].user_id,
+            name: req.body[0].name,
+            start_date: req.body[0].start_date,
+            end_date: req.body[0].end_date,
+          };
+          // Remove any values that may not be updated.
+          updateStmt = await db.buildUpdateStatement(updateStmt);
+          let sql = "UPDATE season SET ? WHERE id = ?";
+          await db.query(sql, [updateStmt, req.body[0].season_id]);
+          res.json({ message: "Season updated successfully!" });
+      });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: err.toString() });
+    }
   }
 });
 
-/** DEL - Delete all match data associated with a match, including stats, vetoes, etc. **NOT IMPLEMENTED**
+/** DEL - Delete all season data associated with a given ID. The user must own the season, OR they must be a super admin.
+ * This will NULL out all season data on matches that are associated with it.
  * @name router.delete('/delete')
  * @memberof module:routes/seasons
  * @function
- * @param {int} req.body[0].user_id - The ID of the user deleteing. Can check if admin when implemented.
- * @param {int} req.body[0].match_id - The ID of the match to remove all values pertaining to the match.
+ * @param {int} req.user.id - The ID of the user deleteing.
+ * @param {int} req.body[0].season_id - The ID of the match to remove all values pertaining to the season.
  *
  */
 router.delete("/delete", async (req, res, next) => {
-  try {
-    throw "NOT IMPLEMENTED";
-  } catch (err) {
-    res.status(500).json({ message: err.toString() });
+  let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
+  const seasonRow = await db.query(seasonUserId, req.body[0].season_id);
+  if (seasonRow.length === 0) {
+    res.status(404).json({ message: "No season found." });
+    return;
+  } else if (
+    seasonRow[0].user_id != req.user.id &&
+    !Utils.superAdminCheck(req.user)
+  ) {
+    res
+      .status(401)
+      .json({ message: "User is not authorized to perform action." });
+    return;
+  } else {
+    try {
+      await db.withTransaction(db, async () => {
+        let deleteSql = "DELETE FROM season WHERE id = ?";
+        let deleteStmt = {
+          id: req.body[0].season_id
+        };
+        deleteStmt = await db.buildUpdateStatement(deleteStmt);
+        await db.query(deleteSql, [deleteStmt, req.body[0].season_id]);
+        res.json({ message: "Season deleted successfully!" });
+    });
+    } catch (err) {
+      res.status(500).json({ message: err.toString() });
+    }
   }
 });
 

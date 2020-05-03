@@ -407,6 +407,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
           team1_score: req.body[0].team1_score,
           team2_score: req.body[0].team2_score,
           private_match: req.body[0].private_match,
+          season_id: req.body[0].season_id
         };
         // Remove any values that may not be updated.
         updateStmt = await db.buildUpdateStatement(updateStmt);

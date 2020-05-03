@@ -55,12 +55,13 @@ exports.up = function(db, callback) {
           name: 'user_id_team_fk',
           table: 'user',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
         },
-        length: 11 
+        length: 11,
+        notNull: false
       },
       name: { type: 'string', length: 40 },
       flag: { type: 'string', length: 4 },
@@ -112,13 +113,13 @@ exports.up = function(db, callback) {
           name: 'user_id_match_fk',
           table: 'user',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
         },
         length: 11,
-        notNull: true 
+        notNull: false 
       },
       server_id: {
         type: 'int', 
@@ -126,13 +127,13 @@ exports.up = function(db, callback) {
           name: 'game_server_id_match_fk',
           table: 'game_server',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
         },
         length: 11,
-        notNull: true 
+        notNull: false 
       },
       team1_id: {
         type: 'int', 
@@ -140,13 +141,13 @@ exports.up = function(db, callback) {
           name: 'team_id_match_team1_fk',
           table: 'team',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
         },
         length: 11,
-        notNull: true 
+        notNull: false 
       },
       team2_id: {
         type: 'int', 
@@ -154,13 +155,13 @@ exports.up = function(db, callback) {
           name: 'team_id_match_team2_fk',
           table: 'team',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
         },
         length: 11,
-        notNull: true 
+        notNull: false 
       },
       winner: {
         type: 'int', 
@@ -168,7 +169,7 @@ exports.up = function(db, callback) {
           name: 'team_id_match_winner_fk',
           table: 'team',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
@@ -203,7 +204,7 @@ exports.up = function(db, callback) {
           name: 'season_id_match_fk',
           table: 'season',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
@@ -226,7 +227,7 @@ exports.up = function(db, callback) {
           mapping: 'id'
         },
         length: 11,
-        notNull: true 
+        notNull: false 
       },
       auth: { type: 'string', length: 17, notNull: true }
     }),
@@ -238,13 +239,13 @@ exports.up = function(db, callback) {
           name: 'match_id_map_stats_fk',
           table: 'match',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
         },
         length: 11,
-        notNull: true 
+        notNull: false 
       },
       winner: {
         type: 'int', 
@@ -252,13 +253,13 @@ exports.up = function(db, callback) {
           name: 'team_id_map_stats_winner_fk',
           table: 'team',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
         },
         length: 11,
-        notNull: true 
+        notNull: false 
       },
       map_number: { type: 'int', notNull: true, length: 11, defaultValue: 0 },
       map_name: { type: 'string', length: 64 },
@@ -276,13 +277,13 @@ exports.up = function(db, callback) {
           name: 'match_id_match_audit_fk',
           table: 'match',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
         },
         length: 11,
-        notNull: true 
+        notNull: false 
       },
       user_id: {
         type: 'int', 
@@ -290,13 +291,13 @@ exports.up = function(db, callback) {
           name: 'user_id_match_audit_fk',
           table: 'user',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
         },
         length: 11,
-        notNull: true 
+        notNull: false 
       },
       time_affected: { type: 'datetime', defaultValue: 'CURRENT_TIMESTAMP', notNull: true },
       cmd_used: { type: 'string', length: 4000 }
@@ -309,13 +310,13 @@ exports.up = function(db, callback) {
           name: 'match_id_veto_fk',
           table: 'match',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
         },
         length: 11,
-        notNull: true 
+        notNull: false 
       },
       team_name: { type: 'string', length: 64, notNull: true },
       map: { type: 'string', length: 32, notNull: true },
@@ -329,13 +330,13 @@ exports.up = function(db, callback) {
           name: 'match_id_player_stats_fk',
           table: 'match',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
         },
         length: 11,
-        notNull: true 
+        notNull: false 
       },
       map_id: {
         type: 'int', 
@@ -343,13 +344,13 @@ exports.up = function(db, callback) {
           name: 'map_stats_id_player_stats_fk',
           table: 'map_stats',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
         },
         length: 11,
-        notNull: true 
+        notNull: false 
       },
       team_id: {
         type: 'int', 
@@ -357,13 +358,13 @@ exports.up = function(db, callback) {
           name: 'team_id_player_stats_fk',
           table: 'team',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
         },
         length: 11,
-        notNull: true 
+        notNull: false 
       },
       steam_id: { type: 'string', length: 17, notNull: true },
       name: { type: 'string', length: 40 },
