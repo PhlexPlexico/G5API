@@ -200,11 +200,12 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
         };
         // Remove any unwanted nulls.
         updateStmt = await db.buildUpdateStatement(updateStmt);
+        if(Object.keys(updateStmt).length === 0){
+          res.status(412).json({message: "No update data has been provided."});
+          return;
+        }
         let sql = "UPDATE game_server SET ? WHERE id = ?";
         updatedServer = await db.query(sql, [updateStmt, serverId]);
-        // TODO: PING SERVER WITH NEW VALUES TO ENSURE THEY WORK.
-        // Alternatively, allow them to update, but give a warning that 
-        // the server is not reachable.
         if (updatedServer.affectedRows > 0)
           res.json({ message: "Game server updated successfully!" });
         else

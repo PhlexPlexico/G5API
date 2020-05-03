@@ -230,6 +230,10 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       };
       // Remove any values that may not be updated.
       updateStmt = await db.buildUpdateStatement(updateStmt);
+      if(Object.keys(updateStmt).length === 0){
+        res.status(412).json({message: "No update data has been provided."});
+        return;
+      }
       let sql =
         "UPDATE player_stats SET ? WHERE map_id = ? AND match_id = ? AND steam_id = ?";
       const updatedPlayerStats = await db.query(sql, [

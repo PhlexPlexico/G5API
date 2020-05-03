@@ -204,6 +204,10 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       public_team: publicTeam
     };
     updateTeam = await db.buildUpdateStatement(updateTeam);
+    if(Object.keys(updateTeam).length === 0){
+      res.status(412).json({message: "No update data has been provided."});
+      return;
+    }
   let sql =
     "UPDATE team SET ? WHERE id=?";
   try {

@@ -411,6 +411,10 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
         };
         // Remove any values that may not be updated.
         updateStmt = await db.buildUpdateStatement(updateStmt);
+        if(Object.keys(updateStmt).length === 0){
+          res.status(412).json({message: "No update data has been provided."});
+          return;
+        }
         let sql = "UPDATE `match` SET ? WHERE id = ?";
         await db.query(sql, [updateStmt, req.body[0].match_id]);
         sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";

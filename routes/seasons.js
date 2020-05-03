@@ -115,7 +115,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** PUT - Create a veto object from a given match.
+/** PUT - Update a season with the given parameters. 
  * @name router.put('/update')
  * @memberof module:routes/seasons
  * @function
@@ -127,9 +127,13 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
+  if(req.body[0].season_id == null){
+    res.status(404).json({ message: "No season found." })
+    return;
+  }
   const seasonRow = await db.query(seasonUserId, req.body[0].season_id);
   if (seasonRow.length === 0) {
-    res.status(404).json({ message: "No match found." });
+    res.status(404).json({ message: "No season found." });
     return;
   } else if (
     seasonRow[0].user_id != req.user.id &&
@@ -150,6 +154,10 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
           };
           // Remove any values that may not be updated.
           updateStmt = await db.buildUpdateStatement(updateStmt);
+          if(Object.keys(updateStmt).length === 0){
+            res.status(412).json({message: "No update data has been provided."});
+            return;
+          }
           let sql = "UPDATE season SET ? WHERE id = ?";
           await db.query(sql, [updateStmt, req.body[0].season_id]);
           res.json({ message: "Season updated successfully!" });

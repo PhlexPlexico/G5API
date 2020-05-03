@@ -129,6 +129,10 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
         map_name: req.body[0].map_name
       };
       updatedvalues = await db.buildUpdateStatement(updatedValues);
+      if(Object.keys(updatedvalues).length === 0){
+        res.status(412).json({message: "No update data has been provided."});
+        return;
+      }
       let sql = "UPDATE map_stats SET ? WHERE id = ?";
 
       const matchOwner = await db.query(matchQuery, [mapStatId]);
