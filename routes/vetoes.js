@@ -33,6 +33,10 @@ router.get("/", async (req, res, next) => {
     // Check if admin, if they are use this query.
     let sql = "SELECT * FROM veto";
     const vetoes = await db.query(sql);
+    if (vetoes.length === 0) {
+      res.status(404).json({ message: "No vetoes found." });
+      return;
+    }
     res.json(vetoes);
   } catch (err) {
     res.status(500).json({ message: err.toString() });
@@ -47,13 +51,16 @@ router.get("/", async (req, res, next) => {
  * @param {number} request.param.match_id - The ID of the match containing the statistics.
  * @param {callback} middleware - Express middleware.
  */
-router.get("/:matchid", async (req, res, next) => {
+router.get("/:match_id", async (req, res, next) => {
   try {
-    // 
     matchId = req.params.match_id;
     let sql = "SELECT * FROM veto where match_id = ?";
-    const vetos = await db.query(sql, matchId);
-    res.json(vetos);
+    const vetoes = await db.query(sql, matchId);
+    if (vetoes.length === 0) {
+      res.status(404).json({ message: "No vetoes found." });
+      return;
+    }
+    res.json(vetoes);
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -64,29 +71,46 @@ router.get("/:matchid", async (req, res, next) => {
  * @memberof module:routes/vetoes
  * @function
  * @param {int} req.body[0].match_id - The ID of the match.
- * @param {string} req.body[0].team_name - The team that is vetoeing.
- * @param {string} req.body[0].map_name - The current map name that was vetoed.
+ * @param {string} req.body[0].team_name - The name of the team that is vetoeing.
+ * @param {string} req.body[0].map_name - The current map name that was vetoed or picked.
  * @param {string} req.body[0].pick_or_ban - Whether it was a pick or ban.
  *
 */
 router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
-  try{
-    let checkUserSql = "SELECT * FROM `match` WHERE id = ? AND user_id = ?";
-    const checkUser = await db.query(checkUserSql, [req.body[0].match_id, req.user.id]);
-    if (checkUser.length < 1 || req.user.super_admin !== 1 || req.user.admin !== 1) {
-      res.status(401).json({message: "User is not authorized to perform action."});
+  let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
+  const matchRow = await db.query(matchUserId, req.body[0].match_id);
+  if (matchRow.length === 0) {
+    res.status(404).json({ message: "No match found." });
+    return;
+  } else if (
+    matchRow[0].user_id != req.user.id &&
+    !Utils.superAdminCheck(req.user)
+  ) {
+    res
+      .status(401)
+      .json({ message: "User is not authorized to perform action." });
+    return;
+  } else {
+    try {
+      await db.withTransaction(db, async () => {
+        let insertStmt = {
+          match_id: req.body[0].match_id,
+          map: req.body[0].map_name,
+          team_name: req.body[0].team_name,
+          pick_or_veto: req.body[0].pick_or_ban
+        }
+        insertStmt = await db.buildUpdateStatement(insertStmt);
+        if(Object.keys(insertStmt).length === 0){
+          res.status(412).json({message: "No insert data has been provided."});
+          return;
+        }
+        let sql = "INSERT INTO veto SET ?";
+        await db.query(sql, [insertStmt]);
+        res.json({ message: "Veto inserted successfully!" });
+      });
+    } catch ( err ) {
+      res.status(500).json({ message: err.toString() })
     }
-    await db.withTransaction(db, async () => {
-      let matchId = req.body[0].match_id;
-      let mapName = req.body[0].map_name;
-      let teamName = req.body[0].team_name;
-      let pickOrBan =  req.body[0].pick_or_ban;
-      let sql = "INSERT INTO veto (match_id, team_name, map, pick_or_veto) VALUES (?,?,?,?)";
-      await db.query(sql, [matchId, teamName, mapName, pickOrBan]);
-      res.json("Veto inserted successfully!");
-    });
-  } catch ( err ) {
-    res.status(500).json({ message: err.toString() })
   }
 });
 
@@ -100,25 +124,35 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  *
 */
 router.delete("/delete", Utils.ensureAuthenticated, async (req,res,next) => {
-  try {
-    let checkUserSql = "SELECT * FROM `match` WHERE id = ? AND user_id = ?";
-    const checkUser = await db.query(checkUserSql, [req.body[0].match_id, req.user.id]);
-    if (checkUser.length < 1 || req.user.super_admin !== 1 || req.user.admin !== 1) {
-      res.status(401).json({message: "User is not authorized to perform action."});
+  let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
+  const matchRow = await db.query(matchUserId, req.body[0].match_id);
+  if (matchRow.length === 0) {
+    res.status(404).json({ message: "No match found." });
+    return;
+  } else if (
+    matchRow[0].user_id != req.user.id &&
+    !Utils.superAdminCheck(req.user)
+  ) {
+    res
+      .status(401)
+      .json({ message: "User is not authorized to perform action." });
+    return;
+  } else {
+    try {
+      await db.withTransaction (db, async () => {
+        let matchId = req.body[0].match_id;
+        let sql = "DELETE FROM veto WHERE match_id = ?";
+        const delRows = await db.query(sql, [matchId]);
+        if (delRows.affectedRows > 0)
+          res.json({ message: "Vetoes deleted successfully!" });
+        else
+          res.status(412).json({ message: "Vetoes were not found, nothing to delete." });
+        return;
+      });
+    } catch( err ){
+      console.log(err);
+      res.statuss(500).json({message: err});
     }
-    await db.withTransaction (db, async () => {
-      // let userId = req.body[0].user_id;
-      let matchId = req.body[0].match_id;
-      let sql = "DELETE FROM veto WHERE match_id = ?";
-      const delRows = await db.query(sql, [matchId]);
-      if (delRows.affectedRows > 0)
-        res.json("Vetoes deleted successfully!");
-      else
-        res.status(401).json("ERR - Unauthorized to delete OR not found.");
-    });
-  } catch( err ){
-    console.log(err);
-    res.statuss(500).json({message: err});
   }
 });
 
