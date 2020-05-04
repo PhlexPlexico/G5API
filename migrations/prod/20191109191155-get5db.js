@@ -263,9 +263,9 @@ exports.up = function(db, callback) {
       },
       map_number: { type: 'int', notNull: true, length: 11, defaultValue: 0 },
       map_name: { type: 'string', length: 64 },
-      team1_score: { type: 'int', notNull: true, length: 11 },
-      team2_score: { type: 'int', notNull: true, length: 11 },
-      start_time: { type: 'datetime', defaultValue: 'CURRENT_TIMESTAMP', notNull: true },
+      team1_score: { type: 'int', notNull: true, length: 11, defaultValue: 0 },
+      team2_score: { type: 'int', notNull: true, length: 11, defaultValue: 0 },
+      start_time: { type: 'datetime', defaultValue: 'CURRENT_TIMESTAMP', notNull: false },
       end_time: 'datetime',
       demoFile: { type: 'string', length: 256 }
     }),
