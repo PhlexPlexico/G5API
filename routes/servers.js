@@ -133,7 +133,7 @@ router.get("/:server_id", /*Utils.ensureAuthenticated,*/ async (req, res, next) 
  */
 router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    await db.withTransaction(db, async () => {
+    await db.withTransaction(async () => {
       let userId = req.user.id;
       let ipString = req.body[0].ip_string;
       let port = req.body[0].port;
@@ -187,7 +187,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       return;
   } else {
     try {
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         let userId = req.user.id;
         let serverId = req.body[0].server_id;
         let updateStmt = {
@@ -239,7 +239,7 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
       return;
   } else {
     try {
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         let userId = req.user.id;
         let serverId = req.body[0].server_id;
         let sql = "";

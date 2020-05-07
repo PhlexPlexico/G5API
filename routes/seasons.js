@@ -99,7 +99,7 @@ router.get("/:season_id", async (req, res, next) => {
  */
 router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    await db.withTransaction(db, async () => {
+    await db.withTransaction(async () => {
       let insertSet = {
         user_id: req.user.id,
         name: req.body[0].name,
@@ -145,7 +145,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   } else {
     try {
-        await db.withTransaction(db, async () => {
+        await db.withTransaction(async () => {
           let updateStmt = {
             user_id: req.body[0].user_id,
             name: req.body[0].name,
@@ -194,7 +194,7 @@ router.delete("/delete", async (req, res, next) => {
     return;
   } else {
     try {
-      await db.withTransaction(db, async () => {
+      await db.withTransaction( async () => {
         let deleteSql = "DELETE FROM season WHERE id = ?";
         let deleteStmt = {
           id: req.body[0].season_id

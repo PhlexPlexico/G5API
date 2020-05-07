@@ -127,7 +127,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
 
     }
 
-    await db.withTransaction (db, async () => {
+    await db.withTransaction (async () => {
       let updateStmt = {
         winner: teamIdWinner,
         forfeit: forfeit,
@@ -185,7 +185,7 @@ router.post("/:match_id/map/:map_number/start", basicRateLimit, async (req, res,
     await check_api_key(matchValues[0].api_key, req.query.key, matchFinalized);
 
     // Begin transaction
-    await db.withTransaction(db, async () => {
+    await db.withTransaction(async () => {
       if(matchValues[0].start_time === null){
         // Update match stats to have a start time.
         updateStmt = {
@@ -259,7 +259,7 @@ router.post("/:match_id/map/:map_number/update", updateMapRateLimit, async (req,
     // Throw error if wrong key or finished match.
     await check_api_key(matchValues[0].api_key, req.query.key, matchFinalized);
 
-    await db.withTransaction(db, async ()  => {
+    await db.withTransaction(async ()  => {
       // Get or create mapstats.
       sql = "SELECT * FROM map_stats WHERE match_id = ? AND map_number = ?";
       const mapStats = await db.query(sql, [matchID, mapNumber]);
@@ -330,7 +330,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     else
       teamNameString = teamName[0].name;
     // Insert into veto now.
-    await db.withTransaction(db, async () =>{
+    await db.withTransaction(async () =>{
       insertStmt = {
         match_id: matchID,
         team_name: teamNameString,
@@ -384,7 +384,7 @@ router.post("/:match_id/map/:map_number/demo", basicRateLimit, async (req, res, 
       res.status(404).send('Failed to find map stats object.');
 
     // Update map stats with new demo file link.
-    await db.withTransaction(db, async () =>{
+    await db.withTransaction(async () =>{
       updateStmt = {
         demoFile: demoFile,
       };
@@ -442,7 +442,7 @@ router.post("/:match_id/map/:map_number/finish", basicRateLimit, async (req, res
       res.status(404).send('Failed to find map stats object.');
 
     // Update map stats with new demo file link.
-    await db.withTransaction(db, async () =>{
+    await db.withTransaction(async () =>{
       if(winner === "team1"){
         teamIdWinner = matchValues[0].team1_id;
         team1Score = matchValues[0].team1_score + 1;
@@ -576,7 +576,7 @@ router.post("/:match_id/map/:map_number/player/:steam_id/update", playerStatRate
     const playerStatValues = await db.query(sql, [matchID, mapStatValues[0].id, steamId]);
 
     // Update player stats. ACID transaction.
-    await db.withTransaction(db, async () =>{
+    await db.withTransaction(async () =>{
       if(playerTeam === "team1")
         playerTeamId = matchValues[0].team1_id;
       else if (playerTeam === "team2")

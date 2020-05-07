@@ -57,7 +57,7 @@ function returnStrategy (identifier, profile, done) {
           super_admin: isSuperAdmin,
           created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
         }
-        await db.withTransaction(db, async () => {
+        await db.withTransaction(async () => {
           curUser = await db.query(sql, [newUser]);
         });
         sql = "SELECT * FROM user WHERE steam_id = ?";

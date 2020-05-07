@@ -92,7 +92,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   } else {
     try {
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         let insertStmt = {
           match_id: req.body[0].match_id,
           map: req.body[0].map_name,
@@ -139,7 +139,7 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req,res,next) => {
     return;
   } else {
     try {
-      await db.withTransaction (db, async () => {
+      await db.withTransaction (async () => {
         let matchId = req.body[0].match_id;
         let sql = "DELETE FROM veto WHERE match_id = ?";
         const delRows = await db.query(sql, [matchId]);

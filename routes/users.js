@@ -69,7 +69,7 @@ router.get("/:user_id", async (req, res, next) => {
 router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     if (req.user.super_admin === 1 || req.user.admin === 1) {
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         let steamId = req.body[0].steam_id;
         let steamName = req.body[0].name;
         let isAdmin = req.body[0].admin;
@@ -105,7 +105,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
     let isSuperAdmin = req.body[0].super_admin === null ? userToBeUpdated[0].super_admin : req.body[0].super_admin;
     let displayName = req.body[0].name === null ? getCurUsername[0].name : req.body[0].name;
     if (req.user.super_admin === 1 || req.user.admin === 1) {
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         let steamId = req.body[0].steam_id;
         let sql =
           "UPDATE user SET admin = ?, super_admin = ?, name = ? WHERE steam_id = ?";

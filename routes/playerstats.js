@@ -165,7 +165,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       });
       return;
     } else {
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         let insertSet = {
           match_id: req.body[0].match_id,
           map_id: req.body[0].map_id,
@@ -280,7 +280,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       });
       return;
     } else {
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         let updateStmt = {
           name: req.body[0].name,
           kills: req.body[0].kills,
@@ -380,7 +380,7 @@ router.delete("/delete", async (req, res, next) => {
       matchRow[0].mtch_end_time != null
     ) {
       let deleteSql = "DELETE FROM player_stats WHERE match_id = ?";
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         const delRows = await db.query(deleteSql, [req.body[0].match_id]);
         if (delRows.affectedRows > 0) {
           res.json({ message: "Player stats has been deleted successfully." });

@@ -1,7 +1,6 @@
 /*Database driver. This should probably be converted to pools.*/
 const mysql = require('mysql2/promise');
 const config = require('config');
-const util = require( 'util' );
 
 const dbCfg = {
   host: config.get("Database.host"),
@@ -40,7 +39,7 @@ class Database {
   * @param {*} db - The database object.
   * @param {*} callback - The callback function that is operated on, usually a db.query()
   */
-  async withTransaction(db, callback) {
+  async withTransaction(callback) {
     const singleConn = await connection.getConnection();
     await singleConn.beginTransaction();
     try {
@@ -56,7 +55,7 @@ class Database {
 
   async setupAdmins() {
     try {
-      await this.withTransaction(this, async () => {
+      await this.withTransaction(async () => {
         let listOfAdmins = config.get("admins.steam_ids").split(',');
         let listofSuperAdmins = config.get("super_admins.steam_ids").split(',');
         // Get list of admins from database and compare list and add new admins.

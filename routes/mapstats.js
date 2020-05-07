@@ -104,7 +104,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(401).json({ message: "Match is already finished." });
       return;
     } else {
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         let mapStatSet = {
           match_id: req.body[0].match_id,
           map_number: req.body[0].map_number,
@@ -162,7 +162,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(401).json({ message: "Match is already finished." });
       return;
     } else {
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         let mapStatId = req.body[0].map_stats_id;
         let userProfile = req.user.id;
         let matchQuery =
@@ -233,7 +233,7 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(401).json({ message: "Match is already finished." });
       return;
     } else {
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         let userProfile = req.user.id; // Brought in from steam passport.
         let mapStatsId = req.body[0].map_stats_id;
         let deleteSql = "DELETE FROM map_stats WHERE id = ?";

@@ -138,7 +138,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
     "INSERT INTO team (user_id, name, flag, logo, tag, public_team) VALUES ?";
 
   try {
-    await db.withTransaction(db, async () => {
+    await db.withTransaction(async () => {
       const insertTeam = await db.query(sql, [
         newTeam.map(item => [
           item.user_id,
@@ -211,7 +211,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   let sql =
     "UPDATE team SET ? WHERE id=?";
   try {
-    await db.withTransaction(db, async () => {
+    await db.withTransaction(async () => {
       await db.query(sql, [
         updateTeam,
         teamID
@@ -277,7 +277,7 @@ router.delete("/delete/", Utils.ensureAuthenticated, async (req, res, next) => {
         matchCount[0].RECORDS;
     }
     // Otherwise, let's continue with delete. Start with auths.
-    await db.withTransaction(db, async () => {
+    await db.withTransaction(async () => {
       let deleteTeamAuthSql = "DELETE FROM team_auth_names WHERE team_id = ?";
       let deleteTeamsql = "DELETE FROM team WHERE id = ?";
       await db.query(deleteTeamAuthSql, teamID);

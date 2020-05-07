@@ -155,7 +155,7 @@ router.put("/forfeit/", Utils.ensureAuthenticated, async (req, res, next) => {
       sql = "SELECT * FROM map_stats where match_id = ?";
       const map_stat = await db.query(sql, matchID);
       if (map_stat.length > 0) {
-        await db.withTransaction(db, async () => {
+        await db.withTransaction(async () => {
           let eTime = new Date().toISOString().slice(0, 19).replace("T", " ");
           sql =
             "UPDATE map_stats SET end_time = ?, map_name = ? WHERE match_id = ? AND map_number = 0";
@@ -165,12 +165,12 @@ router.put("/forfeit/", Utils.ensureAuthenticated, async (req, res, next) => {
         let allTime = new Date().toISOString().slice(0, 19).replace("T", " ");
         sql =
           "INSERT INTO map_stats (match_id, map_number, map_name, start_time, end_time) VALUES (?,?,?,?)";
-        await db.withTransaction(db, async () => {
+        await db.withTransaction(async () => {
           await db.query(sql, [matchID, 0, "", allTime, allTime]);
         });
       }
       // Now update match values.
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         sql = "UPDATE `match` SET ? WHERE id = ?";
         let updateSet = {
           team1_score: winner === 1 ? 16 : 0,
@@ -306,7 +306,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
         message: "Server is already in use, please select a different server.",
       });
     }
-    await db.withTransaction(db, async () => {
+    await db.withTransaction(async () => {
       let insertSet = {
         user_id: req.user.id,
         server_id: req.body[0].server_id,
@@ -394,7 +394,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(401).json({ message: "Match is already finished." });
       return;
     } else {
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         // Use passport auth here, and then also check user to see if they own or are admin of match.
         let updateStmt = {
           user_id: req.body[0].user_id,
@@ -422,7 +422,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
           await db.query(sql, [req.body[0].match_id, key]);
         }
       });
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         // TODO: IF the match is live, we need to return the server to a normal state.
         // Update the server in_use flag to 0 if we have an end_time or cancelled/forfeit.
         if (
@@ -466,7 +466,7 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   } else {
     try {
-      await db.withTransaction(db, async () => {
+      await db.withTransaction(async () => {
         let matchId = req.body[0].match_id;
         let isMatchCancelled =
           "SELECT cancelled, forfeit, end_time, user_id from `match` WHERE id = ?";
