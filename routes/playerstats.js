@@ -141,7 +141,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       return;
     }
     let currentMatchInfo =
-      "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time, mtch.api_key as mtch_api_key FROM `match` mtch, map_stats mstat WHERE mtch.id=?";
+      "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time, mtch.api_key as mtch_api_key FROM `match` mtch WHERE mtch.id=?";
     const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
     if (matchRow.length === 0) {
       res.status(404).json({ message: "No match found." });
@@ -159,12 +159,10 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       matchRow[0].forfeit == 1 ||
       matchRow[0].mtch_end_time != null
     ) {
-      res
-        .status(401)
-        .json({
-          message:
-            "Match is already finished. Cannot insert into historical matches.",
-        });
+      res.status(401).json({
+        message:
+          "Match is already finished. Cannot insert into historical matches.",
+      });
       return;
     } else {
       await db.withTransaction(db, async () => {
@@ -253,14 +251,13 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       req.body[0].map_id == null ||
       req.body[0].team_id == null ||
       req.body[0].steam_id == null ||
-      req.body[0].name == null ||
       req.body[0].api_key == null
     ) {
       res.status(404).json({ message: "Required Data Not Provided" });
       return;
     }
     let currentMatchInfo =
-      "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time, mtch.api_key as mtch_api_key FROM `match` mtch, map_stats mstat WHERE mtch.id=?";
+      "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time, mtch.api_key as mtch_api_key FROM `match` mtch, map_stats mstat WHERE mtch.id=? AND mstat.match_id=mtch.id";
     const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
     if (matchRow.length === 0) {
       res.status(404).json({ message: "No match found." });
@@ -278,12 +275,9 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       matchRow[0].forfeit == 1 ||
       matchRow[0].mtch_end_time != null
     ) {
-      res
-        .status(401)
-        .json({
-          message:
-            "Match is already finished. Cannot update historical matches.",
-        });
+      res.status(401).json({
+        message: "Match is already finished. Cannot update historical matches.",
+      });
       return;
     } else {
       await db.withTransaction(db, async () => {
@@ -331,9 +325,10 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
           req.body[0].match_id,
           req.body[0].steam_id,
         ]);
-        if (updatedPlayerStats.affectedRows > 0)
+        if (updatedPlayerStats.affectedRows > 0) {
           res.json({ message: "Player Stats were updated successfully!" });
-        else {
+          return;
+        } else {
           sql = "INSERT INTO player_stats SET ?";
           // Update values to include match/map/steam_id.
           updateStmt.steam_id = req.body[0].steam_id;
@@ -356,13 +351,56 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
  * @name router.delete('/delete')
  * @memberof module:routes/playerstats
  * @function
- * @param {int} req.body[0].user_id - The ID of the user deleteing. Can check if admin when implemented.
  * @param {int} req.body[0].match_id - The ID of the match to remove all values pertaining to the match.
  *
  */
 router.delete("/delete", async (req, res, next) => {
   try {
-    throw "NOT IMPLEMENTED";
+    if (req.body[0].match_id == null) {
+      res.status(404).json({ message: "Required Data Not Provided" });
+      return;
+    }
+    let currentMatchInfo =
+      "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time, mtch.api_key as mtch_api_key FROM `match` mtch, map_stats mstat WHERE mtch.id=?";
+    const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
+    if (matchRow.length === 0) {
+      res.status(404).json({ message: "No player stats data found." });
+      return;
+    } else if (
+      matchRow[0].user_id != req.user.id &&
+      !Utils.superAdminCheck(req.user)
+    ) {
+      res
+        .status(401)
+        .json({ message: "User is not authorized to perform action." });
+      return;
+    } else if (
+      matchRow[0].cancelled == 1 ||
+      matchRow[0].forfeit == 1 ||
+      matchRow[0].mtch_end_time != null
+    ) {
+      let deleteSql = "DELETE FROM player_stats WHERE match_id = ?";
+      await db.withTransaction(db, async () => {
+        const delRows = await db.query(deleteSql, [req.body[0].match_id]);
+        if (delRows.affectedRows > 0) {
+          res.json({ message: "Player stats has been deleted successfully." });
+          return;
+        } else {
+          res
+            .status(500)
+            .json({
+              message:
+                "Something went wrong deleting the data. Player stats remain intact.",
+            });
+          return;
+        }
+      });
+    } else {
+      res.status(401).json({
+        message: "Match is currently live. Cannot delete live matches.",
+      });
+      return;
+    }
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }

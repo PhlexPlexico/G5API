@@ -48,9 +48,6 @@ const redisCfg = {
   ttl: config.get("Database.redisTTL"),
   
 };
-// API Setup
-// app.use(bodyParser.json());
-// app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(helmet());
 app.use(session({

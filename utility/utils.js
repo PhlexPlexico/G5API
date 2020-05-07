@@ -116,7 +116,6 @@ class Utils {
   * @memberof module:utils
   * @inner */
   static ensureAuthenticated(req, res, next) {
-    //TODO: Include a check on JWT/API Key for authorization.
     if (req.isAuthenticated()) { return next(); }
     res.redirect('/auth/steam');
   }
