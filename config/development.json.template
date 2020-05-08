@@ -13,7 +13,7 @@
   },
   "Server": {
     "port": 3301,
-    "hostname": "localhost",
+    "hostname": "http://localhost",
     "dbKey": "Database 16 Byte Key.",
     "steamAPIKey": "API Key For Steam Calls.",
     "sharedSecret": "a secure secret for jwt sigining."
