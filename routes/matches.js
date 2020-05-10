@@ -24,6 +24,12 @@ const randString = require("randomstring");
 /** Utility class for various methods used throughout.
  * @const */
 const Utils = require("../utility/utils");
+
+/** RCON Class for use of server integration.
+ * @const */
+const GameServer = require("../utility/serverrcon");
+
+
 /** GET - Route serving to get all matches.
  * @name router.get('/')
  * @function
@@ -295,11 +301,12 @@ router.get("/:match_id/config", async (req, res, next) => {
  * @param {JSON} [req.body[0].spectator_auths] - JSON array of spectator auths.
  * @param {boolean} [req.body[0].private_match] - Boolean value representing whether the match is limited visibility to users on the team or who is on map stats. Defaults to false.
  * @param {boolean} [req.body[0].enforce_teams] - Boolean value representing whether the server will enforce teams on match start. Defaults to true.
+ * @param {boolean} [req.body[0].ignore_server] - Boolean value representing whether to integrate a game server.
  */
 router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if server available.
-    let serverSql = "SELECT in_use FROM game_server WHERE id = ?";
+    let serverSql = "SELECT * FROM game_server WHERE id = ?";
     const serverInUse = await db.query(serverSql, [req.body[0].server_id]);
     if (serverInUse[0].in_use) {
       res.status(401).json({
@@ -338,7 +345,18 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       for (let key in req.body[0].spectator_auths) {
         await db.query(sql, [req.body[0].match_id, key]);
       }
-      //TODO: SERVER INTEGRATION.
+      // TODO: SERVER INTEGRATION.
+      // Logic: get server info
+      // Check optional flag for bypassing server.
+      // Send status command, report back if not available
+      // Check if server is public or belongs to user.
+      // Check if server is in use
+      if(!req.body[0].ignore_server) {
+        const newServer = new GameServer(serverInUse[0].ip_string, serverInUse[0].port, null, serverInUse[0].rcon_password);
+        if(await newServer.isServerAlive() && await newServer.isGet5Available()){
+          // Update server in use here.
+        }
+      }
       sql = "UPDATE game_server SET in_use = 1 WHERE id = ?";
       await db.query(sql, [req.body[0].server_id]);
       res.json({ message: "Match inserted successfully!" });

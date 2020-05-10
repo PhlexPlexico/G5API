@@ -27,7 +27,8 @@ describe('Create a match', () => {
           max_maps: 1,
           title: "Map {MAPNUMBER} of {MAXMAPS}",
           veto_mappool: "de_dust2, de_cache, de_mirage",
-          skip_veto: 0
+          skip_veto: 0,
+          ignore_server: true
         }
       ];
       request
@@ -155,7 +156,8 @@ describe('Create two more matches for further testing.', () => {
         max_maps: 1,
         title: "Map {MAPNUMBER} of {MAXMAPS}",
         veto_mappool: "de_vertigo, de_inferno, de_mirage",
-        skip_veto: 1
+        skip_veto: 1,
+        ignore_server: true
       },
     ];
     request
@@ -214,7 +216,8 @@ describe('Create two more matches for further testing.', () => {
         max_maps: 1,
         title: "Map {MAPNUMBER} of {MAXMAPS}",
         veto_mappool: "de_vertigo, de_inferno, de_mirage",
-        skip_veto: 1
+        skip_veto: 1,
+        ignore_server: true
       },
     ];
     request

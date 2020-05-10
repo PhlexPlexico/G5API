@@ -1,10 +1,11 @@
 const util = require( 'util' );
+const Rcon = require('rcon-srcds');
 
 /**
  * Creates a new server object to run various tasks.
  * @class
  */
-class Rcon {
+class ServerRcon {
     /**
      * Represents a game server.
      * @constructor
@@ -17,13 +18,14 @@ class Rcon {
     this.server = new Rcon({
       host: hostName,
       port: portNumber,
-      timeout: timeOut == null ? 10000 : timeOut,
+      timeout: timeOut == null ? 5000 : timeOut,
     });
     this.password = util.decrypt(rconPassword);
   }
 
   async authenticateServer() {
     try{
+        console.log("ATTEMPTING TO AUTH");
         await this.server.authenticate(this.password);
         return true;
     } catch(err){
@@ -65,7 +67,7 @@ class Rcon {
         await authenticateServer();
         console.log("Authenticated.");
         let get5Status = await this.server.execute('status');
-        return get5Status == "";
+        return get5Status != "";
     } catch (err) {
         console.log("Error on game server: " + err.toString());
         return false;
@@ -79,7 +81,7 @@ class Rcon {
    * @param rconCommandString - The rcon command being passed to the server.
    * @returns response from the server.
    */
-  async isServerAlive(rconCommandString) {
+  async sendRconCommand(rconCommandString) {
     try {
         await authenticateServer();
         console.log("Authenticated.");
