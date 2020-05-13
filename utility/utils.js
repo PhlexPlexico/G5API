@@ -148,6 +148,8 @@ class Utils {
       return false;
   }
 
+  //TODO: Steam Helper Functionality to convert IDs to Steam64.
+
 }
 
 module.exports = Utils;

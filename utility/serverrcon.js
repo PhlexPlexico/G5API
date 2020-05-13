@@ -41,7 +41,7 @@ class ServerRcon {
    */
   async isGet5Available() {
     try {
-        await authenticateServer();
+        await this.authenticateServer();
         console.log("Authenticated.");
         let get5Status = await this.server.execute('get5_web_avaliable');
         let get5JsonStatus = JSON.parse(get5Status);
@@ -64,7 +64,7 @@ class ServerRcon {
    */
   async isServerAlive() {
     try {
-        await authenticateServer();
+        await this.authenticateServer();
         console.log("Authenticated.");
         let get5Status = await this.server.execute('status');
         return get5Status != "";
@@ -83,7 +83,7 @@ class ServerRcon {
    */
   async sendRconCommand(rconCommandString) {
     try {
-        await authenticateServer();
+        await this.authenticateServer();
         console.log("Authenticated.");
         let returnValue = await this.server.execute(rconCommandString);
         return returnValue;
@@ -92,6 +92,37 @@ class ServerRcon {
         throw err;
     }
   }
+
+  /**
+   * Sets the given URL and API key for a match
+   * @function
+   * @param get5URLString - The string of the host where the Get5 API is stored.
+   * @param get5APIKeyString - The string API key for the game server to authenticate.
+   * @returns True if we set everything, false on failure, throw error if there is a problem.
+   */
+  async prepareGet5Match(get5URLString, get5APIKeyString) {
+    try {
+      await this.authenticateServer();
+      let loadMatchResponse = await this.server.execute("get5_loadmatch_url " + get5URLString);
+      if(loadMatchResponse)
+        return false;
+      loadMatchResponse = await this.server.execute("get5_web_api_key " + get5APIKeyString);
+      if(loadMatchResponse)
+        return false;
+      // Swap map to default dust2, ensures our cvars stick for the match.
+      await this.server.execute("map de_dust2");
+      return true;
+    } catch(err) {
+      console.log("Error on game server: " + err.toString());
+      throw err;
+    }
+  }
+
+  /** Function that will call a match to an end, if it has not been completed normally.
+   * @function
+   * @returns True if we succeed, false otherwise. 
+   */
+
 }
 
 module.exports = Rcon;

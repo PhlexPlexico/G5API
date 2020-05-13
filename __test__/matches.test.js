@@ -165,10 +165,11 @@ describe('Create two more matches for further testing.', () => {
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(newMatchData)
-      .expect(200)
       .expect((result) => {
+        console.log(result.body);
         expect(result.body.message).toMatch(/successfully/);
       })
+      .expect(200)
       .end(done);
   });
   it('Should forfeit the match.', async done => {
