@@ -285,7 +285,7 @@ router.get("/:match_id/config", async (req, res, next) => {
  * @memberof module:routes/matches
  * @function
  * @param {int} req.user.id - The ID of the user creating the match.
- * @param {int} req.body[0].server_id - The server ID the match is being designated to. NULL if to be provided later.
+ * @param {int} [req.body[0].server_id] - The server ID the match is being designated to. NULL if to be provided later.
  * @param {int} req.body[0].team1_id - The ID of team one.
  * @param {int} req.body[0].team2_id - The ID of team two.
  * @param {int} [req.body[0].season_id] - The ID of the season. NULL if no season.
@@ -304,20 +304,23 @@ router.get("/:match_id/config", async (req, res, next) => {
  */
 router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    // Check if server available.
+    // Check if server available, if we are given a server.
     let serverSql = "SELECT * FROM game_server WHERE id = ?";
-    const serverInUse = await db.query(serverSql, [req.body[0].server_id]);
-    if (serverInUse[0].in_use) {
-      res.status(401).json({
-        message: "Server is already in use, please select a different server.",
-      });
-    } else if (
-      serverInUse[0].user_id != req.user.id &&
-      !Utils.superAdminCheck(req.user) &&
-      serverInUse[0].public_server == 0
-    ) {
-      res.status(401).json({ message: "User does not own this server." });
-      return;
+    if (req.body[0].server_id != null) {
+      const serverInUse = await db.query(serverSql, [req.body[0].server_id]);
+      if (serverInUse[0].in_use) {
+        res.status(401).json({
+          message:
+            "Server is already in use, please select a different server.",
+        });
+      } else if (
+        serverInUse[0].user_id != req.user.id &&
+        !Utils.superAdminCheck(req.user) &&
+        serverInUse[0].public_server == 0
+      ) {
+        res.status(401).json({ message: "User does not own this server." });
+        return;
+      }
     }
     let apiKey = randString.generate({
       length: 24,
@@ -347,6 +350,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
         winner: null,
       };
       let sql = "INSERT INTO `match` SET ?";
+      insertSet = await db.buildUpdateStatement(insertSet);
       await db.query(sql, [insertSet]);
       sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
       for (let key in req.body[0].spectator_auths) {
@@ -364,18 +368,18 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
           (await newServer.isGet5Available())
         ) {
           if (!(await newServer.prepareGet5Match(req.get("Host"), apiKey))) {
-            res
-              .status(500)
-              .json({
-                message:
-                  "Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.",
-              });
+            res.status(500).json({
+              message:
+                "Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.",
+            });
             return;
           }
         }
       }
-      sql = "UPDATE game_server SET in_use = 1 WHERE id = ?";
-      await db.query(sql, [req.body[0].server_id]);
+      if (req.body[0].server_id) {
+        sql = "UPDATE game_server SET in_use = 1 WHERE id = ?";
+        await db.query(sql, [req.body[0].server_id]);
+      }
       res.json({ message: "Match inserted successfully!" });
     });
   } catch (err) {
@@ -389,7 +393,8 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  * @function
  * @param {int} req.user.id - The ID of the user updating the match.
  * @param {int} req.body[0].match_id - The ID of the match to be updated.
- * @param {int} req.body[0].user_id - The optional user id to pass the match off to.
+ * @param {int} [req.body[0].user_id] - The optional user id to pass the match off to.
+ * @param {int} [req.body[0].server_id] - The optional server id to assign to a match.
  * @param {DateTime} [req.body[0].start_time]- The end time of the match.
  * @param {DateTime} [req.body[0].end_time]- The end time of the match.
  * @param {int} [req.body[0].winner] - The ID of the team who won the series.
@@ -404,6 +409,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
+    let diffServer = false;
     if (req.body[0].match_id == null) {
       res.status(404).json({ message: "Match ID Not Provided" });
       return;
@@ -430,8 +436,24 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(401).json({ message: "Match is already finished." });
       return;
     } else {
+      if (req.body[0].server_id != null) {
+        // Check if server is owned, public, or in use by another match.
+        let serverCheckSql =
+          "SELECT in_use, user_id, public_server FROM game_server WHERE id=?";
+        const returnedServer = await db.query(serverCheckSql, [
+          req.body[0].server_id,
+        ]);
+        if (
+          returnedServer[0].user_id != req.user.id &&
+          !Utils.superAdminCheck(req.user) &&
+          returnedServer[0].public_server == 0
+        ) {
+          res.status(401).json({ message: "User does not own this server." });
+          return;
+        }
+        if (req.body[0].server_id == matchRow[0].server_id) diffServer = true;
+      }
       await db.withTransaction(async () => {
-        // Use passport auth here, and then also check user to see if they own or are admin of match.
         let updateStmt = {
           user_id: req.body[0].user_id,
           start_time: req.body[0].start_time,
@@ -444,6 +466,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
           team2_score: req.body[0].team2_score,
           private_match: req.body[0].private_match,
           season_id: req.body[0].season_id,
+          server_id: req.body[0].server_id,
         };
         // Remove any values that may not be updated.
         updateStmt = await db.buildUpdateStatement(updateStmt);
@@ -468,12 +491,18 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
           req.body[0].cancelled == 1 ||
           req.body[0].end_time != null
         ) {
-          if (!req.body[0].ignore_server && req.body[0].spectator_auths) {
-            //TODO: Implement Steam Functionality Helpers to allow us to convert steam IDs.
-            // This functionality will allow us to add spectators in a mass update.
-          }
           sql = "UPDATE game_server SET in_use=0 WHERE id=?";
           await db.query(sql, [matchRow[0].server_id]);
+        } else {
+          if (!req.body[0].ignore_server) {
+            if(diffServer){
+              sql = "UPDATE game_server SET in_use=0 WHERE id=?";
+              await db.query(sql, [matchRow[0].server_id]);
+              sql = "UPDATE game_server SET in_use=1 WHERE id=?";
+              await db.query(sql, [req.body[0].server_id]);
+            }
+            //TODO: Implement Steam Functionality Helpers to allow us to convert steam IDs. Use for spec auths and team auths.
+          }
         }
       });
       res.json({ message: "Match updated successfully!" });
@@ -560,7 +589,6 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
     }
   }
 });
-
 
 // Helper functions
 async function build_team_dict(team, teamNumber, matchData) {

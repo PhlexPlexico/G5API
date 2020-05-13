@@ -166,7 +166,6 @@ describe('Create two more matches for further testing.', () => {
       .set("Accept", "application/json")
       .send(newMatchData)
       .expect((result) => {
-        console.log(result.body);
         expect(result.body.message).toMatch(/successfully/);
       })
       .expect(200)
