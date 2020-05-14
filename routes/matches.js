@@ -654,7 +654,7 @@ router.get(
         await db.withTransaction(async () => { 
             await db.query(mapStatSql, [newStatStmt]);
             await db.query(matchSql, [matchUpdateStmt]);
-            await db.query(serverUpdateSql, [matchRow[0].server_id);
+            await db.query(serverUpdateSql, [matchRow[0].server_id]);
         });
         let getServerSQL = "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
         const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
