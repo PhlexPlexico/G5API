@@ -122,7 +122,18 @@ class ServerRcon {
    * @function
    * @returns True if we succeed, false otherwise. 
    */
-
+  async endGet5Match() {
+    try {
+      await this.authenticateServer();
+      let loadMatchResponse = await this.server.execute("get5_end_match");
+      if(loadMatchResponse)
+        return false;
+      return true;
+    } catch(err) {
+      console.log("Error on game server: " + err.toString());
+      return false;
+    }
+  }
 }
 
 module.exports = Rcon;
