@@ -1,19 +1,19 @@
-const util = require( 'util' );
-const Rcon = require('rcon-srcds');
+const util = require("./utils");
+const Rcon = require("rcon-srcds");
 
 /**
  * Creates a new server object to run various tasks.
  * @class
  */
 class ServerRcon {
-    /**
-     * Represents a game server.
-     * @constructor
-     * @param {string} hostName - IP String or host of server.
-     * @param {int} portNumber - Integer port number of the server
-     * @param {int} [timeOut] - Timeout you wish to have on server
-     * @param {string} rconPassword - Rcon password of the server, encrypted.
-     */
+  /**
+   * Represents a game server.
+   * @constructor
+   * @param {string} hostName - IP String or host of server.
+   * @param {int} portNumber - Integer port number of the server.
+   * @param {int} [timeOut] - Timeout you wish to have on server in milliseconds.
+   * @param {string} rconPassword - Rcon password of the server, encrypted.
+   */
   constructor(hostName, portNumber, timeOut, rconPassword) {
     this.server = new Rcon({
       host: hostName,
@@ -24,15 +24,16 @@ class ServerRcon {
   }
 
   async authenticateServer() {
-    try{
-        console.log("ATTEMPTING TO AUTH");
-        await this.server.authenticate(this.password);
-        return true;
-    } catch(err){
-        console.log("Unable to authenticate to server.\nError: " + err.toString());
-        return false;
+    try {
+      console.log("ATTEMPTING TO AUTH");
+      await this.server.authenticate(this.password);
+      return true;
+    } catch (err) {
+      console.log(
+        "Unable to authenticate to server.\nError: " + err.toString()
+      );
+      return false;
     }
-    
   }
 
   /**
@@ -41,20 +42,20 @@ class ServerRcon {
    */
   async isGet5Available() {
     try {
-        await this.authenticateServer();
-        console.log("Authenticated.");
-        let get5Status = await this.server.execute('get5_web_avaliable');
-        let get5JsonStatus = JSON.parse(get5Status);
-        if(get5Status.includes("Unknown command")){
-            return "Either get5 or get5_apistats plugin missing.";
-        } else if (get5JsonStatus.game_state != 0){
-            return "Server already has a get5 match setup."
-        } else {
-            return get5JsonStatus;
-        }
+      await this.authenticateServer();
+      console.log("Authenticated.");
+      let get5Status = await this.server.execute("get5_web_avaliable");
+      let get5JsonStatus = JSON.parse(get5Status);
+      if (get5Status.includes("Unknown command")) {
+        return "Either get5 or get5_apistats plugin missing.";
+      } else if (get5JsonStatus.game_state != 0) {
+        return "Server already has a get5 match setup.";
+      } else {
+        return get5JsonStatus;
+      }
     } catch (err) {
-        console.log("Error on game server: " + err.toString());
-        throw err;
+      console.log("Error on game server: " + err.toString());
+      throw err;
     }
   }
 
@@ -64,18 +65,18 @@ class ServerRcon {
    */
   async isServerAlive() {
     try {
-        await this.authenticateServer();
-        console.log("Authenticated.");
-        let get5Status = await this.server.execute('status');
-        return get5Status != "";
+      await this.authenticateServer();
+      console.log("Authenticated.");
+      let get5Status = await this.server.execute("status");
+      return get5Status != "";
     } catch (err) {
-        console.log("Error on game server: " + err.toString());
-        return false;
+      console.log("Error on game server: " + err.toString());
+      return false;
     }
   }
 
   /**
-   * Sends out an rcon command that is passed in. Returns results to be 
+   * Sends out an rcon command that is passed in. Returns results to be
    * parsed.
    * @function
    * @param rconCommandString - The rcon command being passed to the server.
@@ -83,13 +84,13 @@ class ServerRcon {
    */
   async sendRconCommand(rconCommandString) {
     try {
-        await this.authenticateServer();
-        console.log("Authenticated.");
-        let returnValue = await this.server.execute(rconCommandString);
-        return returnValue;
+      await this.authenticateServer();
+      console.log("Authenticated.");
+      let returnValue = await this.server.execute(rconCommandString);
+      return returnValue;
     } catch (err) {
-        console.log("Error on game server: " + err.toString());
-        throw err;
+      console.log("Error on game server: " + err.toString());
+      throw err;
     }
   }
 
@@ -103,16 +104,18 @@ class ServerRcon {
   async prepareGet5Match(get5URLString, get5APIKeyString) {
     try {
       await this.authenticateServer();
-      let loadMatchResponse = await this.server.execute("get5_loadmatch_url " + get5URLString);
-      if(loadMatchResponse)
-        return false;
-      loadMatchResponse = await this.server.execute("get5_web_api_key " + get5APIKeyString);
-      if(loadMatchResponse)
-        return false;
+      let loadMatchResponse = await this.server.execute(
+        "get5_loadmatch_url " + get5URLString
+      );
+      if (loadMatchResponse) return false;
+      loadMatchResponse = await this.server.execute(
+        "get5_web_api_key " + get5APIKeyString
+      );
+      if (loadMatchResponse) return false;
       // Swap map to default dust2, ensures our cvars stick for the match.
       await this.server.execute("map de_dust2");
       return true;
-    } catch(err) {
+    } catch (err) {
       console.log("Error on game server: " + err.toString());
       throw err;
     }
@@ -120,20 +123,19 @@ class ServerRcon {
 
   /** Function that will call a match to an end, if it has not been completed normally.
    * @function
-   * @returns True if we succeed, false otherwise. 
+   * @returns True if we succeed, false otherwise.
    */
   async endGet5Match() {
     try {
       await this.authenticateServer();
       let loadMatchResponse = await this.server.execute("get5_end_match");
-      if(loadMatchResponse)
-        return false;
+      if (loadMatchResponse) return false;
       return true;
-    } catch(err) {
+    } catch (err) {
       console.log("Error on game server: " + err.toString());
       return false;
     }
   }
 }
 
-module.exports = Rcon;
+module.exports = ServerRcon;

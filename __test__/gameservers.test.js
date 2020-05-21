@@ -34,10 +34,10 @@ describe("Setup New Server", () => {
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(newServerData)
-      .expect(200)
       .expect((result) => {
         expect(result.body.message).toMatch(/successfully/);
       })
+      .expect(200)
       .end(done);
   });
   it("Should setup a new server with the given values.", async (done) => {
@@ -144,7 +144,6 @@ describe("Delete Server", () => {
       .end(done);
   });
 });
-
 
 describe("Being a bad actor", () => {
   it("Request the information of the second server, now no longer owned by us.", async (done) => {
