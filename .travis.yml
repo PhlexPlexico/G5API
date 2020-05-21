@@ -18,6 +18,7 @@ install:
   - sed -i -e 's/\"get5_user"/\"get5\"/g' config/development.json
   - sed -i -e "s/\"Database 16 Byte Key.\"/\"$DBKEY\"/g" config/development.json
   - sed -i -e "s/\"super_admins,go,here\"/\"$STEAMID\"/g" config/development.json
+  - sed -i -e "s/\"API Key For Steam Calls.\"/\"$STEAMAPI\"/g" config/development.json
 
 script:
   - yarn test
