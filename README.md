@@ -8,14 +8,14 @@ G5API is going to be a replacement for the get5-webpanel. _Currently_ this is th
 Currently, very basic CRUD operations, as well as legacy calls that the get5-web api used, as referenced [here](https://github.com/PhlexPlexico/get5-web/blob/development/get5/api.py). Right now, this is a very early build to try my hand at using Express as a middleware, and try some JavaScript technologies so that others may create their own front-end applications, with all the difficult back-end stuff being completed. 
 
 
-This API should be complete enough to do basic operations to the game. **Server operations are currently not in place** and these will exist in different routes.
+This API should be complete enough to do basic operations to the game. **Direct server operations are currently not in place** and these will exist in different routes.
 
-For the get5_api plugin, there are legacy routes currently put into place located in `/legacy/{}`
+For the get5_api plugin, there are legacy routes currently put into place located in the `./routes/legacy/` and still point to `/match/` on this app. So this could techinically be used as a drop-in replacement for recording stats.
 
 Server interaction will most likely take place in `/match/:match_id/server/{rcon|start|etc}`. These command should probably be logged in the database for audit purposes as well.
 
 ## What does it NOT do?
-Basically every "advanced" feature the current web panel has, from editing matches while in game (should be done with a front-end and calls to steam), to displaying any of the data. This is simply a back-end to get myself used to JavaScript and Node. Maybe eventually I will work on a front-end in React or Vue, but it depends on how long I stay motivated with this.
+Basically every "advanced" feature the current web panel has, from editing matches while in game, to displaying any of the data. This is simply a back-end to get myself used to JavaScript and Node. Maybe eventually I will work on a front-end in React or Vue, but it depends on how long I stay motivated with this. Right now you should be able to log into Steam, and query the data that is currently existing in your database, as well as make any modifications via POST/PUT/DELETE commands.
 
 ## Why?
 [Get5-webpanel](https://github.com/phlexplexico/get5-webpanel) is a now out-dated webpanel, with python2.7 being officially EOL. Being built all on Flask, with ORM (SQLAlchemy), and Jinja2, its tech spans more than a few years old. While it works really well for now, it is becoming increasingly harder to deploy to more modern hardware/software (such as Ubuntu 19) to ensure easy setup.

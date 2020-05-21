@@ -153,7 +153,8 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       sql =
         "INSERT INTO team_auth_names (team_id, auth, name) VALUES (?, ?, ?)";
       for (let key in auths) {
-        await db.query(sql, [teamID, key, auths[key]]);
+        let usersSteamId = await Utils.getSteamPID(key);
+        await db.query(sql, [teamID, usersSteamId, auths[key]]);
       }
       res.json({ message: "Team successfully inserted with ID " + teamID });
     });
@@ -219,11 +220,12 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       sql =
         "UPDATE team_auth_names SET name = ? WHERE auth = ? AND team_id = ?";
       for (let key in teamAuths) {
-        let updateTeamAuth = await db.query(sql, [teamAuths[key], key, teamID]);
+        let usersSteamId = await Utils.getSteamPID(key);
+        let updateTeamAuth = await db.query(sql, [teamAuths[key], usersSteamId, teamID]);
         if(updateTeamAuth.affectedRows < 1){
           // Insert a new auth if it doesn't exist. Technically "updating a team".
           let insertSql = "INSERT INTO team_auth_names (team_id, auth, name) VALUES (?, ?, ?)";
-          await db.query(insertSql, [teamID, key, teamAuths[key]]);
+          await db.query(insertSql, [teamID, usersSteamId, teamAuths[key]]);
         }
       }
       res.json({ message: "Team successfully updated" });
@@ -234,7 +236,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
 });
 
 /** DELETE - Route serving to delete a team from the database. The team will only be deleted if their foreign key references have been removed, as we want to keep statistics of all teams over time.
- * @name router.delete('/delete/')
+ * @name router.delete('/delete')
  * @function
  * @memberof module:routes/teams
  * @param {int} req.body[0].team_id - The ID of the team being updated.

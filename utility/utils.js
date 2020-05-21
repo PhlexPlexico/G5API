@@ -183,10 +183,8 @@ class Utils {
   static async getSteamPID(authString) {
     // Remove any https tags, as they aren't needed.
     authString = authString.replace(new RegExp("^(http|https)://", "i"), "");
-    console.log(authString);
     if (authString.includes("steamcommunity.com/id/")) {
       let steamID = await SteamAPI.resolve(authString);
-      //console.log(steamID);
       return steamID;
     } else if (authString.includes("steamcommunity.com/profiles/")) {
       return authString.split("/")[2];
@@ -198,7 +196,7 @@ class Utils {
       return this.convertToSteam64(authString);
     } else if (authString.startsWith("U:1:")) {
       return this.convertToSteam64("[" + authString + "]");
-    }  else if (authString.startsWith("7656119")) {
+    } else if (authString.startsWith("7656119")) {
       return authString;
     } else {
       let steamID = await SteamAPI.resolve(
@@ -206,6 +204,18 @@ class Utils {
       );
       return steamID;
     }
+  }
+  /** Retrieves a profile name from steam.
+   * @function
+   * @memberof module:utils
+   * @inner
+   * @name getSteamName
+   * @param {String} auth64 - String value of a steam 64 ID.
+   * @returns A username from a given Steam64 ID.
+   */
+  static async getSteamName(auth64) {
+    let summaryInfo = await SteamAPI.getUserSummary(auth64);
+    return summaryInfo.nickname;
   }
 }
 
