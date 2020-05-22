@@ -137,10 +137,10 @@ describe("Delete Server", () => {
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(deleteData)
-      .expect(200)
       .expect((result) => {
         expect(result.body.message).toMatch(/successfully/);
       })
+      .expect(200)
       .end(done);
   });
 });

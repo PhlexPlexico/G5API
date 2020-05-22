@@ -14,7 +14,7 @@ const router = express.Router();
  * @const
  */
 
-const db = require("../db");
+const db = require("../../db");
 
 /** Random string generator for API keys.
  * @const
@@ -23,11 +23,11 @@ const randString = require("randomstring");
 
 /** Utility class for various methods used throughout.
  * @const */
-const Utils = require("../utility/utils");
+const Utils = require("../../utility/utils");
 
 /** RCON Class for use of server integration.
  * @const */
-const GameServer = require("../utility/serverrcon");
+const GameServer = require("../../utility/serverrcon");
 
 /** GET - Route serving to get all matches.
  * @name router.get('/')
@@ -628,40 +628,49 @@ router.get(
     } else {
       let teamIdWinner =
         req.params.winner_id == 1 ? matchRow[0].team1_id : matchRow[0].team2_id;
-        let mapStatSql = "SELECT * FROM map_stats WHERE match_id=? AND map_number=0";
-        const mapStat = await db.query(mapStatSql, [req.params.match_id]);
-        let newStatStmt = {
-            start_time: new Date().toISOString().slice(0, 19).replace('T', ' '),
-            end_time: new Date().toISOString().slice(0, 19).replace('T', ' '),
-            winner: teamIdWinner,
-            team1_score: req.params.winner_id == 1 ? 16 : 0,
-            team2_score: req.params.winner_id == 2 ? 16 : 0
-          }
-        let matchUpdateStmt = {
-          team1_score: req.params.winner_id == 1 ? 1 : 0,
-          team2_score: req.params.winner_id == 2 ? 1 : 0,
-          start_time: new Date().toISOString().slice(0, 19).replace('T', ' '),
-          end_time: new Date().toISOString().slice(0, 19).replace('T', ' '),
-          winner: teamIdWinner,
-        }
-        if (mapStat.length == 0){
-          mapStatSql = "INSERT map_stats SET ?";
-        } else {
-          mapStatSql = "UPDATE map_stats SET ? WHERE match_id=? AND map_number=0";
-        }
-        let matchSql = "UPDATE `match` SET ? WHERE id=?";
-        let serverUpdateSql = "UPDATE game_server SET in_use=0 WHERE id=?";
-        await db.withTransaction(async () => { 
-            await db.query(mapStatSql, [newStatStmt]);
-            await db.query(matchSql, [matchUpdateStmt]);
-            await db.query(serverUpdateSql, [matchRow[0].server_id]);
-        });
-        let getServerSQL = "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
-        const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
-        let serverUpdate = new GameServer(serverRow[0].ip_string, serverRow[0].port, null, serverRow[0].rcon_password);
-        if(serverUpdate.endGet5Match()){
-          console.log("Error attempting to stop match on game server side. Will continue.");
-        }
+      let mapStatSql =
+        "SELECT * FROM map_stats WHERE match_id=? AND map_number=0";
+      const mapStat = await db.query(mapStatSql, [req.params.match_id]);
+      let newStatStmt = {
+        start_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+        end_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+        winner: teamIdWinner,
+        team1_score: req.params.winner_id == 1 ? 16 : 0,
+        team2_score: req.params.winner_id == 2 ? 16 : 0,
+      };
+      let matchUpdateStmt = {
+        team1_score: req.params.winner_id == 1 ? 1 : 0,
+        team2_score: req.params.winner_id == 2 ? 1 : 0,
+        start_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+        end_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+        winner: teamIdWinner,
+      };
+      if (mapStat.length == 0) {
+        mapStatSql = "INSERT map_stats SET ?";
+      } else {
+        mapStatSql = "UPDATE map_stats SET ? WHERE match_id=? AND map_number=0";
+      }
+      let matchSql = "UPDATE `match` SET ? WHERE id=?";
+      let serverUpdateSql = "UPDATE game_server SET in_use=0 WHERE id=?";
+      await db.withTransaction(async () => {
+        await db.query(mapStatSql, [newStatStmt]);
+        await db.query(matchSql, [matchUpdateStmt]);
+        await db.query(serverUpdateSql, [matchRow[0].server_id]);
+      });
+      let getServerSQL =
+        "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
+      const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
+      let serverUpdate = new GameServer(
+        serverRow[0].ip_string,
+        serverRow[0].port,
+        null,
+        serverRow[0].rcon_password
+      );
+      if (serverUpdate.endGet5Match()) {
+        console.log(
+          "Error attempting to stop match on game server side. Will continue."
+        );
+      }
     }
   }
 );

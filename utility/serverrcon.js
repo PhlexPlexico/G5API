@@ -25,7 +25,9 @@ class ServerRcon {
 
   async authenticateServer() {
     try {
-      console.log("ATTEMPTING TO AUTH");
+      if(process.env.NODE_ENV === "test") {
+        return false;
+      }
       await this.server.authenticate(this.password);
       return true;
     } catch (err) {
@@ -42,8 +44,10 @@ class ServerRcon {
    */
   async isGet5Available() {
     try {
+      if(process.env.NODE_ENV === "test") {
+        return false;
+      }
       await this.authenticateServer();
-      console.log("Authenticated.");
       let get5Status = await this.server.execute("get5_web_avaliable");
       let get5JsonStatus = JSON.parse(get5Status);
       if (get5Status.includes("Unknown command")) {
@@ -65,8 +69,10 @@ class ServerRcon {
    */
   async isServerAlive() {
     try {
+      if(process.env.NODE_ENV === "test") {
+        return false;
+      }
       await this.authenticateServer();
-      console.log("Authenticated.");
       let get5Status = await this.server.execute("status");
       return get5Status != "";
     } catch (err) {
@@ -84,8 +90,10 @@ class ServerRcon {
    */
   async sendRconCommand(rconCommandString) {
     try {
+      if(process.env.NODE_ENV === "test") {
+        return false;
+      }
       await this.authenticateServer();
-      console.log("Authenticated.");
       let returnValue = await this.server.execute(rconCommandString);
       return returnValue;
     } catch (err) {
@@ -103,6 +111,9 @@ class ServerRcon {
    */
   async prepareGet5Match(get5URLString, get5APIKeyString) {
     try {
+      if(process.env.NODE_ENV === "test") {
+        return false;
+      }
       await this.authenticateServer();
       let loadMatchResponse = await this.server.execute(
         "get5_loadmatch_url " + get5URLString
@@ -127,6 +138,9 @@ class ServerRcon {
    */
   async endGet5Match() {
     try {
+      if(process.env.NODE_ENV === "test") {
+        return false;
+      }
       await this.authenticateServer();
       let loadMatchResponse = await this.server.execute("get5_end_match");
       if (loadMatchResponse) return false;

@@ -4,7 +4,7 @@
     "port": 3306,
     "username": "get5_user",
     "password": "",
-    "db": "get5dev",
+    "db": "get5test",
     "connectionLimit": 15,
     "redisHost": "localhost",
     "redisPort": 6379,
@@ -18,11 +18,11 @@
     "steamAPIKey": "API Key For Steam Calls.",
     "sharedSecret": "a secure secret for jwt sigining."
   },
-  "dev": {
+  "test": {
     "driver": "mysql",
     "user": "get5_user",
     "password": "",
-    "database": "get5dev",
+    "database": "get5test",
     "multipleStatements": true,
     "flags": { "ENV": "MYSQL_FLAGS" }
   },

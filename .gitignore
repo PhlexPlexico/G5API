@@ -1,6 +1,7 @@
 node_modules/
 config/production.json*
 config/development.json*
+config/test.json
 docs/
 coverage/
 # Logs

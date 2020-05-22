@@ -1,9 +1,7 @@
 const createError = require('http-errors');
 const express = require('express');
-const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
-const bodyParser = require('body-parser');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -12,7 +10,8 @@ const morgan = require('morgan');
 const indexRouter = require('./routes/index');
 const leaderboardRouter = require('./routes/leaderboard');
 const legacyAPICalls = require('./routes/legacy/api');
-const matchesRouter = require('./routes/matches');
+const matchesRouter = require('./routes/matches/matches');
+const matchServerRouter = require('./routes/matches/matchserver');
 const mapstatsRouter = require('./routes/mapstats');
 const playerstatsRouter = require('./routes/playerstats');
 const seasonsRouter = require('./routes/seasons');
@@ -29,7 +28,7 @@ const config = require('config');
 const session = require('express-session');
 const redis = require('redis');
 // Messy but avoids any open file handles.
-const redisClient = process.env.NODE_ENV !== "development" ? redis.createClient({password: config.get("Database.redisPass")}) : require('redis-mock').createClient();
+const redisClient = process.env.NODE_ENV !== "test" ? redis.createClient({password: config.get("Database.redisPass")}) : require('redis-mock').createClient();
 const redisStore = require('connect-redis')(session);
 const app = express();
 

@@ -92,7 +92,7 @@ Steam OAuth will be mocked in order to check if a user is "logged in", and creat
 
 ```yarn test```
 
-Will *require* `development.json` to exist in projects `config` folder, as well as a `super_admin` value that is identical to that in the `mockProfile.js` in the `utility` folder. This ID will get removed from the devleopment config every `yarn test` call, as it requires super admin to test a few API calls.
+Will *require* `test.json` to exist in projects `config` folder, as well as a `super_admin` value that is identical to that in the `mockProfile.js` in the `utility` folder. This ID will get removed from the devleopment config every `yarn test` call, as it requires super admin to test a few API calls.
 
 ## Contribution
 Sure! If you have a knack for APIs and a penchant for JavaScript, I could always use help! Create a fork of this application, make your changes, and submit a PR. I will be using the [Issues](https://github.com/g5api/issues) page to track what calls still need to be completed. This project won't be finished anytime soon, as I would like to make sure there is a proper handle on authentication with the API, as well as proper security implemented to prevent any unwanted uses with the application. 

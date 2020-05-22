@@ -19,7 +19,7 @@ passport.deserializeUser((obj, done) => {
 function strategyForEnvironment() {
   let strategy;
   switch(process.env.NODE_ENV) {
-    case 'development':
+    case 'test':
       strategy = new MockStrategy('steam', returnStrategy);
       break;
     default:

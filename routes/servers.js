@@ -207,7 +207,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
         req.body[0].ip_string,
         req.body[0].port,
         2500,
-        req.body[0].rcon_password
+        rconPass
       );
       let serverUp = await ourServer.isServerAlive();
       if (!serverUp) {
@@ -278,11 +278,14 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
         let sql = "UPDATE game_server SET ? WHERE id = ?";
         updatedServer = await db.query(sql, [updateStmt, serverId]);
         if (updatedServer.affectedRows > 0) {
+          // Get all server info
+          sql = "SELECT ip_string, port, rcon_password FROM game_server WHERE id = ?";
+          const serveInfo = await db.query(sql, [serverId]);
           let ourServer = new GameServer(
-            req.body[0].ip_string,
-            req.body[0].port,
+            req.body[0].ip_string == null ? serveInfo[0].ip_string : req.body[0].ip_string,
+            req.body[0].port == null ? serveInfo[0].port : req.body[0].port,
             2500,
-            req.body[0].rcon_password
+            req.body[0].rcon_password == null ? serveInfo[0].rcon_password : Utils.encrypt(req.body[0].rcon_password)
           );
           let serverUp = await ourServer.isServerAlive();
           if (!serverUp) {
@@ -339,8 +342,9 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
         }
         if (delRows.affectedRows > 0)
           res.json({ message: "Game server deleted successfully!" });
-        else
+        else {
           res.status(500).json({ message: "Error! Unable to delete record. " });
+        }
       });
     } catch (err) {
       res.status(500).json({ message: err.toString() });

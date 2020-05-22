@@ -96,7 +96,7 @@ describe('Create Team', () => {
             public_team: 1,
             auth_name: {
                 "76561198025644200": "Not Phlex",
-                "12345678901011121": "Actually Phlex"
+                "12345": "Actually Phlex"
             }
         }];
         request

@@ -14,11 +14,11 @@ before_install:
 
 install:
   - yarn install
-  - cp config/development.json.template config/development.json
-  - sed -i -e 's/\"get5_user"/\"get5\"/g' config/development.json
-  - sed -i -e "s/\"Database 16 Byte Key.\"/\"$DBKEY\"/g" config/development.json
-  - sed -i -e "s/\"super_admins,go,here\"/\"$STEAMID\"/g" config/development.json
-  - sed -i -e "s/\"API Key For Steam Calls.\"/\"$STEAMAPI\"/g" config/development.json
+  - cp config/test.json.template config/test.json
+  - sed -i -e 's/\"get5_user"/\"get5\"/g' config/test.json
+  - sed -i -e "s/\"Database 16 Byte Key.\"/\"$DBKEY\"/g" config/test.json
+  - sed -i -e "s/\"super_admins,go,here\"/\"$STEAMID\"/g" config/test.json
+  - sed -i -e "s/\"API Key For Steam Calls.\"/\"$STEAMAPI\"/g" config/test.json
 
 script:
   - yarn test
