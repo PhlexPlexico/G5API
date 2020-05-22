@@ -32,7 +32,7 @@ class ServerRcon {
       return true;
     } catch (err) {
       console.log(
-        "Unable to authenticate to server.\nError: " + err.toString()
+        "Unable to authenticate to server. " + err.toString()
       );
       return false;
     }
@@ -47,9 +47,10 @@ class ServerRcon {
       if(process.env.NODE_ENV === "test") {
         return false;
       }
-      await this.authenticateServer();
+      if(!this.server.authenticated)
+        await this.authenticateServer();
       let get5Status = await this.server.execute("get5_web_avaliable");
-      let get5JsonStatus = JSON.parse(get5Status);
+      let get5JsonStatus = await JSON.parse(get5Status);
       if (get5Status.includes("Unknown command")) {
         return "Either get5 or get5_apistats plugin missing.";
       } else if (get5JsonStatus.game_state != 0) {
@@ -72,7 +73,8 @@ class ServerRcon {
       if(process.env.NODE_ENV === "test") {
         return false;
       }
-      await this.authenticateServer();
+      if(!this.server.authenticated)
+        await this.authenticateServer();
       let get5Status = await this.server.execute("status");
       return get5Status != "";
     } catch (err) {
@@ -93,7 +95,8 @@ class ServerRcon {
       if(process.env.NODE_ENV === "test") {
         return false;
       }
-      await this.authenticateServer();
+      if(!this.server.authenticated)
+        await this.authenticateServer();
       let returnValue = await this.server.execute(rconCommandString);
       return returnValue;
     } catch (err) {
@@ -114,7 +117,8 @@ class ServerRcon {
       if(process.env.NODE_ENV === "test") {
         return false;
       }
-      await this.authenticateServer();
+      if(!this.server.authenticated)
+        await this.authenticateServer();
       let loadMatchResponse = await this.server.execute(
         "get5_loadmatch_url " + get5URLString
       );
@@ -141,7 +145,8 @@ class ServerRcon {
       if(process.env.NODE_ENV === "test") {
         return false;
       }
-      await this.authenticateServer();
+      if(!this.server.authenticated)
+        await this.authenticateServer();
       let loadMatchResponse = await this.server.execute("get5_end_match");
       if (loadMatchResponse) return false;
       return true;

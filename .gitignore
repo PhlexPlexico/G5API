@@ -4,6 +4,7 @@ config/development.json*
 config/test.json
 docs/
 coverage/
+dump.rdb
 # Logs
 logs
 *.log

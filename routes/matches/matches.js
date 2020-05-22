@@ -305,7 +305,7 @@ router.get("/:match_id/config", async (req, res, next) => {
 router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if server available, if we are given a server.
-    let serverSql = "SELECT * FROM game_server WHERE id = ?";
+    let serverSql = "SELECT in_use, user_id, public_server FROM game_server WHERE id = ?";
     if (req.body[0].server_id != null) {
       const serverInUse = await db.query(serverSql, [req.body[0].server_id]);
       if (serverInUse[0].in_use) {
@@ -313,6 +313,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
           message:
             "Server is already in use, please select a different server.",
         });
+        return;
       } else if (
         serverInUse[0].user_id != req.user.id &&
         !Utils.superAdminCheck(req.user) &&
@@ -357,11 +358,13 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
         await db.query(sql, [req.body[0].match_id, key]);
       }
       if (!req.body[0].ignore_server) {
+        let ourServerSql = "SELECT rcon_password, ip_string, port FROM game_server WHERE id=?";
+        const serveInfo = await db.query(ourServerSql, [req.body[0].server_id])
         const newServer = new GameServer(
-          serverInUse[0].ip_string,
-          serverInUse[0].port,
+          serveInfo[0].ip_string,
+          serveInfo[0].port,
           null,
-          serverInUse[0].rcon_password
+          serveInfo[0].rcon_password
         );
         if (
           (await newServer.isServerAlive()) &&

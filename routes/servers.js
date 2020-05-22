@@ -122,7 +122,7 @@ router.get(
 );
 
 /** GET - Gets a status of a game server.
- * @name router.delete('/:server_id/status')
+ * @name router.get('/:server_id/status')
  * @memberof module:routes/servers
  * @function
  * @param {int} req.body[0].server_id - The ID of the server being queried.
