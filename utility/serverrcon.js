@@ -25,15 +25,13 @@ class ServerRcon {
 
   async authenticateServer() {
     try {
-      if(process.env.NODE_ENV === "test") {
+      if (process.env.NODE_ENV === "test") {
         return false;
       }
       await this.server.authenticate(this.password);
       return true;
     } catch (err) {
-      console.log(
-        "Unable to authenticate to server. " + err.toString()
-      );
+      console.error("Unable to authenticate to server. " + err.toString());
       return false;
     }
   }
@@ -44,11 +42,10 @@ class ServerRcon {
    */
   async isGet5Available() {
     try {
-      if(process.env.NODE_ENV === "test") {
+      if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if(!this.server.authenticated)
-        await this.authenticateServer();
+      if (!this.server.authenticated) await this.authenticateServer();
       let get5Status = await this.server.execute("get5_web_avaliable");
       let get5JsonStatus = await JSON.parse(get5Status);
       if (get5Status.includes("Unknown command")) {
@@ -59,7 +56,7 @@ class ServerRcon {
         return get5JsonStatus;
       }
     } catch (err) {
-      console.log("Error on game server: " + err.toString());
+      console.error("Error on game server: " + err.toString());
       throw err;
     }
   }
@@ -70,15 +67,14 @@ class ServerRcon {
    */
   async isServerAlive() {
     try {
-      if(process.env.NODE_ENV === "test") {
+      if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if(!this.server.authenticated)
-        await this.authenticateServer();
+      if (!this.server.authenticated) await this.authenticateServer();
       let get5Status = await this.server.execute("status");
       return get5Status != "";
     } catch (err) {
-      console.log("Error on game server: " + err.toString());
+      console.error("Error on game server: " + err.toString());
       return false;
     }
   }
@@ -92,15 +88,14 @@ class ServerRcon {
    */
   async sendRconCommand(rconCommandString) {
     try {
-      if(process.env.NODE_ENV === "test") {
+      if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if(!this.server.authenticated)
-        await this.authenticateServer();
+      if (!this.server.authenticated) await this.authenticateServer();
       let returnValue = await this.server.execute(rconCommandString);
       return returnValue;
     } catch (err) {
-      console.log("Error on game server: " + err.toString());
+      console.error("Error on game server: " + err.toString());
       throw err;
     }
   }
@@ -114,11 +109,10 @@ class ServerRcon {
    */
   async prepareGet5Match(get5URLString, get5APIKeyString) {
     try {
-      if(process.env.NODE_ENV === "test") {
+      if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if(!this.server.authenticated)
-        await this.authenticateServer();
+      if (!this.server.authenticated) await this.authenticateServer();
       let loadMatchResponse = await this.server.execute(
         "get5_loadmatch_url " + get5URLString
       );
@@ -131,7 +125,7 @@ class ServerRcon {
       await this.server.execute("map de_dust2");
       return true;
     } catch (err) {
-      console.log("Error on game server: " + err.toString());
+      console.error("Error on game server: " + err.toString());
       throw err;
     }
   }
@@ -142,16 +136,53 @@ class ServerRcon {
    */
   async endGet5Match() {
     try {
-      if(process.env.NODE_ENV === "test") {
+      if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if(!this.server.authenticated)
-        await this.authenticateServer();
+      if (!this.server.authenticated) await this.authenticateServer();
       let loadMatchResponse = await this.server.execute("get5_end_match");
       if (loadMatchResponse) return false;
       return true;
     } catch (err) {
-      console.log("Error on game server: " + err.toString());
+      console.error("Error on game server: " + err.toString());
+      return false;
+    }
+  }
+
+  /** Function that will call a pause to the current match. This acts as an admin pause, and will have no time limit.
+   * @function
+   * @returns True if we succeed, false otherwise.
+   */
+  async pauseMatch() {
+    try {
+      if (process.env.NODE_ENV === "test") {
+        return false;
+      }
+      if (!this.server.authenticated) await this.authenticateServer();
+      let loadMatchResponse = await this.server.execute("sm_pause");
+      if (loadMatchResponse) return false;
+      return true;
+    } catch (err) {
+      console.error("Error on game server: " + err.toString());
+      return false;
+    }
+  }
+
+  /** Function that will call an upause to the current match. This acts as an admin pause, and will have no time limit.
+   * @function
+   * @returns True if we succeed, false otherwise.
+   */
+  async unpauseMatch() {
+    try {
+      if (process.env.NODE_ENV === "test") {
+        return false;
+      }
+      if (!this.server.authenticated) await this.authenticateServer();
+      let loadMatchResponse = await this.server.execute("sm_unpause");
+      if (loadMatchResponse) return false;
+      return true;
+    } catch (err) {
+      console.error("Error on game server: " + err.toString());
       return false;
     }
   }

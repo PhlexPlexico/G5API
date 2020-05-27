@@ -1,5 +1,5 @@
-/** Express API router for users in get5.
- * @module routes/matches
+/** Express API router for matches in get5.
+ * @module routes/matches/matches
  * @requires express
  * @requires db
  */
