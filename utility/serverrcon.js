@@ -186,6 +186,72 @@ class ServerRcon {
       return false;
     }
   }
+
+  /** Adds a user to a given team.
+   * @function
+   * @param {String} teamString - Either team1 or team2.
+   * @param {String} steamId - Formatted Steam64 ID.
+   * @param {String} [nickName] - Optional nickname for a given steam ID.
+   * @returns Returns the response from the server.
+   */
+  async addUser(teamString, steamId, nickName = null) {
+    try {
+      if (process.env.NODE_ENV === "test") {
+        return false;
+      }
+      if (!this.server.authenticated) await this.authenticateServer();
+      let loadMatchResponse;
+      if (nickName)
+        loadMatchResponse = await this.server.execute(
+          "get5_addplayer " + steamId + " " + teamString + " " + nickName
+        );
+      else
+        loadMatchResponse = await this.server.execute(
+          "get5_addplayer " + steamId + " " + teamString
+        );
+      return loadMatchResponse;
+    } catch (err) {
+      console.error("Error on game server: " + err.toString());
+      throw err;
+    }
+  }
+
+  /** Retrieves a list of backups on the game server.
+   * @function
+   * @returns Returns the response from the server.
+   */
+  async getBackups() {
+    try {
+      if (process.env.NODE_ENV === "test") {
+        return false;
+      }
+      if (!this.server.authenticated) await this.authenticateServer();
+      let loadMatchResponse = await this.server.execute("get5_listbackups");
+      return loadMatchResponse;
+    } catch (err) {
+      console.error("Error on game server: " + err.toString());
+      throw err;
+    }
+  }
+
+  /** Attempts to restore a given backup on the server
+   * @function
+   * @param {String} backupName - The filename of the backup on the server.
+   * @returns Returns the response from the server.
+   */
+  async restoreBackup(backupName) {
+    try {
+      if (process.env.NODE_ENV === "test") {
+        return false;
+      }
+      if (!this.server.authenticated) await this.authenticateServer();
+      let loadMatchResponse = await this.server.execute("get5_loadbackup " + backupName);
+      return loadMatchResponse;
+    } catch (err) {
+      console.error("Error on game server: " + err.toString());
+      throw err;
+    }
+  }
 }
 
 module.exports = ServerRcon;

@@ -376,4 +376,237 @@ router.get(
   }
 );
 
+/** PUT - Sends an add user commamd to a given team.
+ * @name router.put("/:match_id/adduser)
+ * @memberof module:routes/matches/matchserver
+ * @function
+ * @param {int} req.user.id - The ID of the user creating this request.
+ * @param {any} req.body[0].user_id - The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
+ * @param {String} req.body[0].team_id - Either the first or second team in the match, team1 or team2.
+ * @param {String} [req.body[0].nickname] - Optional nickname for the user being added into the match.
+ *
+ */
+router.put(
+  "/:match_id/adduser/",
+  Utils.ensureAuthenticated,
+  async (req, res, next) => {
+    let currentMatchInfo =
+      "SELECT user_id, server_id, cancelled, forfeit, end_time, team1_id, team2_id FROM `match` WHERE id = ?";
+    const matchRow = await db.query(currentMatchInfo, req.params.match_id);
+    if (matchRow.length === 0) {
+      res.status(404).json({ message: "No match found." });
+      return;
+    } else if (
+      req.user.id != matchRow[0].user_id ||
+      !Utils.adminCheck(req.user)
+    ) {
+      res
+        .status(401)
+        .json({ message: "User is not authorized to perform action." });
+      return;
+    } else if (
+      matchRow[0].cancelled == 1 ||
+      matchRow[0].forfeit == 1 ||
+      matchRow[0].end_time != null
+    ) {
+      res.status(401).json({ message: "Match is already finished." });
+      return;
+    } else {
+      let getServerSQL =
+        "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
+      const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
+      let serverUpdate = new GameServer(
+        serverRow[0].ip_string,
+        serverRow[0].port,
+        null,
+        serverRow[0].rcon_password
+      );
+      let steamID = Utils.convertToSteam64(req.body[0].steam_id);
+      let teamId = req.body[0].team_id;
+      let nickName = req.body[0].nickname;
+      if(teamId != "team1" || teamId != "team2"){
+        res.status(400).json({message: "Please choose either team1 or team2." });
+        return;
+      }
+      try{
+        let rconResponse = await serverUpdate.addUser(teamId, steamID, nickName);
+        res.json({ message: "User added successfully.", response: rconResponse });
+      }catch(err){
+        res.status(500).json({ message: "Error on game server.", response: err });
+      } finally{
+        return;
+      }
+    }
+  }
+);
+
+/** PUT - Sends an add player to spectator command.
+ * @name router.put("/:match_id/addspec)
+ * @memberof module:routes/matches/matchserver
+ * @function
+ * @param {int} req.user.id - The ID of the user creating this request.
+ * @param {any} req.body[0].user_id - The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
+ *
+ */
+router.put(
+  "/:match_id/addspec/",
+  Utils.ensureAuthenticated,
+  async (req, res, next) => {
+    let currentMatchInfo =
+      "SELECT user_id, server_id, cancelled, forfeit, end_time, team1_id, team2_id FROM `match` WHERE id = ?";
+    const matchRow = await db.query(currentMatchInfo, req.params.match_id);
+    if (matchRow.length === 0) {
+      res.status(404).json({ message: "No match found." });
+      return;
+    } else if (
+      req.user.id != matchRow[0].user_id ||
+      !Utils.adminCheck(req.user)
+    ) {
+      res
+        .status(401)
+        .json({ message: "User is not authorized to perform action." });
+      return;
+    } else if (
+      matchRow[0].cancelled == 1 ||
+      matchRow[0].forfeit == 1 ||
+      matchRow[0].end_time != null
+    ) {
+      res.status(401).json({ message: "Match is already finished." });
+      return;
+    } else {
+      let getServerSQL =
+        "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
+      const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
+      let serverUpdate = new GameServer(
+        serverRow[0].ip_string,
+        serverRow[0].port,
+        null,
+        serverRow[0].rcon_password
+      );
+      let steamID = Utils.convertToSteam64(req.body[0].steam_id);
+      try{
+        let rconResponse = await serverUpdate.addUser("spec", steamID);
+        res.json({ message: "User added to spectator successfully.", response: rconResponse });
+      }catch(err){
+        res.status(500).json({ message: "Error on game server.", response: err });
+      } finally{
+        return;
+      }
+    }
+  }
+);
+
+/** GET - Retrieves the name of backups on the game server.
+ * @name router.put("/:match_id/backup)
+ * @memberof module:routes/matches/matchserver
+ * @function
+ * @param {int} req.user.id - The ID of the user creating this request.
+ *
+ */
+router.get(
+  "/:match_id/backup/",
+  Utils.ensureAuthenticated,
+  async (req, res, next) => {
+    let currentMatchInfo =
+      "SELECT user_id, server_id, cancelled, forfeit, end_time, team1_id, team2_id FROM `match` WHERE id = ?";
+    const matchRow = await db.query(currentMatchInfo, req.params.match_id);
+    if (matchRow.length === 0) {
+      res.status(404).json({ message: "No match found." });
+      return;
+    } else if (
+      req.user.id != matchRow[0].user_id ||
+      !Utils.adminCheck(req.user)
+    ) {
+      res
+        .status(401)
+        .json({ message: "User is not authorized to perform action." });
+      return;
+    } else if (
+      matchRow[0].cancelled == 1 ||
+      matchRow[0].forfeit == 1 ||
+      matchRow[0].end_time != null
+    ) {
+      res.status(401).json({ message: "Match is already finished." });
+      return;
+    } else {
+      let getServerSQL =
+        "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
+      const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
+      let serverUpdate = new GameServer(
+        serverRow[0].ip_string,
+        serverRow[0].port,
+        null,
+        serverRow[0].rcon_password
+      );
+      try{
+        let rconResponse = await serverUpdate.getBackups();
+        res.json({ message: "Backups retrieved.", response: rconResponse });
+      }catch(err){
+        res.status(500).json({ message: "Error on game server.", response: err });
+      } finally{
+        return;
+      }
+    }
+  }
+);
+
+/** POST - Runs a backup file on the game server.
+ * @name router.put("/:match_id/backup)
+ * @memberof module:routes/matches/matchserver
+ * @function
+ * @param {int} req.user.id - The ID of the user creating this request.
+ * @param {String} req.body[0].backup_name - Filename of the backup located on the game server.
+ *
+ */
+router.post(
+  "/:match_id/backup/",
+  Utils.ensureAuthenticated,
+  async (req, res, next) => {
+    let currentMatchInfo =
+      "SELECT user_id, server_id, cancelled, forfeit, end_time, team1_id, team2_id FROM `match` WHERE id = ?";
+    const matchRow = await db.query(currentMatchInfo, req.params.match_id);
+    if (matchRow.length === 0) {
+      res.status(404).json({ message: "No match found." });
+      return;
+    } else if (
+      req.user.id != matchRow[0].user_id ||
+      !Utils.adminCheck(req.user)
+    ) {
+      res
+        .status(401)
+        .json({ message: "User is not authorized to perform action." });
+      return;
+    } else if (
+      matchRow[0].cancelled == 1 ||
+      matchRow[0].forfeit == 1 ||
+      matchRow[0].end_time != null
+    ) {
+      res.status(401).json({ message: "Match is already finished." });
+      return;
+    } else {
+      let getServerSQL =
+        "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
+      const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
+      let serverUpdate = new GameServer(
+        serverRow[0].ip_string,
+        serverRow[0].port,
+        null,
+        serverRow[0].rcon_password
+      );
+      if(req.body[0].backup_name == null){
+        res.status(400).json({ message: "Please provide the backup name." });
+        return;
+      }
+      try{
+        let rconResponse = await serverUpdate.restoreBackup(req.body[0].backup_name);
+        res.json({ message: "Restored backup.", response: rconResponse });
+      }catch(err){
+        res.status(500).json({ message: "Error on game server.", response: err });
+      } finally{
+        return;
+      }
+    }
+  }
+);
+
 module.exports = router;

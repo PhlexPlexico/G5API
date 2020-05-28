@@ -1,5 +1,5 @@
 # G5API - API Backend for Get5
-_**Status: Alpha.**_
+_**Status: Alpha. Under active development.**_
 
 G5API is going to be a replacement for the get5-webpanel. _Currently_ this is the backend only, as it will allow the plugin to interface with a database and Steam OAuth, as well as make various calls to functionality that is seen in the [get5-webpanel](https://github.com/phlexplexico/get5-webpanel)
 
@@ -8,19 +8,20 @@ G5API is going to be a replacement for the get5-webpanel. _Currently_ this is th
 Currently, very basic CRUD operations, as well as legacy calls that the get5-web api used, as referenced [here](https://github.com/PhlexPlexico/get5-web/blob/development/get5/api.py). Right now, this is a very early build to try my hand at using Express as a middleware, and try some JavaScript technologies so that others may create their own front-end applications, with all the difficult back-end stuff being completed. 
 
 
-This API should be complete enough to do basic operations to the game. **Direct server operations are currently not in place** and these will exist in different routes.
+This API should be complete enough to do basic operations to the game and match creation.
 
 For the get5_api plugin, there are legacy routes currently put into place located in the `./routes/legacy/` and still point to `/match/` on this app. So this could techinically be used as a drop-in replacement for recording stats.
 
-Server interaction will most likely take place in `/match/:match_id/server/{rcon|start|etc}`. These command should probably be logged in the database for audit purposes as well.
+Game server interaction will still take place under the `/matches/:match_id` directive, but the logic can be found under `./matches/matchserver.js`.
+
 
 ## What does it NOT do?
-Basically every "advanced" feature the current web panel has, from editing matches while in game, to displaying any of the data. This is simply a back-end to get myself used to JavaScript and Node. Maybe eventually I will work on a front-end in React or Vue, but it depends on how long I stay motivated with this. Right now you should be able to log into Steam, and query the data that is currently existing in your database, as well as make any modifications via POST/PUT/DELETE commands.
+This is simply a back-end to get myself used to JavaScript and Node. Maybe eventually I will work on a front-end in React or Vue, but it depends on how long I stay motivated with this. Right now you should be able to log into Steam, and query the data that is currently existing in your database, as well as make any modifications via POST/PUT/DELETE commands, and create matches on a server/setup a game and have it record stats.
 
 ## Why?
 [Get5-webpanel](https://github.com/phlexplexico/get5-webpanel) is a now out-dated webpanel, with python2.7 being officially EOL. Being built all on Flask, with ORM (SQLAlchemy), and Jinja2, its tech spans more than a few years old. While it works really well for now, it is becoming increasingly harder to deploy to more modern hardware/software (such as Ubuntu 19) to ensure easy setup.
 
-The intent will to be provide similar functionality with the use of NodeJS and Express, and this API will take care of session authentication as well, via the use of `passport-steam`, and rcon server commands via `rcon-srcds`, as well as more normalization in the database.
+The intent will to be provide similar functionality with the use of NodeJS and Express, and this API will take care of session authentication as well, via the use of [`passport-steam`](https://github.com/liamcurry/passport-steam), and rcon server commands via [`rcon-srcds`](https://github.com/EnriqCG/rcon-srcds), as well as more normalization in the database.
 
 ## Building
 In order to build this application, I've opted to use [Yarn](https://yarnpkg.com/lang/en/).
@@ -92,12 +93,14 @@ Steam OAuth will be mocked in order to check if a user is "logged in", and creat
 
 ```yarn test```
 
-Will *require* `test.json` to exist in projects `config` folder, as well as a `super_admin` value that is identical to that in the `mockProfile.js` in the `utility` folder. This ID will get removed from the devleopment config every `yarn test` call, as it requires super admin to test a few API calls.
+Will *require* `test.json` to exist in projects `config` folder. It will grab the value from `./utility/mockProfile.js` to set it as a `super_admin` temporarily, then remove it after.
 
 ## Contribution
 Sure! If you have a knack for APIs and a penchant for JavaScript, I could always use help! Create a fork of this application, make your changes, and submit a PR. I will be using the [Issues](https://github.com/g5api/issues) page to track what calls still need to be completed. This project won't be finished anytime soon, as I would like to make sure there is a proper handle on authentication with the API, as well as proper security implemented to prevent any unwanted uses with the application. 
 
 If you so choose to contribute, please make sure you include documentation for the API calls, as it is how I am keeping track of all the functionality. I'm using [JSDoc](https://devdocs.io/jsdoc/) to provide documentation, which will eventually be moved over to a wiki.
+
+If you are creating a front-end for this, please create an issue and let me know, so I can append it to the README, so other users' will be able to easily track it down.
 
 # License
 This project is licensed under [MIT License](http://opensource.org/licenses/MIT). A copy of this license **must be included with the software**.
