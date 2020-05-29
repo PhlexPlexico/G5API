@@ -80,7 +80,7 @@
     "passport": "^0.4.0",
     "passport-steam": "^1.0.14",
     "randomstring": "^1.1.5",
-    "rcon-srcds": "^1.0.0",
+    "rcon-srcds": "^1.2.0",
     "redis": "^3.0.2",
     "redis-mock": "^0.49.0",
     "steamapi": "^2.0.7"

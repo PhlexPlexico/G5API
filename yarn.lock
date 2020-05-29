@@ -4026,6 +4026,13 @@ qs@~6.5.2:
   resolved "https://registry.yarnpkg.com/qs/-/qs-6.5.2.tgz#cb3ae806e8740444584ef154ce8ee98d403f3e36"
   integrity sha512-N5ZAX4/LxJmF+7wN74pUD6qAh9/wnvdQcjq9TZjevvXzSUo7bfmw91saqMjzGS2xq91/odN2dW/WOl7qQHNDGA==
 
+queue@^6.0.1:
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/queue/-/queue-6.0.1.tgz#abd5a5b0376912f070a25729e0b6a7d565683791"
+  integrity sha512-AJBQabRCCNr9ANq8v77RJEv73DPbn55cdTb+Giq4X0AVnNVZvMHlYp7XlQiN+1npCZj1DuSmaA2hYVUUDgxFDg==
+  dependencies:
+    inherits "~2.0.3"
+
 random-bytes@~1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/random-bytes/-/random-bytes-1.0.0.tgz#4f68a1dc0ae58bd3fb95848c30324db75d64360b"
@@ -4063,10 +4070,12 @@ rc@^1.0.1, rc@^1.1.6, rc@^1.2.8:
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
 
-rcon-srcds@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/rcon-srcds/-/rcon-srcds-1.0.0.tgz#8b89a9fd6861fbb58f557d9175ff8f82e57b248c"
-  integrity sha512-9NdjZNvRf5fIV0DrvuA18A39N7gi5q/NqGac6x1zIg4vXFpcpBtD0zbpO+Jxh0zcsQz9IJ7bImaeXX68w4D9dg==
+rcon-srcds@^1.2.0:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/rcon-srcds/-/rcon-srcds-1.2.1.tgz#3f1dfef1cedf386163df9d7c9e09f33ec0743627"
+  integrity sha512-ZE9TfXr8yZV1uIyRlMuwHAIkfB0HHmhY39WY0oUV80vbrLup/ZhfEtj+0g8n/6UGYhR3CVsbZTRj7bA/qWG67w==
+  dependencies:
+    queue "^6.0.1"
 
 react-is@^16.12.0:
   version "16.13.1"
