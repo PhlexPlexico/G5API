@@ -19,7 +19,7 @@ const config = require("config");
  * @const
  */
 const SteamURLResolver = require("steamapi");
-const SteamAPI = new SteamURLResolver(config.get("Server.steamAPIKey"));
+const SteamAPI = new SteamURLResolver(config.get("server.steamAPIKey"));
 /** Steam ID Handler for other IDs.
  * @const
  */
@@ -85,7 +85,7 @@ class Utils {
       if (source === null) return;
       let byteSource = aes.utils.hex.toBytes(source.substring(32));
       let IV = aes.utils.hex.toBytes(source.substring(0, 32));
-      let key = aes.utils.utf8.toBytes(config.get("Server.dbKey"));
+      let key = aes.utils.utf8.toBytes(config.get("server.dbKey"));
       let aesCbc = new aes.ModeOfOperation.ofb(key, IV);
       let decryptedBytes = aesCbc.decrypt(byteSource);
       let decryptedText = aes.utils.utf8.fromBytes(decryptedBytes);
@@ -110,7 +110,7 @@ class Utils {
 
       let byteSource = aes.utils.utf8.toBytes(source);
       let IV = crypto.randomBytes(16);
-      let key = aes.utils.utf8.toBytes(config.get("Server.dbKey"));
+      let key = aes.utils.utf8.toBytes(config.get("server.dbKey"));
       let aesCbc = new aes.ModeOfOperation.ofb(key, IV);
       let encryptedBytes = aesCbc.encrypt(byteSource);
       let encryptedHex = aes.utils.hex.fromBytes(encryptedBytes);

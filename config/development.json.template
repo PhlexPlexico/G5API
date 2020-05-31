@@ -1,30 +1,25 @@
 {
-  "Database": {
-    "host": "127.0.0.1",
-    "port": 3306,
-    "username": "get5_user",
-    "password": "",
-    "db": "get5dev",
-    "connectionLimit": 15,
-    "redisHost": "localhost",
-    "redisPort": 6379,
-    "redisTTL": 86400,
-    "redisPass": "super_secure"
-  },
-  "Server": {
+  "server": {
     "port": 3301,
     "hostname": "http://localhost",
     "dbKey": "Database 16 Byte Key.",
     "steamAPIKey": "API Key For Steam Calls.",
     "sharedSecret": "a secure secret for jwt sigining."
   },
-  "dev": {
+  "development": {
     "driver": "mysql",
     "user": "get5_user",
-    "password": "",
+    "password": "database password",
     "database": "get5dev",
     "multipleStatements": true,
-    "flags": { "ENV": "MYSQL_FLAGS" }
+    "flags": { "ENV": "MYSQL_FLAGS" },
+    "host": "127.0.0.1",
+    "port": 3306,
+    "connectionLimit": 15,
+    "redisHost": "localhost",
+    "redisPort": 6379,
+    "redisTTL": 86400,
+    "redisPass": "super_secure"
   },
   "admins": {
     "steam_ids": "admins,go,here"
@@ -33,3 +28,4 @@
     "steam_ids": "super_admins,go,here"
   }
 }
+  

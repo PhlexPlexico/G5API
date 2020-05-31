@@ -24,9 +24,9 @@ function strategyForEnvironment() {
       break;
     default:
       strategy = new SteamStrategy({
-        returnURL: config.get("Server.hostname")+":"+config.get("Server.port")+'/auth/steam/return',
-        realm: config.get("Server.hostname")+":"+config.get("Server.port"),
-        apiKey: config.get("Server.steamAPIKey"),
+        returnURL: config.get("server.hostname")+":"+config.get("server.port")+'/auth/steam/return',
+        realm: config.get("server.hostname")+":"+config.get("server.port"),
+        apiKey: config.get("server.steamAPIKey"),
       }, returnStrategy);
   }
   return strategy;

@@ -28,7 +28,7 @@ const config = require('config');
 const session = require('express-session');
 const redis = require('redis');
 // Messy but avoids any open file handles.
-const redisClient = process.env.NODE_ENV !== "test" ? redis.createClient({password: config.get("Database.redisPass")}) : require('redis-mock').createClient();
+const redisClient = process.env.NODE_ENV !== "test" ? redis.createClient({password: config.get(process.env.NODE_ENV+".redisPass")}) : require('redis-mock').createClient();
 const redisStore = require('connect-redis')(session);
 const app = express();
 
@@ -41,16 +41,16 @@ redisClient.on('error', (err) => {
   console.log('Redis error: ', err);
 });
 const redisCfg = {
-  host: config.get("Database.redisHost"),
-  port: config.get("Database.redisPort"),
+  host: config.get(process.env.NODE_ENV+".redisHost"),
+  port: config.get(process.env.NODE_ENV+".redisPort"),
   client: redisClient,
-  ttl: config.get("Database.redisTTL"),
+  ttl: config.get(process.env.NODE_ENV+".redisTTL"),
   
 };
 
 app.use(helmet());
 app.use(session({
-    secret: config.get("Server.sharedSecret"),
+    secret: config.get("server.sharedSecret"),
     name: 'G5API',
     resave: false,
     saveUninitialized: true,

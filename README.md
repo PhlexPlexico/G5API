@@ -31,12 +31,12 @@ First you will need to copy over the ```development.json.template``` and update 
 If you wish to roll a production build, please copy ```production.json.template``` and fill out all the values.
 
 ### Migrate dev database: 
-```yarn migrate-dev-upgrade```
+```yarn migrate-dev-create && yarn migrate-dev-upgrade```
 
 You can specify which database to use in the `development.json` area. *Please note that this will delete and recreate the development table.* Also note that there are some tables that have changed. I've opted to normalizing the spectators and team authentication values, as BLOBS were not playing nicely with Node. My current fork deals with inserting into these tables, so I hope that it will eventually be a smooth transition where you can keep all your data from the old Flask app.
 
 ### Migrate production database:
-```yarn migrate-prod-upgrade```
+```yarn migrate-prod-create && yarn migrate-prod-upgrade```
 
 This will attempt to update a production database by creating any tables that don't exist. It will not drop the database prior to importing new tables.
 
@@ -58,7 +58,9 @@ Either mysql or mariadb is acceptable. Please start the database server once it 
 
 Once running, please run the secure installation, then create a get5 user after logging in:
 
-```CREATE USER 'get5'@'localhost' IDENTIFIED BY 'sup3r_s3cUr3_p4ssw0rD'; GRANT ALL PRIVILEGES ON get5test.* TO 'get5'@'localhost'; GRANT ALL PRIVILEGES ON get5.* TO 'get5'@'localhost';```
+```CREATE USER 'get5_user'@'localhost' IDENTIFIED BY 'sup3r_s3cUr3_p4ssw0rD'; GRANT ALL PRIVILEGES ON get5{ENV}.* TO 'get5_user'@'localhost'; GRANT ALL PRIVILEGES ON get5{ENV}.* TO 'get5_user'@'localhost';```
+
+Where `{ENV}` is either dev, test, or nothing (for production).
 
 #### CentOS
 ```curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash```
@@ -73,7 +75,9 @@ Either mysql or mariadb is acceptable. Please start the database server once it 
 
 Once running, please run the secure installation, then create a get5 user after logging in:
 
-```CREATE USER 'get5'@'localhost' IDENTIFIED BY 'sup3r_s3cUr3_p4ssw0rD'; GRANT ALL PRIVILEGES ON get5test.* TO 'get5'@'localhost'; GRANT ALL PRIVILEGES ON get5.* TO 'get5'@'localhost';```
+```CREATE USER 'get5_user'@'localhost' IDENTIFIED BY 'sup3r_s3cUr3_p4ssw0rD'; GRANT ALL PRIVILEGES ON get5{ENV}.* TO 'get5_user'@'localhost'; GRANT ALL PRIVILEGES ON get5{ENV}.* TO 'get5_user'@'localhost';```
+
+Where `{ENV}` is either dev, test, or nothing (for production).
 
 #### After Installation
 After that's done, please run the configuration for each given database application, and provide the same username/password that you setup with the mariadb setup. Your redis installation should also include a password, and this can be shown how to do that [here](https://stackoverflow.com/a/17018369).

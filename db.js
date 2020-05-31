@@ -3,12 +3,12 @@ const mysql = require('mysql2/promise');
 const config = require('config');
 
 const dbCfg = {
-  host: config.get("Database.host"),
-  port: config.get("Database.port"),
-  user: config.get("Database.username"),
-  password: config.get("Database.password"),
-  database: config.get("Database.db"),
-  connectionLimit: config.get("Database.connectionLimit")
+  host: config.get(process.env.NODE_ENV+".host"),
+  port: config.get(process.env.NODE_ENV+".port"),
+  user: config.get(process.env.NODE_ENV+".user"),
+  password: config.get(process.env.NODE_ENV+".password"),
+  database: config.get(process.env.NODE_ENV+".database"),
+  connectionLimit: config.get(process.env.NODE_ENV+".connectionLimit")
 }
 const connection = mysql.createPool( dbCfg );
 
