@@ -9,7 +9,7 @@
   "production": {
     "driver": "mysql",
     "user": "get5_user",
-    "password": "database password",
+    "password": "",
     "database": "get5",
     "multipleStatements": true,
     "flags": { "ENV": "MYSQL_FLAGS" },
