@@ -26,9 +26,11 @@ The intent will to be provide similar functionality with the use of NodeJS and E
 ## Building
 In order to build this application, I've opted to use [Yarn](https://yarnpkg.com/lang/en/).
 
-First you will need to copy over the ```development.json.template``` and update any values that are required. These include server values, and database passwords and connections.
+First you will need to copy over the ```development/test/production.json.template``` and update any values that are required. These include server values, and database passwords and connections. For more information, please see [configuration](https://github.com/PhlexPlexico/G5API/wiki/Configuration).
 
 If you wish to roll a production build, please copy ```production.json.template``` and fill out all the values.
+
+To see initial configuration/installation on your server, please [visit the wiki](https://github.com/PhlexPlexico/G5API/wiki/) to learn more about first-time setup. Node, Redis, and MariaDB/MySQL are all pre-requisites, and the wiki will provide you with information on how to set it up, as well as some useful information about the templated configuration files.
 
 ### Migrate dev database: 
 ```yarn migrate-dev-create && yarn migrate-dev-upgrade```
@@ -39,48 +41,6 @@ You can specify which database to use in the `development.json` area. *Please no
 ```yarn migrate-prod-create && yarn migrate-prod-upgrade```
 
 This will attempt to update a production database by creating any tables that don't exist. It will not drop the database prior to importing new tables.
-
-### Install redis/mysql/node
-Redis is required as a session store when running, to aid with persisting user authentication, even if the app goes down. 
-
-#### Ubuntu/Debian
-It's preferable to use node version manager (nvm) to control node installations. It makes it easier to swap between projects.
-
-```curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash```
-
-After installation
-
-```nvm install 13.8.0; sudo apt update && sudo apt install mariadb-server redis-server```
-
-Either mysql or mariadb is acceptable. Please start the database server once it is ready:
-
-```sudo service mariadb start; sudo service mariadb enable```.
-
-Once running, please run the secure installation, then create a get5 user after logging in:
-
-```CREATE USER 'get5_user'@'localhost' IDENTIFIED BY 'sup3r_s3cUr3_p4ssw0rD'; GRANT ALL PRIVILEGES ON get5{ENV}.* TO 'get5_user'@'localhost'; GRANT ALL PRIVILEGES ON get5{ENV}.* TO 'get5_user'@'localhost';```
-
-Where `{ENV}` is either dev, test, or nothing (for production).
-
-#### CentOS
-```curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash```
-
-After installation of nvm either close the terminal or run `source ~/.bashrc`.
-
-```nvm install 13.8.0; sudo yum update && sudo yum install redis mariadb-server```
-
-Either mysql or mariadb is acceptable. Please start the database server once it is ready:
-
-```sudo systemctl start mariadb; sudo systemctl enable mariadb```.
-
-Once running, please run the secure installation, then create a get5 user after logging in:
-
-```CREATE USER 'get5_user'@'localhost' IDENTIFIED BY 'sup3r_s3cUr3_p4ssw0rD'; GRANT ALL PRIVILEGES ON get5{ENV}.* TO 'get5_user'@'localhost'; GRANT ALL PRIVILEGES ON get5{ENV}.* TO 'get5_user'@'localhost';```
-
-Where `{ENV}` is either dev, test, or nothing (for production).
-
-#### After Installation
-After that's done, please run the configuration for each given database application, and provide the same username/password that you setup with the mariadb setup. Your redis installation should also include a password, and this can be shown how to do that [here](https://stackoverflow.com/a/17018369).
 
 ### Build and run: 
 ```yarn start``` 
@@ -97,7 +57,7 @@ Steam OAuth will be mocked in order to check if a user is "logged in", and creat
 
 ```yarn test```
 
-Will *require* `test.json` to exist in projects `config` folder. It will grab the value from `./utility/mockProfile.js` to set it as a `super_admin` temporarily, then remove it after.
+Will *require* `test.json` to exist in projects `config` folder. It will grab the value from `./utility/mockProfile.js` to set it as a `super_admin` temporarily, then remove it after. These tests are mainly meant for CI, and will be the go-to to test if any changes break the application.
 
 ## Contribution
 Sure! If you have a knack for APIs and a penchant for JavaScript, I could always use help! Create a fork of this application, make your changes, and submit a PR. I will be using the [Issues](https://github.com/g5api/issues) page to track what calls still need to be completed. This project won't be finished anytime soon, as I would like to make sure there is a proper handle on authentication with the API, as well as proper security implemented to prevent any unwanted uses with the application. 
