@@ -217,6 +217,20 @@ class Utils {
     let summaryInfo = await SteamAPI.getUserSummary(auth64);
     return summaryInfo.nickname;
   }
+
+  /** Retrieves a profile image from steam.
+   * @function
+   * @memberof module:utils
+   * @inner
+   * @name getSteamImage
+   * @param {String} auth64 - String value of a steam 64 ID.
+   * @returns A profile image link.
+   */
+  static async getSteamImage(auth64) {
+    let summaryInfo = await SteamAPI.getUserSummary(auth64);
+    return summaryInfo.avatar.medium;
+  }
+
 }
 
 module.exports = Utils;

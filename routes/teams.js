@@ -25,19 +25,20 @@ const Utils = require('../utility/utils');
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
  */
-router.get("/", async (req, res, next) => {
+router.get("/", async (req, res) => {
   let sql =
     "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
-    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
+    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': [\"', ta.name, '\"]')  SEPARATOR ', '), '}') as auth_name " +
     "FROM team t JOIN team_auth_names ta " +
     "ON t.id = ta.team_id " +
     "GROUP BY t.id, t.name, t.flag, t.logo, t.tag, t.public_team";
   try {
-    const allTeams = await db.query(sql);
+    let allTeams = await db.query(sql);
     // do something with someRows and otherRows
-    allTeams.forEach(row => {
-      row.auth_name = JSON.parse(row.auth_name);
-    });
+    for(let row in allTeams){
+      allTeams[row].auth_name = JSON.parse(allTeams[row].auth_name);
+      allTeams[row].auth_name = await getTeamImages(allTeams[row].auth_name);
+    }
     res.json(allTeams);
   } catch (err) {
     res.json({ message: err });
@@ -52,7 +53,7 @@ router.get("/", async (req, res, next) => {
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
  */
-router.get("/myteams", Utils.ensureAuthenticated, async (req, res, next) => {
+router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
   let sql =
     "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
     "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
@@ -62,10 +63,10 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res, next) => {
     "GROUP BY t.name, t.flag, t.logo, t.tag, t.public_team";
   try {
     const allTeams = await db.query(sql, [req.user.id]);
-    // do something with someRows and otherRows
-    allTeams.forEach(row => {
-      row.auth_name = JSON.parse(row.auth_name);
-    });
+    for(let row in allTeams){
+      allTeams[row].auth_name = JSON.parse(allTeams[row].auth_name);
+      allTeams[row].auth_name = await getTeamImages(allTeams[row].auth_name);
+    }
     res.json(allTeams);
   } catch (err) {
     res.json({ message: err });
@@ -78,7 +79,7 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res, next) => {
  * @memberof module:routes/teams
  * @param {int} teamid - The team ID you wish to examine.
  */
-router.get("/:team_id", async (req, res, next) => {
+router.get("/:team_id", async (req, res) => {
   teamID = req.params.team_id;
   let sql =
     "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
@@ -115,7 +116,7 @@ router.get("/:team_id", async (req, res, next) => {
  * @see https://steamcommunity.com/sharedfiles/filedetails/?id=719079703
  */
 
-router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
+router.post("/create", Utils.ensureAuthenticated, async (req, res) => {
   let userID = req.user.id;
   let teamName = req.body[0].name;
   let flag = req.body[0].flag;
@@ -178,7 +179,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  * @param {number} [req.body[0].public_team] - Integer determining if a team is a publically usable team. Either 1 or 0.
  * @see https://steamcommunity.com/sharedfiles/filedetails/?id=719079703
  */
-router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
+router.put("/update", Utils.ensureAuthenticated, async (req, res) => {
   let checkUserSql = "SELECT * FROM team WHERE id = ?";
   const checkUser = await db.query(checkUserSql, [req.body[0].id]);
   if(checkUser[0] == null) {
@@ -241,7 +242,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
  * @memberof module:routes/teams
  * @param {int} req.body[0].team_id - The ID of the team being updated.
  */
-router.delete("/delete/", Utils.ensureAuthenticated, async (req, res, next) => {
+router.delete("/delete/", Utils.ensureAuthenticated, async (req, res) => {
   let teamID = req.body[0].team_id;
   let checkUserSql = "SELECT * FROM team WHERE id = ?";
   const checkUser = await db.query(checkUserSql, [teamID]);
@@ -298,7 +299,7 @@ router.delete("/delete/", Utils.ensureAuthenticated, async (req, res, next) => {
  * @memberof module:routes/teams
  * @param {int} teamid - The team ID you wish to examine.
  */
-router.get("/:team_id/recent", async(req, res, next) => {
+router.get("/:team_id/recent", async(req, res) => {
   try {
     teamId = req.params.team_id;
     let sql = "SELECT rec_matches.* FROM team t, `match` rec_matches WHERE t.id = ? AND (rec_matches.team1_id = ? OR rec_matches.team2_id = ?) ORDER BY rec_matches.id DESC LIMIT 5";
@@ -316,7 +317,7 @@ router.get("/:team_id/recent", async(req, res, next) => {
  * @param {int} req.params.teamid - The team ID you wish to examine for results.
  * @param {int} req.params.matchid - The match ID you wish to examine for results.
  */
-router.get("/:team_id/result/:match_id", async(req, res, next) => {
+router.get("/:team_id/result/:match_id", async(req, res) => {
   try {
     let otherTeam = null;
     let myScore = 0;
@@ -369,4 +370,18 @@ router.get("/:team_id/result/:match_id", async(req, res, next) => {
     res.status(500).json({ message: err.toString() });
   }
 });
+
+/* Helper Functions */
+const getTeamImages = async (idList) => {
+  for(let steamId of Object.keys(idList)){
+    if(idList[steamId][0] == "")
+    idList[steamId][0] = await Utils.getSteamName(steamId);
+    idList[steamId][1] = await Utils.getSteamImage(steamId);
+  }
+  console.log(idList);
+  return idList;
+}
+
+
+
 module.exports = router;

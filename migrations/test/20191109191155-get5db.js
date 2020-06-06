@@ -84,7 +84,7 @@ exports.up = function(db, callback) {
         }
       },
       auth: { type: 'string', length: 17, notNull: true },
-      name: { type: 'string', length: 40, notNull: false },
+      name: { type: 'string', length: 40, notNull: true, default: '' },
     }),
     db.createTable('season', {
       id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11 },
