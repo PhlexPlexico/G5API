@@ -23,7 +23,10 @@ exports.up = function(db, callback) {
       name: { type: 'string', length: 40 },
       admin: { type: 'boolean', defaultValue: false, notNull: true},
       super_admin: { type: 'boolean', defaultValue: false, notNull: true },
-      created_at: { type: 'datetime', defaultValue: new String('now()'), notNull: true }
+      created_at: { type: 'datetime', defaultValue: new String('now()'), notNull: true },
+      small_image: { type: 'string', length: 150 },
+      medium_image: { type: 'string', length: 150 },
+      large_image: { type: 'string', length: 150 }
     }),
     db.createTable('game_server', {
       id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11 },

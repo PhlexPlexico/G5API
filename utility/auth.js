@@ -55,20 +55,36 @@ function returnStrategy (identifier, profile, done) {
           name: profile.displayName,
           admin: isAdmin,
           super_admin: isSuperAdmin,
-          created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
+          created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+          small_image: profile.photos[0].value,
+          medium_image: profile.photos[1].value,
+          large_image: profile.photos[2].value
         }
         await db.withTransaction(async () => {
           curUser = await db.query(sql, [newUser]);
         });
         sql = "SELECT * FROM user WHERE steam_id = ?";
         curUser = await db.query(sql, [profile.id]);
+      } else {
+        let updateUser = {
+          small_image: profile.photos[0].value,
+          medium_image: profile.photos[1].value,
+          large_image: profile.photos[2].value
+        }
+        sql = "UPDATE user SET ? WHERE steam_id=?";
+        await db.withTransaction(async () => {
+          await db.query(sql, [updateUser, profile.id]);
+        });
       }
       return done(null, {
         steam_id: profile.id,
         name: profile.displayName,
         super_admin: isSuperAdmin,
         admin: isAdmin,
-        id: curUser[0].id
+        id: curUser[0].id,
+        small_image: profile.photos[0].value,
+        medium_image: profile.photos[1].value,
+        large_image: profile.photos[2].value,
       });
     }
     catch ( err ) {

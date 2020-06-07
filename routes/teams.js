@@ -197,7 +197,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res) => {
   let teamTag = req.body[0].tag;
   let publicTeam = req.body[0].public_team;
   let userId = req.body[0].user_id;
-  updateTeam = {
+  let updateTeam = {
       user_id: userId,
       name: teamName,
       flag: teamFlag,
