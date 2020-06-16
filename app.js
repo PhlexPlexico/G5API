@@ -21,12 +21,16 @@ const usersRouter = require("./routes/users");
 const vetoesRouter = require("./routes/vetoes");
 //End Route Files
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerJSDoc = require('swagger-jsdoc');
+
 const passport = require("./utility/auth");
 const jwt = require("jsonwebtoken");
 const bearerToken = require("express-bearer-token");
 const config = require("config");
 const session = require("express-session");
 const redis = require("redis");
+
 // Messy but avoids any open file handles.
 const redisClient =
   process.env.NODE_ENV !== "test"
@@ -35,6 +39,7 @@ const redisClient =
       })
     : require("redis-mock").createClient();
 const redisStore = require("connect-redis")(session);
+
 const app = express();
 
 app.use(logger("dev"));
@@ -52,6 +57,7 @@ const redisCfg = {
   ttl: config.get(process.env.NODE_ENV + ".redisTTL"),
 };
 
+// Security defaults with helmet
 app.use(helmet());
 app.use(
   session({
@@ -73,6 +79,23 @@ app.use(cors());
 
 // adding morgan to log HTTP requests
 app.use(morgan("combined"));
+
+// swagger UI
+
+const options = {
+  definition: {
+    openapi: '3.0.0', // Specification (optional, defaults to swagger: '2.0')
+    info: {
+      title: 'G5API', // Title (required)
+      version: '0.1.0', // Version (required)
+    },
+  },
+  // Path to the API docs
+  apis: ['./routes/leaderboard.js','./routes/mapstats.js','./routes/users.js'],
+};
+const swaggerSpec = swaggerJSDoc(options);
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // END API SETUP
 

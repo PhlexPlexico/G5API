@@ -20,16 +20,93 @@ const db = require("../db");
 * @const */
 const Utils = require('../utility/utils');
 
-/** GET - Route serving to get all users.
- * @name router.get('/')
- * @function
- * @memberof module:routes/users
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
+
+/* Swagger shared definitions */
+
+/**
+ * @swagger
+ *
+ * components:
+ *   schemas:
+ *     NewUser:
+ *       type: object
+ *       properties:
+ *         steam_id:
+ *           type: integer
+ *           description: Steam ID of the user being created
+ *         name:
+ *           type: string
+ *           description: Name gathered from Steam. Can be updated
+ *         admin:
+ *           type: integer
+ *           description: Integer determining if a user is an admin of the system. Either 1 or 0.
+ *         super_admin:
+ *           type: integer
+ *           description: Integer determining if a user is an  admin of the system. Either 1 or 0.
+ *         small_image:
+ *           type: string
+ *           description: Akamai Steam URL to the small profile image
+ *         medium_image:
+ *           type: string
+ *           description: Akamai Steam URL to the small profile image
+ *         large_image:
+ *           type: string
+ *           description: Akamai Steam URL to the small profile image
+ *     User:
+ *       allOf:
+ *         - $ref: '#/components/schemas/NewUser'
+ *         - type: object
+ *           properties:
+ *             id:
+ *               type: integer
+ *     SimpleResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *   responses:
+ *     BadRequest:
+ *       description: Match ID not provided
+ *     NotFound:
+ *       description: The specified resource was not founds
+ *     Unauthorized:
+ *       description: Unauthorized
+ *     MatchNotFound:
+ *       description: Match not founds
+ *     Error:
+ *       description: Error
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
+ */
+
+
+/**
+ * @swagger
+ *
+ * /users/:
+ *   get:
+ *     description: Get all users
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - users
+ *     responses:
+ *       200:
+ *         description: List of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *               $ref: '#/components/schemas/User'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/", async (req, res) => {
   try {
-    
+
     let sql = "SELECT * FROM user";
     const allUsers = await db.query(sql);
     res.json(allUsers);
@@ -38,13 +115,30 @@ router.get("/", async (req, res) => {
   }
 });
 
-/** GET - Route serving to get one user by database or steam id.
- * @name router.get('/:userid')
- * @memberof module:routes/users
- * @function
- * @param {string} path - Express path
- * @param {number} request.param.user_id - The database or steam ID of the user.
- * @param {callback} middleware - Express middleware.
+
+/** @swagger
+ *
+ * /users/:user_id:
+ *   get:
+ *     description: Get spesific user
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: user_id
+ *         description: The database or steam ID of the user
+ *         required: true
+ *         type: string
+ *     tags:
+ *       - users
+ *     responses:
+ *       200:
+ *         description: Update successfull
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/:user_id", async (req, res, next) => {
   try {
@@ -57,19 +151,36 @@ router.get("/:user_id", async (req, res, next) => {
   }
 });
 
-/** POST - Route serving to insert a user into the database.
- * @name router.post('/create')
- * @function
- * @memberof module:routes/users
- * @param {number} req.body[0].steam_id - Steam ID of the user being created.
- * @param {string} req.body[0].name - Name gathered from Steam. Can be updated.
- * @param {number} req.body[0].admin - Integer determining if a user is an admin of the system. Either 1 or 0.
- * @param {number} req.body[0].super_admin - Integer determining if a user is a super admin of the system. Either 1 or 0.
- * @param {string} [req.body[0].small_image] - Akamai Steam URL to the small profile image.
- * @param {string} [req.body[0].medium_image] - Akamai Steam URL to the medium profile image.
- * @param {string} [req.body[0].large_image] - Akamai Steam URL to the large profile image.
+/**
+ * @swagger
+ *
+ * /users:
+ *   post:
+ *     description: Create user
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      description: Optional description in *Markdown*
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/NewUser'
+ *     tags:
+ *       - users
+ *     responses:
+ *       200:
+ *         description: Create successfull
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
+router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     if (req.user.super_admin === 1 || req.user.admin === 1) {
       await db.withTransaction(async () => {
@@ -87,7 +198,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
         res.json({ message: "User created successfully" });
       });
     } else {
-      res.status(401).json({ message: "You are not authorized to do this." });
+      res.status(403).json({ message: "You are not authorized to do this." });
     }
   } catch (err) {
     console.log(err);
@@ -95,19 +206,46 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** PUT - Route serving to update a user admin privilege in the application.
- * @name router.put('/update')
- * @function
- * @memberof module:routes/users
- * @param {number} req.body[0].steam_id - Steam ID of the user being edited.
- * @param {number} [req.body[0].admin] - Integer determining if a user is an admin of the system. Either 1 or 0.
- * @param {number} [req.body[0].super_admin] - Integer determining if a user is a super admin of the system. Either 1 or 0.
- * @param {String} [req.body[0].name] - Display name of the user being updated.
- * @param {string} [req.body[0].small_image] - Akamai Steam URL to the small profile image.
- * @param {string} [req.body[0].medium_image] - Akamai Steam URL to the medium profile image.
- * @param {string} [req.body[0].large_image] - Akamai Steam URL to the large profile image.
+
+
+ /**
+ * @swagger
+ *
+ * /users:
+ *   put:
+ *     description: Create user
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      description: Optional description in *Markdown*
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/NewUser'
+ *     tags:
+ *       - users
+ *     responses:
+ *       200:
+ *         description: User
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               schema:
+ *                 $ref: '#/components/schemas/User'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       412:
+ *         description: Nothing to update
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
+router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     let userToBeUpdated = await db.query("SELECT name, admin, super_admin FROM user WHERE id = ?", [req.body[0].steam_id]);
     let isAdmin = req.body[0].admin === null ? userToBeUpdated[0].admin : req.body[0].admin;
@@ -146,7 +284,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       }
       res.status(200).json({message: "User successfully updated!"});
     } else {
-      res.status(401).json({ message: "You are not authorized to do this." });
+      res.status(403).json({ message: "You are not authorized to do this." });
     }
   } catch (err) {
     console.log(err);
@@ -154,11 +292,34 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get a users' steam URL.
- * @name router.get('/:user_id/steam')
- * @function
- * @memberof module:routes/users
- * @param {number} req.params.user_id - Steam ID or user ID of the user being edited.
+
+
+/** @swagger
+ *
+ * /users/:user_id/steam:
+ *   get:
+ *     description:  get a users' steam URL
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: user_id
+ *         description: The database or steam ID of the user
+ *         required: true
+ *         type: string
+ *     tags:
+ *       - users
+ *     responses:
+ *       200:
+ *         description: Update successfull
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 url:
+ *                   type: string
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/:user_id/steam", async (req, res, next) => {
   try {
@@ -171,12 +332,34 @@ router.get("/:user_id/steam", async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get a users' recent matches.
- * @name router.get('/:user_id/recent')
- * @function
- * @memberof module:routes/users
- * @param {number} req.params.user_id - Steam ID or user ID of the user being edited.
+ /** @swagger
+ *
+ * /users/:user_id/recent:
+ *   get:
+ *     description: Get a users' recent matches
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: user_id
+ *         description: The database or steam ID of the user
+ *         required: true
+ *         type: string
+ *     tags:
+ *       - users
+ *     responses:
+ *       200:
+ *         description: Update successfull
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 url:
+ *                   type: string
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
+
 router.get("/:user_id/recent", async (req, res, next) => {
   try {
     userOrSteamID = req.params.user_id;

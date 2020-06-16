@@ -20,13 +20,52 @@ const db = require("../db");
  * @const */
 const Utils = require("../utility/utils");
 
-/** GET - Route serving to get all game servers.
- * @name router.get('/')
- * @function
- * @memberof module:routes/mapstats
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
- * @param {int} user_id - The user ID that is querying the data.
+
+/**
+ * @swagger
+ *
+ * components:
+ *   schemas:
+ *     SimpleResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *   responses:
+ *     BadRequest:
+ *       description: Match ID not provided
+ *     NotFound:
+ *       description: The specified resource was not founds
+ *     Unauthorized:
+ *       description: Unauthorized
+ *     MatchAlreadyFinished:
+ *       description: Match already finisheds
+ *     MatchNotFound:
+ *       description: Match not founds
+ *     Error:
+ *       description: Error
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
+ */
+
+
+/**
+ * @swagger
+ *
+ * /mapstats/:
+ *   get:
+ *     description: Stats for all servers
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - mapstats
+ *     responses:
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/", async (req, res, next) => {
   try {
@@ -43,13 +82,32 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get a set of map stats from a match.
- * @name router.get('/:match_id')
- * @memberof module:routes/mapstats
- * @function
- * @param {string} path - Express path
- * @param {number} request.param.match_id - The ID of the match containing the statistics.
- * @param {callback} middleware - Express middleware.
+
+/**
+ * @swagger
+ *
+ * /mapstats/:match_id:
+ *   get:
+ *     description: Set of map stats from a match
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         required: true
+ *         type: string
+ *     tags:
+ *       - mapstats
+ *     responses:
+ *       200:
+ *         description: Match stats
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       404:
+ *         $ref: '#/components/responses/MatchNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/:match_id", async (req, res, next) => {
   try {
@@ -66,20 +124,48 @@ router.get("/:match_id", async (req, res, next) => {
   }
 });
 
-/** POST - Create a map stat object from a given match.
- * @name router.post('/create')
- * @memberof module:routes/mapstats
- * @function
- * @param {int} req.body[0].match_id - The ID of the match.
- * @param {int} req.body[0].map_number - The current map number the series is on.
- * @param {string} req.body[0].map_name - The current map name.
- * @param {DateTime} req.body[0].start_time - The start time, as DateTime.
+
+/**
+ * @swagger
  *
+ * /mapstats:
+ *   post:
+ *     description: Add map stats for a match
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              match_id:
+ *                type: string
+ *     tags:
+ *       - mapstats
+ *     responses:
+ *       200:
+ *         description: Match stats
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/MatchNotFound'
+ *       422:
+ *         $ref: '#/components/responses/MatchAlreadyFinished'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
+router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     if (req.body[0].match_id == null) {
-      res.status(404).json({ message: "Match ID Not Provided" });
+      res.status(400).json({ message: "Match ID Not Provided" });
       return;
     }
     let currentMatchInfo =
@@ -93,7 +179,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       !Utils.superAdminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -101,7 +187,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
       matchRow[0].forfeit == 1 ||
       matchRow[0].end_time != null
     ) {
-      res.status(401).json({ message: "Match is already finished." });
+      res.status(422).json({ message: "Match is already finished." });
       return;
     } else {
       await db.withTransaction(async () => {
@@ -121,23 +207,44 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** PUT - Update a map stats object when it is completed.
- * @name router.put('/update')
- * @memberof module:routes/mapstats
- * @function
- * @param {int} req.body[0].map_stats_id - The ID of the map stat being updated, for end times, score, winner, and demo files.
- * @param {DateTime} [req.body[0].end_time] - The Date Time that the map has ended.
- * @param {int} [req.body[0].winner] - The ID of the team that was victorious.
- * @param {int} [req.body[0].team1_score] - The score of team1 defined in the match object.
- * @param {int} [req.body[0].team2_score] - The score of team2 defined in the match object.
- * @param {string} [req.body[0].map_name] - The map the stats are recording from in the match series.
- * @param {string} [req.body[0].demo_file] - The demo file of the match once demo has been finished recording.
+
+/**
+ * @swagger
  *
+ * /mapstats:
+ *   put:
+ *     description: Update a map stats object when it is completed
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              map_stats_id:
+ *                type: string
+ *     tags:
+ *       - mapstats
+ *     responses:
+ *       200:
+ *         description: Match stats
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/MatchNotFound'
+ *       422:
+ *         $ref: '#/components/responses/MatchAlreadyFinished'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
+router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     if (req.body[0].map_stats_id == null) {
-      res.status(404).json({ message: "Match ID Not Provided" });
+      res.status(400).json({ message: "Match ID Not Provided" });
       return;
     }
     let currentMatchInfo =
@@ -151,7 +258,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       !Utils.superAdminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -159,7 +266,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       matchRow[0].forfeit == 1 ||
       matchRow[0].mtch_end_time != null
     ) {
-      res.status(401).json({ message: "Match is already finished." });
+      res.status(422).json({ message: "Match is already finished." });
       return;
     } else {
       await db.withTransaction(async () => {
@@ -198,17 +305,48 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** DEL - Delete a game server in the database.
- * @name router.delete('/delete')
- * @memberof module:routes/mapstats
- * @function
- * @param {int} req.body[0].map_stats_id - The ID of the map stats being removed.
+
+/**
+ * @swagger
  *
+ * /mapstats:
+ *   delete:
+ *     description: Delete a map stats object
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              map_stats_id:
+ *                type: string
+ *     tags:
+ *       - mapstats
+ *     responses:
+ *       200:
+ *         description: Mapstat deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/MatchNotFound'
+ *       422:
+ *         $ref: '#/components/responses/MatchAlreadyFinished'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
+router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     if (req.body[0].map_stats_id == null) {
-      res.status(404).json({ message: "Map Stats ID Not Provided" });
+      res.status(400).json({ message: "Map Stats ID Not Provided" });
       return;
     }
     let currentMatchInfo =
@@ -222,7 +360,7 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
       !Utils.superAdminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -230,7 +368,7 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
       matchRow[0].forfeit == 1 ||
       matchRow[0].mtch_end_time != null
     ) {
-      res.status(401).json({ message: "Match is already finished." });
+      res.status(422).json({ message: "Match is already finished." });
       return;
     } else {
       await db.withTransaction(async () => {

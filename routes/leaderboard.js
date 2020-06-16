@@ -21,12 +21,56 @@ const db = require("../db");
  */
 const Utils = require("../utility/utils");
 
-/** GET - Route serving to get lifetime leaderboard of teams.
- * @name router.get('/')
- * @function
- * @memberof module:routes/leaderboard
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
+
+/**
+ * @swagger
+ *
+ * components:
+ *   schemas:
+ *     SimpleResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *   responses:
+ *     BadRequest:
+ *       description: Match ID not provided
+ *     NotFound:
+ *       description: The specified resource was not founds
+ *     Unauthorized:
+ *       description: Unauthorized
+ *     MatchAlreadyFinished:
+ *       description: Match already finisheds
+ *     MatchNotFound:
+ *       description: Match not founds
+ *     Error:
+ *       description: Error
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
+ */
+
+
+/**
+ * @swagger
+ *
+ * /leaderboard/:
+ *   get:
+ *     description: Get lifetime leaderboard of teams
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - leaderboard
+ *     responses:
+ *       200:
+ *         description: Leaderboard
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/", async (req, res) => {
   try {
@@ -37,12 +81,26 @@ router.get("/", async (req, res) => {
   }
 });
 
-/** GET - Route serving to get a lifetime leaderboard for players.
- * @name router.get('/players')
- * @function
- * @memberof module:routes/leaderboard
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
+
+/**
+ * @swagger
+ *
+ * /leaderboard/players:
+ *   get:
+ *     description: Get lifetime leaderboard for players
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - leaderboard
+ *     responses:
+ *       200:
+ *         description: Leaderboard
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/players", async (req, res) => {
   try {
@@ -54,13 +112,29 @@ router.get("/players", async (req, res) => {
   }
 });
 
-/** GET - Route serving to get a seasonal leaderboard for players.
- * @name router.get('/players/:season_id')
- * @function
- * @memberof module:routes/leaderboard
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
- * @param {integer} season_id - Season ID to examine.
+/**
+ * @swagger
+ *
+ * /leaderboard/players/:season_id:
+ *   get:
+ *     description: Seasonal leaderboard for players
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: season_id
+ *         required: true
+ *         type: string
+ *     tags:
+ *       - leaderboard
+ *     responses:
+ *       200:
+ *         description: Leaderboard
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/players/:season_id", async (req, res) => {
   try {
@@ -73,13 +147,29 @@ router.get("/players/:season_id", async (req, res) => {
   }
 });
 
-/** GET - Route serving to get a season leaderboard of teams.
- * @name router.get('/:season_id')
- * @function
- * @memberof module:routes/leaderboard
- * @param {string} path - Express path
- * @param {integer} season_id - The season ID to query over for matches.
- * @param {callback} middleware - Express middleware.
+/**
+ * @swagger
+ *
+ * /leaderboard/:
+ *   get:
+ *     description: Seasonal leaderboard for teams
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - leaderboard
+ *     parameters:
+ *       - name: season_id
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Leaderboard
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/:season_id", async (req, res) => {
   try {
@@ -191,31 +281,31 @@ const getPlayerLeaderboard = async (seasonId = null) => {
    * 2. Grab raw values, and calculate things like HSP and KDR for each user. Get names and cache 'em even.
    * 3. Insert into list of objects for each user.
    */
-  let playerStatSql = `SELECT  steam_id, name, sum(kills) as kills, 
+  let playerStatSql = `SELECT  steam_id, name, sum(kills) as kills,
     sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
-    sum(k2) as k2, sum(k3) as k3, 
-    sum(k4) as k4, sum(k5) as k5, sum(v1) as v1, 
-    sum(v2) as v2, sum(v3) as v3, sum(v4) as v4, 
-    sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba, 
-    sum(damage) as dmg, sum(headshot_kills) as hsk
-    FROM    player_stats 
-    WHERE   match_id IN (
-        SELECT  id 
-        FROM    \`match\` 
-        WHERE   cancelled=0
-    )
-    GROUP BY steam_id, name`;
-  let playerStatSqlSeasons = `SELECT  steam_id, name, sum(kills) as kills, 
-    sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
-    sum(k2) as k2, sum(k3) as k3, 
-    sum(k4) as k4, sum(k5) as k5, sum(v1) as v1, 
-    sum(v2) as v2, sum(v3) as v3, sum(v4) as v4, 
-    sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba, 
+    sum(k2) as k2, sum(k3) as k3,
+    sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
+    sum(v2) as v2, sum(v3) as v3, sum(v4) as v4,
+    sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba,
     sum(damage) as dmg, sum(headshot_kills) as hsk
     FROM    player_stats
     WHERE   match_id IN (
-        SELECT  id 
-        FROM    \`match\` 
+        SELECT  id
+        FROM    \`match\`
+        WHERE   cancelled=0
+    )
+    GROUP BY steam_id, name`;
+  let playerStatSqlSeasons = `SELECT  steam_id, name, sum(kills) as kills,
+    sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
+    sum(k2) as k2, sum(k3) as k3,
+    sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
+    sum(v2) as v2, sum(v3) as v3, sum(v4) as v4,
+    sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba,
+    sum(damage) as dmg, sum(headshot_kills) as hsk
+    FROM    player_stats
+    WHERE   match_id IN (
+        SELECT  id
+        FROM    \`match\`
         WHERE   cancelled=0
         AND season_id = ?
     )
