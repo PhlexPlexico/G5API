@@ -82,14 +82,14 @@ describe('Delete Mapstats', () => {
             map_stats_id: 1,
         }];
         request
-            .delete('/mapstats/delete')
+            .delete('/mapstats')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(teamData)
+            .expect(200)
             .expect((result) => {
                 expect(result.body.message).toMatch(/successfully/);
             })
-            .expect(200)
             .end(done);
     });
 });
