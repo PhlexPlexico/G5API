@@ -27,7 +27,7 @@ describe('Create Mapstats', () => {
             start_time: new Date().toISOString().slice(0, 19).replace("T", " ")
         }];
         request
-            .post('/mapstats/create')
+            .post('/mapstats')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(teamData)
@@ -45,7 +45,7 @@ describe('Create Mapstats', () => {
             start_time: new Date().toISOString().slice(0, 19).replace("T", " ")
         }];
         request
-            .post('/mapstats/create')
+            .post('/mapstats')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(teamData)
@@ -64,7 +64,7 @@ describe('Update Mapstats', () => {
             end_time: new Date().toISOString().slice(0, 19).replace("T", " ")
         }];
         request
-            .put('/mapstats/update')
+            .put('/mapstats')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(teamData)
