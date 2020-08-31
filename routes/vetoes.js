@@ -26,7 +26,7 @@ const Utils = require('../utility/utils');
  * @memberof module:routes/vetoes
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
- * @param {int} user_id - The user ID that is querying the data.
+ * @param {number} user_id - The user ID that is querying the data.
  */
 router.get("/", async (req, res, next) => {
   try {
@@ -70,7 +70,7 @@ router.get("/:match_id", async (req, res, next) => {
  * @name router.post('/create')
  * @memberof module:routes/vetoes
  * @function
- * @param {int} req.body[0].match_id - The ID of the match.
+ * @param {number} req.body[0].match_id - The ID of the match.
  * @param {string} req.body[0].team_name - The name of the team that is vetoeing.
  * @param {string} req.body[0].map_name - The current map name that was vetoed or picked.
  * @param {string} req.body[0].pick_or_ban - Whether it was a pick or ban.
@@ -119,8 +119,8 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  * @name router.delete('/delete')
  * @memberof module:routes/vetoes
  * @function
- * @param {int} req.body[0].user_id - The ID of the user deleteing. Can check if admin when implemented.
- * @param {int} req.body[0].match_id - The ID of the match for vetoes to remove.
+ * @param {number} req.body[0].user_id - The ID of the user deleteing. Can check if admin when implemented.
+ * @param {number} req.body[0].match_id - The ID of the match for vetoes to remove.
  *
 */
 router.delete("/delete", Utils.ensureAuthenticated, async (req,res,next) => {

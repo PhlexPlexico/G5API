@@ -26,7 +26,7 @@ const Utils = require('../utility/utils');
  * @memberof module:routes/seasons
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
- * @param {int} user_id - The user ID that is querying the data.
+ * @param {number} user_id - The user ID that is querying the data.
  */
 router.get("/", async (req, res, next) => {
   try {
@@ -49,7 +49,7 @@ router.get("/", async (req, res, next) => {
  * @memberof module:routes/seasons
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
- * @param {int} user_id - The user ID that is querying the data.
+ * @param {number} user_id - The user ID that is querying the data.
  */
 router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
@@ -119,8 +119,8 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  * @name router.put('/update')
  * @memberof module:routes/seasons
  * @function
- * @param {int} req.body[0].season_id - The ID of the season being modified.
- * @param {int} [req.body[0].user_id] - The ID of the user to give the season to.
+ * @param {number} req.body[0].season_id - The ID of the season being modified.
+ * @param {number} [req.body[0].user_id] - The ID of the user to give the season to.
  * @param {string} [req.body[0].name] - The name of the Season to be updated.
  * @param {DateTime} [req.body[0].start_date] - Season start date.
  * @param {DateTime} [req.body[0].end_date] - Season end date.
@@ -174,8 +174,8 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
  * @name router.delete('/delete')
  * @memberof module:routes/seasons
  * @function
- * @param {int} req.user.id - The ID of the user deleteing.
- * @param {int} req.body[0].season_id - The ID of the match to remove all values pertaining to the season.
+ * @param {number} req.user.id - The ID of the user deleteing.
+ * @param {number} req.body[0].season_id - The ID of the match to remove all values pertaining to the season.
  *
  */
 router.delete("/delete", async (req, res, next) => {

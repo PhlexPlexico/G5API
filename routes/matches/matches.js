@@ -35,7 +35,7 @@ const GameServer = require("../../utility/serverrcon");
  * @memberof module:routes/matches
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
- * @param {int} user_id - The user ID that is querying the data.
+ * @param {number} user_id - The user ID that is querying the data.
  */
 router.get("/", async (req, res, next) => {
   try {
@@ -59,7 +59,7 @@ router.get("/", async (req, res, next) => {
  * @memberof module:routes/matches
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
- * @param {int} user_id - The user ID that is querying the data.
+ * @param {number} user_id - The user ID that is querying the data.
  */
 router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
@@ -200,13 +200,13 @@ router.get("/:match_id/config", async (req, res, next) => {
  * @name router.post('/create')
  * @memberof module:routes/matches
  * @function
- * @param {int} req.user.id - The ID of the user creating the match.
- * @param {int} [req.body[0].server_id] - The server ID the match is being designated to. NULL if to be provided later.
- * @param {int} req.body[0].team1_id - The ID of team one.
- * @param {int} req.body[0].team2_id - The ID of team two.
- * @param {int} [req.body[0].season_id] - The ID of the season. NULL if no season.
+ * @param {number} req.user.id - The ID of the user creating the match.
+ * @param {number} [req.body[0].server_id] - The server ID the match is being designated to. NULL if to be provided later.
+ * @param {number} req.body[0].team1_id - The ID of team one.
+ * @param {number} req.body[0].team2_id - The ID of team two.
+ * @param {number} [req.body[0].season_id] - The ID of the season. NULL if no season.
  * @param {DateTime} [req.body[0].start_time] - The starting time of the match.
- * @param {int} req.body[0].max_maps - The number of max maps played per series.
+ * @param {number} req.body[0].max_maps - The number of max maps played per series.
  * @param {string} req.body[0].title - The title of the match, default is 'Map {MAPNUMBER} of {MAXMAPS}'.
  * @param {boolean} req.body[0].skip_veto - Boolean value representing whether to skip the veto or not.
  * @param {string} [req.body[0].veto_first] - The string value team1 or team2 on who gets to veto first.
@@ -310,17 +310,17 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  * @name router.put('/update')
  * @memberof module:routes/matches
  * @function
- * @param {int} req.user.id - The ID of the user updating the match.
- * @param {int} req.body[0].match_id - The ID of the match to be updated.
- * @param {int} [req.body[0].user_id] - The optional user id to pass the match off to.
- * @param {int} [req.body[0].server_id] - The optional server id to assign to a match.
+ * @param {number} req.user.id - The ID of the user updating the match.
+ * @param {number} req.body[0].match_id - The ID of the match to be updated.
+ * @param {number} [req.body[0].user_id] - The optional user id to pass the match off to.
+ * @param {number} [req.body[0].server_id] - The optional server id to assign to a match.
  * @param {DateTime} [req.body[0].start_time]- The end time of the match.
  * @param {DateTime} [req.body[0].end_time]- The end time of the match.
- * @param {int} [req.body[0].winner] - The ID of the team who won the series.
+ * @param {number} [req.body[0].winner] - The ID of the team who won the series.
  * @param {string} [req.body[0].plugin_version] - The version of the get5 plugin running on the server.
  * @param {boolean} [req.body[0].forfeit] - Boolean value representing whether the match was forfeit.
  * @param {string} [req.body[0].cancelled] - Boolean value representing whether the match was cancelled.
- * @param {int} [req.body[0].team1_score] - The score of team1 during the series.
+ * @param {number} [req.body[0].team1_score] - The score of team1 during the series.
  * @param {string} [req.body[0].team2_score]- The score of team2 during the series.
  * @param {JSON} [req.body[0].spectator_auths]- JSON array of spectator auths.
  * @param {boolean} [req.body[0].private_match] - Boolean value representing whether the match is limited visibility to users on the team or who is on map stats.
@@ -447,8 +447,8 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
  * @name router.delete('/delete')
  * @memberof module:routes/matches
  * @function
- * @param {int} req.user.id - The ID of the user deleteing. Can check if admin when implemented.
- * @param {int} req.body[0].match_id - The ID of the match to remove all values pertaining to the match.
+ * @param {number} req.user.id - The ID of the user deleteing. Can check if admin when implemented.
+ * @param {number} req.body[0].match_id - The ID of the match to remove all values pertaining to the match.
  *
  */
 router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {

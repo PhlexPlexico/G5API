@@ -77,7 +77,7 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
  * @name router.get('/:team_id')
  * @function
  * @memberof module:routes/teams
- * @param {int} teamid - The team ID you wish to examine.
+ * @param {number} teamid - The team ID you wish to examine.
  */
 router.get("/:team_id", async (req, res) => {
   teamID = req.params.team_id;
@@ -106,7 +106,7 @@ router.get("/:team_id", async (req, res) => {
  * @name router.post('/create')
  * @function
  * @memberof module:routes/teams
- * @param {int} req.body[0].user_id - The ID of the user creating the team to claim ownership.
+ * @param {number} req.body[0].user_id - The ID of the user creating the team to claim ownership.
  * @param {string} req.body[0].name - Team name inputted by a user.
  * @param {string} req.body[0].flag - International code for a flag.
  * @param {string} req.body[0].logo - A string representing the logo stored on the webserver.
@@ -168,9 +168,9 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res) => {
  * @name router.put('/update')
  * @function
  * @memberof module:routes/teams
- * @param {int} req.user.id - The ID of the user updating values.
- * @param {int} req.body[0].id - The ID of the team to be updated.
- * @param {int} [req.body[0].user_id] - The ID to update the user parameter.
+ * @param {number} req.user.id - The ID of the user updating values.
+ * @param {number} req.body[0].id - The ID of the team to be updated.
+ * @param {number} [req.body[0].user_id] - The ID to update the user parameter.
  * @param {string} [req.body[0].name] - Team name inputted by a user.
  * @param {string} [req.body[0].flag] - International code for a flag.
  * @param {string} [req.body[0].logo] - A string representing the logo stored on the webserver.
@@ -240,7 +240,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res) => {
  * @name router.delete('/delete')
  * @function
  * @memberof module:routes/teams
- * @param {int} req.body[0].team_id - The ID of the team being updated.
+ * @param {number} req.body[0].team_id - The ID of the team being updated.
  */
 router.delete("/delete/", Utils.ensureAuthenticated, async (req, res) => {
   let teamID = req.body[0].team_id;
@@ -297,7 +297,7 @@ router.delete("/delete/", Utils.ensureAuthenticated, async (req, res) => {
  * @name router.get('/:team_id/recent')
  * @function
  * @memberof module:routes/teams
- * @param {int} teamid - The team ID you wish to examine.
+ * @param {number} teamid - The team ID you wish to examine.
  */
 router.get("/:team_id/recent", async(req, res) => {
   try {
@@ -314,8 +314,8 @@ router.get("/:team_id/recent", async(req, res) => {
  * @name router.get('/:team_id/result/:match_id')
  * @function
  * @memberof module:routes/teams
- * @param {int} req.params.teamid - The team ID you wish to examine for results.
- * @param {int} req.params.matchid - The match ID you wish to examine for results.
+ * @param {number} req.params.teamid - The team ID you wish to examine for results.
+ * @param {number} req.params.matchid - The match ID you wish to examine for results.
  */
 router.get("/:team_id/result/:match_id", async(req, res) => {
   try {

@@ -36,13 +36,13 @@ const Utils = require("../utility/utils");
  *     BadRequest:
  *       description: Match ID not provided
  *     NotFound:
- *       description: The specified resource was not founds
+ *       description: The specified resource was not found
  *     Unauthorized:
  *       description: Unauthorized
  *     MatchAlreadyFinished:
- *       description: Match already finisheds
+ *       description: Match already finished
  *     MatchNotFound:
- *       description: Match not founds
+ *       description: Match not found
  *     Error:
  *       description: Error
  *       content:

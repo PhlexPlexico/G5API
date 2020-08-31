@@ -33,9 +33,9 @@ const GameServer = require("../../utility/serverrcon");
  * @name router.get("/forfeit/:winnerID)
  * @memberof module:routes/matches/matchserver
  * @function
- * @param {int} req.params.winner_id - The ID representing the team that won via forfeit. Either team 1 or team 2.
- * @param {int} req.params.match_id - The ID of the match to forfeit.
- * @param {int} req.user.id - The ID of the user creating this request.
+ * @param {number} req.params.winner_id - The ID representing the team that won via forfeit. Either team 1 or team 2.
+ * @param {number} req.params.match_id - The ID of the match to forfeit.
+ * @param {number} req.user.id - The ID of the user creating this request.
  *
  */
 router.get(
@@ -121,7 +121,7 @@ router.get(
  * @name router.get("/:match_id/cancel)
  * @memberof module:routes/matches/matchserver
  * @function
- * @param {int} req.user.id - The ID of the user creating this request.
+ * @param {number} req.user.id - The ID of the user creating this request.
  *
  */
 router.get(
@@ -202,7 +202,7 @@ router.get(
  * @name router.get("/:match_id/rcon)
  * @memberof module:routes/matches/matchserver
  * @function
- * @param {int} req.user.id - The ID of the user creating this request.
+ * @param {number} req.user.id - The ID of the user creating this request.
  * @param {String} req.body[0].rcon_command - The rcon command the user has sent in.
  *
  */
@@ -268,7 +268,7 @@ router.get(
  * @name router.get("/:match_id/pause)
  * @memberof module:routes/matches/matchserver
  * @function
- * @param {int} req.user.id - The ID of the user creating this request.
+ * @param {number} req.user.id - The ID of the user creating this request.
  *
  */
 router.get(
@@ -324,7 +324,7 @@ router.get(
  * @name router.get("/:match_id/unpause)
  * @memberof module:routes/matches/matchserver
  * @function
- * @param {int} req.user.id - The ID of the user creating this request.
+ * @param {number} req.user.id - The ID of the user creating this request.
  *
  */
 router.get(
@@ -380,7 +380,7 @@ router.get(
  * @name router.put("/:match_id/adduser)
  * @memberof module:routes/matches/matchserver
  * @function
- * @param {int} req.user.id - The ID of the user creating this request.
+ * @param {number} req.user.id - The ID of the user creating this request.
  * @param {any} req.body[0].user_id - The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
  * @param {String} req.body[0].team_id - Either the first or second team in the match, team1 or team2.
  * @param {String} [req.body[0].nickname] - Optional nickname for the user being added into the match.
@@ -444,7 +444,7 @@ router.put(
  * @name router.put("/:match_id/addspec)
  * @memberof module:routes/matches/matchserver
  * @function
- * @param {int} req.user.id - The ID of the user creating this request.
+ * @param {number} req.user.id - The ID of the user creating this request.
  * @param {any} req.body[0].user_id - The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
  *
  */
@@ -500,7 +500,7 @@ router.put(
  * @name router.put("/:match_id/backup)
  * @memberof module:routes/matches/matchserver
  * @function
- * @param {int} req.user.id - The ID of the user creating this request.
+ * @param {number} req.user.id - The ID of the user creating this request.
  *
  */
 router.get(
@@ -554,7 +554,7 @@ router.get(
  * @name router.put("/:match_id/backup)
  * @memberof module:routes/matches/matchserver
  * @function
- * @param {int} req.user.id - The ID of the user creating this request.
+ * @param {number} req.user.id - The ID of the user creating this request.
  * @param {String} req.body[0].backup_name - Filename of the backup located on the game server.
  *
  */

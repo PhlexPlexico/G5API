@@ -84,8 +84,8 @@ const playerStatRateLimit = rateLimit({
  * @memberof module:routes/legacy/api
  * @param {string} req.query.key - The API key given from the game server to compare.
  * @param {string} req.query.winner - The string for which team won the match. team1 or team2.
- * @param {int} [req.query.forfeit] - Optional if a team has forfeit a match.
- * @param {int} req.params.match_id - The given match ID from the path.
+ * @param {number} [req.query.forfeit] - Optional if a team has forfeit a match.
+ * @param {number} req.params.match_id - The given match ID from the path.
  */
 router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
   try {
@@ -155,9 +155,9 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
  * @name /
  * @function
  * @memberof module:routes/legacy/api
- * @param {int} req.params.match_id - The given match ID to start.
+ * @param {number} req.params.match_id - The given match ID to start.
  * @param {string} req.query.key - The API key given from the game server to compare.
- * @param {int} req.params.map_number - The given map number to start.
+ * @param {number} req.params.map_number - The given map number to start.
  * @param {string} req.query.mapname - The given map name to update in the map stats object.
  */
 router.post("/:match_id/map/:map_number/start", basicRateLimit, async (req, res, next) => {
@@ -232,10 +232,10 @@ router.post("/:match_id/map/:map_number/start", basicRateLimit, async (req, res,
  * @function
  * @memberof module:routes/legacy/api
  * @param {string} req.query.key - The API key given from the game server to compare.
- * @param {int} req.query.team1_score - The string for which team won the match. team1 or team2.
- * @param {int} req.query.team2_score - Optional if a team has forfeit a match.
- * @param {int} req.params.match_id - The given match ID from the path.
- * @param {int} req.params.map_number - The given map number from the URI path.
+ * @param {number} req.query.team1_score - The string for which team won the match. team1 or team2.
+ * @param {number} req.query.team2_score - Optional if a team has forfeit a match.
+ * @param {number} req.params.match_id - The given match ID from the path.
+ * @param {number} req.params.map_number - The given map number from the URI path.
  */
 router.post("/:match_id/map/:map_number/update", updateMapRateLimit, async (req, res, next) => {
   try{
@@ -289,7 +289,7 @@ router.post("/:match_id/map/:map_number/update", updateMapRateLimit, async (req,
  * @function
  * @memberof module:routes/legacy/api
  * @param {string} req.query.key - The API key given from the game server to compare.
- * @param {int} req.query.teamString - The team string consisting of either team1, team2, or nothing.
+ * @param {number} req.query.teamString - The team string consisting of either team1, team2, or nothing.
  * @param {string} req.query.map - The map the team has picked or banned.
  * @param {string} req.query.pick_or_veto - The action taken upon the team.
  * @param {string} req.params.match_id - The ID of the current match.
@@ -354,8 +354,8 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
  * @name /:match_id/map/:map_number/demo
  * @function
  * @memberof module:routes/legacy/api
- * @param {int} req.params.match_id - The id of a given match.
- * @param {int} req.params.map_number - The map id of a given match.
+ * @param {number} req.params.match_id - The id of a given match.
+ * @param {number} req.params.map_number - The map id of a given match.
  * @param {string} req.query.demoFile - The URL for a demo file in string form.
  * @param {string} req.query.key - The API key given from the game server to compare.
  */
@@ -405,8 +405,8 @@ router.post("/:match_id/map/:map_number/demo", basicRateLimit, async (req, res, 
  * @name /:match_id/map/:map_number/finish
  * @function
  * @memberof module:routes/legacy/api
- * @param {int} req.params.match_id - The id of a given match.
- * @param {int} req.params.map_number - The map id of a given match.
+ * @param {number} req.params.match_id - The id of a given match.
+ * @param {number} req.params.map_number - The map id of a given match.
  * @param {string} req.query.winner - The string representation of the winner, usually team1 or team2.
  * @param {string} req.query.key - The API key given from the game server to compare.
  */
@@ -483,37 +483,37 @@ router.post("/:match_id/map/:map_number/finish", basicRateLimit, async (req, res
  * @name /:match_id/map/:map_number/player/:steam_id/update
  * @function
  * @memberof module:routes/legacy/api
- * @param {int} req.params.match_id - The id of a given match.
- * @param {int} req.params.map_number - The map id of a given match.
+ * @param {number} req.params.match_id - The id of a given match.
+ * @param {number} req.params.map_number - The map id of a given match.
  * @param {string} req.params.steam_id - The string representation of a Steam64 ID.
  * @param {string} req.query.key - The API key given from the game server to compare.
  * @param {string} req.query.name - The name of the player in the server.
  * @param {string} req.query.team - The team the player is on, either team1 or team2.
- * @param {int} req.query.kills - The amount of kills the player has.
- * @param {int} req.query.assists - The amount of assists the player has.
- * @param {int} req.query.deaths - The amount of deaths the player has.
- * @param {int} req.query.flashbang_assists - The amount of flashbang assists the player has.
- * @param {int} req.query.teamkills - The amount of team kills the player has.
- * @param {int} req.query.suicides - The amount of suicides the player has.
- * @param {int} req.query.damage - The total amount of damage the player has given over the map.
- * @param {int} req.query.headshot_kills - The total amount of headshots the player has given over the map.
- * @param {int} req.query.roundsplayed - The total amount of rounds played in the map.
- * @param {int} req.query.bomb_plants - The total amount of bomb plants played in the map.
- * @param {int} req.query.bomb_defuses - The total amount of bomb defuses played in the map.
- * @param {int} req.query.1kill_rounds - The total amount of 1 kill rounds the player has in the map.
- * @param {int} req.query.2kill_rounds - The total amount of 2 kill rounds the player has in the map.
- * @param {int} req.query.3kill_rounds - The total amount of 3 kill rounds the player has in the map.
- * @param {int} req.query.4kill_rounds - The total amount of 4 kill rounds the player has in the map.
- * @param {int} req.query.5kill_rounds - The total amount of 5 kill rounds the player has in the map.
- * @param {int} req.query.v1 - The total amount of 1v1s the player has in the map.
- * @param {int} req.query.v2 - The total amount of 1v2s the player has in the map.
- * @param {int} req.query.v3 - The total amount of 1v3s the player has in the map.
- * @param {int} req.query.v4 - The total amount of 1v4s the player has in the map.
- * @param {int} req.query.v5 - The total amount of 1v5s the player has in the map.
- * @param {int} req.query.firstkill_t - The total amount of first kills the player has in the map as terrorist.
- * @param {int} req.query.firstkill_ct - The total amount of first kills the player has in the map as counter-terrorist.
- * @param {int} req.query.firstdeath_t - The total amount of first deaths the player has in the map as terrorist.
- * @param {int} req.query.firstdeath_ct - The total amount of first deaths the player has in the map as counter-terrorist.
+ * @param {number} req.query.kills - The amount of kills the player has.
+ * @param {number} req.query.assists - The amount of assists the player has.
+ * @param {number} req.query.deaths - The amount of deaths the player has.
+ * @param {number} req.query.flashbang_assists - The amount of flashbang assists the player has.
+ * @param {number} req.query.teamkills - The amount of team kills the player has.
+ * @param {number} req.query.suicides - The amount of suicides the player has.
+ * @param {number} req.query.damage - The total amount of damage the player has given over the map.
+ * @param {number} req.query.headshot_kills - The total amount of headshots the player has given over the map.
+ * @param {number} req.query.roundsplayed - The total amount of rounds played in the map.
+ * @param {number} req.query.bomb_plants - The total amount of bomb plants played in the map.
+ * @param {number} req.query.bomb_defuses - The total amount of bomb defuses played in the map.
+ * @param {number} req.query.1kill_rounds - The total amount of 1 kill rounds the player has in the map.
+ * @param {number} req.query.2kill_rounds - The total amount of 2 kill rounds the player has in the map.
+ * @param {number} req.query.3kill_rounds - The total amount of 3 kill rounds the player has in the map.
+ * @param {number} req.query.4kill_rounds - The total amount of 4 kill rounds the player has in the map.
+ * @param {number} req.query.5kill_rounds - The total amount of 5 kill rounds the player has in the map.
+ * @param {number} req.query.v1 - The total amount of 1v1s the player has in the map.
+ * @param {number} req.query.v2 - The total amount of 1v2s the player has in the map.
+ * @param {number} req.query.v3 - The total amount of 1v3s the player has in the map.
+ * @param {number} req.query.v4 - The total amount of 1v4s the player has in the map.
+ * @param {number} req.query.v5 - The total amount of 1v5s the player has in the map.
+ * @param {number} req.query.firstkill_t - The total amount of first kills the player has in the map as terrorist.
+ * @param {number} req.query.firstkill_ct - The total amount of first kills the player has in the map as counter-terrorist.
+ * @param {number} req.query.firstdeath_t - The total amount of first deaths the player has in the map as terrorist.
+ * @param {number} req.query.firstdeath_ct - The total amount of first deaths the player has in the map as counter-terrorist.
  */
 router.post("/:match_id/map/:map_number/player/:steam_id/update", playerStatRateLimit, async (req, res, next) => {
   try {

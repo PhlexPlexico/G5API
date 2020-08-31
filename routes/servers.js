@@ -32,7 +32,7 @@ const Utils = require("../utility/utils");
  * @memberof module:routes/servers
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware.
- * @param {int} user_id - The user ID that is querying the data.
+ * @param {number} user_id - The user ID that is querying the data.
  */
 router.get("/", async (req, res, next) => {
   try {
@@ -89,7 +89,7 @@ router.get("/myservers", Utils.ensureAuthenticated, async (req, res, next) => {
  * @param {string} path - Express path
  * @param {number} request.param.server_id - The ID of the game server.
  * @param {callback} middleware - Express middleware.
- * @param {int} user_id - The user ID that is querying the data. Check if they own it or are an admin.
+ * @param {number} user_id - The user ID that is querying the data. Check if they own it or are an admin.
  */
 router.get(
   "/:server_id",
@@ -125,7 +125,7 @@ router.get(
  * @name router.get('/:server_id/status')
  * @memberof module:routes/servers
  * @function
- * @param {int} req.body[0].server_id - The ID of the server being queried.
+ * @param {number} req.body[0].server_id - The ID of the server being queried.
  *
  */
 router.get(
@@ -176,12 +176,12 @@ router.get(
  * @name router.post('/create')
  * @memberof module:routes/servers
  * @function
- * @param {int} req.user.id - The ID of the user creating the server to claim ownership.
+ * @param {number} req.user.id - The ID of the user creating the server to claim ownership.
  * @param {string} req.body[0].ip_string - The host of the server. Can be a URL or IP Address.
- * @param {int} req.body[0].port - The port that the server is used to connect with.
+ * @param {number} req.body[0].port - The port that the server is used to connect with.
  * @param {string} req.body[0].display_name - The name that people will see on the game panel.
  * @param {string} req.body[0].rcon_password - The RCON password of the server. This will be encrypted on the server side.
- * @param {int} req.body[0].public_server - Integer value evaluating if the server is public.
+ * @param {number} req.body[0].public_server - Integer value evaluating if the server is public.
  *
  */
 router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
@@ -228,13 +228,13 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  * @name router.put('/update')
  * @memberof module:routes/servers
  * @function
- * @param {int} req.body[0].user_id - The ID of the user if transferring ownership.
- * @param {int} req.body[0].server_id - The ID of the server being updated.
+ * @param {number} req.body[0].user_id - The ID of the user if transferring ownership.
+ * @param {number} req.body[0].server_id - The ID of the server being updated.
  * @param {string} req.body[0].ip_string - The host of the server. Can be a URL or IP Address.
- * @param {int} req.body[0].port - The port that the server is used to connect with.
+ * @param {number} req.body[0].port - The port that the server is used to connect with.
  * @param {string} req.body[0].display_name - The name that people will see on the game panel.
  * @param {string} req.body[0].rcon_password - The RCON password of the server. This will be encrypted on the server side.
- * @param {int} req.body[0].public_server - Integer value evaluating if the server is public.
+ * @param {number} req.body[0].public_server - Integer value evaluating if the server is public.
  *
  */
 router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
@@ -309,7 +309,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
  * @name router.delete('/delete')
  * @memberof module:routes/servers
  * @function
- * @param {int} req.body[0].server_id - The ID of the server being updated.
+ * @param {number} req.body[0].server_id - The ID of the server being updated.
  *
  */
 router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
