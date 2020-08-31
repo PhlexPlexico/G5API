@@ -27,7 +27,7 @@ describe('Create Mapstats', () => {
             start_time: new Date().toISOString().slice(0, 19).replace("T", " ")
         }];
         request
-            .post('/mapstats/create')
+            .post('/mapstats')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(teamData)
@@ -45,7 +45,7 @@ describe('Create Mapstats', () => {
             start_time: new Date().toISOString().slice(0, 19).replace("T", " ")
         }];
         request
-            .post('/mapstats/create')
+            .post('/mapstats')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(teamData)
@@ -64,7 +64,7 @@ describe('Update Mapstats', () => {
             end_time: new Date().toISOString().slice(0, 19).replace("T", " ")
         }];
         request
-            .put('/mapstats/update')
+            .put('/mapstats')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(teamData)
@@ -82,14 +82,14 @@ describe('Delete Mapstats', () => {
             map_stats_id: 1,
         }];
         request
-            .delete('/mapstats/delete')
+            .delete('/mapstats')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(teamData)
+            .expect(200)
             .expect((result) => {
                 expect(result.body.message).toMatch(/successfully/);
             })
-            .expect(200)
             .end(done);
     });
 });

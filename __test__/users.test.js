@@ -43,13 +43,13 @@ describe('Get Steam URL', () => {
 describe('Setup New User', () => {
   it('Should setup a new user only if we are an admin or super_admin.', async done => {
     let newUserData = [{
-      id: 1, 
-      steam_id: 1234, 
-      name: "Test User", 
+      id: 1,
+      steam_id: 1234,
+      name: "Test User",
       admin: 0,
       super_admin: 0
     }];
-    request.post('/users/create').
+    request.post('/users').
     set('Content-Type', 'application/json').
     set('Accept', 'application/json').
     send(newUserData).
@@ -66,7 +66,7 @@ describe('Update User', () => {
       admin: 0,
       super_admin: 0
     }];
-    request.put('/users/update').
+    request.put('/users').
     set('Content-Type', 'application/json').
     set('Accept', 'application/json').
     send(updatedUserData).
@@ -83,11 +83,11 @@ describe('Attempt New User', () => {
       admin: 1,
       super_admin: 1
     }];
-    request.post('/users/create').
+    request.post('/users').
     set('Content-Type', 'application/json').
     set('Accept', 'application/json').
     send(newUserData).
-    expect(401, done);
+    expect(403, done);
   });
 });
 
