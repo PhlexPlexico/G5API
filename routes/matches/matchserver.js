@@ -551,7 +551,7 @@ router.get(
 );
 
 /** POST - Runs a backup file on the game server.
- * @name router.put("/:match_id/backup)
+ * @name router.post("/:match_id/backup)
  * @memberof module:routes/matches/matchserver
  * @function
  * @param {number} req.user.id - The ID of the user creating this request.

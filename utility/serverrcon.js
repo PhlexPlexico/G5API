@@ -10,8 +10,8 @@ class ServerRcon {
    * Represents a game server.
    * @constructor
    * @param {string} hostName - IP String or host of server.
-   * @param {int} portNumber - Integer port number of the server.
-   * @param {int} [timeOut] - Timeout you wish to have on server in milliseconds.
+   * @param {number} portNumber - Integer port number of the server.
+   * @param {number} [timeOut] - Timeout you wish to have on server in milliseconds.
    * @param {string} rconPassword - Rcon password of the server, encrypted.
    */
   constructor(hostName, portNumber, timeOut, rconPassword) {
