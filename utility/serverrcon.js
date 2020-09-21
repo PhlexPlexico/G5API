@@ -49,11 +49,14 @@ class ServerRcon {
       let get5Status = await this.server.execute("get5_web_avaliable");
       let get5JsonStatus = await JSON.parse(get5Status);
       if (get5Status.includes("Unknown command")) {
-        return "Either get5 or get5_apistats plugin missing.";
+        console.log("Either get5 or get5_apistats plugin missing.");
+        return false;
       } else if (get5JsonStatus.game_state != 0) {
-        return "Server already has a get5 match setup.";
+        console.log("Server already has a get5 match setup.");
+        return false;
       } else {
-        return get5JsonStatus;
+        console.log(get5JsonStatus);
+        return true;
       }
     } catch (err) {
       console.error("Error on game server: " + err.toString());
