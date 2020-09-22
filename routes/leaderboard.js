@@ -3,6 +3,12 @@
  * @requires express
  * @requires db
  */
+
+ /**
+ * @swagger
+ * resourcePath: /leaderboard
+ * description: Leaderboard calls from the database.
+ */
 const express = require("express");
 
 /** Express module
@@ -20,36 +26,6 @@ const db = require("../db");
  @const
  */
 const Utils = require("../utility/utils");
-
-
-/**
- * @swagger
- *
- * components:
- *   schemas:
- *     SimpleResponse:
- *       type: object
- *       properties:
- *         message:
- *           type: string
- *   responses:
- *     BadRequest:
- *       description: Match ID not provided
- *     NotFound:
- *       description: The specified resource was not found
- *     Unauthorized:
- *       description: Unauthorized
- *     MatchAlreadyFinished:
- *       description: Match already finished
- *     MatchNotFound:
- *       description: Match not found
- *     Error:
- *       description: Error
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/SimpleResponse'
- */
 
 
 /**

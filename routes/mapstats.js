@@ -1,7 +1,13 @@
-/** Express API router for users in get5.
+/** Express API router for mapstats in get5.
  * @module routes/mapstats
  * @requires express
  * @requires db
+ */
+
+ /**
+ * @swagger
+ * resourcePath: /mapstats
+ * description: Express API router for mapstats in get5.
  */
 const express = require("express");
 
@@ -35,13 +41,13 @@ const Utils = require("../utility/utils");
  *     BadRequest:
  *       description: Match ID not provided
  *     NotFound:
- *       description: The specified resource was not founds
+ *       description: The specified resource was not found.
  *     Unauthorized:
  *       description: Unauthorized
  *     MatchAlreadyFinished:
- *       description: Match already finisheds
+ *       description: Match already finished.
  *     MatchNotFound:
- *       description: Match not founds
+ *       description: Match not found.
  *     Error:
  *       description: Error
  *       content:
@@ -94,7 +100,7 @@ router.get("/", async (req, res, next) => {
  *     parameters:
  *       - name: match_id
  *         required: true
- *         type: string
+ *         type: integer
  *     tags:
  *       - mapstats
  *     responses:
@@ -141,7 +147,17 @@ router.get("/:match_id", async (req, res, next) => {
  *            type: object
  *            properties:
  *              match_id:
+ *                type: integer
+ *                description: Match ID of the current match.
+ *            map_number:
+ *                type: integer
+ *                description: Current map the match is on.
+ *            map_name:
  *                type: string
+ *                description: Name of the map.
+ *            start_time:
+ *              type: dateTime
+ *              description: Time in date time format.
  *     tags:
  *       - mapstats
  *     responses:
@@ -222,9 +238,29 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *        application/json:
  *          schema:
  *            type: object
+ *            required:
+ *              - map_stats_id
  *            properties:
  *              map_stats_id:
+ *                type: integer
+ *              end_time:
+ *                type: dateTime
+ *                description: The time the match ended.
+ *              team1_score:
+ *                type: integer
+ *                description: The score from team 1 in the map.
+ *              team2_score:
+ *                type: integer
+ *                description: The score from team 2 in the map.
+ *              winner:
+ *                type: integer
+ *                description: The Team ID of the team that won.
+ *              demoFile:
  *                type: string
+ *                description: The URL to the demo file, usually uploaded by get5.
+ *              map_name:
+ *                type: string
+ *                description: The name of the map being played.
  *     tags:
  *       - mapstats
  *     responses:
@@ -271,8 +307,6 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     } else {
       await db.withTransaction(async () => {
         let mapStatId = req.body[0].map_stats_id;
-        let userProfile = req.user.id;
-        let matchQuery =
           "SELECT a.user_id FROM `match` a, map_stats b WHERE b.id = ?";
         let updatedValues = {
           end_time: req.body[0].end_time,
@@ -322,7 +356,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *            type: object
  *            properties:
  *              map_stats_id:
- *                type: string
+ *                type: integer
  *     tags:
  *       - mapstats
  *     responses:

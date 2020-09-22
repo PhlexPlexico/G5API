@@ -1,32 +1,177 @@
-/** Express API router for users in get5.
- * @module routes/playerstats
- * @requires express
- * @requires db
+  /**
+ * @swagger
+ * resourcePath: /playerstats
+ * description: Express API for player stats in Get5 matches.
  */
 const express = require("express");
 
-/** Express module
- * @const
- */
 
 const router = express.Router();
-/** Database module.
- * @const
- */
 
 const db = require("../db");
 
-/** Utility class for various methods used throughout.
- * @const */
 const Utils = require("../utility/utils");
 
-/** GET - Route serving to get all player statistics.
- * @name router.get('/')
- * @function
- * @memberof module:routes/playerstats
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
- * @param {number} user_id - The user ID that is querying the data.
+/* Swagger shared definitions */
+/**
+ * @swagger
+ *
+ * components:
+ *   schemas:
+ *     NewStats:
+ *       type: object
+ *       required:
+ *         - api_key
+ *         - match_id
+ *         - map_id
+ *         - team_id
+ *         - steam_id
+ *         - name
+ *       properties:
+ *         api_key:
+ *           type: string
+ *           description: API key of the match being updated.
+ *         match_id:
+ *           type: integer
+ *           description: Match identifier in the system.
+ *         map_id:
+ *           type: integer
+ *           description: Integer determining the current map of the match.
+ *         team_id:
+ *           type: integer
+ *           description: Integer determining the team a player is on.
+ *         steam_id:
+ *           type: string
+ *           description: String that reprsents a players Steam64 ID.
+ *         name:
+ *           type: string
+ *           description: String determining player's name.
+ *         kills:
+ *           type: integer
+ *           description: Integer representing amount of kills.
+ *         deaths:
+ *           type: integer
+ *           description: Integer representing amount of deaths.
+ *         roundsplayed:
+ *           type: integer
+ *           description: Integer representing amount of roundsplayed.
+ *         assists:
+ *           type: integer
+ *           description: Integer representing amount of assists.
+ *         flashbang_assists:
+ *           type: integer
+ *           description: Integer representing amount of flashbang assists.
+ *         teamkills:
+ *           type: integer
+ *           description: Integer representing amount of team kills.
+ *         suicides:
+ *           type: integer
+ *           description: Integer representing amount of suicides.
+ *         headshot_kills:
+ *           type: integer
+ *           description: Integer representing amount of headshot kills.
+ *         damage:
+ *           type: integer
+ *           description: Integer representing amount of damage.
+ *         bomb_plants:
+ *           type: integer
+ *           description: Integer representing amount of bomb plants.
+ *         bomb_defuses:
+ *           type: integer
+ *           description: Integer representing amount of bomb defuses.
+ *         v1:
+ *           type: integer
+ *           description: Integer representing amount of 1v1s.
+ *         v2:
+ *           type: integer
+ *           description: Integer representing amount of 1v2s.
+ *         v3:
+ *           type: integer
+ *           description: Integer representing amount of 1v3s.
+ *         v4:
+ *           type: integer
+ *           description: Integer representing amount of 1v4s.
+ *         v5:
+ *           type: integer
+ *           description: Integer representing amount of 1v5s.
+ *         k1:
+ *           type: integer
+ *           description: Integer representing amount of 1 kill rounds.
+ *         k2:
+ *           type: integer
+ *           description: Integer representing amount of 2 kill rounds.
+ *         k3:
+ *           type: integer
+ *           description: Integer representing amount of 3 kill rounds.
+ *         k4:
+ *           type: integer
+ *           description: Integer representing amount of 4 kill rounds.
+ *         k5:
+ *           type: integer
+ *           description: Integer representing amount of 5 kill rounds.
+ *         firstdeath_ct:
+ *           type: integer
+ *           description: Integer representing amount of times a player died as a CT first in a round.
+ *         firstdeath_t:
+ *           type: integer
+ *           description: Integer representing amount of times a player died as a T first in a round.
+ *         firstkill_ct:
+ *           type: integer
+ *           description: Integer representing amount of times a player killed as a CT first in a round.
+ *         firstkill_t:
+ *           type: integer
+ *           description: Integer representing amount of times a player killed as a T first in a round.
+ *     PlayerStat:
+ *       allOf:
+ *         - $ref: '#/components/schemas/NewStats'
+ *         - type: object
+ *           properties:
+ *             steam_id:
+ *               type: string
+ *     SimpleResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *   responses:
+ *     BadRequest:
+ *       description: Steam ID not supplied.
+ *     NotFound:
+ *       description: The specified resource was not founds
+ *     Unauthorized:
+ *       description: Unauthorized
+ *     StatsNotFound:
+ *       description: Stats not Found.
+ *     Error:
+ *       description: Error
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
+ */
+
+
+/**
+ * @swagger
+ *
+ * /playerstats/:
+ *   get:
+ *     description: Route serving to get all player statistics.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Player Stats
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/PlayerStatsNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/", async (req, res, next) => {
   try {
@@ -43,13 +188,31 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get all player stats via a given user.
- * @name router.get('/:steam_id')
- * @memberof module:routes/playerstats
- * @function
- * @param {string} path - Express path
- * @param {number} request.param.steam_id - The ID of the match containing the statistics.
- * @param {callback} middleware - Express middleware.
+/**
+ * @swagger
+ *
+ * /playerstats/:steam_id:
+ *   get:
+ *     description: Player stats from a given Steam ID.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: steam_id
+ *         required: true
+ *         type: string
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Player stats from a given user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       404:
+ *         $ref: '#/components/responses/PlayerStatsNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/:steam_id", async (req, res, next) => {
   try {
@@ -67,22 +230,39 @@ router.get("/:steam_id", async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get all player stats within a match.
- * @name router.get('/match/:match_id')
- * @memberof module:routes/playerstats
- * @function
- * @param {string} path - Express path
- * @param {number} request.param.match_id - The ID of the match containing the statistics.
- * @param {callback} middleware - Express middleware.
+/**
+ * @swagger
+ *
+ * /playerstats/match/:match_id:
+ *   get:
+ *     description: Player stats from a given match in the system.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         required: true
+ *         type: number
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Player stats from a given match.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       404:
+ *         $ref: '#/components/responses/PlayerStatsNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/match/:match_id", async (req, res, next) => {
   try {
-    //
     matchID = req.params.match_id;
     let sql = "SELECT * FROM player_stats where match_id = ?";
     const playerStats = await db.query(sql, matchID);
     if (playerStats.length === 0) {
-      res.status(404).json({ message: "No stats found for player " + matchID });
+      res.status(404).json({ message: "No stats found for match " + matchID });
       return;
     }
     res.json(playerStats);
@@ -91,43 +271,35 @@ router.get("/match/:match_id", async (req, res, next) => {
   }
 });
 
-/** POST - Create a veto object from a given match.
- * @name router.post('/create')
- * @memberof module:routes/playerstats
- * @function
- * @param {String} req.body[0].api_key - The API Key that has been generated by the match.
- * @param {number} req.body[0].match_id - The ID of the match.
- * @param {number} req.body[0].map_id - The ID of the map being played in the match, used in series.
- * @param {number} req.body[0].team_id - The team ID the player is being registered as.
- * @param {string} req.body[0].steam_id - The users' steam ID.
- * @param {string} req.body[0].name - The users' in game name.
- * @param {number} [req.body[0].kills] - Optional amount of kills.
- * @param {number} [req.body[0].deaths] - Optional amount of deaths.
- * @param {number} [req.body[0].roundsplayed] - Optional amount of rounds played
- * @param {number} [req.body[0].assists] - Amount of assists.
- * @param {number} [req.body[0].flashbang_assists] - Amount of registered flashbang assists.
- * @param {number} [req.body[0].teamkills] - Amount of teamkills player has given.
- * @param {number} [req.body[0].suicides] - Amount of player suicides.
- * @param {number} [req.body[0].headshot_kills] - Amount of headshot kills.
- * @param {number} [req.body[0].damage] - Total damage the player has given.
- * @param {number} [req.body[0].bomb_plants] - Amount of bomb plants within given map/match.
- * @param {number} [req.body[0].bomb_defuses] - Amount of bomb defuses within given map/match.
- * @param {number} [req.body[0].v1] - Amount of 1v1 situations won.
- * @param {number} [req.body[0].v2] - Amount of 1v2 situations won.
- * @param {number} [req.body[0].v3] - Amount of 1v3 situations won.
- * @param {number} [req.body[0].v4] - Amount of 1v4 situations won.
- * @param {number} [req.body[0].v5] - Amount of 1v5 situations won.
- * @param {number} [req.body[0].k1] - Amount of 1 kill rounds.
- * @param {number} [req.body[0].k2] - Amount of 2 kill rounds.
- * @param {number} [req.body[0].k3] - Amount of 3 kill rounds.
- * @param {number} [req.body[0].k4] - Amount of 4 kill rounds.
- * @param {number} [req.body[0].k5] - Amount of ace (5 kill) rounds.
- * @param {number} [req.body[0].firstdeath_ct] - Amount of times player died first as Counter-Terrorist.
- * @param {number} [req.body[0].firstdeath_t] - Amount of times player died first as Terrorist.
- * @param {number} [req.body[0].firstkill_ct] - Amount of times player has gotten first kill as Counter-Terrorist.
- * @param {number} [req.body[0].firstkill_t] - Amount of times player has gotten first kill as Terrorist.
+/**
+ * @swagger
+ *
+ * /playerstats:
+ *   post:
+ *     description: Create player stats in a match/map.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/NewStats'
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Create successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
+router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     if (
       req.body[0].match_id == null ||
@@ -210,41 +382,36 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** PUT - Create a veto object from a given match.
- * @name router.put('/update')
- * @memberof module:routes/playerstats
- * @function
- * @param {number} req.body[0].match_id - The ID of the match.
- * @param {number} req.body[0].map_id - The ID of the map being played in the match, used in series.
- * @param {string} req.body[0].steam_id - The users' steam ID.
- * @param {string} req.body[0].name - The users' in game name.
- * @param {number} [req.body[0].kills] - Optional amount of kills.
- * @param {number} [req.body[0].deaths] - Optional amount of deaths.
- * @param {number} [req.body[0].roundsplayed] - Optional amount of rounds played
- * @param {number} [req.body[0].assists] - Amount of assists.
- * @param {number} [req.body[0].flashbang_assists] - Amount of registered flashbang assists.
- * @param {number} [req.body[0].teamkills] - Amount of teamkills player has given.
- * @param {number} [req.body[0].suicides] - Amount of player suicides.
- * @param {number} [req.body[0].headshot_kills] - Amount of headshot kills.
- * @param {number} [req.body[0].damage] - Total damage the player has given.
- * @param {number} [req.body[0].bomb_plants] - Amount of bomb plants within given map/match.
- * @param {number} [req.body[0].bomb_defuses] - Amount of bomb defuses within given map/match.
- * @param {number} [req.body[0].v1] - Amount of 1v1 situations won.
- * @param {number} [req.body[0].v2] - Amount of 1v2 situations won.
- * @param {number} [req.body[0].v3] - Amount of 1v3 situations won.
- * @param {number} [req.body[0].v4] - Amount of 1v4 situations won.
- * @param {number} [req.body[0].v5] - Amount of 1v5 situations won.
- * @param {number} [req.body[0].k1] - Amount of 1 kill rounds.
- * @param {number} [req.body[0].k2] - Amount of 2 kill rounds.
- * @param {number} [req.body[0].k3] - Amount of 3 kill rounds.
- * @param {number} [req.body[0].k4] - Amount of 4 kill rounds.
- * @param {number} [req.body[0].k5] - Amount of ace (5 kill) rounds.
- * @param {number} [req.body[0].firstdeath_ct] - Amount of times player died first as Counter-Terrorist.
- * @param {number} [req.body[0].firstdeath_t] - Amount of times player died first as Terrorist.
- * @param {number} [req.body[0].firstkill_ct] - Amount of times player has gotten first kill as Counter-Terrorist.
- * @param {number} [req.body[0].firstkill_t] - Amount of times player has gotten first kill as Terrorist.
+/**
+ * @swagger
+ *
+ * /playerstats:
+ *   put:
+ *     description: Update player stats in a match/map.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/NewStats'
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Update successful.
+ *         content:
+ *           application/json:
+ *             type: object
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
+router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     if (
       req.body[0].match_id == null ||
@@ -354,7 +521,42 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
  * @param {number} req.body[0].match_id - The ID of the match to remove all values pertaining to the match.
  *
  */
-router.delete("/delete", async (req, res, next) => {
+/**
+ * @swagger
+ *
+ * /playerstats:
+ *   delete:
+ *     description: Delete all player stats object from a match.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              match_id:
+ *                type: integer
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Player stat deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/MatchNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.delete("/", async (req, res, next) => {
   try {
     if (req.body[0].match_id == null) {
       res.status(404).json({ message: "Required Data Not Provided" });
@@ -371,7 +573,7 @@ router.delete("/delete", async (req, res, next) => {
       !Utils.superAdminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -396,7 +598,7 @@ router.delete("/delete", async (req, res, next) => {
         }
       });
     } else {
-      res.status(401).json({
+      res.status(403).json({
         message: "Match is currently live. Cannot delete live matches.",
       });
       return;

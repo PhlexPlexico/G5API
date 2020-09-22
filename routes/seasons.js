@@ -1,32 +1,57 @@
-/** Express API router for users in get5.
- * @module routes/seasons
- * @requires express
- * @requires db
- */
+
 const express = require("express");
 
-/** Express module
- * @const
- */
-
 const router = express.Router();
-/** Database module.
- * @const
- */
 
 const db = require("../db");
 
-/** Utility class for various methods used throughout.
-* @const */
 const Utils = require('../utility/utils');
 
-/** GET - Route serving to get all seasons.
- * @name router.get('/')
- * @function
- * @memberof module:routes/seasons
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
- * @param {number} user_id - The user ID that is querying the data.
+
+/**
+ * @swagger
+ *
+ * components:
+ *   schemas:
+ *     SimpleResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *   responses:
+ *     BadRequest:
+ *       description: Season ID not provided
+ *     NotFound:
+ *       description: The specified resource was not found.
+ *     Unauthorized:
+ *       description: Unauthorized.
+ *     NoSeasonData:
+ *       description: No season data was provided.
+ *     SeasonNotFound:
+ *       description: Season was not found.
+ *     Error:
+ *       description: Error
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
+ */
+
+/**
+ * @swagger
+ *
+ * /seasons/:
+ *   get:
+ *     description: Get all seasons from the application.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       404:
+ *         $ref: '#/components/responses/SeasonsNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/", async (req, res, next) => {
   try {
@@ -43,13 +68,27 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get all seasons.
- * @name router.get('/myseasons')
- * @function
- * @memberof module:routes/seasons
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
- * @param {number} user_id - The user ID that is querying the data.
+/**
+ * @swagger
+ *
+ * /seasons/myseasons:
+ *   get:
+ *     description: Set of seasons from the logged in user.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: Seasons of logged in user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       404:
+ *         $ref: '#/components/responses/SeasonsNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
@@ -66,13 +105,32 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get base information of a season.
- * @name router.get('/:seasonid')
- * @memberof module:routes/seasons
- * @function
- * @param {string} path - Express path
- * @param {number} request.param.season_id - The ID of the season to retrieve basic information.
- * @param {callback} middleware - Express middleware.
+
+/**
+ * @swagger
+ *
+ * /seasons/:season_id:
+ *   get:
+ *     description: Set of matches from a season.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: season_id
+ *         required: true
+ *         type: integer
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: Season stats
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       404:
+ *         $ref: '#/components/responses/SeasonNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/:season_id", async (req, res, next) => {
   try {
@@ -89,15 +147,47 @@ router.get("/:season_id", async (req, res, next) => {
   }
 });
 
-/** POST - Create a veto object from a given match.
- * @name router.post('/create')
- * @memberof module:routes/seasons
- * @function
- * @param {string} req.body[0].name - The name of the Season to be created.
- * @param {DateTime} req.body[0].start_date - Season start date.
- * @param {DateTime} [req.body[0].end_date] - Optional season end date.
+/**
+ * @swagger
+ *
+ * /mapstats:
+ *   post:
+ *     description: Add map stats for a match
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              name:
+ *                type: string
+ *                description: The name of the Season to be created.
+ *                required: true
+ *            start_date:
+ *                type: dateTime
+ *                description: Season start date.
+ *                required: true
+ *            end_date:
+ *                type: dateTime
+ *                description: Optional season end date.
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: Seasons
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
+router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     await db.withTransaction(async () => {
       let insertSet = {
@@ -115,17 +205,55 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** PUT - Update a season with the given parameters. 
- * @name router.put('/update')
- * @memberof module:routes/seasons
- * @function
- * @param {number} req.body[0].season_id - The ID of the season being modified.
- * @param {number} [req.body[0].user_id] - The ID of the user to give the season to.
- * @param {string} [req.body[0].name] - The name of the Season to be updated.
- * @param {DateTime} [req.body[0].start_date] - Season start date.
- * @param {DateTime} [req.body[0].end_date] - Season end date.
+/**
+ * @swagger
+ *
+ * /seasons:
+ *   put:
+ *     description: Update a map stats object when it is completed
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            required:
+ *              - season_id
+ *            properties:
+ *              season_id:
+ *                type: integer
+ *              name:
+ *                type: string
+ *                description: The name of the Season to be created.
+ *              start_date:
+ *                type: dateTime
+ *                description: Season start date.
+ *              end_date:
+ *                type: dateTime
+ *                description: Optional season end date.
+ *              user_id: 
+ *                type: integer
+ *                description: Optional user ID to swap the seasons ownership.
+ *            
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: Match stats
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/SeasonNotFound'
+ *       412:
+ *         $ref: '#/components/responses/NoSeasonData'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
+router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
   if(req.body[0].season_id == null){
     res.status(404).json({ message: "No season found." })
@@ -140,7 +268,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
     !Utils.superAdminCheck(req.user)
   ) {
     res
-      .status(401)
+      .status(403)
       .json({ message: "User is not authorized to perform action." });
     return;
   } else {
@@ -169,14 +297,41 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** DEL - Delete all season data associated with a given ID. The user must own the season, OR they must be a super admin.
- * This will NULL out all season data on matches that are associated with it.
- * @name router.delete('/delete')
- * @memberof module:routes/seasons
- * @function
- * @param {number} req.user.id - The ID of the user deleteing.
- * @param {number} req.body[0].season_id - The ID of the match to remove all values pertaining to the season.
+
+/**
+ * @swagger
  *
+ * /seasons:
+ *   delete:
+ *     description: Delete a season object. NULLs any linked matches to the season as well.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              season_id:
+ *                type: integer
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: Season deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/SeasonNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.delete("/delete", async (req, res, next) => {
   let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
@@ -189,7 +344,7 @@ router.delete("/delete", async (req, res, next) => {
     !Utils.superAdminCheck(req.user)
   ) {
     res
-      .status(401)
+      .status(403)
       .json({ message: "User is not authorized to perform action." });
     return;
   } else {
