@@ -122,7 +122,7 @@ describe('Bad Actor', () => {
             api_key: 'NOTAGOODAPIKEY'
         }];
         request
-            .post('/playerstats/create')
+            .post('/playerstats/')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(statData)

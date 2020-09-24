@@ -11,20 +11,11 @@
  */
 const express = require("express");
 
-/** Express module
- * @const
- */
 
 const router = express.Router();
-/** Database module.
- * @const
- */
 
 const db = require("../db");
 
-/** Util helpers.
- @const
- */
 const Utils = require("../utility/utils");
 
 

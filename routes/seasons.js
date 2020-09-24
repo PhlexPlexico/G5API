@@ -1,3 +1,9 @@
+ /**
+ * @swagger
+ * resourcePath: /seasons
+ * description: Express API router for seasons in get5.
+ */
+
 
 const express = require("express");
 
@@ -315,6 +321,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *            properties:
  *              season_id:
  *                type: integer
+ *                required: true
  *     tags:
  *       - seasons
  *     responses:

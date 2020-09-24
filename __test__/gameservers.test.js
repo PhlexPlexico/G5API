@@ -30,7 +30,7 @@ describe("Setup New Server", () => {
       },
     ];
     request
-      .post("/servers/create")
+      .post("/servers/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(newServerData)
@@ -51,7 +51,7 @@ describe("Setup New Server", () => {
       },
     ];
     request
-      .post("/servers/create")
+      .post("/servers/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(newServerData)
@@ -72,7 +72,7 @@ describe("Setup New Server", () => {
       },
     ];
     request
-      .post("/servers/create")
+      .post("/servers/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(newServerData)
@@ -117,7 +117,7 @@ describe("Update Server", () => {
       },
     ];
     request
-      .put("/servers/update")
+      .put("/servers/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(updatedServerData)
@@ -133,7 +133,7 @@ describe("Delete Server", () => {
   it("Should delete the information of the first server.", async (done) => {
     let deleteData = [{ server_id: 1 }];
     request
-      .delete("/servers/delete")
+      .delete("/servers/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(deleteData)
@@ -150,7 +150,7 @@ describe("Being a bad actor", () => {
     const result = await request
       .get("/servers/2")
       .expect("Content-Type", /json/);
-    expect(result.statusCode).toEqual(401);
+    expect(result.statusCode).toEqual(403);
     expect(result.body.message).toMatch(/not authorized/);
     done();
   });
@@ -164,11 +164,11 @@ describe("Being a bad actor", () => {
       },
     ];
     request
-      .put("/servers/update")
+      .put("/servers/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(updatedServerData)
-      .expect(401)
+      .expect(403)
       .expect((result) => {
         expect(result.body.message).toMatch(/not authorized/);
       })

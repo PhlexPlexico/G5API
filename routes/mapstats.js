@@ -1,9 +1,3 @@
-/** Express API router for mapstats in get5.
- * @module routes/mapstats
- * @requires express
- * @requires db
- */
-
  /**
  * @swagger
  * resourcePath: /mapstats
@@ -11,19 +5,10 @@
  */
 const express = require("express");
 
-/** Express module
- * @const
- */
-
 const router = express.Router();
-/** Database module.
- * @const
- */
 
 const db = require("../db");
 
-/** Utility class for various methods used throughout.
- * @const */
 const Utils = require("../utility/utils");
 
 
