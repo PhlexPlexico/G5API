@@ -108,7 +108,7 @@ describe('Bad Actor', () => {
             .expect((result) => {
                 expect(result.body.message).toMatch(/not authorized/);
             })
-            .expect(401)
+            .expect(403)
             .end(done);
     });
     it('Should insert an invalid player stat into the third match', async done => {

@@ -323,7 +323,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       !Utils.superAdminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -331,7 +331,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       matchRow[0].forfeit == 1 ||
       matchRow[0].mtch_end_time != null
     ) {
-      res.status(401).json({
+      res.status(403).json({
         message:
           "Match is already finished. Cannot insert into historical matches.",
       });
@@ -434,7 +434,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       !Utils.superAdminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -442,7 +442,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       matchRow[0].forfeit == 1 ||
       matchRow[0].mtch_end_time != null
     ) {
-      res.status(401).json({
+      res.status(403).json({
         message: "Match is already finished. Cannot update historical matches.",
       });
       return;

@@ -91,7 +91,7 @@ describe('Update the bad actor season', () => {
             .expect((result) => {
               expect(result.body.message).toMatch(/not authorized/);
             })
-            .expect(401)
+            .expect(403)
             .end(done);
     });
 });
