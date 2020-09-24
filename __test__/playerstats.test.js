@@ -129,7 +129,7 @@ describe('Bad Actor', () => {
             .expect((result) => {
                 expect(result.body.message).toMatch(/not authorized/);
             })
-            .expect(401)
+            .expect(403)
             .end(done);
     });
     it('Should attempt to delete a live match.', async done => {
@@ -145,7 +145,7 @@ describe('Bad Actor', () => {
             .expect((result) => {
                 expect(result.body.message).toMatch(/currently live/);
             })
-            .expect(401)
+            .expect(403)
             .end(done);
     });
 });
