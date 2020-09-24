@@ -1,36 +1,64 @@
-/** Express API router for users in get5.
- * @module routes/vetoes
- * @requires express
- * @requires db
+/**
+ * @swagger
+ * resourcePath: /vetoes
+ * description: Express API router for vetoes in get5.
  */
 const express = require("express");
 
-/** Express module
- * @const
- */
-
 const router = express.Router();
-/** Database module.
- * @const
- */
 
 const db = require("../db");
 
-/** Utility class for various methods used throughout.
-* @const */
 const Utils = require('../utility/utils');
 
-/** GET - Route serving to get all vetoes.
- * @name router.get('/')
- * @function
- * @memberof module:routes/vetoes
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
- * @param {number} user_id - The user ID that is querying the data.
+
+/**
+ * @swagger
+ *
+ * components:
+ *   schemas:
+ *     SimpleResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *   responses:
+ *     BadRequest:
+ *       description: Match ID not provided
+ *     NotFound:
+ *       description: The specified resource was not found.
+ *     Unauthorized:
+ *       description: Unauthorized.
+ *     NoSeasonData:
+ *       description: No veto data was provided.
+ *     SeasonNotFound:
+ *       description: Veto data was not found.
+ *     Error:
+ *       description: Error
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
+ */
+
+/**
+ * @swagger
+ *
+ * /vetoes/:
+ *   get:
+ *     description: Get all veto data from the application.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - vetoes
+ *     responses:
+ *       404:
+ *         $ref: '#/components/responses/VetoesNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/", async (req, res, next) => {
   try {
-    // Check if admin, if they are use this query.
     let sql = "SELECT * FROM veto";
     const vetoes = await db.query(sql);
     if (vetoes.length === 0) {
@@ -43,13 +71,26 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get all vetoes of a match.
- * @name router.get('/:matchid')
- * @memberof module:routes/vetoes
- * @function
- * @param {string} path - Express path
- * @param {number} request.param.match_id - The ID of the match containing the statistics.
- * @param {callback} middleware - Express middleware.
+
+/**
+ * @swagger
+ *
+ * /vetoes/:match_id:
+ *   get:
+ *     description: Get all veto data from a specified match.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         required: true
+ *         type: integer
+ *     tags:
+ *       - vetoes
+ *     responses:
+ *       404:
+ *         $ref: '#/components/responses/VetoesNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/:match_id", async (req, res, next) => {
   try {
@@ -66,17 +107,58 @@ router.get("/:match_id", async (req, res, next) => {
   }
 });
 
-/** POST - Create a veto object from a given match.
- * @name router.post('/create')
- * @memberof module:routes/vetoes
- * @function
- * @param {number} req.body[0].match_id - The ID of the match.
- * @param {string} req.body[0].team_name - The name of the team that is vetoeing.
- * @param {string} req.body[0].map_name - The current map name that was vetoed or picked.
- * @param {string} req.body[0].pick_or_ban - Whether it was a pick or ban.
+/**
+ * @swagger
  *
-*/
-router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
+ * /vetoes:
+ *   post:
+ *     description: Updates an existing server.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              match_id:
+ *                type: integer
+ *                description: Match ID
+ *                required: true
+ *              team_name:
+ *                type: string
+ *                description: Name of the team voting.
+ *                requried: true
+ *              map_name:
+ *                type: string
+ *                description: Name of the map being voted on.
+ *                required: true
+ *              pick_or_ban:
+ *                type: string
+ *                description: String reprsenting whether it was a "pick" or "ban".
+ *                required: true
+ *     tags:
+ *       - vetoes
+ *     responses:
+ *       200:
+ *         description: Veto added successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/MatchNotFound'
+ *       412:
+ *         $ref: '#/components/responses/NoVetoData'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
   const matchRow = await db.query(matchUserId, req.body[0].match_id);
   if (matchRow.length === 0) {
@@ -87,7 +169,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
     !Utils.superAdminCheck(req.user)
   ) {
     res
-      .status(401)
+      .status(403)
       .json({ message: "User is not authorized to perform action." });
     return;
   } else {
@@ -123,7 +205,46 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
  * @param {number} req.body[0].match_id - The ID of the match for vetoes to remove.
  *
 */
-router.delete("/delete", Utils.ensureAuthenticated, async (req,res,next) => {
+/**
+ * @swagger
+ *
+ * /vetoes:
+ *   delete:
+ *     description: Deletes vetoes associated with a match.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              match_id:
+ *                type: integer
+ *                description: Match ID
+ *                required: true
+ *     tags:
+ *       - vetoes
+ *     responses:
+ *       200:
+ *         description: Veto added successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/MatchNotFound'
+ *       412:
+ *         $ref: '#/components/responses/NoVetoData'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.delete("/", Utils.ensureAuthenticated, async (req,res,next) => {
   let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
   const matchRow = await db.query(matchUserId, req.body[0].match_id);
   if (matchRow.length === 0) {
@@ -134,7 +255,7 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req,res,next) => {
     !Utils.superAdminCheck(req.user)
   ) {
     res
-      .status(401)
+      .status(403)
       .json({ message: "User is not authorized to perform action." });
     return;
   } else {

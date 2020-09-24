@@ -1,7 +1,7 @@
  /**
  * @swagger
  * resourcePath: /servers
- * description: Express API router for mapstats in get5.
+ * description: Express API router for servers in get5.
  */
 
 const express = require("express");
@@ -57,7 +57,7 @@ const Utils = require("../utility/utils");
  *       - servers
  *     responses:
  *       404:
- *         $ref: '#/components/responses/ServerssNotFound'
+ *         $ref: '#/components/responses/ServersNotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -277,15 +277,15 @@ router.get(
  *                type: integer
  *                description: Port of the server.
  *                required: true
- *            display_name:
+ *              display_name:
  *                type: string
  *                description: Visible name of the server.
  *                required: true
- *            rcon_password:
+ *              rcon_password:
  *                type: string
  *                description: RCON password of the server.
  *                required: true
- *            public_server:
+ *              public_server:
  *                type: boolean
  *                description: Whether a server can be publically used.
  *                required: true
@@ -368,13 +368,13 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *              port:
  *                type: integer
  *                description: Port of the server.
- *            display_name:
+ *              display_name:
  *                type: string
  *                description: Visible name of the server.
- *            rcon_password:
+ *              rcon_password:
  *                type: string
  *                description: RCON password of the server.
- *            public_server:
+ *              public_server:
  *                type: boolean
  *                description: RCON password of the server.
  *     tags:
@@ -465,13 +465,6 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** DEL - Delete a game server in the database.
- * @name router.delete('/delete')
- * @memberof module:routes/servers
- * @function
- * @param {number} req.body[0].server_id - The ID of the server being updated.
- *
- */
 /**
  * @swagger
  *

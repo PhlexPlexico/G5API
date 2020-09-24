@@ -22,6 +22,18 @@ const Utils = require("../utility/utils");
 /**
  * @swagger
  *
+ * components:
+ *   schemas:
+ *     SimpleResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ */
+
+/**
+ * @swagger
+ *
  * /leaderboard/:
  *   get:
  *     description: Get lifetime leaderboard of teams
@@ -238,7 +250,6 @@ const getTeamLeaderboard = async (seasonId = null) => {
  * @function
  * @memberof module:routes/leaderboard
  * @param {string} [seasonId=null] - Season ID to filter.
- * @function
  */
 const getPlayerLeaderboard = async (seasonId = null) => {
   let allPlayers = [];

@@ -3,27 +3,68 @@
  * @requires express
  * @requires db
  */
+
+/**
+ * @swagger
+ * resourcePath: /teams
+ * description: Express API router for teams in get5.
+ */
 let express = require("express");
-/** Express module
- * @const
- */
+
 const router = express.Router();
-/** Database module.
- * @const
- */
+
 const db = require("../db");
 
-
-/** Utility class for various methods used throughout.
-* @const */
 const Utils = require('../utility/utils');
 
-/** GET - Route serving to get all teams.
- * @name router.get('/')
- * @function
- * @memberof module:routes/teams
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
+/**
+ * @swagger
+ *
+ * components:
+ *   schemas:
+ *     SimpleResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *   responses:
+ *     BadRequest:
+ *       description: Team ID not provided
+ *     NotFound:
+ *       description: The specified resource was not found.
+ *     Unauthorized:
+ *       description: Unauthorized.
+ *     NoSeasonData:
+ *       description: No team data was provided.
+ *     SeasonNotFound:
+ *       description: Team was not found.
+ *     Error:
+ *       description: Error
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
+ */
+
+/**
+ * @swagger
+ *
+ * /teams/:
+ *   get:
+ *     description: Get all teams registered on get5.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - teams
+ *     responses:
+ *       200:
+ *         description: List of teams.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/", async (req, res) => {
   let sql =
@@ -35,23 +76,44 @@ router.get("/", async (req, res) => {
   try {
     let allTeams = await db.query(sql);
     // do something with someRows and otherRows
+    if(allTeams.length < 1){
+      res.
+        status(404).
+        json({message: "No teams found for current user."});
+      return;
+    }
     for(let row in allTeams){
       allTeams[row].auth_name = JSON.parse(allTeams[row].auth_name);
       allTeams[row].auth_name = await getTeamImages(allTeams[row].auth_name);
     }
     res.json(allTeams);
   } catch (err) {
-    res.json({ message: err });
+    res.status(500).json({ message: err });
   }
 });
 
 
-/** GET - Route serving to get an auth'd users teams.
- * @name router.get('/myteams')
- * @function
- * @memberof module:routes/teams
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
+/**
+ * @swagger
+ *
+ * /teams/myteams:
+ *   get:
+ *     description: Set of teams from the logged in user.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - teams
+ *     responses:
+ *       200:
+ *         description: Teams of logged in user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       404:
+ *         $ref: '#/components/responses/TeamsNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
   let sql =
@@ -63,21 +125,47 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
     "GROUP BY t.name, t.flag, t.logo, t.tag, t.public_team";
   try {
     const allTeams = await db.query(sql, [req.user.id]);
+    if(allTeams.length < 1){
+      res.
+        status(404).
+        json({message: "No teams found for current user."});
+      return;
+    }
     for(let row in allTeams){
       allTeams[row].auth_name = JSON.parse(allTeams[row].auth_name);
       allTeams[row].auth_name = await getTeamImages(allTeams[row].auth_name);
     }
     res.json(allTeams);
   } catch (err) {
-    res.json({ message: err });
+    res.status(500).json({ message: err });
   }
 });
 
-/** GET - Route serving to get team with an ID.
- * @name router.get('/:team_id')
- * @function
- * @memberof module:routes/teams
- * @param {number} teamid - The team ID you wish to examine.
+/**
+ * @swagger
+ *
+ * /teams/:team_id:
+ *   get:
+ *     description: Returns a provided teams info.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: team_id
+ *         required: true
+ *         type: integer
+ *     tags:
+ *       - teams
+ *     responses:
+ *       200:
+ *         description: Team info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       404:
+ *         $ref: '#/components/responses/TeamNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/:team_id", async (req, res) => {
   teamID = req.params.team_id;
@@ -102,21 +190,61 @@ router.get("/:team_id", async (req, res) => {
   }
 });
 
-/** POST - Route serving to insert a team into the database.
- * @name router.post('/create')
- * @function
- * @memberof module:routes/teams
- * @param {number} req.body[0].user_id - The ID of the user creating the team to claim ownership.
- * @param {string} req.body[0].name - Team name inputted by a user.
- * @param {string} req.body[0].flag - International code for a flag.
- * @param {string} req.body[0].logo - A string representing the logo stored on the webserver.
- * @param {JSON} req.body[0].auth_name - A JSON KV pair containing the SteamID of a player as the key, and a value, or blank string value as the preferred name.
- * @param {string} req.body[0].tag - A string with a shorthand tag for a team.
- * @param {number} req.body[0].public_team - Integer determining if a team is a publically usable team. Either 1 or 0.
- * @see https://steamcommunity.com/sharedfiles/filedetails/?id=719079703
+/**
+ * @swagger
+ *
+ * /teams:
+ *   post:
+ *     description: Creates a new team to use.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              name:
+ *                type: string
+ *                description: The name of the team.
+ *                required: true
+ *              flag:
+ *                type: string
+ *                description: Country code flag used in game. See https://steamcommunity.com/sharedfiles/filedetails/?id=719079703
+ *                required: false
+ *              logo:
+ *                type: string
+ *                description: A string representing the logo stored on the webserver.
+ *                required: false
+ *              auth_name:
+ *                type: object
+ *                additional_properties:
+ *                  key:
+ *                    type: string
+ *                    description: Key value that is a Steam ID. Can be any steam identifier as it will convert to Steam64.
+ *                  value:
+ *                    type: string
+ *                    description: Name that the user wishes to be called. Can be left null and will use Steam name.
+ *                description: Key value pair representing the players in a team.
+ *                required: false
+ *              tag:
+ *                type: string
+ *                description: A string with a shorthand tag for a team.
+ *                required: false
+ *     tags:
+ *       - teams
+ *     responses:
+ *       200:
+ *         description: Team created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-
-router.post("/create", Utils.ensureAuthenticated, async (req, res) => {
+router.post("/", Utils.ensureAuthenticated, async (req, res) => {
   let userID = req.user.id;
   let teamName = req.body[0].name;
   let flag = req.body[0].flag;
@@ -164,29 +292,80 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res) => {
   }
 });
 
-/** PUT - Route serving to udpate a team into the database.
- * @name router.put('/update')
- * @function
- * @memberof module:routes/teams
- * @param {number} req.user.id - The ID of the user updating values.
- * @param {number} req.body[0].id - The ID of the team to be updated.
- * @param {number} [req.body[0].user_id] - The ID to update the user parameter.
- * @param {string} [req.body[0].name] - Team name inputted by a user.
- * @param {string} [req.body[0].flag] - International code for a flag.
- * @param {string} [req.body[0].logo] - A string representing the logo stored on the webserver.
- * @param {JSON} [req.body[0].auth_name] - A JSON KV pair containing the SteamID of a player as the key, and a value, or blank string value as the preferred name. If no preferred name, than an empty string accompnies the value.
- * @param {string} [req.body[0].tag] - A string with a shorthand tag for a team.
- * @param {number} [req.body[0].public_team] - Integer determining if a team is a publically usable team. Either 1 or 0.
- * @see https://steamcommunity.com/sharedfiles/filedetails/?id=719079703
+/**
+ * @swagger
+ *
+ * /teams:
+ *   put:
+ *     description: Creates a new team to use.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              team_id:
+ *                type: integer
+ *                description: The ID of the team to be updated.
+ *                required: true
+ *              name:
+ *                type: string
+ *                description: The name of the team.
+ *                required: true
+ *              flag:
+ *                type: string
+ *                description: Country code flag used in game. See https://steamcommunity.com/sharedfiles/filedetails/?id=719079703
+ *                required: false
+ *              logo:
+ *                type: string
+ *                description: A string representing the logo stored on the webserver.
+ *                required: false
+ *              auth_name:
+ *                type: object
+ *                additional_properties:
+ *                  key:
+ *                    type: string
+ *                    description: Key value that is a Steam ID. Can be any steam identifier as it will convert to Steam64.
+ *                  value:
+ *                    type: string
+ *                    description: Name that the user wishes to be called. Can be left null and will use Steam name.
+ *                description: Key value pair representing the players in a team.
+ *                required: false
+ *              tag:
+ *                type: string
+ *                description: A string with a shorthand tag for a team.
+ *                required: false
+ *     tags:
+ *       - teams
+ *     responses:
+ *       200:
+ *         description: Team updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/ServerNotFound'
+ *       412:
+ *         $ref: '#/components/responses/NoServerData'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.put("/update", Utils.ensureAuthenticated, async (req, res) => {
+router.put("/", Utils.ensureAuthenticated, async (req, res) => {
   let checkUserSql = "SELECT * FROM team WHERE id = ?";
   const checkUser = await db.query(checkUserSql, [req.body[0].id]);
   if(checkUser[0] == null) {
     res.status(404).json({message: "Team does not exist."});
     return;
   } else if (checkUser[0].user_id != req.user.id && !(Utils.superAdminCheck(req.user))) {
-    res.status(401).json({message: "User is not authorized to perform action."});
+    res.status(403).json({message: "User is not authorized to perform action."});
     return;
   }
   let teamID = req.body[0].id;
@@ -236,13 +415,41 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res) => {
   }
 });
 
-/** DELETE - Route serving to delete a team from the database. The team will only be deleted if their foreign key references have been removed, as we want to keep statistics of all teams over time.
- * @name router.delete('/delete')
- * @function
- * @memberof module:routes/teams
- * @param {number} req.body[0].team_id - The ID of the team being updated.
+/**
+ * @swagger
+ *
+ * /teams:
+ *   delete:
+ *     description: Delete a team object if there is no map stats associated with it.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              team_id:
+ *                type: integer
+ *                required: true
+ *     tags:
+ *       - teams
+ *     responses:
+ *       200:
+ *         description: Team deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/ServerNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.delete("/delete/", Utils.ensureAuthenticated, async (req, res) => {
+router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
   let teamID = req.body[0].team_id;
   let checkUserSql = "SELECT * FROM team WHERE id = ?";
   const checkUser = await db.query(checkUserSql, [teamID]);
@@ -250,7 +457,7 @@ router.delete("/delete/", Utils.ensureAuthenticated, async (req, res) => {
     res.status(404).json({message: "Team does not exist."});
     return;
   } else if (checkUser[0].user_id != req.user.id && !(Utils.superAdminCheck(req.user))) {
-    res.status(401).json({message: "User is not authorized to perform action."});
+    res.status(403).json({message: "User is not authorized to perform action."});
     return;
   }
   try {
@@ -372,6 +579,11 @@ router.get("/:team_id/result/:match_id", async(req, res) => {
 });
 
 /* Helper Functions */
+/** Gets the steam image of each palyer.
+ * @function
+ * @memberof module:routes/teams
+ * @param {Object} idList - An object list of steam IDs.
+ */
 const getTeamImages = async (idList) => {
   for(let steamId of Object.keys(idList)){
     if(idList[steamId][0] == "")
