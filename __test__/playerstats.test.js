@@ -47,7 +47,7 @@ describe('Insert stats', () => {
             api_key: apiKey
         }];
         request
-            .post('/playerstats/create')
+            .post('/playerstats/')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(statData)
@@ -74,7 +74,7 @@ describe('Update stats', () => {
             firstkill_t: 1
         }];
         request
-            .put('/playerstats/update')
+            .put('/playerstats/')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(statData)
@@ -101,7 +101,7 @@ describe('Bad Actor', () => {
             firstkill_t: 1
         }];
         request
-            .put('/playerstats/update')
+            .put('/playerstats/')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(statData)
@@ -138,7 +138,7 @@ describe('Bad Actor', () => {
             match_id: 3
         }];
         request
-            .delete('/playerstats/delete')
+            .delete('/playerstats/')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(deleteData)

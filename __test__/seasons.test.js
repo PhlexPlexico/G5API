@@ -27,7 +27,7 @@ describe('Create Seasons', () => {
         }
       ];
       request
-        .post("/seasons/create")
+        .post("/seasons/")
         .set("Content-Type", "application/json")
         .set("Accept", "application/json")
         .send(newSeasonData)
@@ -46,7 +46,7 @@ describe('Create Seasons', () => {
           }
         ];
         request
-          .post("/seasons/create")
+          .post("/seasons/")
           .set("Content-Type", "application/json")
           .set("Accept", "application/json")
           .send(newSeasonData)
@@ -67,7 +67,7 @@ describe('Update the bad actor season', () => {
         }
       ];
       request
-        .put("/seasons/update")
+        .put("/seasons/")
         .set("Content-Type", "application/json")
         .set("Accept", "application/json")
         .send(updateSeasonData)
@@ -84,7 +84,7 @@ describe('Update the bad actor season', () => {
             }
           ];
           request
-            .delete("/seasons/delete")
+            .delete("/seasons/")
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(deleteSeasonData)
@@ -125,7 +125,7 @@ describe('Delete the season', () => {
             }
           ];
           request
-            .delete("/seasons/delete")
+            .delete("/seasons/")
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(deleteSeasonData)
