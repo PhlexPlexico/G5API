@@ -333,7 +333,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *       500:
  *         $ref: '#/components/responses/Error'
  */
-router.delete("/delete", async (req, res, next) => {
+router.delete("/", async (req, res, next) => {
   let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
   const seasonRow = await db.query(seasonUserId, req.body[0].season_id);
   if (seasonRow.length === 0) {
