@@ -300,7 +300,7 @@ router.get("/limit/:limiter", async (req, res, next) => {
 /**
  * @swagger
  *
- * /matches/:match_id:/config
+ * /matches/:match_id:/config:
  *   get:
  *     description: Route serving to get match configs from the database for the plugin.
  *     produces:

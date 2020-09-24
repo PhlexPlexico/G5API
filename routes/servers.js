@@ -185,7 +185,7 @@ router.get(
 /**
  * @swagger
  *
- * /servers/:server_id:/status
+ * /servers/:server_id:/status:
  *   get:
  *     description: Returns a provided server status.
  *     produces:

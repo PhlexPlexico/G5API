@@ -91,7 +91,15 @@ const options = {
     },
   },
   // Path to the API docs
-  apis: ['./routes/leaderboard.js','./routes/mapstats.js','./routes/users.js'],
+  apis: ['./routes/leaderboard.js',
+        './routes/matches/matches.js',
+        './routes/mapstats.js',
+        './routes/playerstats.js',
+        './routes/seasons.js',
+        './routes/servers.js',
+        './routes/teams.js',
+        './routes/users.js',
+        './routes/vetoes.js'],
 };
 const swaggerSpec = swaggerJSDoc(options);
 
