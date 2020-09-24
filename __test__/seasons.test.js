@@ -105,7 +105,7 @@ describe('Update a match with a season attached to it.', () => {
             }
           ];
           request
-            .put("/matches/update")
+            .put("/matches/")
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(updateSeasonData)

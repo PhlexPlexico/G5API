@@ -5,41 +5,156 @@
  */
 const express = require("express");
 
-/** Express module
- * @const
- */
-
 const router = express.Router();
-/** Database module.
- * @const
- */
 
 const db = require("../../db");
 
-/** Random string generator for API keys.
- * @const
- */
 const randString = require("randomstring");
 
-/** Utility class for various methods used throughout.
- * @const */
 const Utils = require("../../utility/utils");
 
-/** RCON Class for use of server integration.
- * @const */
 const GameServer = require("../../utility/serverrcon");
 
-/** GET - Route serving to get all matches.
- * @name router.get('/')
- * @function
- * @memberof module:routes/matches
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
- * @param {number} user_id - The user ID that is querying the data.
+
+/**
+ * @swagger
+ *
+ * components:
+ *   schemas:
+ *     NewMatch:
+ *       type: object
+ *       required:
+ *         - team1_id
+ *         - team2_id
+ *         - max_maps
+ *         - title
+ *         - skip_veto
+ *         - veto_mappool
+ *       properties:
+ *         match_id:
+ *           type: integer
+ *           description: The integer ID from the database. 
+ *         server_id:
+ *           type: integer
+ *           description: The server ID the match is being designated to. NULL if to be provided later.
+ *         team1_id:
+ *           type: integer
+ *           description: The ID of team one.
+ *         team2_id:
+ *           type: integer
+ *           description: The ID of team two.
+ *         season_id:
+ *           type: integer
+ *           description: The ID of the season. NULL if no season.
+ *         start_time:
+ *           type: datetime
+ *           description: The starting time of the match.
+ *         end_time:
+ *           type: datetime
+ *           description: The ending time of the match.
+ *         winner:
+ *           type: integer
+ *           description: The ID of winner of the match.
+ *         max_maps:
+ *           type: integer
+ *           description: The number of max maps played per series.
+ *         title:
+ *           type: string
+ *           description: The title of the match, default is 'Map {MAPNUMBER} of {MAXMAPS}'.
+ *         skip_veto:
+ *           type: boolean
+ *           description: Boolean value representing whether to skip the veto or not.
+ *         veto_first:
+ *           type: string
+ *           description: The string value team1 or team2 on who gets to veto first.
+ *         veto_mappool:
+ *           type: string
+ *           description: The map pool given by the system. Space separated.
+ *         side_type:
+ *           type: string
+ *           description: Decision on what to do for side types. standard, always_knife, etc.
+ *         plugin_version:
+ *           type: string
+ *           description: The version of the get5 plugin running on the server.
+ *         spectator_auths:
+ *           type: object
+ *           properties:
+ *              key:
+ *                type: string
+ *                description: String reprsentation of a steam64 ID.
+ *           description: JSON array of spectator auths.
+ *         private_match:
+ *           type: boolean
+ *           description: Boolean value representing whether the match is limited visibility to users on the team or who is on map stats. Defaults to false.
+ *         enforce_teams:
+ *           type: boolean
+ *           description: Boolean value representing whether the server will enforce teams on match start. Defaults to true.
+ *         ignore_server:
+ *           type: boolean
+ *           description: Boolean value representing whether to integrate a game server.
+ *         forfeit:
+ *           type: boolean
+ *           description: Whether the match was forfeited or not.
+ *         cancelled:
+ *           type: boolean
+ *           description: Whether or not the match was cancelled.
+ *         team1_score:
+ *           type: integer
+ *           description: The score from team 1 during the series.
+ *         team2_score:
+ *           type: integer
+ *           description: The score from team 2 during the series.
+ *     MatchData:
+ *       allOf:
+ *         - $ref: '#/components/schemas/NewMatch'
+ *         - type: object
+ *           properties:
+ *             match_id:
+ *               type: integer
+ *     SimpleResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *   responses:
+ *     BadRequest:
+ *       description: User does not own server or match not supplied.
+ *     NotFound:
+ *       description: The specified resource was not found.
+ *     Unauthorized:
+ *       description: Unauthorized.
+ *     MatchFinished:
+ *        description: Match already finished.
+ *     MatchNotFound:
+ *       description: Match not Found.
+ *     NoMatchData:
+ *       description: No match data provided.
+ *     Error:
+ *       description: Error
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
+ */
+
+/**
+ * @swagger
+ *
+ * /matches/:
+ *   get:
+ *     description: Get all match data from the application.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - matches
+ *     responses:
+ *       404:
+ *         $ref: '#/components/responses/MatchesNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/", async (req, res, next) => {
   try {
-    // Check if admin, if they are use this query.
     let sql =
       "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, team2_score, team1_series_score, team2_series_score, team1_string, team2_string, cancelled, forfeit, start_time, end_time, max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, season_id FROM `match` WHERE cancelled = 0";
     const matches = await db.query(sql);
@@ -53,13 +168,27 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get all matches.
- * @name router.get('/mymatches')
- * @function
- * @memberof module:routes/matches
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
- * @param {number} user_id - The user ID that is querying the data.
+/**
+ * @swagger
+ *
+ * /matches/mymatches:
+ *   get:
+ *     description: Set of matches from the logged in user.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Matches of logged in user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       404:
+ *         $ref: '#/components/responses/MatchesNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
@@ -76,13 +205,31 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get a set of map stats from a match.
- * @name router.get('/:match_id')
- * @memberof module:routes/matches
- * @function
- * @param {string} path - Express path
- * @param {number} request.params.match_id - The ID of the match containing the statistics.
- * @param {callback} middleware - Express middleware.
+/**
+ * @swagger
+ *
+ * /matches/:match_id:
+ *   get:
+ *     description: Returns a provided matches info.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         required: true
+ *         type: integer
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       404:
+ *         $ref: '#/components/responses/MatchNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/:match_id", async (req, res, next) => {
   try {
@@ -114,13 +261,29 @@ router.get("/:match_id", async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get a set of matches with a limit for recent matches.
- * @name router.get('/limit/:limit')
- * @memberof module:routes/matches
- * @function
- * @param {string} path - Express path
- * @param {number} request.params.limiter - The number to limit the query by.
- * @param {callback} middleware - Express middleware.
+/**
+ * @swagger
+ *
+ * /matches/limit/:limiter:
+ *   get:
+ *     description: Returns most recent matches specified by a limit.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: limiter
+ *         required: true
+ *         type: integer
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/limit/:limiter", async (req, res, next) => {
   try {
@@ -133,13 +296,32 @@ router.get("/limit/:limiter", async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get match configs from the database for the plugin.
- * @name router.get('/:match_id/config')
- * @memberof module:routes/matches
- * @function
- * @param {string} path - Express path
- * @param {number} request.params.match_id - The ID of the match containing the statistics.
- * @param {callback} middleware - Express middleware.
+
+/**
+ * @swagger
+ *
+ * /matches/:match_id:/config
+ *   get:
+ *     description: Route serving to get match configs from the database for the plugin.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         required: true
+ *         type: integer
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match config
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       404:
+ *         $ref: '#/components/responses/MatchNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/:match_id/config", async (req, res, next) => {
   try {
@@ -196,29 +378,35 @@ router.get("/:match_id/config", async (req, res, next) => {
   }
 });
 
-/** POST - Create a veto object from a given match.
- * @name router.post('/create')
- * @memberof module:routes/matches
- * @function
- * @param {number} req.user.id - The ID of the user creating the match.
- * @param {number} [req.body[0].server_id] - The server ID the match is being designated to. NULL if to be provided later.
- * @param {number} req.body[0].team1_id - The ID of team one.
- * @param {number} req.body[0].team2_id - The ID of team two.
- * @param {number} [req.body[0].season_id] - The ID of the season. NULL if no season.
- * @param {DateTime} [req.body[0].start_time] - The starting time of the match.
- * @param {number} req.body[0].max_maps - The number of max maps played per series.
- * @param {string} req.body[0].title - The title of the match, default is 'Map {MAPNUMBER} of {MAXMAPS}'.
- * @param {boolean} req.body[0].skip_veto - Boolean value representing whether to skip the veto or not.
- * @param {string} [req.body[0].veto_first] - The string value team1 or team2 on who gets to veto first.
- * @param {string} req.body[0].veto_mappool - The map pool given by the system. Space separated.
- * @param {string} [req.body[0].side_type] - Decision on what to do for side types. standard, always_knife, etc.
- * @param {string} [req.body[0].plugin_version] - The version of the get5 plugin running on the server.
- * @param {JSON} [req.body[0].spectator_auths] - JSON array of spectator auths.
- * @param {boolean} [req.body[0].private_match] - Boolean value representing whether the match is limited visibility to users on the team or who is on map stats. Defaults to false.
- * @param {boolean} [req.body[0].enforce_teams] - Boolean value representing whether the server will enforce teams on match start. Defaults to true.
- * @param {boolean} [req.body[0].ignore_server] - Boolean value representing whether to integrate a game server.
+/**
+ * @swagger
+ *
+ * /matches:
+ *   post:
+ *     description: Create a new match.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/NewMatch'
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Create successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
+router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if server available, if we are given a server.
     let serverSql = "SELECT in_use, user_id, public_server FROM game_server WHERE id = ?";
@@ -235,7 +423,7 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
         !Utils.superAdminCheck(req.user) &&
         serverInUse[0].public_server == 0
       ) {
-        res.status(401).json({ message: "User does not own this server." });
+        res.status(403).json({ message: "User does not own this server." });
         return;
       }
     }
@@ -306,27 +494,42 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** PUT - Update a match given its ID and optional data.
- * @name router.put('/update')
- * @memberof module:routes/matches
- * @function
- * @param {number} req.user.id - The ID of the user updating the match.
- * @param {number} req.body[0].match_id - The ID of the match to be updated.
- * @param {number} [req.body[0].user_id] - The optional user id to pass the match off to.
- * @param {number} [req.body[0].server_id] - The optional server id to assign to a match.
- * @param {DateTime} [req.body[0].start_time]- The end time of the match.
- * @param {DateTime} [req.body[0].end_time]- The end time of the match.
- * @param {number} [req.body[0].winner] - The ID of the team who won the series.
- * @param {string} [req.body[0].plugin_version] - The version of the get5 plugin running on the server.
- * @param {boolean} [req.body[0].forfeit] - Boolean value representing whether the match was forfeit.
- * @param {string} [req.body[0].cancelled] - Boolean value representing whether the match was cancelled.
- * @param {number} [req.body[0].team1_score] - The score of team1 during the series.
- * @param {string} [req.body[0].team2_score]- The score of team2 during the series.
- * @param {JSON} [req.body[0].spectator_auths]- JSON array of spectator auths.
- * @param {boolean} [req.body[0].private_match] - Boolean value representing whether the match is limited visibility to users on the team or who is on map stats.
- * @param {boolean} [req.body[0].ignore_server] - Boolean value representing whether we ignore the game server when making this call.
+/**
+ * @swagger
+ *
+ * /matches:
+ *   put:
+ *     description: Update player stats in a match/map.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/NewMatch'
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Update successful.
+ *         content:
+ *           application/json:
+ *             type: object
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/MatchesNotFound'
+ *       412:
+ *         $ref: '#/components/responses/NoMatchData'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
+router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     let diffServer = false;
     let ourServerSql = "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
@@ -345,7 +548,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
       !Utils.superAdminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -368,7 +571,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
           !Utils.superAdminCheck(req.user) &&
           returnedServer[0].public_server == 0
         ) {
-          res.status(401).json({ message: "User does not own this server." });
+          res.status(403).json({ message: "User does not own this server." });
           return;
         }
         if (req.body[0].server_id == matchRow[0].server_id) diffServer = true;
@@ -451,7 +654,41 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
  * @param {number} req.body[0].match_id - The ID of the match to remove all values pertaining to the match.
  *
  */
-router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
+/**
+ * @swagger
+ *
+ * /matches:
+ *   delete:
+ *     description: Delete a match and all values associated if it is cancelled.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              match_id:
+ *                type: integer
+ *                required: true
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/MatchNotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let userId = req.user.id;
   let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
   const matchRow = await db.query(matchUserId, req.body[0].match_id);
@@ -463,7 +700,7 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
     !Utils.superAdminCheck(req.user)
   ) {
     res
-      .status(401)
+      .status(403)
       .json({ message: "User is not authorized to perform action." });
     return;
   } else {
@@ -486,7 +723,7 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
           matchCancelledResult[0].user_id != userId &&
           !Utils.superAdminCheck(req.user)
         ) {
-          res.status(401).json({
+          res.status(403).json({
             message:
               "You do not have authorized access to delete these matches.",
           });
@@ -509,7 +746,7 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
             });
           return;
         } else {
-          res.status(401).json({
+          res.status(403).json({
             message: "Cannot delete match as it is not cancelled.",
           });
           return;
@@ -522,6 +759,13 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
 });
 
 // Helper functions
+/** Builds the team dictionary.
+ * @function
+ * @memberof module:routes/matches/
+ * @param {Object} team - The team object that is used to built the player dictionary.
+ * @param {number} teamNumber - Which team to provide for the match title.
+ * @param {Object} matchData - The data that contains the match to get the team string and scores.
+ */
 async function build_team_dict(team, teamNumber, matchData) {
   let sql = "SELECT auth, name FROM team_auth_names WHERE team_id = ?";
   const playerAuths = await db.query(sql, [team.id]);
