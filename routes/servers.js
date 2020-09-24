@@ -468,7 +468,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
 /**
  * @swagger
  *
- * /seasons:
+ * /servers:
  *   delete:
  *     description: Delete a server object.
  *     produces:

@@ -134,15 +134,16 @@ router.get("/:match_id", async (req, res, next) => {
  *              match_id:
  *                type: integer
  *                description: Match ID of the current match.
- *            map_number:
+ *              map_number:
  *                type: integer
  *                description: Current map the match is on.
- *            map_name:
+ *              map_name:
  *                type: string
  *                description: Name of the map.
- *            start_time:
- *              type: dateTime
- *              description: Time in date time format.
+ *              start_time:
+ *                type: string
+ *                format: date-time
+ *                description: Time in date time format.
  *     tags:
  *       - mapstats
  *     responses:
@@ -229,7 +230,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *              map_stats_id:
  *                type: integer
  *              end_time:
- *                type: dateTime
+ *                type: string
+ *                format: date-time
  *                description: The time the match ended.
  *              team1_score:
  *                type: integer

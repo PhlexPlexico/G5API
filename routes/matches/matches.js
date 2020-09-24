@@ -47,10 +47,12 @@ const GameServer = require("../../utility/serverrcon");
  *           type: integer
  *           description: The ID of the season. NULL if no season.
  *         start_time:
- *           type: datetime
+ *           type: string
+ *           format: date-time
  *           description: The starting time of the match.
  *         end_time:
- *           type: datetime
+ *           type: string
+ *           format: date-time
  *           description: The ending time of the match.
  *         winner:
  *           type: integer
@@ -148,8 +150,14 @@ const GameServer = require("../../utility/serverrcon");
  *     tags:
  *       - matches
  *     responses:
+ *       200:
+ *         description: All matches within the system.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       404:
- *         $ref: '#/components/responses/MatchesNotFound'
+ *         $ref: '#/components/responses/MatcheNotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */

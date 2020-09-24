@@ -55,7 +55,7 @@ const Utils = require('../utility/utils');
  *       - seasons
  *     responses:
  *       404:
- *         $ref: '#/components/responses/SeasonsNotFound'
+ *         $ref: '#/components/responses/SeasonNotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -92,7 +92,7 @@ router.get("/", async (req, res, next) => {
  *             schema:
  *               $ref: '#/components/schemas/SimpleResponse'
  *       404:
- *         $ref: '#/components/responses/SeasonsNotFound'
+ *         $ref: '#/components/responses/SeasonNotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -156,7 +156,7 @@ router.get("/:season_id", async (req, res, next) => {
 /**
  * @swagger
  *
- * /mapstats:
+ * /seasons:
  *   post:
  *     description: Add map stats for a match
  *     produces:
@@ -172,12 +172,14 @@ router.get("/:season_id", async (req, res, next) => {
  *                type: string
  *                description: The name of the Season to be created.
  *                required: true
- *            start_date:
- *                type: dateTime
+ *              start_date:
+ *                type: string
+ *                format: date-time
  *                description: Season start date.
  *                required: true
- *            end_date:
- *                type: dateTime
+ *              end_date:
+ *                type: string
+ *                format: date-time
  *                description: Optional season end date.
  *     tags:
  *       - seasons
@@ -234,10 +236,12 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *                type: string
  *                description: The name of the Season to be created.
  *              start_date:
- *                type: dateTime
+ *                type: string
+ *                format: date-time
  *                description: Season start date.
  *              end_date:
- *                type: dateTime
+ *                type: string
+ *                format: date-time
  *                description: Optional season end date.
  *              user_id: 
  *                type: integer
