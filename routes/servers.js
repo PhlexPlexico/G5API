@@ -33,9 +33,9 @@ const Utils = require("../utility/utils");
  *       description: The specified resource was not found.
  *     Unauthorized:
  *       description: Unauthorized.
- *     NoSeasonData:
+ *     NoServerData:
  *       description: No server data was provided.
- *     SeasonNotFound:
+ *     ServerNotFound:
  *       description: Server was not found.
  *     Error:
  *       description: Error
@@ -135,7 +135,8 @@ router.get("/myservers", Utils.ensureAuthenticated, async (req, res, next) => {
  *     parameters:
  *       - name: server_id
  *         required: true
- *         type: integer
+ *         schema:
+ *          type: integer
  *     tags:
  *       - servers
  *     responses:
@@ -193,7 +194,8 @@ router.get(
  *     parameters:
  *       - name: server_id
  *         required: true
- *         type: integer
+ *         schema:
+ *            type: integer
  *     tags:
  *       - servers
  *     responses:

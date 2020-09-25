@@ -199,7 +199,8 @@ router.get("/", async (req, res, next) => {
  *     parameters:
  *       - name: steam_id
  *         required: true
- *         type: string
+ *         schema:
+ *            type: string
  *     tags:
  *       - playerstats
  *     responses:
@@ -241,7 +242,8 @@ router.get("/:steam_id", async (req, res, next) => {
  *     parameters:
  *       - name: match_id
  *         required: true
- *         type: number
+ *         schema:
+ *          type: integer
  *     tags:
  *       - playerstats
  *     responses:

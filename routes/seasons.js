@@ -123,7 +123,8 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
  *     parameters:
  *       - name: season_id
  *         required: true
- *         type: integer
+ *         schema:
+ *          type: integer
  *     tags:
  *       - seasons
  *     responses:

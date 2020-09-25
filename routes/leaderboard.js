@@ -102,7 +102,8 @@ router.get("/players", async (req, res) => {
  *     parameters:
  *       - name: season_id
  *         required: true
- *         type: string
+ *         schema:
+ *          type: string
  *     tags:
  *       - leaderboard
  *     responses:
@@ -139,7 +140,8 @@ router.get("/players/:season_id", async (req, res) => {
  *     parameters:
  *       - name: season_id
  *         required: true
- *         type: string
+ *         schema:
+ *          type: string
  *     responses:
  *       200:
  *         description: Leaderboard

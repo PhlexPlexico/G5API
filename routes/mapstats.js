@@ -85,7 +85,8 @@ router.get("/", async (req, res, next) => {
  *     parameters:
  *       - name: match_id
  *         required: true
- *         type: integer
+ *         schema:
+ *          type: integer
  *     tags:
  *       - mapstats
  *     responses:

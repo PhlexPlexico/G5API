@@ -29,9 +29,9 @@ const Utils = require('../utility/utils');
  *       description: The specified resource was not found.
  *     Unauthorized:
  *       description: Unauthorized.
- *     NoSeasonData:
+ *     NoVetoData:
  *       description: No veto data was provided.
- *     SeasonNotFound:
+ *     VetoNotFound:
  *       description: Veto data was not found.
  *     Error:
  *       description: Error
@@ -53,7 +53,7 @@ const Utils = require('../utility/utils');
  *       - vetoes
  *     responses:
  *       404:
- *         $ref: '#/components/responses/VetoesNotFound'
+ *         $ref: '#/components/responses/VetoNotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -83,12 +83,13 @@ router.get("/", async (req, res, next) => {
  *     parameters:
  *       - name: match_id
  *         required: true
- *         type: integer
+ *         schema:
+ *            type: integer
  *     tags:
  *       - vetoes
  *     responses:
  *       404:
- *         $ref: '#/components/responses/VetoesNotFound'
+ *         $ref: '#/components/responses/VetoNotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */

@@ -224,7 +224,8 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
  *     parameters:
  *       - name: match_id
  *         required: true
- *         type: integer
+ *         schema:
+ *          type: integer
  *     tags:
  *       - matches
  *     responses:
@@ -244,12 +245,13 @@ router.get("/:match_id", async (req, res, next) => {
     let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
     let sql;
     const matchRow = await db.query(matchUserId, req.params.match_id);
+    console.log(req.user);
     if (matchRow.length === 0) {
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
-      matchRow[0].user_id == req.user.id ||
-      Utils.superAdminCheck(req.user)
+      req.user !== undefined && (matchRow[0].user_id == req.user.id ||
+      Utils.superAdminCheck(req.user))
     ) {
       sql = "SELECT * FROM `match` where id=?";
     } else {
@@ -280,7 +282,8 @@ router.get("/:match_id", async (req, res, next) => {
  *     parameters:
  *       - name: limiter
  *         required: true
- *         type: integer
+ *         schema:
+ *          type: integer
  *     tags:
  *       - matches
  *     responses:
@@ -316,7 +319,8 @@ router.get("/limit/:limiter", async (req, res, next) => {
  *     parameters:
  *       - name: match_id
  *         required: true
- *         type: integer
+ *         schema:
+ *            type: integer
  *     tags:
  *       - matches
  *     responses:
@@ -654,14 +658,6 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** DEL - Delete all match data associated with a match, including stats, vetoes, etc.
- * @name router.delete('/delete')
- * @memberof module:routes/matches
- * @function
- * @param {number} req.user.id - The ID of the user deleteing. Can check if admin when implemented.
- * @param {number} req.body[0].match_id - The ID of the match to remove all values pertaining to the match.
- *
- */
 /**
  * @swagger
  *
@@ -766,7 +762,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-// Helper functions
+
 /** Builds the team dictionary.
  * @function
  * @memberof module:routes/matches/

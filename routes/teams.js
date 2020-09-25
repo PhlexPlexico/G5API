@@ -152,7 +152,8 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
  *     parameters:
  *       - name: team_id
  *         required: true
- *         type: integer
+ *         schema:
+ *            type: integer
  *     tags:
  *       - teams
  *     responses:

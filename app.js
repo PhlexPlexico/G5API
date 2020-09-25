@@ -93,6 +93,7 @@ const options = {
   // Path to the API docs
   apis: ['./routes/leaderboard.js',
         './routes/matches/matches.js',
+        './routes/matches/matchserver.js',
         './routes/mapstats.js',
         './routes/playerstats.js',
         './routes/seasons.js',
@@ -113,7 +114,7 @@ app.use("/users", usersRouter);
 app.use("/teams", teamsRouter);
 app.use("/servers", serversRouter);
 app.use("/vetoes", vetoesRouter);
-app.use("/matches", matchesRouter);
+app.use("/matches", matchesRouter, matchServerRouter);
 app.use("/mapstats", mapstatsRouter);
 app.use("/playerstats", playerstatsRouter);
 app.use("/seasons", seasonsRouter);

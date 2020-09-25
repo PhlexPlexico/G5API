@@ -111,14 +111,15 @@ router.get("/", async (req, res) => {
  *
  * /users/:user_id:
  *   get:
- *     description: Get spesific user
+ *     description: Get specific user
  *     produces:
  *       - application/json
  *     parameters:
  *       - name: user_id
  *         description: The database or steam ID of the user
  *         required: true
- *         type: integer
+ *         schema:
+ *            type: integer
  *     tags:
  *       - users
  *     responses:
@@ -294,7 +295,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *       - name: user_id
  *         description: The database or steam ID of the user
  *         required: true
- *         type: integer
+ *         schema:
+ *          type: integer
  *     tags:
  *       - users
  *     responses:
@@ -332,7 +334,8 @@ router.get("/:user_id/steam", async (req, res, next) => {
  *       - name: user_id
  *         description: The database or steam ID of the user
  *         required: true
- *         type: integer
+ *         schema:
+ *          type: integer
  *     tags:
  *       - users
  *     responses:
