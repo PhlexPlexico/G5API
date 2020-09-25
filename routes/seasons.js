@@ -19,24 +19,30 @@ const Utils = require('../utility/utils');
  *
  * components:
  *   schemas:
- *     SimpleResponse:
- *       type: object
- *       properties:
- *         message:
- *           type: string
+ *    SeasonData:
+ *      type: object
+ *      required:
+ *        - server_id
+ *        - name
+ *        - start_date
+ *      properties:
+ *        server_id:
+ *          type: integer
+ *          description: Unique server ID.
+ *        name:
+ *          type: string
+ *          description: The name of the Season to be created.
+ *        start_date:
+ *          type: string
+ *          format: date-time
+ *          description: Season start date.
+ *        end_date:
+ *          type: string
+ *          format: date-time
+ *          description: Optional season end date.
  *   responses:
- *     BadRequest:
- *       description: Season ID not provided
- *     NotFound:
- *       description: The specified resource was not found.
- *     Unauthorized:
- *       description: Unauthorized.
  *     NoSeasonData:
  *       description: No season data was provided.
- *     SeasonNotFound:
- *       description: Season was not found.
- *     Error:
- *       description: Error
  *       content:
  *         application/json:
  *           schema:
@@ -54,8 +60,16 @@ const Utils = require('../utility/utils');
  *     tags:
  *       - seasons
  *     responses:
+ *       200:
+ *         description: All matches within the system.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                    $ref: '#/components/schemas/SeasonData'
  *       404:
- *         $ref: '#/components/responses/SeasonNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -86,13 +100,15 @@ router.get("/", async (req, res, next) => {
  *       - seasons
  *     responses:
  *       200:
- *         description: Seasons of logged in user.
+ *         description: All matches within the system.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               type: array
+ *               items:
+ *                    $ref: '#/components/schemas/SeasonData'
  *       404:
- *         $ref: '#/components/responses/SeasonNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -133,9 +149,9 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               $ref: '#/components/schemas/SeasonData'
  *       404:
- *         $ref: '#/components/responses/SeasonNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -167,26 +183,14 @@ router.get("/:season_id", async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              name:
- *                type: string
- *                description: The name of the Season to be created.
- *                required: true
- *              start_date:
- *                type: string
- *                format: date-time
- *                description: Season start date.
- *                required: true
- *              end_date:
- *                type: string
- *                format: date-time
- *                description: Optional season end date.
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/SeasonData'
  *     tags:
  *       - seasons
  *     responses:
  *       200:
- *         description: Seasons
+ *         description: New season inserted successsfully.
  *         content:
  *           application/json:
  *             schema:
@@ -227,38 +231,25 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            required:
- *              - season_id
- *            properties:
- *              season_id:
- *                type: integer
- *              name:
- *                type: string
- *                description: The name of the Season to be created.
- *              start_date:
- *                type: string
- *                format: date-time
- *                description: Season start date.
- *              end_date:
- *                type: string
- *                format: date-time
- *                description: Optional season end date.
- *              user_id: 
- *                type: integer
- *                description: Optional user ID to swap the seasons ownership.
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/SeasonData'
  *            
  *     tags:
  *       - seasons
  *     responses:
  *       200:
- *         description: Match stats
+ *         description: New season inserted successsfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         $ref: '#/components/responses/SeasonNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       412:
  *         $ref: '#/components/responses/NoSeasonData'
  *       500:
@@ -341,7 +332,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         $ref: '#/components/responses/SeasonNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */

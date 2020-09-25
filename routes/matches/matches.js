@@ -106,6 +106,70 @@ const GameServer = require("../../utility/serverrcon");
  *         team2_score:
  *           type: integer
  *           description: The score from team 2 during the series.
+ *     MatchConfig:
+ *        type: object
+ *        properties:
+ *           matchid:
+ *              type: integer
+ *              description: Identifier for the match. 
+ *           match_title:
+ *              type: string
+ *              description: Title of the match.
+ *           side_type:
+ *              type: string
+ *              description: Idenitifer for how sides are determined.
+ *           veto_first:
+ *              type: string
+ *              description: Whether team1 or team2 gets the first veto.
+ *           skip_veto:
+ *              type: integer
+ *              description: Integer representing a boolean if to skip vetoes or not.
+ *           min_players_to_ready:
+ *              type: integer
+ *              description: The amount of players on a team required to ready up.
+ *           players_per_team:
+ *              type: integer
+ *              description: The amount of players per team.
+ *           team1:
+ *              $ref: '#/components/schemas/TeamObject'
+ *           team2:
+ *              $ref: '#/components/schemas/TeamObject'
+ *           cvars:
+ *            type: object
+ *            description: Any additional cvars sent to the server.
+ *           spectators:
+ *            type: object
+ *            description: Key value pair objects containing steamID64 as key, and nicknames as values.
+ *           maplist:
+ *            type: object
+ *            minProperties: 1
+ *            maxProperties: 7
+ *            description: Key value pair containing an integer representing map order, and value representing map name.
+ *           min_spectators_to_ready:
+ *            type: integer
+ *            description: Value representing specatators to ready up.
+ *           maps_to_win:
+ *            type: integer
+ *            description: The amount of maps required to win a match.
+ * 
+ *     TeamObject:
+ *      type: object
+ *      properties:
+ *        name:
+ *          type: string
+ *          description: Name of the team.
+ *        tag:
+ *          type: string
+ *          description: Shorthand tag for the team.
+ *        players:
+ *          type: object
+ *          properties:
+ *            steamid:
+ *              type: string
+ *              description: The key is the Steam64 ID.
+ *            nickname:
+ *              type: string
+ *              description: The value is a preferred nickname if present.
  *     MatchData:
  *       allOf:
  *         - $ref: '#/components/schemas/NewMatch'
@@ -113,30 +177,25 @@ const GameServer = require("../../utility/serverrcon");
  *           properties:
  *             match_id:
  *               type: integer
- *     SimpleResponse:
- *       type: object
- *       properties:
- *         message:
- *           type: string
  *   responses:
- *     BadRequest:
- *       description: User does not own server or match not supplied.
- *     NotFound:
- *       description: The specified resource was not found.
- *     Unauthorized:
- *       description: Unauthorized.
  *     MatchFinished:
  *        description: Match already finished.
- *     MatchNotFound:
- *       description: Match not Found.
+ *        content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/SimpleResponse'
  *     NoMatchData:
  *       description: No match data provided.
- *     Error:
- *       description: Error
  *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/SimpleResponse'
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/SimpleResponse'
+ *     MatchInvalidData:
+ *       description: The match data provided is invalid.
+ *       content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/SimpleResponse'
  */
 
 /**
@@ -155,9 +214,11 @@ const GameServer = require("../../utility/serverrcon");
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               type: array
+ *               items:
+ *                    $ref: '#/components/schemas/MatchData'
  *       404:
- *         $ref: '#/components/responses/MatcheNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -192,7 +253,9 @@ router.get("/", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               type: array
+ *               items:
+ *                    $ref: '#/components/schemas/NewMatch'
  *       404:
  *         $ref: '#/components/responses/MatchesNotFound'
  *       500:
@@ -234,9 +297,9 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               $ref: '#/components/schemas/NewMatch'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -245,7 +308,6 @@ router.get("/:match_id", async (req, res, next) => {
     let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
     let sql;
     const matchRow = await db.query(matchUserId, req.params.match_id);
-    console.log(req.user);
     if (matchRow.length === 0) {
       res.status(404).json({ message: "No match found." });
       return;
@@ -292,7 +354,9 @@ router.get("/:match_id", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               type: array
+ *               items:
+ *                    $ref: '#/components/schemas/NewMatch'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -329,9 +393,9 @@ router.get("/limit/:limiter", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               $ref: '#/components/schemas/MatchConfig'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -403,7 +467,9 @@ router.get("/:match_id/config", async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            $ref: '#/components/schemas/NewMatch'
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/NewMatch'
  *     tags:
  *       - matches
  *     responses:
@@ -412,7 +478,7 @@ router.get("/:match_id/config", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *                $ref: '#/components/schemas/SimpleResponse'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       500:
@@ -519,7 +585,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            $ref: '#/components/schemas/NewMatch'
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/NewMatch'
  *     tags:
  *       - matches
  *     responses:
@@ -535,7 +603,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         $ref: '#/components/responses/MatchesNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       412:
  *         $ref: '#/components/responses/NoMatchData'
  *       500:
@@ -688,7 +756,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */

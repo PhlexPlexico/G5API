@@ -17,24 +17,53 @@ const Utils = require("../utility/utils");
  *
  * components:
  *   schemas:
- *     SimpleResponse:
+ *     MapStatsData:
  *       type: object
+ *       required:
+ *          - map_stats_id
+ *          - match_id
+ *          - map_number
+ *          - start_time
  *       properties:
- *         message:
+ *         map_stats_id:
+ *           type: integer
+ *           description: The unique identifier of map stats for a match.
+ *         match_id:
+ *           type: integer
+ *           description: Foreign key ID that links back to the match.
+ *         winner:
+ *           type: integer
+ *           description: Foreign key ID to the team that won.
+ *         map_number:
+ *           type: integer
+ *           description: The current map number in a best-of series.
+ *         team1_score:
+ *           type: integer
+ *           description: The score from team 1.
+ *         team2_score:
+ *           type: integer
+ *           description: The score from team 2.
+ *         start_time:
  *           type: string
+ *           format: date-time
+ *           description: Start time of a match in date time format.
+ *         end_time:
+ *           type: string
+ *           format: date-time
+ *           description: End time of a match in date time format.
+ *         demoFile:
+ *           type: string
+ *           description: The URL pointing to the demo uploaded.
+ * 
  *   responses:
- *     BadRequest:
- *       description: Match ID not provided
- *     NotFound:
- *       description: The specified resource was not found.
- *     Unauthorized:
- *       description: Unauthorized
  *     MatchAlreadyFinished:
  *       description: Match already finished.
- *     MatchNotFound:
- *       description: Match not found.
- *     Error:
- *       description: Error
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
+ *     NoMapStatData:
+ *       description: Map Stat Data was not provided.
  *       content:
  *         application/json:
  *           schema:
@@ -47,12 +76,20 @@ const Utils = require("../utility/utils");
  *
  * /mapstats/:
  *   get:
- *     description: Stats for all servers
+ *     description: Stats for all maps in all matches.
  *     produces:
  *       - application/json
  *     tags:
  *       - mapstats
  *     responses:
+ *       200:
+ *         description: Stats for all maps in all matches.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                    $ref: '#/components/schemas/MapStatsData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -91,13 +128,15 @@ router.get("/", async (req, res, next) => {
  *       - mapstats
  *     responses:
  *       200:
- *         description: Match stats
+ *         description: Map stats from a given match.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               type: array
+ *               items:
+ *                    $ref: '#/components/schemas/NewMatch'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -130,26 +169,14 @@ router.get("/:match_id", async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              match_id:
- *                type: integer
- *                description: Match ID of the current match.
- *              map_number:
- *                type: integer
- *                description: Current map the match is on.
- *              map_name:
- *                type: string
- *                description: Name of the map.
- *              start_time:
- *                type: string
- *                format: date-time
- *                description: Time in date time format.
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/MapStatsData'
  *     tags:
  *       - mapstats
  *     responses:
  *       200:
- *         description: Match stats
+ *         description: Map stats inserted successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -159,7 +186,7 @@ router.get("/:match_id", async (req, res, next) => {
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       422:
  *         $ref: '#/components/responses/MatchAlreadyFinished'
  *       500:
@@ -224,42 +251,26 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            required:
- *              - map_stats_id
- *            properties:
- *              map_stats_id:
- *                type: integer
- *              end_time:
- *                type: string
- *                format: date-time
- *                description: The time the match ended.
- *              team1_score:
- *                type: integer
- *                description: The score from team 1 in the map.
- *              team2_score:
- *                type: integer
- *                description: The score from team 2 in the map.
- *              winner:
- *                type: integer
- *                description: The Team ID of the team that won.
- *              demoFile:
- *                type: string
- *                description: The URL to the demo file, usually uploaded by get5.
- *              map_name:
- *                type: string
- *                description: The name of the map being played.
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/MapStatsData'
  *     tags:
  *       - mapstats
  *     responses:
  *       200:
- *         description: Match stats
+ *         description: Map stats updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
+ *       412:
+ *         $ref: '#/components/responses/NoMapStatData'
  *       422:
  *         $ref: '#/components/responses/MatchAlreadyFinished'
  *       500:
@@ -268,7 +279,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     if (req.body[0].map_stats_id == null) {
-      res.status(400).json({ message: "Match ID Not Provided" });
+      res.status(412).json({ message: "Map stat ID Not Provided" });
       return;
     }
     let currentMatchInfo =
@@ -359,7 +370,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
+ *       412:
+ *         $ref: '#/components/responses/NoMapStatData'
  *       422:
  *         $ref: '#/components/responses/MatchAlreadyFinished'
  *       500:
@@ -368,7 +381,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
 router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     if (req.body[0].map_stats_id == null) {
-      res.status(400).json({ message: "Map Stats ID Not Provided" });
+      res.status(412).json({ message: "Map Stats ID Not Provided" });
       return;
     }
     let currentMatchInfo =
@@ -402,7 +415,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
           res.json({ message: "Map Stats deleted successfully!" });
         else
           res
-            .status(401)
+            .status(400)
             .json({ message: "ERR - Unauthorized to delete OR not found." });
       });
     }

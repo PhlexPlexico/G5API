@@ -145,7 +145,7 @@ describe('Bad Actor', () => {
             .expect((result) => {
                 expect(result.body.message).toMatch(/currently live/);
             })
-            .expect(403)
+            .expect(401)
             .end(done);
     });
 });

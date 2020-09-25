@@ -21,24 +21,35 @@ const Utils = require("../utility/utils");
  *
  * components:
  *   schemas:
- *     SimpleResponse:
- *       type: object
- *       properties:
- *         message:
- *           type: string
+ *    ServerData:
+ *      type: object
+ *      required:
+ *        - server_id
+ *        - ip_string
+ *        - port
+ *        - rcon_password
+ *      properties:
+ *        server_id:
+ *          type: integer
+ *          description: Unique Server ID.
+ *        ip_string:
+ *          type: string
+ *          description: The IP or host name of the server.
+ *        port:
+ *          type: integer
+ *          description: Port of the server.
+ *        display_name:
+ *          type: string
+ *          description: Visible name of the server.
+ *        rcon_password:
+ *          type: string
+ *          description: RCON password of the server.
+ *        public_server:
+ *          type: boolean
+ *          description: Whether a server can be publically used.
  *   responses:
- *     BadRequest:
- *       description: Server ID not provided
- *     NotFound:
- *       description: The specified resource was not found.
- *     Unauthorized:
- *       description: Unauthorized.
  *     NoServerData:
  *       description: No server data was provided.
- *     ServerNotFound:
- *       description: Server was not found.
- *     Error:
- *       description: Error
  *       content:
  *         application/json:
  *           schema:
@@ -57,7 +68,7 @@ const Utils = require("../utility/utils");
  *       - servers
  *     responses:
  *       404:
- *         $ref: '#/components/responses/ServersNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -99,13 +110,15 @@ router.get("/", async (req, res, next) => {
  *       - servers
  *     responses:
  *       200:
- *         description: Servers of logged in user.
+ *         description: All matches within the system.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               type: array
+ *               items:
+ *                    $ref: '#/components/schemas/ServerData'
  *       404:
- *         $ref: '#/components/responses/ServersNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -141,13 +154,13 @@ router.get("/myservers", Utils.ensureAuthenticated, async (req, res, next) => {
  *       - servers
  *     responses:
  *       200:
- *         description: Server info
+ *         description: All matches within the system.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               $ref: '#/components/schemas/ServerData'
  *       404:
- *         $ref: '#/components/responses/ServerNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       500:
@@ -200,13 +213,13 @@ router.get(
  *       - servers
  *     responses:
  *       200:
- *         description: Server info
+ *         description: Server info, if available.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/SimpleResponse'
  *       404:
- *         $ref: '#/components/responses/ServerNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       500:
@@ -269,28 +282,9 @@ router.get(
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              ip_string:
- *                type: string
- *                description: The IP or host name of the server.
- *                required: true
- *              port:
- *                type: integer
- *                description: Port of the server.
- *                required: true
- *              display_name:
- *                type: string
- *                description: Visible name of the server.
- *                required: true
- *              rcon_password:
- *                type: string
- *                description: RCON password of the server.
- *                required: true
- *              public_server:
- *                type: boolean
- *                description: Whether a server can be publically used.
- *                required: true
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/ServerData'
  *     tags:
  *       - servers
  *     responses:
@@ -358,27 +352,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              server_id:
- *                type: integer
- *                description: Server ID
- *                required: true
- *              ip_string:
- *                type: string
- *                description: The IP or host name of the server.
- *              port:
- *                type: integer
- *                description: Port of the server.
- *              display_name:
- *                type: string
- *                description: Visible name of the server.
- *              rcon_password:
- *                type: string
- *                description: RCON password of the server.
- *              public_server:
- *                type: boolean
- *                description: RCON password of the server.
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/ServerData'
  *     tags:
  *       - servers
  *     responses:
@@ -393,7 +369,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         $ref: '#/components/responses/ServerNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       412:
  *         $ref: '#/components/responses/NoServerData'
  *       500:
@@ -499,7 +475,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         $ref: '#/components/responses/ServerNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */

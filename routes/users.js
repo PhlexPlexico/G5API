@@ -50,26 +50,6 @@ const Utils = require('../utility/utils');
  *           properties:
  *             id:
  *               type: integer
- *     SimpleResponse:
- *       type: object
- *       properties:
- *         message:
- *           type: string
- *   responses:
- *     BadRequest:
- *       description: Match ID not provided
- *     NotFound:
- *       description: The specified resource was not founds
- *     Unauthorized:
- *       description: Unauthorized
- *     MatchNotFound:
- *       description: Match not founds
- *     Error:
- *       description: Error
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/SimpleResponse'
  */
 
 
@@ -161,7 +141,7 @@ router.get("/:user_id", async (req, res, next) => {
  *       - users
  *     responses:
  *       200:
- *         description: Create successfull
+ *         description: Create successful
  *         content:
  *           application/json:
  *             schema:
@@ -221,9 +201,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               schema:
- *                 $ref: '#/components/schemas/User'
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       412:

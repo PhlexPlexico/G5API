@@ -19,40 +19,6 @@ const GameServer = require("../../utility/serverrcon");
 /**
  * @swagger
  *
- * components:
- *   schemas:
- *     SimpleResponse:
- *       type: object
- *       properties:
- *         message:
- *           type: string
- *   responses:
- *     BadRequest:
- *       description: Match data was not provided.
- *     NotFound:
- *       description: The specified resource was not found.
- *     Unauthorized:
- *       description: Unauthorized.
- *     NoMatchData:
- *       description: No server data was provided.
- *     MatchNotFound:
- *       description: Match was not found.
- *     MatchFinished:
- *       description: Match is finished.
- *     MatchInvalidData:
- *       description: The match data provided is invalid.
- *     Error:
- *       description: Error
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/SimpleResponse'
- */
-
-
-/**
- * @swagger
- *
  *  /matches/:match_id/forfeit/:winner_id:
  *   get:
  *     description: Forfeits a current match with a given team ID as the winner, if the match is running.
@@ -81,7 +47,7 @@ const GameServer = require("../../utility/serverrcon");
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       412:
@@ -192,7 +158,7 @@ router.get(
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  */
@@ -305,7 +271,7 @@ router.get(
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       500:
@@ -395,7 +361,7 @@ router.put(
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  */
@@ -474,7 +440,7 @@ router.get(
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  */
@@ -569,7 +535,7 @@ router.get(
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       500:
@@ -664,7 +630,7 @@ router.put(
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       500:
@@ -744,7 +710,7 @@ router.put(
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  */
@@ -830,7 +796,7 @@ router.get(
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       412:

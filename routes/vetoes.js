@@ -17,24 +17,28 @@ const Utils = require('../utility/utils');
  *
  * components:
  *   schemas:
- *     SimpleResponse:
+ *     VetoData:
  *       type: object
  *       properties:
- *         message:
+ *         veto_id:
+ *           type: integer
+ *           description: Unique ID of a veto
+ *         match_id:
+ *           type: integer
+ *           description: Foreign key of match associated with vetoes.
+ *         team_name:
  *           type: string
+ *           description: The name of the team.
+ *         map:
+ *           type: string
+ *           description: The map being picked or banned.
+ *         pick_or_veto:
+ *           type: string
+ *           description: The choice of either pick or ban.
+ * 
  *   responses:
- *     BadRequest:
- *       description: Match ID not provided
- *     NotFound:
- *       description: The specified resource was not found.
- *     Unauthorized:
- *       description: Unauthorized.
  *     NoVetoData:
  *       description: No veto data was provided.
- *     VetoNotFound:
- *       description: Veto data was not found.
- *     Error:
- *       description: Error
  *       content:
  *         application/json:
  *           schema:
@@ -52,8 +56,16 @@ const Utils = require('../utility/utils');
  *     tags:
  *       - vetoes
  *     responses:
+ *       200:
+ *         description: All matches within the system.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                    $ref: '#/components/schemas/VetoData'
  *       404:
- *         $ref: '#/components/responses/VetoNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -88,8 +100,16 @@ router.get("/", async (req, res, next) => {
  *     tags:
  *       - vetoes
  *     responses:
+ *       200:
+ *         description: All matches within the system.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                    $ref: '#/components/schemas/VetoData'
  *       404:
- *         $ref: '#/components/responses/VetoNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -121,24 +141,9 @@ router.get("/:match_id", async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              match_id:
- *                type: integer
- *                description: Match ID
- *                required: true
- *              team_name:
- *                type: string
- *                description: Name of the team voting.
- *                requried: true
- *              map_name:
- *                type: string
- *                description: Name of the map being voted on.
- *                required: true
- *              pick_or_ban:
- *                type: string
- *                description: String reprsenting whether it was a "pick" or "ban".
- *                required: true
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/VetoData'
  *     tags:
  *       - vetoes
  *     responses:
@@ -153,7 +158,7 @@ router.get("/:match_id", async (req, res, next) => {
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       412:
  *         $ref: '#/components/responses/NoVetoData'
  *       500:
@@ -229,7 +234,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *       - vetoes
  *     responses:
  *       200:
- *         description: Veto added successfully.
+ *         description: Veto deleted successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -239,7 +244,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         $ref: '#/components/responses/MatchNotFound'
+ *         $ref: '#/components/responses/NotFound'
  *       412:
  *         $ref: '#/components/responses/NoVetoData'
  *       500:

@@ -29,6 +29,31 @@ const Utils = require("../utility/utils");
  *       properties:
  *         message:
  *           type: string
+ *   responses:
+ *     BadRequest:
+ *       description: Bad request, information not provided.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
+ *     NotFound:
+ *       description: The specified resource was not found.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
+ *     Unauthorized:
+ *       description: Unauthorized.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
+ *     Error:
+ *       description: Error
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
  */
 
 /**
@@ -130,7 +155,7 @@ router.get("/players/:season_id", async (req, res) => {
 /**
  * @swagger
  *
- * /leaderboard/:
+ * /leaderboard/:season_id:
  *   get:
  *     description: Seasonal leaderboard for teams
  *     produces:
