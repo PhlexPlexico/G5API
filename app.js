@@ -92,6 +92,7 @@ const options = {
   },
   // Path to the API docs
   apis: ['./routes/leaderboard.js',
+        './routes/legacy/api.js',
         './routes/matches/matches.js',
         './routes/matches/matchserver.js',
         './routes/mapstats.js',

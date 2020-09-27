@@ -78,14 +78,45 @@ const playerStatRateLimit = rateLimit({
     }
 });
 
-/** POST - API Call to finish a match.
- * @name router.post('/:match_id/finish')
- * @function
- * @memberof module:routes/legacy/api
- * @param {string} req.query.key - The API key given from the game server to compare.
- * @param {string} req.query.winner - The string for which team won the match. team1 or team2.
- * @param {number} [req.query.forfeit] - Optional if a team has forfeit a match.
- * @param {number} req.params.match_id - The given match ID from the path.
+/**
+ * @swagger
+ *
+ * /match/:match_id/finish:
+ *   post:
+ *     description: Updates an existing server.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              key:
+ *                type: integer
+ *                description: The API key given from the game server to compare.
+ *              winner:
+ *                type: string
+ *                description: The string for which team won the match. team1 or team2.
+ *              forfeit:
+ *                type: integer
+ *                description: Optional if a team has forfeit a match.
+ *              match_id:
+ *                type: integer
+ *                description: The given match ID from the path.
+ * 
+ *     tags:
+ *       - legacy
+ *     responses:
+ *       200:
+ *         description: Success.
+ *         content:
+ *             text/plain:
+ *                schema:
+ *                  type: string
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
   try {
@@ -151,14 +182,45 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
   }
 });
 
-/** POST - Begin a map within a match series.
- * @name /
- * @function
- * @memberof module:routes/legacy/api
- * @param {number} req.params.match_id - The given match ID to start.
- * @param {string} req.query.key - The API key given from the game server to compare.
- * @param {number} req.params.map_number - The given map number to start.
- * @param {string} req.query.mapname - The given map name to update in the map stats object.
+/**
+ * @swagger
+ *
+ * /match/:match_id/map/:map_number/start:
+ *   post:
+ *     description: Begin a map within a match series.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              key:
+ *                type: integer
+ *                description: The API key given from the game server to compare.
+ *              map_number:
+ *                type: integer
+ *                description: The given map number to start.
+ *              mapname:
+ *                type: string
+ *                description: The given map name to update in the map stats object.
+ *              match_id:
+ *                type: integer
+ *                description: The given match ID from the path.
+ * 
+ *     tags:
+ *       - legacy
+ *     responses:
+ *       200:
+ *         description: Success.
+ *         content:
+ *             text/plain:
+ *                schema:
+ *                  type: string
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.post("/:match_id/map/:map_number/start", basicRateLimit, async (req, res, next) => {
   try {
@@ -227,15 +289,48 @@ router.post("/:match_id/map/:map_number/start", basicRateLimit, async (req, res,
   }
 });
 
-/** POST - API Call to finish a match.
- * @name router.post('/:match_id/map/:map_number/update')
- * @function
- * @memberof module:routes/legacy/api
- * @param {string} req.query.key - The API key given from the game server to compare.
- * @param {number} req.query.team1_score - The string for which team won the match. team1 or team2.
- * @param {number} req.query.team2_score - Optional if a team has forfeit a match.
- * @param {number} req.params.match_id - The given match ID from the path.
- * @param {number} req.params.map_number - The given map number from the URI path.
+/**
+ * @swagger
+ *
+ * /match/:match_id/map/:map_number/update:
+ *   post:
+ *     description: Update a match with the score.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              key:
+ *                type: integer
+ *                description: The API key given from the game server to compare.
+ *              team1_score:
+ *                type: integer
+ *                description: The score for team1.
+ *              team2_score:
+ *                type: integer
+ *                description: The score for team2.
+ *              match_id:
+ *                type: integer
+ *                description: The given match ID from the path.
+ *              map_number:
+ *                type: integer
+ *                description: The given map number from the URI path.
+ * 
+ *     tags:
+ *       - legacy
+ *     responses:
+ *       200:
+ *         description: Success.
+ *         content:
+ *             text/plain:
+ *                schema:
+ *                  type: string
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.post("/:match_id/map/:map_number/update", updateMapRateLimit, async (req, res, next) => {
   try{
@@ -284,15 +379,48 @@ router.post("/:match_id/map/:map_number/update", updateMapRateLimit, async (req,
   }
 });
 
-/** POST - Route serving to update the vetos in the database.
- * @name /:match_id/vetoUpdate
- * @function
- * @memberof module:routes/legacy/api
- * @param {string} req.query.key - The API key given from the game server to compare.
- * @param {number} req.query.teamString - The team string consisting of either team1, team2, or nothing.
- * @param {string} req.query.map - The map the team has picked or banned.
- * @param {string} req.query.pick_or_veto - The action taken upon the team.
- * @param {string} req.params.match_id - The ID of the current match.
+/**
+ * @swagger
+ *
+ * /match/:match_id/vetoUpdate:
+ *   post:
+ *     description: Route serving to update the vetos in the database.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              key:
+ *                type: integer
+ *                description: The API key given from the game server to compare.
+ *              teamString:
+ *                type: string
+ *                description: The team string consisting of either team1, team2, or nothing.
+ *              map:
+ *                type: string
+ *                description: The map the team has picked or banned.
+ *              match_id:
+ *                type: integer
+ *                description: The given match ID from the path.
+ *              pick_or_veto:
+ *                type: string
+ *                description: The action taken upon the team.
+ * 
+ *     tags:
+ *       - legacy
+ *     responses:
+ *       200:
+ *         description: Success.
+ *         content:
+ *             text/plain:
+ *                schema:
+ *                  type: string
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
   try {
@@ -350,14 +478,47 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
   }
 });
 
-/** POST - Route serving to retrieve the map demo name that was uploaded.
- * @name /:match_id/map/:map_number/demo
- * @function
- * @memberof module:routes/legacy/api
- * @param {number} req.params.match_id - The id of a given match.
- * @param {number} req.params.map_number - The map id of a given match.
- * @param {string} req.query.demoFile - The URL for a demo file in string form.
- * @param {string} req.query.key - The API key given from the game server to compare.
+/**
+ * @swagger
+ *
+ * /match/:match_id/vetoUpdate:
+ *   post:
+ *     description: Route serving to update the vetos in the database.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              key:
+ *                type: integer
+ *                description: The API key given from the game server to compare.
+ *              map_number:
+ *                type: integer
+ *                description: The map id of a given match.
+ *              demoFile:
+ *                type: string
+ *                description: The URL for a demo file in string form.
+ *              match_id:
+ *                type: integer
+ *                description: The given match ID from the path.
+ * 
+ *     tags:
+ *       - legacy
+ *     responses:
+ *       200:
+ *         description: Success.
+ *         content:
+ *             text/plain:
+ *                schema:
+ *                  type: string
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.post("/:match_id/map/:map_number/demo", basicRateLimit, async (req, res, next) => {
   try {
@@ -401,14 +562,45 @@ router.post("/:match_id/map/:map_number/demo", basicRateLimit, async (req, res, 
   }
 });
 
-/** POST - Route serving to finish a map within a series.
- * @name /:match_id/map/:map_number/finish
- * @function
- * @memberof module:routes/legacy/api
- * @param {number} req.params.match_id - The id of a given match.
- * @param {number} req.params.map_number - The map id of a given match.
- * @param {string} req.query.winner - The string representation of the winner, usually team1 or team2.
- * @param {string} req.query.key - The API key given from the game server to compare.
+/**
+ * @swagger
+ *
+ * /match/:match_id/map/:map_number/finish:
+ *   post:
+ *     description: Route serving to finish a map within a series.
+ *     produces:
+ *       - text/plain
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        text/plain:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              key:
+ *                type: integer
+ *                description: The API key given from the game server to compare.
+ *              winner:
+ *                type: string
+ *                description: The string representation of the winner, usually team1 or team2.
+ *              map_number:
+ *                type: integer
+ *                description: The map id of a given match.
+ *              match_id:
+ *                type: integer
+ *                description: The given match ID from the path.
+ * 
+ *     tags:
+ *       - legacy
+ *     responses:
+ *       200:
+ *         description: Success.
+ *         content:
+ *             text/plain:
+ *                schema:
+ *                  type: string
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.post("/:match_id/map/:map_number/finish", basicRateLimit, async (req, res, next) => {
   try {
@@ -479,41 +671,32 @@ router.post("/:match_id/map/:map_number/finish", basicRateLimit, async (req, res
   }
 });
 
-/** POST - Route serving to update a players stats within a match.
- * @name /:match_id/map/:map_number/player/:steam_id/update
- * @function
- * @memberof module:routes/legacy/api
- * @param {number} req.params.match_id - The id of a given match.
- * @param {number} req.params.map_number - The map id of a given match.
- * @param {string} req.params.steam_id - The string representation of a Steam64 ID.
- * @param {string} req.query.key - The API key given from the game server to compare.
- * @param {string} req.query.name - The name of the player in the server.
- * @param {string} req.query.team - The team the player is on, either team1 or team2.
- * @param {number} req.query.kills - The amount of kills the player has.
- * @param {number} req.query.assists - The amount of assists the player has.
- * @param {number} req.query.deaths - The amount of deaths the player has.
- * @param {number} req.query.flashbang_assists - The amount of flashbang assists the player has.
- * @param {number} req.query.teamkills - The amount of team kills the player has.
- * @param {number} req.query.suicides - The amount of suicides the player has.
- * @param {number} req.query.damage - The total amount of damage the player has given over the map.
- * @param {number} req.query.headshot_kills - The total amount of headshots the player has given over the map.
- * @param {number} req.query.roundsplayed - The total amount of rounds played in the map.
- * @param {number} req.query.bomb_plants - The total amount of bomb plants played in the map.
- * @param {number} req.query.bomb_defuses - The total amount of bomb defuses played in the map.
- * @param {number} req.query.1kill_rounds - The total amount of 1 kill rounds the player has in the map.
- * @param {number} req.query.2kill_rounds - The total amount of 2 kill rounds the player has in the map.
- * @param {number} req.query.3kill_rounds - The total amount of 3 kill rounds the player has in the map.
- * @param {number} req.query.4kill_rounds - The total amount of 4 kill rounds the player has in the map.
- * @param {number} req.query.5kill_rounds - The total amount of 5 kill rounds the player has in the map.
- * @param {number} req.query.v1 - The total amount of 1v1s the player has in the map.
- * @param {number} req.query.v2 - The total amount of 1v2s the player has in the map.
- * @param {number} req.query.v3 - The total amount of 1v3s the player has in the map.
- * @param {number} req.query.v4 - The total amount of 1v4s the player has in the map.
- * @param {number} req.query.v5 - The total amount of 1v5s the player has in the map.
- * @param {number} req.query.firstkill_t - The total amount of first kills the player has in the map as terrorist.
- * @param {number} req.query.firstkill_ct - The total amount of first kills the player has in the map as counter-terrorist.
- * @param {number} req.query.firstdeath_t - The total amount of first deaths the player has in the map as terrorist.
- * @param {number} req.query.firstdeath_ct - The total amount of first deaths the player has in the map as counter-terrorist.
+/**
+ * @swagger
+ *
+ * /match/:match_id/map/:map_number/player/:steam_id/update:
+ *   post:
+ *     description: Route serving to update a players stats within a match.
+ *     produces:
+ *       - text/plain
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        text/plain:
+ *          schema:
+ *            $ref: '#/components/schemas/PlayerStats'
+ * 
+ *     tags:
+ *       - legacy
+ *     responses:
+ *       200:
+ *         description: Success.
+ *         content:
+ *             text/plain:
+ *                schema:
+ *                  type: string
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.post("/:match_id/map/:map_number/player/:steam_id/update", playerStatRateLimit, async (req, res, next) => {
   try {
@@ -632,7 +815,13 @@ router.post("/:match_id/map/:map_number/player/:steam_id/update", playerStatRate
   }
 });
 
-
+/** Reports whether the match is given a correct API key, or if the match has finished.
+ * @function
+ * @memberof module:legacy/api
+ * @param {string} match_api_key - The match API from the database.
+ * @param {string} given_api_key - The given API key from the request.
+ * @param {number} match_finished - Whether the match is finished or not.
+ */
 async function check_api_key(match_api_key, given_api_key, match_finished) {
     if (match_api_key.localeCompare(given_api_key) !== 0)
         throw "Not a correct API Key.";
