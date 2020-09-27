@@ -27,7 +27,7 @@ describe('Create Seasons', () => {
         }
       ];
       request
-        .post("/seasons/create")
+        .post("/seasons/")
         .set("Content-Type", "application/json")
         .set("Accept", "application/json")
         .send(newSeasonData)
@@ -46,7 +46,7 @@ describe('Create Seasons', () => {
           }
         ];
         request
-          .post("/seasons/create")
+          .post("/seasons/")
           .set("Content-Type", "application/json")
           .set("Accept", "application/json")
           .send(newSeasonData)
@@ -67,7 +67,7 @@ describe('Update the bad actor season', () => {
         }
       ];
       request
-        .put("/seasons/update")
+        .put("/seasons/")
         .set("Content-Type", "application/json")
         .set("Accept", "application/json")
         .send(updateSeasonData)
@@ -84,14 +84,14 @@ describe('Update the bad actor season', () => {
             }
           ];
           request
-            .delete("/seasons/delete")
+            .delete("/seasons/")
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(deleteSeasonData)
             .expect((result) => {
               expect(result.body.message).toMatch(/not authorized/);
             })
-            .expect(401)
+            .expect(403)
             .end(done);
     });
 });
@@ -105,7 +105,7 @@ describe('Update a match with a season attached to it.', () => {
             }
           ];
           request
-            .put("/matches/update")
+            .put("/matches/")
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(updateSeasonData)
@@ -125,7 +125,7 @@ describe('Delete the season', () => {
             }
           ];
           request
-            .delete("/seasons/delete")
+            .delete("/seasons/")
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(deleteSeasonData)

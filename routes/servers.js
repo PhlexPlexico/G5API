@@ -1,38 +1,76 @@
-/** Express API router for users in get5.
- * @module routes/servers
- * @requires express
- * @requires db
+ /**
+ * @swagger
+ * resourcePath: /servers
+ * description: Express API router for servers in get5.
  */
+
 const express = require("express");
 
-/** Express module
- * @const
- */
 
 const router = express.Router();
-/** Database module.
- * @const
- */
 
 const db = require("../db");
 
-/** Server Rcon class for Game Server connection.
- * @const
- */
 const GameServer = require("../utility/serverrcon");
 
-/** Utility class for various methods used throughout.
- * @const */
 const Utils = require("../utility/utils");
 
-/** GET - Route serving to get all game servers. If we are admin, we show more information.
- *  If general public, then we show minimal details and only public servers.
- * @name router.get('/')
- * @function
- * @memberof module:routes/servers
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
- * @param {number} user_id - The user ID that is querying the data.
+
+/**
+ * @swagger
+ *
+ * components:
+ *   schemas:
+ *    ServerData:
+ *      type: object
+ *      required:
+ *        - server_id
+ *        - ip_string
+ *        - port
+ *        - rcon_password
+ *      properties:
+ *        server_id:
+ *          type: integer
+ *          description: Unique Server ID.
+ *        ip_string:
+ *          type: string
+ *          description: The IP or host name of the server.
+ *        port:
+ *          type: integer
+ *          description: Port of the server.
+ *        display_name:
+ *          type: string
+ *          description: Visible name of the server.
+ *        rcon_password:
+ *          type: string
+ *          description: RCON password of the server.
+ *        public_server:
+ *          type: boolean
+ *          description: Whether a server can be publically used.
+ *   responses:
+ *     NoServerData:
+ *       description: No server data was provided.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
+ */
+
+/**
+ * @swagger
+ *
+ * /servers/:
+ *   get:
+ *     description: Get all servers from the application. RCON password if an admin.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - servers
+ *     responses:
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/", async (req, res, next) => {
   try {
@@ -60,12 +98,29 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get all personal game servers.
- * @name router.get('/myservers')
- * @function
- * @memberof module:routes/servers
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware.
+/**
+ * @swagger
+ *
+ * /servers/myservers:
+ *   get:
+ *     description: Set of servers from the logged in user.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - servers
+ *     responses:
+ *       200:
+ *         description: All matches within the system.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                    $ref: '#/components/schemas/ServerData'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get("/myservers", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
@@ -82,18 +137,38 @@ router.get("/myservers", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** GET - Route serving to get one game server by database id.
- * @name router.get('/:server_id')
- * @memberof module:routes/servers
- * @function
- * @param {string} path - Express path
- * @param {number} request.param.server_id - The ID of the game server.
- * @param {callback} middleware - Express middleware.
- * @param {number} user_id - The user ID that is querying the data. Check if they own it or are an admin.
+/**
+ * @swagger
+ *
+ * /servers/:server_id:
+ *   get:
+ *     description: Returns a provided server info.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: server_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - servers
+ *     responses:
+ *       200:
+ *         description: All matches within the system.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ServerData'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get(
   "/:server_id",
-  /*Utils.ensureAuthenticated,*/ async (req, res, next) => {
+  Utils.ensureAuthenticated, async (req, res, next) => {
     try {
       let serverID = req.params.server_id;
       let sql = "";
@@ -109,7 +184,7 @@ router.get(
       }
       if (server.length < 1) {
         res
-          .status(401)
+          .status(403)
           .json({ message: "User is not authorized to view server info." });
       } else {
         server[0].rcon_password = await Utils.decrypt(server[0].rcon_password);
@@ -121,16 +196,38 @@ router.get(
   }
 );
 
-/** GET - Gets a status of a game server.
- * @name router.get('/:server_id/status')
- * @memberof module:routes/servers
- * @function
- * @param {number} req.body[0].server_id - The ID of the server being queried.
+/**
+ * @swagger
  *
+ * /servers/:server_id:/status:
+ *   get:
+ *     description: Returns a provided server status.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: server_id
+ *         required: true
+ *         schema:
+ *            type: integer
+ *     tags:
+ *       - servers
+ *     responses:
+ *       200:
+ *         description: Server info, if available.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.get(
   "/:server_id/status",
-  /*Utils.ensureAuthenticated,*/ async (req, res, next) => {
+  Utils.ensureAuthenticated, async (req, res, next) => {
     let userCheckSql =
       "SELECT user_id, ip_string, port, rcon_password FROM game_server WHERE id=?";
     let userId = req.user.id;
@@ -143,7 +240,7 @@ router.get(
       !Utils.superAdminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else {
@@ -172,19 +269,37 @@ router.get(
   }
 );
 
-/** POST - Create a game server in the database, and encrypt the password.
- * @name router.post('/create')
- * @memberof module:routes/servers
- * @function
- * @param {number} req.user.id - The ID of the user creating the server to claim ownership.
- * @param {string} req.body[0].ip_string - The host of the server. Can be a URL or IP Address.
- * @param {number} req.body[0].port - The port that the server is used to connect with.
- * @param {string} req.body[0].display_name - The name that people will see on the game panel.
- * @param {string} req.body[0].rcon_password - The RCON password of the server. This will be encrypted on the server side.
- * @param {number} req.body[0].public_server - Integer value evaluating if the server is public.
+/**
+ * @swagger
  *
+ * /servers:
+ *   post:
+ *     description: Creates a new server to use.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/ServerData'
+ *     tags:
+ *       - servers
+ *     responses:
+ *       200:
+ *         description: Server created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
+router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     await db.withTransaction(async () => {
       let userId = req.user.id;
@@ -224,20 +339,43 @@ router.post("/create", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** PUT - Update a game server in the database, and encrypt the password.
- * @name router.put('/update')
- * @memberof module:routes/servers
- * @function
- * @param {number} req.body[0].user_id - The ID of the user if transferring ownership.
- * @param {number} req.body[0].server_id - The ID of the server being updated.
- * @param {string} req.body[0].ip_string - The host of the server. Can be a URL or IP Address.
- * @param {number} req.body[0].port - The port that the server is used to connect with.
- * @param {string} req.body[0].display_name - The name that people will see on the game panel.
- * @param {string} req.body[0].rcon_password - The RCON password of the server. This will be encrypted on the server side.
- * @param {number} req.body[0].public_server - Integer value evaluating if the server is public.
+/**
+ * @swagger
  *
+ * /servers:
+ *   put:
+ *     description: Updates an existing server.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/ServerData'
+ *     tags:
+ *       - servers
+ *     responses:
+ *       200:
+ *         description: Server updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       412:
+ *         $ref: '#/components/responses/NoServerData'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
+router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let userCheckSql = "SELECT user_id FROM game_server WHERE id = ?";
   let userId = req.user.id;
   const checkUser = await db.query(userCheckSql, [req.body[0].server_id]);
@@ -249,7 +387,7 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
     !Utils.superAdminCheck(req.user)
   ) {
     res
-      .status(401)
+      .status(403)
       .json({ message: "User is not authorized to perform action." });
     return;
   } else {
@@ -305,14 +443,43 @@ router.put("/update", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-/** DEL - Delete a game server in the database.
- * @name router.delete('/delete')
- * @memberof module:routes/servers
- * @function
- * @param {number} req.body[0].server_id - The ID of the server being updated.
+/**
+ * @swagger
  *
+ * /servers:
+ *   delete:
+ *     description: Delete a server object.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              server_id:
+ *                type: integer
+ *                required: true
+ *     tags:
+ *       - servers
+ *     responses:
+ *       200:
+ *         description: Server deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
+router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let userCheckSql = "SELECT user_id FROM game_server WHERE id = ?";
   const checkUser = await db.query(userCheckSql, [req.body[0].server_id]);
   if (checkUser[0] == null) {
@@ -323,7 +490,7 @@ router.delete("/delete", Utils.ensureAuthenticated, async (req, res, next) => {
     !Utils.superAdminCheck(req.user)
   ) {
     res
-      .status(401)
+      .status(403)
       .json({ message: "User is not authorized to perform action." });
     return;
   } else {

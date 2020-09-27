@@ -29,7 +29,7 @@ describe('Create a veto', () => {
         }
       ];
       request
-        .post("/vetoes/create")
+        .post("/vetoes/")
         .set("Content-Type", "application/json")
         .set("Accept", "application/json")
         .send(newVetoData)
@@ -50,7 +50,7 @@ describe('Create a veto', () => {
           }
         ];
         request
-          .post("/vetoes/create")
+          .post("/vetoes/")
           .set("Content-Type", "application/json")
           .set("Accept", "application/json")
           .send(newVetoData)
@@ -71,7 +71,7 @@ describe('Create a veto', () => {
           }
         ];
         request
-          .post("/vetoes/create")
+          .post("/vetoes/")
           .set("Content-Type", "application/json")
           .set("Accept", "application/json")
           .send(newVetoData)
@@ -100,7 +100,7 @@ describe('Delete match vetoes', () => {
             }
           ];
           request
-            .delete("/vetoes/delete")
+            .delete("/vetoes/")
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(deleteVetoData)
@@ -124,7 +124,7 @@ describe('Recreate vetoes', () => {
         }
       ];
       request
-        .post("/vetoes/create")
+        .post("/vetoes/")
         .set("Content-Type", "application/json")
         .set("Accept", "application/json")
         .send(newVetoData)
@@ -145,7 +145,7 @@ describe('Recreate vetoes', () => {
           }
         ];
         request
-          .post("/vetoes/create")
+          .post("/vetoes/")
           .set("Content-Type", "application/json")
           .set("Accept", "application/json")
           .send(newVetoData)
@@ -166,7 +166,7 @@ describe('Recreate vetoes', () => {
           }
         ];
         request
-          .post("/vetoes/create")
+          .post("/vetoes/")
           .set("Content-Type", "application/json")
           .set("Accept", "application/json")
           .send(newVetoData)

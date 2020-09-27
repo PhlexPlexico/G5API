@@ -3,22 +3,19 @@
  * @requires express
  * @requires db
  */
+
+ /**
+ * @swagger
+ * resourcePath: /leaderboard
+ * description: Leaderboard calls from the database.
+ */
 const express = require("express");
 
-/** Express module
- * @const
- */
 
 const router = express.Router();
-/** Database module.
- * @const
- */
 
 const db = require("../db");
 
-/** Util helpers.
- @const
- */
 const Utils = require("../utility/utils");
 
 
@@ -34,15 +31,23 @@ const Utils = require("../utility/utils");
  *           type: string
  *   responses:
  *     BadRequest:
- *       description: Match ID not provided
+ *       description: Bad request, information not provided.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
  *     NotFound:
- *       description: The specified resource was not found
+ *       description: The specified resource was not found.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
  *     Unauthorized:
- *       description: Unauthorized
- *     MatchAlreadyFinished:
- *       description: Match already finished
- *     MatchNotFound:
- *       description: Match not found
+ *       description: Unauthorized.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SimpleResponse'
  *     Error:
  *       description: Error
  *       content:
@@ -50,7 +55,6 @@ const Utils = require("../utility/utils");
  *           schema:
  *             $ref: '#/components/schemas/SimpleResponse'
  */
-
 
 /**
  * @swagger
@@ -123,7 +127,8 @@ router.get("/players", async (req, res) => {
  *     parameters:
  *       - name: season_id
  *         required: true
- *         type: string
+ *         schema:
+ *          type: string
  *     tags:
  *       - leaderboard
  *     responses:
@@ -150,7 +155,7 @@ router.get("/players/:season_id", async (req, res) => {
 /**
  * @swagger
  *
- * /leaderboard/:
+ * /leaderboard/:season_id:
  *   get:
  *     description: Seasonal leaderboard for teams
  *     produces:
@@ -160,7 +165,8 @@ router.get("/players/:season_id", async (req, res) => {
  *     parameters:
  *       - name: season_id
  *         required: true
- *         type: string
+ *         schema:
+ *          type: string
  *     responses:
  *       200:
  *         description: Leaderboard
@@ -271,7 +277,6 @@ const getTeamLeaderboard = async (seasonId = null) => {
  * @function
  * @memberof module:routes/leaderboard
  * @param {string} [seasonId=null] - Season ID to filter.
- * @function
  */
 const getPlayerLeaderboard = async (seasonId = null) => {
   let allPlayers = [];

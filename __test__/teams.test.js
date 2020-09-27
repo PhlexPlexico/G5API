@@ -11,9 +11,9 @@ describe('Authenticate User', () => {
 
 
 describe('Get teams', () => {
-    it('Should get all teams in the system.', async done => {
+    it('Should return 404 as no teams exist.', async done => {
         const result = await request.get('/teams/');
-        expect(result.statusCode).toEqual(200);
+        expect(result.statusCode).toEqual(404);
         done();
     });
 });
@@ -31,7 +31,7 @@ describe('Create Team', () => {
             }
         }];
         request
-            .post('/teams/create')
+            .post('/teams/')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(teamData)
@@ -54,7 +54,7 @@ describe('Create Team', () => {
             }
         }];
         request
-            .post('/teams/create')
+            .post('/teams/')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(privateTeamData)
@@ -77,7 +77,7 @@ describe('Create Team', () => {
             }
         }];
         request
-            .post('/teams/create')
+            .post('/teams/')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(privateTeamData)
@@ -100,7 +100,7 @@ describe('Create Team', () => {
             }
         }];
         request
-            .post('/teams/create')
+            .post('/teams/')
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(privateTeamData)
@@ -134,7 +134,7 @@ describe('Update a team', () => {
             }
         }];
         request
-            .put("/teams/update")
+            .put("/teams/")
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(updateTeamData)
@@ -157,7 +157,7 @@ describe('Update a team', () => {
             }
         }];
         request
-            .put("/teams/update")
+            .put("/teams/")
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(updateTeamData)
@@ -173,7 +173,7 @@ describe('Update a team', () => {
             user_id: 2
         }];
         request
-            .put("/teams/update")
+            .put("/teams/")
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(updateTeamData)
@@ -191,7 +191,7 @@ describe('Delete a team', () => {
             team_id: 1
         }];
         request
-            .delete("/teams/delete")
+            .delete("/teams/")
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(deleteTeamData)
@@ -209,11 +209,11 @@ describe('Bad Actor Time', () => {
             team_id: 2
         }];
         request
-            .delete("/teams/delete")
+            .delete("/teams/")
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(deleteTeamData)
-            .expect(401)
+            .expect(403)
             .expect((result) => {
                 expect(result.body.message).toMatch(/not authorized/);
             })
@@ -225,11 +225,11 @@ describe('Bad Actor Time', () => {
             user_id: 1
         }];
         request
-            .put("/teams/update")
+            .put("/teams/")
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(updateTeamData)
-            .expect(401)
+            .expect(403)
             .expect((result) => {
                 expect(result.body.message).toMatch(/not authorized/);
             })
@@ -240,7 +240,7 @@ describe('Bad Actor Time', () => {
             team_id: 99
         }];
         request
-            .delete("/teams/delete")
+            .delete("/teams/")
             .set("Content-Type", "application/json")
             .set("Accept", "application/json")
             .send(deleteTeamData)

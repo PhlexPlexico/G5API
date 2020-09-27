@@ -32,7 +32,7 @@ describe('Create a match', () => {
         }
       ];
       request
-        .post("/matches/create")
+        .post("/matches/")
         .set("Content-Type", "application/json")
         .set("Accept", "application/json")
         .send(newMatchData)
@@ -54,7 +54,7 @@ describe('Update a match', () => {
       }
     ];
     request
-      .put("/matches/update")
+      .put("/matches/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(updatedMatchData)
@@ -93,7 +93,7 @@ describe('Perform being a bad actor', () => {
         }
       ];
       request
-        .put("/matches/update")
+        .put("/matches/")
         .set("Content-Type", "application/json")
         .set("Accept", "application/json")
         .send(updatedMatchData)
@@ -117,11 +117,11 @@ describe('Perform being a bad actor', () => {
       }
     ];
     request
-      .put("/matches/update")
+      .put("/matches/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(updatedMatchData)
-      .expect(401)
+      .expect(403)
       .expect((result) => {
         expect(result.body.message).toMatch(/not authorized/);
       })
@@ -134,11 +134,11 @@ describe('Perform being a bad actor', () => {
       }
     ];
     request
-      .delete("/matches/delete")
+      .delete("/matches/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(updatedMatchData)
-      .expect(401)
+      .expect(403)
       .expect((result) => {
         expect(result.body.message).toMatch(/not authorized/);
       })
@@ -161,7 +161,7 @@ describe('Create two more matches for further testing.', () => {
       },
     ];
     request
-      .post("/matches/create")
+      .post("/matches/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(newMatchData)
@@ -180,7 +180,7 @@ describe('Create two more matches for further testing.', () => {
       },
     ];
     request
-      .put("/matches/update")
+      .put("/matches/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(updatedMatchData)
@@ -197,7 +197,7 @@ describe('Create two more matches for further testing.', () => {
       },
     ];
     request
-      .delete("/matches/delete")
+      .delete("/matches/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(updatedMatchData)
@@ -221,7 +221,7 @@ describe('Create two more matches for further testing.', () => {
       },
     ];
     request
-      .post("/matches/create")
+      .post("/matches/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
       .send(newMatchData)

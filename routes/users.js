@@ -1,23 +1,14 @@
-/** Express API router for users in get5.
- * @module routes/users
- * @requires express
- * @requires db
+ /**
+ * @swagger
+ * resourcePath: /users
+ * description: Express API router for users in get5.
  */
 const express = require("express");
 
-/** Express module
- * @const
- */
-
 const router = express.Router();
-/** Database module.
- * @const
- */
 
 const db = require("../db");
 
-/** Utility class for various methods used throughout.
-* @const */
 const Utils = require('../utility/utils');
 
 
@@ -32,7 +23,7 @@ const Utils = require('../utility/utils');
  *       type: object
  *       properties:
  *         steam_id:
- *           type: integer
+ *           type: string
  *           description: Steam ID of the user being created
  *         name:
  *           type: string
@@ -59,26 +50,6 @@ const Utils = require('../utility/utils');
  *           properties:
  *             id:
  *               type: integer
- *     SimpleResponse:
- *       type: object
- *       properties:
- *         message:
- *           type: string
- *   responses:
- *     BadRequest:
- *       description: Match ID not provided
- *     NotFound:
- *       description: The specified resource was not founds
- *     Unauthorized:
- *       description: Unauthorized
- *     MatchNotFound:
- *       description: Match not founds
- *     Error:
- *       description: Error
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/SimpleResponse'
  */
 
 
@@ -120,14 +91,15 @@ router.get("/", async (req, res) => {
  *
  * /users/:user_id:
  *   get:
- *     description: Get spesific user
+ *     description: Get specific user
  *     produces:
  *       - application/json
  *     parameters:
  *       - name: user_id
  *         description: The database or steam ID of the user
  *         required: true
- *         type: string
+ *         schema:
+ *            type: integer
  *     tags:
  *       - users
  *     responses:
@@ -160,7 +132,6 @@ router.get("/:user_id", async (req, res, next) => {
  *     produces:
  *       - application/json
  *     requestBody:
- *      description: Optional description in *Markdown*
  *      required: true
  *      content:
  *        application/json:
@@ -170,7 +141,7 @@ router.get("/:user_id", async (req, res, next) => {
  *       - users
  *     responses:
  *       200:
- *         description: Create successfull
+ *         description: Create successful
  *         content:
  *           application/json:
  *             schema:
@@ -213,11 +184,10 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *
  * /users:
  *   put:
- *     description: Create user
+ *     description: Update a user
  *     produces:
  *       - application/json
  *     requestBody:
- *      description: Optional description in *Markdown*
  *      required: true
  *      content:
  *        application/json:
@@ -227,13 +197,11 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *       - users
  *     responses:
  *       200:
- *         description: User
+ *         description: User update successful.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               schema:
- *                 $ref: '#/components/schemas/User'
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  *       412:
@@ -305,7 +273,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *       - name: user_id
  *         description: The database or steam ID of the user
  *         required: true
- *         type: string
+ *         schema:
+ *          type: integer
  *     tags:
  *       - users
  *     responses:
@@ -343,7 +312,8 @@ router.get("/:user_id/steam", async (req, res, next) => {
  *       - name: user_id
  *         description: The database or steam ID of the user
  *         required: true
- *         type: string
+ *         schema:
+ *          type: integer
  *     tags:
  *       - users
  *     responses:

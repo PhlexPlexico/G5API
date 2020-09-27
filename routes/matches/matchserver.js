@@ -1,42 +1,57 @@
-/** Express API router for matches in get5.
- * @module routes/matches/matchserver
- * @requires express
- * @requires db
+ /**
+ * @swagger
+ * resourcePath: /matches
+ * description: Express API router for matche server calls in get5.
  */
 const express = require("express");
 
-/** Express module
- * @const
- */
-
 const router = express.Router();
-/** Database module.
- * @const
- */
 
 const db = require("../../db");
 
-/** Random string generator for API keys.
- * @const
- */
 const randString = require("randomstring");
 
-/** Utility class for various methods used throughout.
- * @const */
 const Utils = require("../../utility/utils");
 
-/** RCON Class for use of server integration.
- * @const */
 const GameServer = require("../../utility/serverrcon");
 
-/** GET - Forfeits a match and gives the win to given team 1 or team 2.
- * @name router.get("/forfeit/:winnerID)
- * @memberof module:routes/matches/matchserver
- * @function
- * @param {number} req.params.winner_id - The ID representing the team that won via forfeit. Either team 1 or team 2.
- * @param {number} req.params.match_id - The ID of the match to forfeit.
- * @param {number} req.user.id - The ID of the user creating this request.
+
+/**
+ * @swagger
  *
+ *  /matches/:match_id/forfeit/:winner_id:
+ *   get:
+ *     description: Forfeits a current match with a given team ID as the winner, if the match is running.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: winner_id
+ *         description: The winning team of either 1 or 2.
+ *         required: true
+ *         schema:
+ *          type: integer
+ *       - name: match_id
+ *         description: The current match.
+ *         schema:
+ *            type:integer
+ *         
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       412:
+ *         $ref: '#/components/responses/MatchInvalidData'
  */
 router.get(
   "/:match_id/forfeit/:winner_id",
@@ -50,7 +65,7 @@ router.get(
       return;
     } else if (!Utils.superAdminCheck(req.user)) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -117,12 +132,35 @@ router.get(
   }
 );
 
-/** GET - Cancels the given match, provided it isn't finished and the user has the ability to do so. The user must either own the match or be an admin.
- * @name router.get("/:match_id/cancel)
- * @memberof module:routes/matches/matchserver
- * @function
- * @param {number} req.user.id - The ID of the user creating this request.
+/**
+ * @swagger
  *
+ *  /matches/:match_id/cancel:
+ *   get:
+ *     description: Cancels the given match, provided it isn't finished and the user has the ability to do so. The user must either own the match or be an admin.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         description: The current matches identification number.
+ *         schema:
+ *            type:integer
+ *         
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match response.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get(
   "/:match_id/cancel/",
@@ -139,7 +177,7 @@ router.get(
       !Utils.adminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -198,15 +236,48 @@ router.get(
   }
 );
 
-/** PUT - Sends out an RCON Command to the server, and returns the response if retrieved. Super admins can only use this, as you can retrieve RCON Passwords using this.
- * @name router.get("/:match_id/rcon)
- * @memberof module:routes/matches/matchserver
- * @function
- * @param {number} req.user.id - The ID of the user creating this request.
- * @param {String} req.body[0].rcon_command - The rcon command the user has sent in.
+/**
+ * @swagger
  *
+ *  /matches/:match_id/rcon:
+ *   put:
+ *     description: Sends out an RCON Command to the server, and returns the response if retrieved. Super admins can only use this, as you can retrieve RCON Passwords using this.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         description: The current matches identification number.
+ *         schema:
+ *            type:integer
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              rcon_command:
+ *                type: string
+ *                description: The rcon command that the user has sent in.
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match response.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
-router.get(
+router.put(
   "/:match_id/rcon/",
   Utils.ensureAuthenticated,
   async (req, res, next) => {
@@ -222,7 +293,7 @@ router.get(
       !Utils.adminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -264,12 +335,35 @@ router.get(
   }
 );
 
-/** GET - Sends an RCON Command to pause the given match.
- * @name router.get("/:match_id/pause)
- * @memberof module:routes/matches/matchserver
- * @function
- * @param {number} req.user.id - The ID of the user creating this request.
+/**
+ * @swagger
  *
+ *  /matches/:match_id/pause:
+ *   get:
+ *     description: Sends the sm_pause command to a given match.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         description: The current matches identification number.
+ *         schema:
+ *            type:integer
+ *         
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match response.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get(
   "/:match_id/pause/",
@@ -286,7 +380,7 @@ router.get(
       !Utils.adminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -320,12 +414,35 @@ router.get(
   }
 );
 
-/** GET - Sends an RCON Command to unpause the given match.
- * @name router.get("/:match_id/unpause)
- * @memberof module:routes/matches/matchserver
- * @function
- * @param {number} req.user.id - The ID of the user creating this request.
+/**
+ * @swagger
  *
+ *  /matches/:match_id/unpause:
+ *   get:
+ *     description: Sends the sm_unpause command to a given match.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         description: The current matches identification number.
+ *         schema:
+ *            type:integer
+ *         
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match response.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get(
   "/:match_id/unpause/",
@@ -376,15 +493,53 @@ router.get(
   }
 );
 
-/** PUT - Sends an add user commamd to a given team.
- * @name router.put("/:match_id/adduser)
- * @memberof module:routes/matches/matchserver
- * @function
- * @param {number} req.user.id - The ID of the user creating this request.
- * @param {any} req.body[0].user_id - The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
- * @param {String} req.body[0].team_id - Either the first or second team in the match, team1 or team2.
- * @param {String} [req.body[0].nickname] - Optional nickname for the user being added into the match.
+/**
+ * @swagger
  *
+ *  /matches/:match_id/adduser:
+ *   put:
+ *     description: Sends an add user commamd to a given team.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         description: The current matches identification number.
+ *         schema:
+ *            type:integer
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              user_id:
+ *                type: string
+ *                description: The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
+ *              team_id:
+ *                type: integer
+ *                description: Either the first or second team in the match, team1 or team2.
+ *              nickname:
+ *                type: string
+ *                description: Optional nickname for the user being added into the match.
+ *                required: false
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match response.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.put(
   "/:match_id/adduser/",
@@ -401,7 +556,7 @@ router.put(
       !Utils.adminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -440,13 +595,46 @@ router.put(
   }
 );
 
-/** PUT - Sends an add player to spectator command.
- * @name router.put("/:match_id/addspec)
- * @memberof module:routes/matches/matchserver
- * @function
- * @param {number} req.user.id - The ID of the user creating this request.
- * @param {any} req.body[0].user_id - The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
+/**
+ * @swagger
  *
+ *  /matches/:match_id/rcon:
+ *   put:
+ *     description: Sends an add player to spectator command.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         description: The current matches identification number.
+ *         schema:
+ *            type:integer
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              user_id:
+ *                type: string
+ *                description: The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match response.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.put(
   "/:match_id/addspec/",
@@ -463,7 +651,7 @@ router.put(
       !Utils.adminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -496,12 +684,35 @@ router.put(
   }
 );
 
-/** GET - Retrieves the name of backups on the game server.
- * @name router.put("/:match_id/backup)
- * @memberof module:routes/matches/matchserver
- * @function
- * @param {number} req.user.id - The ID of the user creating this request.
+/**
+ * @swagger
  *
+ *  /matches/:match_id/backup:
+ *   get:
+ *     description: Retrieves the name of backups on the game server.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         description: The current matches identification number.
+ *         schema:
+ *            type:integer
+ *         
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match response.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get(
   "/:match_id/backup/",
@@ -518,7 +729,7 @@ router.get(
       !Utils.adminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -550,13 +761,48 @@ router.get(
   }
 );
 
-/** POST - Runs a backup file on the game server.
- * @name router.post("/:match_id/backup)
- * @memberof module:routes/matches/matchserver
- * @function
- * @param {number} req.user.id - The ID of the user creating this request.
- * @param {String} req.body[0].backup_name - Filename of the backup located on the game server.
+/**
+ * @swagger
  *
+ *  /matches/:match_id/backup:
+ *   post:
+ *     description: Runs a backup file on the game server.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         description: The current matches identification number.
+ *         schema:
+ *            type:integer
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              backup_name:
+ *                type: string
+ *                description: Filename of the backup located on the game server.
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match response.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       412:
+ *         $ref: '#/components/responses/MatchInvalidData'
+ *       500:
+ *         $ref: '#/components/responses/Error'
  */
 router.post(
   "/:match_id/backup/",
@@ -573,7 +819,7 @@ router.post(
       !Utils.adminCheck(req.user)
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -594,7 +840,7 @@ router.post(
         serverRow[0].rcon_password
       );
       if(req.body[0].backup_name == null){
-        res.status(400).json({ message: "Please provide the backup name." });
+        res.status(412).json({ message: "Please provide the backup name." });
         return;
       }
       try{
