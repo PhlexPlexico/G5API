@@ -1,6 +1,8 @@
 const supertest = require('supertest')
 const app = require('../app')
 const request = supertest.agent(app);
+let vetoId;
+
 describe('Authenticate User', () => {
   it('Should create a user with mock values.', async done => {
     const result = await request.get('/auth/steam/return');
@@ -170,6 +172,26 @@ describe('Recreate vetoes', () => {
           .set("Content-Type", "application/json")
           .set("Accept", "application/json")
           .send(newVetoData)
+          .expect((result) => {
+            expect(result.body.message).toMatch(/successfully/);
+            vetoId = result.body.id;
+          })
+          .expect(200)
+          .end(done);
+      });
+      it('Should update the match to include the ID.', async done => {
+        // Min required data.
+        let updVetoData = [
+          {
+            veto_id: vetoId,
+            match_id: 3
+          }
+        ];
+        request
+          .put("/vetoes/")
+          .set("Content-Type", "application/json")
+          .set("Accept", "application/json")
+          .send(updVetoData)
           .expect((result) => {
             expect(result.body.message).toMatch(/successfully/);
           })

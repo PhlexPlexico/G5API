@@ -15,7 +15,6 @@ const Utils = require("../../utility/utils");
 
 const GameServer = require("../../utility/serverrcon");
 
-
 /**
  * @swagger
  *
@@ -29,11 +28,10 @@ const GameServer = require("../../utility/serverrcon");
  *         - max_maps
  *         - title
  *         - skip_veto
- *         - veto_mappool
  *       properties:
  *         match_id:
  *           type: integer
- *           description: The integer ID from the database. 
+ *           description: The integer ID from the database.
  *         server_id:
  *           type: integer
  *           description: The server ID the match is being designated to. NULL if to be provided later.
@@ -106,12 +104,15 @@ const GameServer = require("../../utility/serverrcon");
  *         team2_score:
  *           type: integer
  *           description: The score from team 2 during the series.
+ *         onsite_veto:
+ *           type: boolean
+ *           description: Flag indicating whether you wish to veto on-site, or in-game.
  *     MatchConfig:
  *        type: object
  *        properties:
  *           matchid:
  *              type: integer
- *              description: Identifier for the match. 
+ *              description: Identifier for the match.
  *           match_title:
  *              type: string
  *              description: Title of the match.
@@ -151,7 +152,7 @@ const GameServer = require("../../utility/serverrcon");
  *           maps_to_win:
  *            type: integer
  *            description: The amount of maps required to win a match.
- * 
+ *
  *     TeamObject:
  *      type: object
  *      properties:
@@ -312,8 +313,8 @@ router.get("/:match_id", async (req, res, next) => {
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
-      req.user !== undefined && (matchRow[0].user_id == req.user.id ||
-      Utils.superAdminCheck(req.user))
+      req.user !== undefined &&
+      (matchRow[0].user_id == req.user.id || Utils.superAdminCheck(req.user))
     ) {
       sql = "SELECT * FROM `match` where id=?";
     } else {
@@ -370,7 +371,6 @@ router.get("/limit/:limiter", async (req, res, next) => {
     res.status(500).json({ message: err.toString() });
   }
 });
-
 
 /**
  * @swagger
@@ -487,7 +487,8 @@ router.get("/:match_id/config", async (req, res, next) => {
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if server available, if we are given a server.
-    let serverSql = "SELECT in_use, user_id, public_server FROM game_server WHERE id = ?";
+    let serverSql =
+      "SELECT in_use, user_id, public_server FROM game_server WHERE id = ?";
     if (req.body[0].server_id != null) {
       const serverInUse = await db.query(serverSql, [req.body[0].server_id]);
       if (serverInUse[0].in_use) {
@@ -540,8 +541,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         await db.query(sql, [req.body[0].match_id, key]);
       }
       if (!req.body[0].ignore_server) {
-        let ourServerSql = "SELECT rcon_password, ip_string, port FROM game_server WHERE id=?";
-        const serveInfo = await db.query(ourServerSql, [req.body[0].server_id])
+        let ourServerSql =
+          "SELECT rcon_password, ip_string, port FROM game_server WHERE id=?";
+        const serveInfo = await db.query(ourServerSql, [req.body[0].server_id]);
         const newServer = new GameServer(
           serveInfo[0].ip_string,
           serveInfo[0].port,
@@ -612,13 +614,15 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     let diffServer = false;
-    let ourServerSql = "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
+    let vetoList = null;
+    let ourServerSql =
+      "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
     if (req.body[0].match_id == null) {
       res.status(404).json({ message: "Match ID Not Provided" });
       return;
     }
     let currentMatchInfo =
-      "SELECT user_id, server_id, cancelled, forfeit, end_time, api_key FROM `match` WHERE id = ?";
+      "SELECT user_id, server_id, cancelled, forfeit, end_time, api_key, veto_mappool, max_maps, skip_veto FROM `match` WHERE id = ?";
     const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
     if (matchRow.length === 0) {
       res.status(404).json({ message: "No match found." });
@@ -657,8 +661,27 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         if (req.body[0].server_id == matchRow[0].server_id) diffServer = true;
       }
       await db.withTransaction(async () => {
+        let vetoSql = "SELECT map FROM veto WHERE match_id = ? AND pick_or_veto = 'pick'";
+        let vetoMapPool = null;
+        let maxMaps = null;
+        vetoList = JSON.parse(JSON.stringify(await db.query(vetoSql, req.body[0].match_id)));
+        if(Object.keys(vetoList).length > 0){
+          vetoList.forEach(veto => {
+            vetoMapPool = vetoMapPool.concat(veto.map + ", ");
+          });
+          maxMaps = Object.keys(vetoList).length;
+          // Remove last two characters.
+          vetoMapPool = vetoMapPool.substring(0, vetoMapPool.length - 2);
+          //If we're identical to the matches map pool, it usually means we've begun.
+          if(vetoMapPool == matchRow[0].veto_mappool){
+            vetoMapPool = null;
+            maxMaps = null;
+          }
+        }
         let updateStmt = {
           user_id: req.body[0].user_id,
+          server_id: req.body[0].server_id,
+          season_id: req.body[0].season_id,
           start_time: req.body[0].start_time,
           end_time: req.body[0].end_time,
           winner: req.body[0].winner,
@@ -668,8 +691,12 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           team1_score: req.body[0].team1_score,
           team2_score: req.body[0].team2_score,
           private_match: req.body[0].private_match,
-          season_id: req.body[0].season_id,
-          server_id: req.body[0].server_id,
+          max_maps: maxMaps,
+          skip_veto: vetoMapPool == null ? null : 1,
+          veto_first: req.body[0].veto_first,
+          veto_mappool: vetoMapPool == null ? req.body[0].veto_mappool : vetoMapPool,
+          side_type: req.body[0].side_type,
+          enforce_teams: req.body[0].enforce_teams, // Do not update these unless required.
         };
         // Remove any values that may not be updated.
         updateStmt = await db.buildUpdateStatement(updateStmt);
@@ -689,33 +716,49 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
       await db.withTransaction(async () => {
         const ourServer = await db.query(ourServerSql, [matchRow[0].server_id]);
-        const serverConn = new GameServer(ourServer[0].ip_string, ourServer[0].port, null, ourServer[0].rcon_password);
+        const serverConn = new GameServer(
+          ourServer[0].ip_string,
+          ourServer[0].port,
+          null,
+          ourServer[0].rcon_password
+        );
         if (
           req.body[0].forfeit == 1 ||
           req.body[0].cancelled == 1 ||
           req.body[0].end_time != null
         ) {
-          if(serverConn.endGet5Match()){
+          if (serverConn.endGet5Match()) {
             sql = "UPDATE game_server SET in_use=0 WHERE id=?";
             await db.query(sql, [matchRow[0].server_id]);
           }
         } else {
           if (!req.body[0].ignore_server) {
             if (diffServer) {
-              if(serverConn.endGet5Match()){
+              if (serverConn.endGet5Match()) {
                 sql = "UPDATE game_server SET in_use=0 WHERE id=?";
                 await db.query(sql, [matchRow[0].server_id]);
               }
-              const newServeInfo = await db.query(ourServerSql, [req.body[0].server_id]);
-              const newServer = new GameServer(newServeInfo[0].ip_string, newServeInfo[0].port, null, newServeInfo[0].rcon_password);
-              if(newServer.prepareGet5Match(req.get("Host"), matchRow[0].api_key)){
+              const newServeInfo = await db.query(ourServerSql, [
+                req.body[0].server_id,
+              ]);
+              const newServer = new GameServer(
+                newServeInfo[0].ip_string,
+                newServeInfo[0].port,
+                null,
+                newServeInfo[0].rcon_password
+              );
+              if (
+                newServer.prepareGet5Match(req.get("Host"), matchRow[0].api_key)
+              ) {
                 sql = "UPDATE game_server SET in_use=1 WHERE id=?";
                 await db.query(sql, [req.body[0].server_id]);
-                res.json({ message: "Match updated successfully! Please move over the last backup from the old server to the new one!" });
+                res.json({
+                  message:
+                    "Match updated successfully! Please move over the last backup from the old server to the new one!",
+                });
                 return;
               }
             }
-            
           }
         }
       });
@@ -830,7 +873,6 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-
 /** Builds the team dictionary.
  * @function
  * @memberof module:routes/matches/
@@ -844,10 +886,8 @@ async function build_team_dict(team, teamNumber, matchData) {
   let normalizedAuths = {};
   for (let i = 0; i < playerAuths.length; i++) {
     const key = playerAuths[i].auth;
-    if(playerAuths[i].name == '')
-      normalizedAuths[key] = null;
-    else
-      normalizedAuths[key] = playerAuths[i].name;
+    if (playerAuths[i].name == "") normalizedAuths[key] = null;
+    else normalizedAuths[key] = playerAuths[i].name;
   }
   let teamData = {
     name: team.name,

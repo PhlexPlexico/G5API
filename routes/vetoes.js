@@ -152,7 +152,14 @@ router.get("/:match_id", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               type: object
+ *               properties:
+ *                message:
+ *                  type: string
+ *                  description: Success message.
+ *                id:
+ *                  type: integer
+ *                  description: The inserted veto.
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       403:
@@ -166,6 +173,7 @@ router.get("/:match_id", async (req, res, next) => {
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
+
   const matchRow = await db.query(matchUserId, req.body[0].match_id);
   if (matchRow.length === 0) {
     res.status(404).json({ message: "No match found." });
@@ -193,8 +201,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           return;
         }
         let sql = "INSERT INTO veto SET ?";
-        await db.query(sql, [insertStmt]);
-        res.json({ message: "Veto inserted successfully!" });
+        vetoId = await db.query(sql, [insertStmt]);
+        res.json({ message: "Veto inserted successfully!", id: vetoId.insertId });
       });
     } catch ( err ) {
       res.status(500).json({ message: err.toString() })
@@ -202,15 +210,83 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-
-/** DEL - Delete all vetoes associated with a match.
- * @name router.delete('/delete')
- * @memberof module:routes/vetoes
- * @function
- * @param {number} req.body[0].user_id - The ID of the user deleteing. Can check if admin when implemented.
- * @param {number} req.body[0].match_id - The ID of the match for vetoes to remove.
+/**
+ * @swagger
  *
-*/
+ * /vetoes:
+ *   put:
+ *     description: Updates an existing server.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/VetoData'
+ *     tags:
+ *       - vetoes
+ *     responses:
+ *       200:
+ *         description: Veto deleted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       412:
+ *         $ref: '#/components/responses/NoVetoData'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
+  let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
+  let vetoId;
+  const matchRow = await db.query(matchUserId, req.body[0].match_id);
+  if (matchRow.length === 0) {
+    res.status(404).json({ message: "No match found." });
+    return;
+  } else if (
+    matchRow[0].user_id != req.user.id &&
+    !Utils.superAdminCheck(req.user)
+  ) {
+    res
+      .status(403)
+      .json({ message: "User is not authorized to perform action." });
+    return;
+  } else {
+    vetoId = req.body[0].veto_id;
+    try {
+      await db.withTransaction(async () => {
+
+        let updateStmt = {
+          match_id: req.body[0].match_id,
+          map: req.body[0].map_name,
+          team_name: req.body[0].team_name,
+          pick_or_veto: req.body[0].pick_or_ban
+        }
+        updateStmt = await db.buildUpdateStatement(updateStmt);
+        if(Object.keys(updateStmt).length === 0){
+          res.status(412).json({message: "No update data has been provided."});
+          return;
+        }
+        let sql = "UPDATE veto SET ? WHERE id = ?";
+        await db.query(sql, [updateStmt, vetoId]);
+        res.json({ message: "Veto updated successfully!" });
+      });
+    } catch ( err ) {
+      res.status(500).json({ message: err.toString() })
+    }
+  }
+});
+
 /**
  * @swagger
  *
