@@ -1,5 +1,5 @@
 # G5API - API Backend for Get5
-_**Status: Alpha. Under active development.**_
+_**Status: Beta. Under active development.**_
 
 G5API is going to be a replacement for the get5-webpanel. _Currently_ this is the backend only, as it will allow the plugin to interface with a database and Steam OAuth, as well as make various calls to functionality that is seen in the [get5-webpanel](https://github.com/phlexplexico/get5-webpanel)
 
