@@ -172,12 +172,73 @@ const GameServer = require("../../utility/serverrcon");
  *              type: string
  *              description: The value is a preferred nickname if present.
  *     MatchData:
- *       allOf:
- *         - $ref: '#/components/schemas/NewMatch'
- *         - type: object
- *           properties:
- *             match_id:
- *               type: integer
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: The integer ID from the database.
+ *         user_id:
+ *           type: integer
+ *           description: The ID of the user that created the match.
+ *         server_id:
+ *           type: integer
+ *           description: The ID of the selected server to play on the match.
+ *         team1_id:
+ *           type: integer
+ *           description: The ID of team one.
+ *         team2_id:
+ *           type: integer
+ *           description: The ID of team two.
+ *         winner:
+ *           type: integer
+ *           description: The foreign key of a team that won the match.
+ *         team1_score:
+ *           type: integer
+ *           description: The score of team 1.
+ *         team2_score:
+ *           type: integer
+ *           description: The score of team 2.
+ *         team1_string:
+ *           type: string
+ *           description: The current name of team 1 in the match.
+ *         team2_string:
+ *           type: string
+ *           description: The current name of team 2 in the match.
+ *         cancelled:
+ *           type: boolean
+ *           description: Whether a match was cancelled or not.
+ *         forfeit:
+ *           type: boolean
+ *           description: Whether the match was forfeit or not.
+ *         start_time:
+ *           type: string
+ *           format: date-time
+ *           description: The starting time of the match.
+ *         end_time:
+ *           type: string
+ *           format: date-time
+ *           description: The ending time of the match.
+ *         max_maps:
+ *           type: integer
+ *           description: The number of max maps played per series.
+ *         title:
+ *           type: string
+ *           description: The title of the match, default is 'Map {MAPNUMBER} of {MAXMAPS}'.
+ *         skip_veto:
+ *           type: boolean
+ *           description: Boolean value representing whether to skip the veto or not.
+ *         private_match:
+ *           type: boolean
+ *           description: Boolean value representing whether the match is limited visibility to users on the team or who is on map stats. Defaults to false.
+ *         enforce_teams:
+ *           type: boolean
+ *           description: Boolean value representing whether the server will enforce teams on match start. Defaults to true.
+ *         min_player_ready:
+ *           type: integer
+ *           description: The minimum players required to ready up per team.
+ *         season_id:
+ *           type: integer
+ *           description: The ID of the season. NULL if no season.
  *   responses:
  *     MatchFinished:
  *        description: Match already finished.
@@ -215,9 +276,13 @@ const GameServer = require("../../utility/serverrcon");
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                    $ref: '#/components/schemas/MatchData'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  matches:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/MatchData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -232,7 +297,7 @@ router.get("/", async (req, res, next) => {
       res.status(404).json({ message: "No matches found." });
       return;
     }
-    res.json(matches);
+    res.json({matches});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -254,9 +319,13 @@ router.get("/", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                    $ref: '#/components/schemas/NewMatch'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  matches:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/MatchData'
  *       404:
  *         $ref: '#/components/responses/MatchesNotFound'
  *       500:
@@ -271,7 +340,7 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(404).json({ message: "No matches found." });
       return;
     }
-    res.json(matches);
+    res.json({matches});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -298,7 +367,10 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/NewMatch'
+ *                type: object
+ *                properties:
+ *                  match:
+ *                    $ref: '#/components/schemas/MatchData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -324,10 +396,11 @@ router.get("/:match_id", async (req, res, next) => {
     matchID = req.params.match_id;
     const matches = await db.query(sql, matchID);
     if (matches.length === 0) {
-      res.status(404).json({ message: "No matches found." });
+      res.status(404).json({ message: "No match found." });
       return;
     }
-    res.json(matches);
+    const match = JSON.parse(JSON.stringify(matches[0]));
+    res.json({match});
   } catch (err) {
     console.log(err.toString());
     res.status(500).json({ message: err.toString() });
@@ -355,9 +428,13 @@ router.get("/:match_id", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                    $ref: '#/components/schemas/NewMatch'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  matches:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/MatchData'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -366,7 +443,7 @@ router.get("/limit/:limiter", async (req, res, next) => {
     let lim = parseInt(req.params.limiter);
     let sql = "SELECT * FROM `match` ORDER BY end_time DESC LIMIT ?";
     const matches = await db.query(sql, lim);
-    res.json(matches);
+    res.json({matches});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }

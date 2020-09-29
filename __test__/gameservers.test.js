@@ -91,7 +91,7 @@ describe("Get Server Info", () => {
       .expect("Content-Type", /json/);
     expect(result.statusCode).toEqual(200);
     // Test to decrypt the password, if it matches then we decrypt/encrypt properly!
-    expect(result.body[0].rcon_password).toBe(password);
+    expect(result.body.server.rcon_password).toBe(password);
     done();
   });
 });
@@ -102,7 +102,7 @@ describe("Get My Server Info", () => {
       .get("/servers/myservers")
       .expect("Content-Type", /json/);
     expect(result.statusCode).toEqual(200);
-    expect(result.body.length).toBeGreaterThanOrEqual(2);
+    expect(result.body.servers.length).toBeGreaterThanOrEqual(1);
     done();
   });
 });

@@ -79,7 +79,7 @@ describe('Get first match info', () => {
   it('Should get the first match.', async done => {
     const result = await request.get('/matches/1');
     expect(result.statusCode).toEqual(200);
-    expect(result.body[0].api_key).not.toBeUndefined();
+    expect(result.body.match.api_key).not.toBeUndefined();
     done();
   });
 });
@@ -106,7 +106,7 @@ describe('Perform being a bad actor', () => {
   it('Should attempt to get the API key of the match.', async done => {
     const result = await request.get('/matches/1');
     expect(result.statusCode).toEqual(200);
-    expect(result.body[0].api_key).toBeUndefined();
+    expect(result.body.match.api_key).toBeUndefined();
     done();
   });
   it('Should attempt to forfeit the match.', async done => {

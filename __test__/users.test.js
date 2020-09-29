@@ -24,8 +24,9 @@ describe('Get Specific User', () => {
     const result = await request.get('/users/1').
     expect('Content-Type', /json/);
     expect(result.statusCode).toEqual(200);
-    expect(result.body[0].id).toEqual(1);
-    adminCheck = result.body[0].admin + result.body[0].super_admin;
+    expect(result.body.user.id).toEqual(1);
+    
+    adminCheck = result.body.user.admin + result.body.user.super_admin;
     done();
   });
 });

@@ -82,9 +82,13 @@ const Utils = require('../utility/utils');
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                    $ref: '#/components/schemas/TeamData'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  allTeams:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/TeamData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -110,7 +114,7 @@ router.get("/", async (req, res) => {
       allTeams[row].auth_name = JSON.parse(allTeams[row].auth_name);
       allTeams[row].auth_name = await getTeamImages(allTeams[row].auth_name);
     }
-    res.json(allTeams);
+    res.json({allTeams});
   } catch (err) {
     res.status(500).json({ message: err });
   }
@@ -133,9 +137,13 @@ router.get("/", async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                    $ref: '#/components/schemas/TeamData'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  teams:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/TeamData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -147,21 +155,21 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
     "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
     "FROM team t JOIN team_auth_names ta " +
     "ON t.id = ta.team_id " +
-    "WHERE t.user_id = ?" +
+    "WHERE t.user_id = ? " +
     "GROUP BY t.name, t.flag, t.logo, t.tag, t.public_team";
   try {
-    const allTeams = await db.query(sql, [req.user.id]);
-    if(allTeams.length < 1){
+    const teams = await db.query(sql, [req.user.id]);
+    if(teams.length < 1){
       res.
         status(404).
         json({message: "No teams found for current user."});
       return;
     }
-    for(let row in allTeams){
-      allTeams[row].auth_name = JSON.parse(allTeams[row].auth_name);
-      allTeams[row].auth_name = await getTeamImages(allTeams[row].auth_name);
+    for(let row in teams){
+      teams[row].auth_name = JSON.parse(teams[row].auth_name);
+      teams[row].auth_name = await getTeamImages(teams[row].auth_name);
     }
-    res.json(allTeams);
+    res.json({teams});
   } catch (err) {
     res.status(500).json({ message: err });
   }
@@ -188,7 +196,10 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *              $ref: '#/components/schemas/TeamData'
+ *                type: object
+ *                properties:
+ *                  team:
+ *                    $ref: '#/components/schemas/TeamData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -203,15 +214,16 @@ router.get("/:team_id", async (req, res) => {
     "ON t.id = ta.team_id  " +
     "where t.id = ?";
   try {
-    const allTeams = await db.query(sql, teamID);
+    let team = await db.query(sql, teamID);
     // Oddly enough, if a team doesn't exist, it still returns null!
     // Check this and return a 404 if we don't exist.
-    if(allTeams[0].id === null) {
+    if(team[0].id === null) {
       res.status(404).json({message: "No team found for id " + teamID});
       return;
     }
-    allTeams[0].auth_name = JSON.parse(allTeams[0].auth_name);
-    res.json(allTeams);
+    team[0].auth_name = JSON.parse(team[0].auth_name);
+    team = JSON.parse(JSON.stringify(team[0]));
+    res.json({team});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -503,8 +515,8 @@ router.get("/:team_id/recent", async(req, res) => {
   try {
     teamId = req.params.team_id;
     let sql = "SELECT rec_matches.* FROM team t, `match` rec_matches WHERE t.id = ? AND (rec_matches.team1_id = ? OR rec_matches.team2_id = ?) ORDER BY rec_matches.id DESC LIMIT 5";
-    const recentMatches = await db.query(sql, [teamId, teamId, teamId]);
-    res.json(recentMatches);
+    const matches = await db.query(sql, [teamId, teamId, teamId]);
+    res.json({matches});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }

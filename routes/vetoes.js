@@ -57,13 +57,17 @@ const Utils = require('../utility/utils');
  *       - vetoes
  *     responses:
  *       200:
- *         description: All matches within the system.
+ *         description: All match vetoes within the system.
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                    $ref: '#/components/schemas/VetoData'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  vetoes:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/VetoData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -77,7 +81,7 @@ router.get("/", async (req, res, next) => {
       res.status(404).json({ message: "No vetoes found." });
       return;
     }
-    res.json(vetoes);
+    res.json({vetoes});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -105,9 +109,13 @@ router.get("/", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                    $ref: '#/components/schemas/VetoData'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  vetoes:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/VetoData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -122,7 +130,7 @@ router.get("/:match_id", async (req, res, next) => {
       res.status(404).json({ message: "No vetoes found." });
       return;
     }
-    res.json(vetoes);
+    res.json({vetoes});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }

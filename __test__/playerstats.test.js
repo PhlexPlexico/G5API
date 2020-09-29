@@ -30,7 +30,7 @@ describe('Get playerstats', () => {
     it('Should get the API key of the third match.', async done => {
         const result = await request.get('/matches/3');
         expect(result.statusCode).toEqual(200);
-        apiKey = result.body[0].api_key;
+        apiKey = result.body.match.api_key;
         done();
     });
 });

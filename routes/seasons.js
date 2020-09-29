@@ -61,13 +61,17 @@ const Utils = require('../utility/utils');
  *       - seasons
  *     responses:
  *       200:
- *         description: All matches within the system.
+ *         description: All seasons within the system.
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                    $ref: '#/components/schemas/SeasonData'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  seasons:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/SeasonData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -82,7 +86,7 @@ router.get("/", async (req, res, next) => {
       res.status(404).json({ message: "No seasons found." });
       return;
     }
-    res.json(seasons);
+    res.json({seasons});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -104,9 +108,13 @@ router.get("/", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                    $ref: '#/components/schemas/SeasonData'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  seasons:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/SeasonData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -121,7 +129,7 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(404).json({ message: "No seasons found." });
       return;
     }
-    res.json(seasons);
+    res.json({seasons});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -149,7 +157,13 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SeasonData'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  matches:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/MatchData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -158,13 +172,19 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
 router.get("/:season_id", async (req, res, next) => {
   try {
     seasonID = req.params.season_id;
-    let sql = "SELECT * FROM season where id = ?";
-    const seasons = await db.query(sql, seasonID);
+    let sql = "SELECT * FROM `match` where season_id = ?";
+    let seasonSql = "SELECT * FROM season WHERE season_id = ?";
+    const seasons = await db.query(seasonSql, seasonID);
+    const matches = await db.query(sql, seasonID);
     if (seasons.length === 0){
-      res.status(404).json({message: "No season found."});
+      res.status(404).json({message: "Season not found."});
       return;
     }
-    res.json(seasons);
+    if (matches.length === 0){
+      res.status(404).json({message: "No match found in season."});
+      return;
+    }
+    res.json({matches});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -175,7 +195,7 @@ router.get("/:season_id", async (req, res, next) => {
  *
  * /seasons:
  *   post:
- *     description: Add map stats for a match
+ *     description: Create a new season.
  *     produces:
  *       - application/json
  *     requestBody:
@@ -223,7 +243,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *
  * /seasons:
  *   put:
- *     description: Update a map stats object when it is completed
+ *     description: Update a season.
  *     produces:
  *       - application/json
  *     requestBody:

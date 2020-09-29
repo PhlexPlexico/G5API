@@ -87,9 +87,13 @@ const Utils = require("../utility/utils");
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                    $ref: '#/components/schemas/MapStatsData'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  mapstats:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/MapStatsData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -99,12 +103,12 @@ router.get("/", async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
     let sql = "SELECT * FROM map_stats";
-    const allStats = await db.query(sql);
-    if (allStats.length === 0) {
+    const mapstats = await db.query(sql);
+    if (mapstats.length === 0) {
       res.status(404).json({ message: "No stats found." });
       return;
     }
-    res.json(allStats);
+    res.json({mapstats});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -128,13 +132,17 @@ router.get("/", async (req, res, next) => {
  *       - mapstats
  *     responses:
  *       200:
- *         description: Map stats from a given match.
+ *         description: Stats for all maps in all matches.
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                    $ref: '#/components/schemas/NewMatch'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  mapstats:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/MapStatsData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -144,12 +152,12 @@ router.get("/:match_id", async (req, res, next) => {
   try {
     matchID = req.params.match_id;
     let sql = "SELECT * FROM map_stats where match_id = ?";
-    const mapStats = await db.query(sql, matchID);
-    if (mapStats.length === 0) {
+    const mapstats = await db.query(sql, matchID);
+    if (mapstats.length === 0) {
       res.status(404).json({ message: "No stats found." });
       return;
     }
-    res.json(mapStats);
+    res.json({mapstats});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }

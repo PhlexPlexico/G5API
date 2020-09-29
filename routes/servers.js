@@ -61,12 +61,24 @@ const Utils = require("../utility/utils");
  *
  * /servers/:
  *   get:
- *     description: Get all servers from the application. RCON password if an admin.
+ *     description: Get all servers from the application. RCON passwords, too, if an admin.
  *     produces:
  *       - application/json
  *     tags:
  *       - servers
  *     responses:
+ *       200:
+ *         description: All visible server information
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  servers:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/ServerData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -86,13 +98,13 @@ router.get("/", async (req, res, next) => {
       sql =
         "SELECT gs.id, gs.in_use, gs.display_name, usr.name FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id";
     }
-    const allServers = await db.query(sql);
+    const servers = await db.query(sql);
     if (Utils.superAdminCheck(req.user)) {
-      for (let serverRow of allServers) {
+      for (let serverRow of servers) {
         serverRow.rcon_password = await Utils.decrypt(serverRow.rcon_password);
       }
     }
-    res.json(allServers);
+    res.json({servers});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -110,13 +122,17 @@ router.get("/", async (req, res, next) => {
  *       - servers
  *     responses:
  *       200:
- *         description: All matches within the system.
+ *         description: Server information
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                    $ref: '#/components/schemas/ServerData'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  servers:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/ServerData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -127,11 +143,11 @@ router.get("/myservers", Utils.ensureAuthenticated, async (req, res, next) => {
     // Check if admin, if they are use this query.
     let sql =
       "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name FROM game_server gs, user usr WHERE usr.id = gs.user_id AND usr.id=?";
-    const allServers = await db.query(sql, req.user.id);
-    for (let serverRow of allServers) {
+    const servers = await db.query(sql, req.user.id);
+    for (let serverRow of servers) {
       serverRow.rcon_password = await Utils.decrypt(serverRow.rcon_password);
     }
-    res.json(allServers);
+    res.json({servers});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -154,11 +170,14 @@ router.get("/myservers", Utils.ensureAuthenticated, async (req, res, next) => {
  *       - servers
  *     responses:
  *       200:
- *         description: All matches within the system.
+ *         description: Specific server information
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ServerData'
+ *                type: object
+ *                properties:
+ *                  server:
+ *                    $ref: '#/components/schemas/ServerData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       403:
@@ -185,10 +204,11 @@ router.get(
       if (server.length < 1) {
         res
           .status(403)
-          .json({ message: "User is not authorized to view server info." });
+          .json({ message: "User is not authorized to view server info, or server does not exist." });
       } else {
         server[0].rcon_password = await Utils.decrypt(server[0].rcon_password);
-        res.json(server);
+        server = JSON.parse(JSON.stringify(server[0]));
+        res.json({server});
       }
     } catch (err) {
       res.status(500).json({ message: err.toString() });

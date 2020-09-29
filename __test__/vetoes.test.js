@@ -89,7 +89,7 @@ describe('Get match vetoes', () => {
     it('Should retrieve all vetoes, even if none.', async done => {
         const result = await request.get('/vetoes/3');
         expect(result.statusCode).toEqual(200);
-        expect(result.body.length).toEqual(3);
+        expect(result.body.vetoes.length).toEqual(3);
         done();
     });
 });

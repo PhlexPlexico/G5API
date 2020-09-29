@@ -79,7 +79,7 @@ const Utils = require("../utility/utils");
 router.get("/", async (req, res) => {
   try {
     let leaderboard = await getTeamLeaderboard();
-    res.json(leaderboard);
+    res.json({leaderboard});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -109,7 +109,7 @@ router.get("/", async (req, res) => {
 router.get("/players", async (req, res) => {
   try {
     let leaderboard = await getPlayerLeaderboard();
-    res.json(leaderboard);
+    res.json({leaderboard});
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: err });
@@ -145,7 +145,7 @@ router.get("/players/:season_id", async (req, res) => {
   try {
     let seasonId = req.params.season_id;
     let leaderboard = await getPlayerLeaderboard(seasonId);
-    res.json(leaderboard);
+    res.json({leaderboard});
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: err });
@@ -181,7 +181,7 @@ router.get("/:season_id", async (req, res) => {
   try {
     let seasonId = req.params.season_id;
     let leaderboard = await getTeamLeaderboard(seasonId);
-    res.json(leaderboard);
+    res.json({leaderboard});
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: err });

@@ -147,9 +147,13 @@ const Utils = require("../utility/utils");
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                    $ref: '#/components/schemas/PlayerStats'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  playerstats:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/PlayerStats'
  *       400:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -164,7 +168,7 @@ router.get("/", async (req, res, next) => {
       res.status(404).json({ message: "No stats found on the site!" });
       return;
     }
-    res.json(playerStats);
+    res.json({playerStats});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -191,7 +195,13 @@ router.get("/", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  playerstats:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/PlayerStats'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -202,12 +212,12 @@ router.get("/:steam_id", async (req, res, next) => {
     //
     steamID = req.params.steam_id;
     let sql = "SELECT * FROM player_stats where steam_id = ?";
-    const playerStats = await db.query(sql, steamID);
-    if (playerStats.length === 0) {
+    const playerstats = await db.query(sql, steamID);
+    if (playerstats.length === 0) {
       res.status(404).json({ message: "No stats found for player " + steamID });
       return;
     }
-    res.json(playerStats);
+    res.json({playerstats});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -234,7 +244,13 @@ router.get("/:steam_id", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  playerstats:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/PlayerStats'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -244,12 +260,12 @@ router.get("/match/:match_id", async (req, res, next) => {
   try {
     matchID = req.params.match_id;
     let sql = "SELECT * FROM player_stats where match_id = ?";
-    const playerStats = await db.query(sql, matchID);
-    if (playerStats.length === 0) {
+    const playerstats = await db.query(sql, matchID);
+    if (playerstats.length === 0) {
       res.status(404).json({ message: "No stats found for match " + matchID });
       return;
     }
-    res.json(playerStats);
+    res.json({playerstats});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }

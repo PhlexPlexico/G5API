@@ -22,6 +22,9 @@ const Utils = require('../utility/utils');
  *     NewUser:
  *       type: object
  *       properties:
+ *         id:
+ *           type: integer
+ *           description: System identifier of a user.
  *         steam_id:
  *           type: string
  *           description: Steam ID of the user being created
@@ -69,9 +72,13 @@ const Utils = require('../utility/utils');
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *               $ref: '#/components/schemas/User'
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  users:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/NewUser'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -79,8 +86,8 @@ router.get("/", async (req, res) => {
   try {
 
     let sql = "SELECT * FROM user";
-    const allUsers = await db.query(sql);
-    res.json(allUsers);
+    const users = await db.query(sql);
+    res.json({users});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -104,11 +111,14 @@ router.get("/", async (req, res) => {
  *       - users
  *     responses:
  *       200:
- *         description: Update successfull
+ *         description: Get a specific user.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *                type: object
+ *                properties:
+ *                  user:
+ *                      $ref: '#/components/schemas/NewUser'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -116,8 +126,9 @@ router.get("/:user_id", async (req, res, next) => {
   try {
     userOrSteamID = req.params.user_id;
     let sql = "SELECT * FROM user where id = ? OR steam_id = ?";
-    const allUsers = await db.query(sql, [userOrSteamID,userOrSteamID]);
-    res.json(allUsers);
+    let user = await db.query(sql, [userOrSteamID,userOrSteamID]);
+    user = JSON.parse(JSON.stringify(user[0]));
+    res.json({user});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
