@@ -583,6 +583,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         return;
       }
     }
+    let teamNameSql = "SELECT name FROM team WHERE id = ?";
+    let teamOneName = await db.query(teamNameSql, [req.body[0].team1_id]);
+    let teamTwoName = await db.query(teamNameSql, [req.body[0].team2_id]);
     let apiKey = randString.generate({
       length: 24,
       capitalization: "uppercase",
@@ -609,6 +612,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           req.body[0].enforce_teams == null ? 1 : req.body[0].enforce_teams,
         api_key: apiKey,
         winner: null,
+        team1_string: teamOneName[0].name == null ? null : teamOneName[0].name,
+        team2_string: teamTwoName[0].name == null ? null : teamTwoName[0].name,
       };
       let sql = "INSERT INTO `match` SET ?";
       insertSet = await db.buildUpdateStatement(insertSet);
