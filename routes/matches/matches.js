@@ -508,7 +508,7 @@ router.get("/:match_id/config", async (req, res, next) => {
       spectators: {},
       maplist:
         matchInfo[0].veto_mappool !== null
-          ? matchInfo[0].veto_mappool.split(" ")
+          ? matchInfo[0].veto_mappool.replace(/[,]+/g,'').split(" ")
           : null,
       min_spectators_to_ready: 0,
     };

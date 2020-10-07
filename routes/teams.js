@@ -591,7 +591,7 @@ router.get("/:team_id/result/:match_id", async(req, res) => {
     }
     // If match is a bo1, just get the map score.
     if (curMatch[0].max_maps === 1) {
-      let mapSql = "SELECT team1_id, team1_score, team2_score FROM map_stats WHERE match_id = ? LIMIT 1";
+      let mapSql = "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ? LIMIT 1";
       const mapStatBo1 = await db.query(mapSql, [matchId]);
       if (mapStatBo1.length > 0) {
         if (mapStatBo1[0].team1_id === teamId) {
