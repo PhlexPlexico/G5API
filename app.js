@@ -21,8 +21,8 @@ const usersRouter = require("./routes/users");
 const vetoesRouter = require("./routes/vetoes");
 //End Route Files
 
-const swaggerUi = require('swagger-ui-express');
-const swaggerJSDoc = require('swagger-jsdoc');
+const swaggerUi = require("swagger-ui-express");
+const swaggerJSDoc = require("swagger-jsdoc");
 
 const passport = require("./utility/auth");
 const jwt = require("jsonwebtoken");
@@ -75,7 +75,13 @@ app.use(passport.session());
 app.use(bearerToken());
 
 // enabling CORS for all requests
-app.use(cors());
+app.use(
+  cors({
+    origin: config.get("server.clientHome"), // allow to server to accept request from different origin
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true, // allow session cookie from browser to pass through
+  })
+);
 
 // adding morgan to log HTTP requests
 app.use(morgan("combined"));
@@ -84,28 +90,30 @@ app.use(morgan("combined"));
 
 const options = {
   definition: {
-    openapi: '3.0.0', // Specification (optional, defaults to swagger: '2.0')
+    openapi: "3.0.0", // Specification (optional, defaults to swagger: '2.0')
     info: {
-      title: 'G5API', // Title (required)
-      version: '0.1.0', // Version (required)
+      title: "G5API", // Title (required)
+      version: "0.1.0", // Version (required)
     },
   },
   // Path to the API docs
-  apis: ['./routes/leaderboard.js',
-        './routes/legacy/api.js',
-        './routes/matches/matches.js',
-        './routes/matches/matchserver.js',
-        './routes/mapstats.js',
-        './routes/playerstats.js',
-        './routes/seasons.js',
-        './routes/servers.js',
-        './routes/teams.js',
-        './routes/users.js',
-        './routes/vetoes.js'],
+  apis: [
+    "./routes/leaderboard.js",
+    "./routes/legacy/api.js",
+    "./routes/matches/matches.js",
+    "./routes/matches/matchserver.js",
+    "./routes/mapstats.js",
+    "./routes/playerstats.js",
+    "./routes/seasons.js",
+    "./routes/servers.js",
+    "./routes/teams.js",
+    "./routes/users.js",
+    "./routes/vetoes.js",
+  ],
 };
 const swaggerSpec = swaggerJSDoc(options);
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // END API SETUP
 
@@ -141,7 +149,11 @@ app.get(
   },
   passport.authenticate("steam", { failureRedirect: "/" }),
   (req, res) => {
-    res.redirect("/");
+    if (process.env.NODE_ENV == "test") {
+      res.redirect("/");
+    } else {
+      res.redirect(config.get("server.clientHome"));
+    }
   }
 );
 app.get("/logout", function (req, res) {
