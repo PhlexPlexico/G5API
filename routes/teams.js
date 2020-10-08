@@ -85,7 +85,7 @@ const Utils = require('../utility/utils');
  *                type: object
  *                properties:
  *                  type: array
- *                  allTeams:
+ *                  teams:
  *                    type: array
  *                    items:
  *                      $ref: '#/components/schemas/TeamData'
@@ -96,25 +96,25 @@ const Utils = require('../utility/utils');
  */
 router.get("/", async (req, res) => {
   let sql =
-    "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
-    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': [\"', ta.name, '\"]')  SEPARATOR ', '), '}') as auth_name " +
+    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
     "FROM team t JOIN team_auth_names ta " +
     "ON t.id = ta.team_id " +
     "GROUP BY t.id, t.name, t.flag, t.logo, t.tag, t.public_team";
   try {
-    let allTeams = await db.query(sql);
+    let teams = await db.query(sql);
     // do something with someRows and otherRows
-    if(allTeams.length < 1){
+    if(teams.length < 1){
       res.
         status(404).
         json({message: "No teams found for current user."});
       return;
     }
-    for(let row in allTeams){
-      allTeams[row].auth_name = JSON.parse(allTeams[row].auth_name);
-      allTeams[row].auth_name = await getTeamImages(allTeams[row].auth_name);
+    for(let row in teams){
+      teams[row].auth_name = JSON.parse(teams[row].auth_name);
+      teams[row].auth_name = await getTeamImages(teams[row].auth_name, false);
     }
-    res.json({allTeams});
+    res.json({teams});
   } catch (err) {
     res.status(500).json({ message: err });
   }
@@ -151,7 +151,7 @@ router.get("/", async (req, res) => {
  */
 router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
   let sql =
-    "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
     "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
     "FROM team t JOIN team_auth_names ta " +
     "ON t.id = ta.team_id " +
@@ -167,7 +167,7 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
     }
     for(let row in teams){
       teams[row].auth_name = JSON.parse(teams[row].auth_name);
-      teams[row].auth_name = await getTeamImages(teams[row].auth_name);
+      teams[row].auth_name = await getTeamImages(teams[row].auth_name, false);
     }
     res.json({teams});
   } catch (err) {
@@ -209,7 +209,7 @@ router.get("/:team_id", async (req, res) => {
   teamID = req.params.team_id;
   let sql =
     "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
-    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
+    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': { \"name\": \"', ta.name, '\"}')  SEPARATOR ', '), '}') as auth_name " +
     "FROM team t JOIN team_auth_names ta " +
     "ON t.id = ta.team_id  " +
     "where t.id = ?";
@@ -222,6 +222,7 @@ router.get("/:team_id", async (req, res) => {
       return;
     }
     team[0].auth_name = JSON.parse(team[0].auth_name);
+    team[0].auth_name = await getTeamImages(team[0].auth_name);
     team = JSON.parse(JSON.stringify(team[0]));
     res.json({team});
   } catch (err) {
@@ -625,13 +626,21 @@ router.get("/:team_id/result/:match_id", async(req, res) => {
  * @memberof module:routes/teams
  * @param {Object} idList - An object list of steam IDs.
  */
-const getTeamImages = async (idList) => {
+const getTeamImages = async (idList, getImage=true) => {
   for(let steamId of Object.keys(idList)){
-    if(idList[steamId][0] == "")
-    idList[steamId][0] = await Utils.getSteamName(steamId);
-    idList[steamId][1] = await Utils.getSteamImage(steamId);
+    if(!getImage){
+      console.log(idList[steamId]);
+      if(idList[steamId] == "") {
+        idList[steamId] = await Utils.getSteamName(steamId);
+      }
+    } else {
+      if(idList[steamId].name == "") {
+        idList[steamId].name = await Utils.getSteamName(steamId);
+      }
+      idList[steamId].image = await Utils.getSteamImage(steamId);
+    }
+    
   }
-  console.log(idList);
   return idList;
 }
 
