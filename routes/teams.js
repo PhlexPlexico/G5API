@@ -581,7 +581,7 @@ router.get("/:team_id/result/:match_id", async(req, res) => {
       res.status(404).json({"result": "Team did not participate in match."});
       return;
     }
-    if (curMatch[0].team1_id === teamId){
+    if (curMatch[0].team1_id == teamId){
       otherTeam = await db.query(teamSql, [curMatch[0].team2_id]);
       myScore = curMatch[0].team1_score;
       otherTeamScore = curMatch[0].team2_score;
@@ -591,11 +591,11 @@ router.get("/:team_id/result/:match_id", async(req, res) => {
       otherTeamScore = curMatch[0].team1_score;
     }
     // If match is a bo1, just get the map score.
-    if (curMatch[0].max_maps === 1) {
+    if (curMatch[0].max_maps == 1) {
       let mapSql = "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ? LIMIT 1";
       const mapStatBo1 = await db.query(mapSql, [matchId]);
       if (mapStatBo1.length > 0) {
-        if (mapStatBo1[0].team1_id === teamId) {
+        if (curMatch[0].team1_id == teamId) {
           myScore = mapStatBo1[0].team1_score;
           otherTeamScore = mapStatBo1[0].team2_score;
         } else {
@@ -605,12 +605,14 @@ router.get("/:team_id/result/:match_id", async(req, res) => {
       }
     }
     // Start building the return string.
-    if (curMatch[0].end_time === null && (curMatch[0].cancelled === false || curMatch[0].cancelled === null) && curMatch[0].start_time !== null)
+    if (curMatch[0].end_time == null && (curMatch[0].cancelled == false || curMatch[0].cancelled == null) && curMatch[0].start_time != null)
         statusString = "Live, "+ myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
     else if (myScore < otherTeamScore) 
       statusString = "Lost, "+ myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
     else if (myScore > otherTeamScore) 
       statusString = "Won, "+ myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
+    else if (curMatch[0].winner != null)
+      statusString = "Forfeit win vs " + otherTeam[0].name;
     else
       statusString = "Tied, "+ myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
     res.json({"result" : statusString});
