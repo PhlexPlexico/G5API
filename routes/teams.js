@@ -208,7 +208,7 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
 router.get("/:team_id", async (req, res) => {
   teamID = req.params.team_id;
   let sql =
-    "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
     "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': { \"name\": \"', ta.name, '\"}')  SEPARATOR ', '), '}') as auth_name " +
     "FROM team t JOIN team_auth_names ta " +
     "ON t.id = ta.team_id  " +
@@ -631,7 +631,6 @@ router.get("/:team_id/result/:match_id", async(req, res) => {
 const getTeamImages = async (idList, getImage=true) => {
   for(let steamId of Object.keys(idList)){
     if(!getImage){
-      console.log(idList[steamId]);
       if(idList[steamId] == "") {
         idList[steamId] = await Utils.getSteamName(steamId);
       }
