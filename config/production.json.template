@@ -5,7 +5,8 @@
     "dbKey": "Database 16 Byte Key.",
     "steamAPIKey": "API Key For Steam Calls.",
     "sharedSecret": "a secure secret for session sigining.",
-    "clientHome": "http://localhost:8080"
+    "clientHome": "http://localhost:8080",
+    "useRedis": true    
   },
   "production": {
     "driver": "mysql",

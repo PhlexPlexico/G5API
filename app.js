@@ -31,14 +31,7 @@ const config = require("config");
 const session = require("express-session");
 const redis = require("redis");
 
-// Messy but avoids any open file handles.
-const redisClient =
-  process.env.NODE_ENV !== "test"
-    ? redis.createClient({
-        password: config.get(process.env.NODE_ENV + ".redisPass"),
-      })
-    : require("redis-mock").createClient();
-const redisStore = require("connect-redis")(session);
+
 
 const app = express();
 
@@ -47,29 +40,49 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 //app.use(express.static(path.join(__dirname, 'public')));
-redisClient.on("error", (err) => {
-  console.log("Redis error: ", err);
-});
-const redisCfg = {
-  host: config.get(process.env.NODE_ENV + ".redisHost"),
-  port: config.get(process.env.NODE_ENV + ".redisPort"),
-  client: redisClient,
-  ttl: config.get(process.env.NODE_ENV + ".redisTTL"),
-};
 
 // Security defaults with helmet
 app.use(helmet());
-app.use(
-  session({
-    secret: config.get("server.sharedSecret"),
-    name: "G5API",
-    resave: false,
-    saveUninitialized: true,
-    store: new redisStore(redisCfg),
-    cookie: { maxAge: 3600000 },
-  })
-);
-
+if(config.get("server.useRedis")){
+  // Messy but avoids any open file handles.
+  const redisClient =
+  process.env.NODE_ENV !== "test"
+    ? redis.createClient({
+        password: config.get(process.env.NODE_ENV + ".redisPass"),
+      })
+    : require("redis-mock").createClient();
+  const redisStore = require("connect-redis")(session);
+  redisClient.on("error", (err) => {
+    console.log("Redis error: ", err);
+  });
+  
+  const redisCfg = {
+    host: config.get(process.env.NODE_ENV + ".redisHost"),
+    port: config.get(process.env.NODE_ENV + ".redisPort"),
+    client: redisClient,
+    ttl: config.get(process.env.NODE_ENV + ".redisTTL"),
+  };
+  app.use(
+    session({
+      secret: config.get("server.sharedSecret"),
+      name: "G5API",
+      resave: false,
+      saveUninitialized: true,
+      store: new redisStore(redisCfg),
+      cookie: { maxAge: 3600000 },
+    })
+  );
+} else {
+  app.use(
+    session({
+      secret: config.get("server.sharedSecret"),
+      name: "G5API",
+      resave: false,
+      saveUninitialized: true,
+      cookie: { maxAge: 3600000 },
+    })
+  );
+}
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(bearerToken());
@@ -178,8 +191,9 @@ app.use(function (err, req, res, next) {
   res.json({ error: err.message });
 });
 
-process.on("exit", function () {
-  redisClient.end();
-});
-
+if(config.get("server.useRedis")){
+  process.on("exit", function () {
+    redisClient.end();
+  });
+}
 module.exports = app;
