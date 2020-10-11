@@ -17,7 +17,7 @@ exports.setup = function(options, seedLink) {
 
 exports.up = function(db, callback) {
   async.series([
-    db.addColumn('user', 'api_key',  { type: 'string', length: 64, unique: true }),
+    db.addColumn('user', 'api_key',  { type: 'string', length: 170, unique: true }),
     db.addColumn('match', 'is_pug', { type: 'boolean', defaultValue: false })
   ], callback());
 };

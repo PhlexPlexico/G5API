@@ -138,6 +138,9 @@ router.get("/:user_id", async (req, res, next) => {
     
     let user = await db.query(sql, [userOrSteamID,userOrSteamID]);
     user = JSON.parse(JSON.stringify(user[0]));
+    if(user.api_key != null) {
+      user.api_key = await Utils.decrypt(user.api_key);
+    }
     res.json({user});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
