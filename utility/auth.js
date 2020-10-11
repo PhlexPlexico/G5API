@@ -8,6 +8,9 @@ const SteamStrategy = require('passport-steam').Strategy;
 const passport = require('passport');
 const MockStrategy = require('./mockstrategy').Strategy;
 const db = require('../db');
+const randString = require("randomstring");
+const Utils = require("./utils");
+
 passport.serializeUser((user, done) => {
   done(null, user);
 });
@@ -49,6 +52,12 @@ function returnStrategy (identifier, profile, done) {
       }
       let curUser = await db.query(sql, [profile.id]);
       if (curUser.length < 1) {
+        //Generate API key in user session to allow posting/getting/etc with
+        //an account that's not in a session.
+        let apiKey = randString.generate({
+          length: 64,
+          capitalization: "uppercase",
+        });
         sql = "INSERT INTO user SET ?";
         let newUser = {
           steam_id: profile.id,
@@ -58,7 +67,8 @@ function returnStrategy (identifier, profile, done) {
           created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
           small_image: profile.photos[0].value,
           medium_image: profile.photos[1].value,
-          large_image: profile.photos[2].value
+          large_image: profile.photos[2].value,
+          api_key: await Utils.encrypt(apiKey)
         }
         await db.withTransaction(async () => {
           curUser = await db.query(sql, [newUser]);

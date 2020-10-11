@@ -11,6 +11,7 @@ const db = require("../db");
 
 const Utils = require('../utility/utils');
 
+const randString = require("randomstring");
 
 /* Swagger shared definitions */
 
@@ -46,6 +47,9 @@ const Utils = require('../utility/utils');
  *         large_image:
  *           type: string
  *           description: Akamai Steam URL to the small profile image
+ *         new_api:
+ *           type: boolean
+ *           description: Whether the user is requesting a new API key.
  *     User:
  *       allOf:
  *         - $ref: '#/components/schemas/NewUser'
@@ -85,7 +89,7 @@ const Utils = require('../utility/utils');
 router.get("/", async (req, res) => {
   try {
 
-    let sql = "SELECT * FROM user";
+    let sql = "SELECT id, name, steam_id, small_image, medium_image, large_image FROM user";
     const users = await db.query(sql);
     res.json({users});
   } catch (err) {
@@ -124,8 +128,14 @@ router.get("/", async (req, res) => {
  */
 router.get("/:user_id", async (req, res, next) => {
   try {
-    userOrSteamID = req.params.user_id;
-    let sql = "SELECT * FROM user where id = ? OR steam_id = ?";
+    let userOrSteamID = req.params.user_id;
+    let sql;
+    if(req.user != null && req.user.id == userOrSteamID){
+      sql = "SELECT * FROM user WHERE id = ? OR steam_id = ?";
+    } else {
+      sql = "SELECT id, name, steam_id, small_image, medium_image, large_image FROM user where id = ? OR steam_id = ?";
+    }
+    
     let user = await db.query(sql, [userOrSteamID,userOrSteamID]);
     user = JSON.parse(JSON.stringify(user[0]));
     res.json({user});
@@ -164,19 +174,24 @@ router.get("/:user_id", async (req, res, next) => {
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    if (req.user.super_admin === 1 || req.user.admin === 1) {
+    if (Utils.adminCheck(req.user)) {
       await db.withTransaction(async () => {
         let steamId = req.body[0].steam_id;
         let steamName = req.body[0].name;
         let isAdmin = req.body[0].admin;
         let isSuperAdmin = req.body[0].super_admin;
         let smallImage = req.body[0].small_image;
-        let mediunImage = req.body[0].medium_image;
+        let mediumImage = req.body[0].medium_image;
         let largeImage = req.body[0].large_image;
+        let apiKey = randString.generate({
+          length: 64,
+          capitalization: "uppercase",
+        });
+        apiKey = await Utils.encrypt(apiKey);
         // Check if user is allowed to create?
         let sql =
-          "INSERT INTO user (steam_id, name, admin, super_admin, small_image, medium_image, large_image) VALUES (?,?,?,?,?,?,?)";
-        await db.query(sql, [steamId, steamName, isAdmin, isSuperAdmin, smallImage, mediunImage, largeImage]);
+          "INSERT INTO user (steam_id, name, admin, super_admin, small_image, medium_image, large_image, api_key) VALUES (?,?,?,?,?,?,?,?)";
+        await db.query(sql, [steamId, steamName, isAdmin, isSuperAdmin, smallImage, mediumImage, largeImage, apiKey]);
         res.json({ message: "User created successfully" });
       });
     } else {
@@ -233,7 +248,13 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let smallImage = req.body[0].small_image;
     let mediumImage = req.body[0].medium_image;
     let largeImage = req.body[0].large_image;
-    if (req.user.super_admin === 1 || req.user.admin === 1) {
+    let apiKey = req.body[0].new_api == true ? randString.generate({
+      length: 64,
+      capitalization: "uppercase",
+    }) : null;
+    if(apiKey != null)
+      apiKey = await Utils.encrypt(apiKey);
+    if (Utils.adminCheck(req.user)) {
       let steamId = req.body[0].steam_id;
       await db.withTransaction(async () => {
         let updateUser = {
@@ -242,7 +263,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           name: displayName,
           small_image: smallImage,
           medium_image: mediumImage,
-          large_image: largeImage
+          large_image: largeImage,
+          api_key: apiKey
         };
         updateUser = await db.buildUpdateStatement(updateUser);
         if(Object.keys(updateUser).length === 0){
@@ -303,7 +325,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.get("/:user_id/steam", async (req, res, next) => {
   try {
-    userOrSteamID = req.params.user_id;
+    let userOrSteamID = req.params.user_id;
     let sql = "SELECT steam_id FROM user where id = ? OR steam_id = ?";
     const allUsers = await db.query(sql, [userOrSteamID,userOrSteamID]);
     res.json({url: "https://steamcommunity.com/profiles/"+allUsers[0].steam_id});
@@ -343,7 +365,7 @@ router.get("/:user_id/steam", async (req, res, next) => {
 
 router.get("/:user_id/recent", async (req, res, next) => {
   try {
-    userOrSteamID = req.params.user_id;
+    let userOrSteamID = req.params.user_id;
     let sql = "SELECT rec_matches.* FROM user u, `match` rec_matches WHERE u.id = ? OR u.steam_id = ? LIMIT 5";
     const recentMatches = await db.query(sql, [userOrSteamID, userOrSteamID]);
     res.json(recentMatches);

@@ -25,6 +25,8 @@ const SteamAPI = new SteamURLResolver(config.get("server.steamAPIKey"));
  */
 const SteamIDResolver = require("@node-steam/id");
 
+const db = require("../db");
+
 class Utils {
   /** Function to get an HLTV rating for a user.
    * @function
@@ -126,7 +128,27 @@ class Utils {
    * @function
    * @memberof module:utils
    * @inner */
-  static ensureAuthenticated(req, res, next) {
+  static async ensureAuthenticated(req, res, next) {
+    if(req.body[0] != null && req.body[0].user_api != null) {
+      // Check the user based on API.
+      encApiKey = await Utils.encrypt(req.body[0].user_api);
+      let sqlQuery = "SELECT * FROM user WHERE api_key = ?";
+      const ourUser = await db.query(sqlQuery, [encApiKey]);
+      if (ourUser.length > 0) {
+        let curUser = {
+          steam_id: ourUser[0].steam_id,          
+          name: ourUser[0].name,
+          super_admin: ourUser[0].super_admin,
+          admin: ourUser[0].admin,
+          id: ourUser[0].id,
+          small_image: ourUser[0].small_image,
+          medium_image: ourUser[0].medium_image,
+          large_image: ourUser[0].large_image
+        };
+        req.user = curUser;
+        return next();
+      }
+    }
     if (req.isAuthenticated()) {
       return next();
     }
@@ -166,7 +188,7 @@ class Utils {
    * @returns A string representing a 64bit steam ID, or nothing if the profile is not found.
    */
   static async convertToSteam64(anySteamID) {
-    console.log(anySteamID);
+    //console.log(anySteamID);
     const steam64ID = new SteamIDResolver.ID(anySteamID);
     if (steam64ID.isValid() && steam64ID.getType() == "INDIVIDUAL")
       return steam64ID.get64();
