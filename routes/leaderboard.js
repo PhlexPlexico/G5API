@@ -119,6 +119,36 @@ router.get("/players", async (req, res) => {
 /**
  * @swagger
  *
+ * /leaderboard/players/pug:
+ *   get:
+ *     description: Get lifetime leaderboard for players in pickup games.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - leaderboard
+ *     responses:
+ *       200:
+ *         description: Leaderboard
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.get("/players/pug", async (req, res) => {
+  try {
+    let leaderboard = await getPlayerLeaderboard(null,true);
+    res.json({leaderboard});
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: err });
+  }
+});
+
+/**
+ * @swagger
+ *
  * /leaderboard/players/:season_id:
  *   get:
  *     description: Seasonal leaderboard for players
@@ -205,7 +235,6 @@ const getTeamLeaderboard = async (seasonId = null) => {
     let winningRounds,
       losingRounds = 0;
     let teamStandings = [];
-    let teamValues = {};
     let matchSql = "";
     if (!seasonId) {
       matchSql =
@@ -278,7 +307,7 @@ const getTeamLeaderboard = async (seasonId = null) => {
  * @memberof module:routes/leaderboard
  * @param {string} [seasonId=null] - Season ID to filter.
  */
-const getPlayerLeaderboard = async (seasonId = null) => {
+const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
   let allPlayers = [];
   let playerStats;
   /* Logic:
@@ -298,6 +327,7 @@ const getPlayerLeaderboard = async (seasonId = null) => {
         SELECT  id
         FROM    \`match\`
         WHERE   cancelled=0
+        AND     is_pug=`+pug+`
     )
     GROUP BY steam_id, name`;
   let playerStatSqlSeasons = `SELECT  steam_id, name, sum(kills) as kills,
@@ -313,6 +343,7 @@ const getPlayerLeaderboard = async (seasonId = null) => {
         FROM    \`match\`
         WHERE   cancelled=0
         AND season_id = ?
+        AND     is_pug=`+pug+`
     )
     GROUP BY steam_id, name`;
 

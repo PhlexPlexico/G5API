@@ -107,6 +107,10 @@ const GameServer = require("../../utility/serverrcon");
  *         onsite_veto:
  *           type: boolean
  *           description: Flag indicating whether you wish to veto on-site, or in-game.
+ *         is_pug:
+ *           type: boolean
+ *           description: Flag that indicates whether teams are required or not and to keep track of stats for pug/non-pug games.
+ * 
  *     MatchConfig:
  *        type: object
  *        properties:
@@ -291,7 +295,7 @@ const GameServer = require("../../utility/serverrcon");
 router.get("/", async (req, res, next) => {
   try {
     let sql =
-      "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, team2_score, team1_series_score, team2_series_score, team1_string, team2_string, cancelled, forfeit, start_time, end_time, max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, season_id FROM `match` WHERE cancelled = 0";
+      "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, team2_score, team1_series_score, team2_series_score, team1_string, team2_string, cancelled, forfeit, start_time, end_time, max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, season_id, is_pug FROM `match` WHERE cancelled = 0";
     const matches = await db.query(sql);
     if (matches.length === 0) {
       res.status(404).json({ message: "No matches found." });
@@ -391,7 +395,7 @@ router.get("/:match_id", async (req, res, next) => {
       sql = "SELECT * FROM `match` where id=?";
     } else {
       sql =
-        "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, team2_score, team1_series_score, team2_series_score, team1_string, team2_string, cancelled, forfeit, start_time, end_time, max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, season_id FROM `match` where id = ?";
+        "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, team2_score, team1_series_score, team2_series_score, team1_string, team2_string, cancelled, forfeit, start_time, end_time, max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, season_id, is_pug FROM `match` where id = ?";
     }
     matchID = req.params.match_id;
     const matches = await db.query(sql, matchID);
@@ -517,13 +521,14 @@ router.get("/:match_id/config", async (req, res, next) => {
     } else {
       matchJSON.maps_to_win = parseInt(matchInfo[0].max_maps / 2 + 1);
     }
-    // Fill out team data.
-    // Start with team 1
-    sql = "SELECT * FROM team WHERE id = ?";
-    const team1Data = await db.query(sql, [matchInfo[0].team1_id]);
-    const team2Data = await db.query(sql, [matchInfo[0].team2_id]);
-    matchJSON.team1 = await build_team_dict(team1Data[0], 1, matchInfo[0]);
-    matchJSON.team2 = await build_team_dict(team2Data[0], 2, matchInfo[0]);
+    // Fill out team data only if we are not PUGging.
+    if (matchInfo[0].is_pug == 0 || matchInfo[0].is_pug == null) {
+      sql = "SELECT * FROM team WHERE id = ?";
+      const team1Data = await db.query(sql, [matchInfo[0].team1_id]);
+      const team2Data = await db.query(sql, [matchInfo[0].team2_id]);
+      matchJSON.team1 = await build_team_dict(team1Data[0], 1, matchInfo[0]);
+      matchJSON.team2 = await build_team_dict(team2Data[0], 2, matchInfo[0]);
+    }
     res.json(matchJSON);
   } catch (err) {
     console.log(err);
@@ -590,6 +595,21 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       length: 24,
       capitalization: "uppercase",
     });
+    // Almost same behaviour. If we don't indicate pug or enforce teams,
+    // enforce by default. Otherwise. do some checks to see if the teams 
+    // should be enforced. By default, we wish to enforce teams.
+    let enfTeam = 1;
+    if (req.body[0].enforce_teams == null && req.body[0].is_pug == null) {
+      enfTeam = 1;
+    } else if (req.body[0].enforce_teams == null && req.body[0].is_pug == 1) {
+      enfTeam = 0;
+    } else if (req.body[0].enforce_teams == 1) {
+      enfTeam = 1;
+    } else if (req.body[0].enforce_teams == 0) {
+      enfTeam = 0;
+    } else if (req.body[0].enforce_teams == null && (req.body[0].is_pug == null || req.body[0].is_pug == 0)) {
+      enfTeam = 1;
+    }
     await db.withTransaction(async () => {
       let insertSet = {
         user_id: req.user.id,
@@ -608,12 +628,12 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         plugin_version: req.body[0].plugin_version,
         private_match:
           req.body[0].private_match == null ? 0 : req.body[0].private_match,
-        enforce_teams:
-          req.body[0].enforce_teams == null ? 1 : req.body[0].enforce_teams,
+        enforce_teams: enfTeam,
         api_key: apiKey,
         winner: null,
         team1_string: teamOneName[0].name == null ? null : teamOneName[0].name,
         team2_string: teamTwoName[0].name == null ? null : teamTwoName[0].name,
+        is_pug: req.body[0].is_pug
       };
       let sql = "INSERT INTO `match` SET ?";
       insertSet = await db.buildUpdateStatement(insertSet);
@@ -704,7 +724,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       return;
     }
     let currentMatchInfo =
-      "SELECT user_id, server_id, cancelled, forfeit, end_time, api_key, veto_mappool, max_maps, skip_veto FROM `match` WHERE id = ?";
+      "SELECT user_id, server_id, cancelled, forfeit, end_time, api_key, veto_mappool, max_maps, skip_veto, is_pug FROM `match` WHERE id = ?";
     const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
     if (matchRow.length === 0) {
       res.status(404).json({ message: "No match found." });
@@ -778,7 +798,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           veto_first: req.body[0].veto_first,
           veto_mappool: vetoMapPool == null ? req.body[0].veto_mappool : vetoMapPool,
           side_type: req.body[0].side_type,
-          enforce_teams: req.body[0].enforce_teams, // Do not update these unless required.
+          enforce_teams: (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) ? 0 : req.body[0].enforce_teams, // Do not update these unless required.
         };
         // Remove any values that may not be updated.
         updateStmt = await db.buildUpdateStatement(updateStmt);
