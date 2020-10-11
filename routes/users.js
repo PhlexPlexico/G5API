@@ -130,7 +130,7 @@ router.get("/:user_id", async (req, res, next) => {
   try {
     let userOrSteamID = req.params.user_id;
     let sql;
-    if(req.user != null && req.user.id == userOrSteamID){
+    if(req.user != null && (req.user.id == userOrSteamID || Utils.superAdminCheck(req.user))){
       sql = "SELECT * FROM user WHERE id = ? OR steam_id = ?";
     } else {
       sql = "SELECT id, name, steam_id, small_image, medium_image, large_image FROM user where id = ? OR steam_id = ?";
