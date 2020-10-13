@@ -96,25 +96,42 @@ const Utils = require("../utility/utils");
  */
 router.get("/", async (req, res) => {
   let sql =
-    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
-    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
-    "FROM team t JOIN team_auth_names ta " +
-    "ON t.id = ta.team_id " +
-    "GROUP BY t.id, t.name, t.flag, t.logo, t.tag, t.public_team";
+    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, '' as auth_name " +
+    "FROM team t";
+  let authNameSql =
+    "SELECT CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
+    "{ \"name\": \"', ta.name, '\"}')  SEPARATOR ', '), '}') as auth_name, " +
+    "team_id " +
+    "FROM team_auth_names ta WHERE team_id IN (?)";
+  let teamIDs = [];
   try {
     let teams = await db.query(sql);
-    // do something with someRows and otherRows
+    // let teamAuths = await db.query(authNameSql, teamID);
+    // Oddly enough, if a team doesn't exist, it still returns null!
+    // Check this and return a 404 if we don't exist.
     if (teams.length < 1) {
-      res.status(404).json({ message: "No teams found for current user." });
+      res.status(404).json({ message: "No teams found in the system." });
       return;
     }
+    // If we're an empty set, try just getting the team basic info.
+    Object.keys(teams).forEach((key) => {
+      teamIDs.push(teams[key].id);
+    });
+    let teamAuths = await db.query(authNameSql, teamIDs);
     for (let row in teams) {
-      teams[row].auth_name = JSON.parse(teams[row].auth_name);
-      teams[row].auth_name = await getTeamImages(teams[row].auth_name, false);
+      for (let authRow in teamAuths) {
+        if (teams[row].id == teamAuths[authRow].team_id) {
+          teams[row].auth_name = JSON.parse(teamAuths[authRow].auth_name);
+          teams[row].auth_name = await getTeamImages(
+            teams[row].auth_name,
+            false
+          );
+        }
+      }
     }
     res.json({ teams });
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -147,27 +164,6 @@ router.get("/", async (req, res) => {
  *         $ref: '#/components/responses/Error'
  */
 router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
-  // let sql =
-  //   "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
-  //   "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
-  //   "FROM team t JOIN team_auth_names ta " +
-  //   "ON t.id = ta.team_id " +
-  //   "WHERE t.user_id = ? " +
-  //   "GROUP BY t.name, t.flag, t.logo, t.tag, t.public_team";
-  // try {
-  //   const teams = await db.query(sql, [req.user.id]);
-  //   if (teams.length < 1) {
-  //     res.status(404).json({ message: "No teams found for current user." });
-  //     return;
-  //   }
-  //   for (let row in teams) {
-  //     teams[row].auth_name = JSON.parse(teams[row].auth_name);
-  //     teams[row].auth_name = await getTeamImages(teams[row].auth_name, false);
-  //   }
-  //   res.json({ teams });
-  // } catch (err) {
-  //   res.status(500).json({ message: err });
-  // }
   teamID = req.params.team_id;
   let sql =
     "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, '' as auth_name " +
@@ -193,10 +189,13 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
     });
     let teamAuths = await db.query(authNameSql, teamIDs);
     for (let row in teams) {
-      for(let authRow in teamAuths) {
-        if(teams[row].id == teamAuths[authRow].team_id){
+      for (let authRow in teamAuths) {
+        if (teams[row].id == teamAuths[authRow].team_id) {
           teams[row].auth_name = JSON.parse(teamAuths[authRow].auth_name);
-          teams[row].auth_name = await getTeamImages(teams[row].auth_name, false);
+          teams[row].auth_name = await getTeamImages(
+            teams[row].auth_name,
+            false
+          );
         }
       }
     }
@@ -255,13 +254,12 @@ router.get("/:team_id", async (req, res) => {
       return;
     }
     // If we're an empty set, try just getting the team basic info.
-    
+
     if (teamAuths[0].auth_name != null) {
       team[0].auth_name = JSON.parse(teamAuths[0].auth_name);
       team[0].auth_name = await getTeamImages(team[0].auth_name);
-      team = JSON.parse(JSON.stringify(team[0]));
     }
-
+    team = JSON.parse(JSON.stringify(team[0]));
     res.json({ team });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
