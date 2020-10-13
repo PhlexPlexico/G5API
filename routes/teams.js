@@ -15,7 +15,7 @@ const router = express.Router();
 
 const db = require("../db");
 
-const Utils = require('../utility/utils');
+const Utils = require("../utility/utils");
 
 /**
  * @swagger
@@ -104,22 +104,19 @@ router.get("/", async (req, res) => {
   try {
     let teams = await db.query(sql);
     // do something with someRows and otherRows
-    if(teams.length < 1){
-      res.
-        status(404).
-        json({message: "No teams found for current user."});
+    if (teams.length < 1) {
+      res.status(404).json({ message: "No teams found for current user." });
       return;
     }
-    for(let row in teams){
+    for (let row in teams) {
       teams[row].auth_name = JSON.parse(teams[row].auth_name);
       teams[row].auth_name = await getTeamImages(teams[row].auth_name, false);
     }
-    res.json({teams});
+    res.json({ teams });
   } catch (err) {
     res.status(500).json({ message: err });
   }
 });
-
 
 /**
  * @swagger
@@ -150,28 +147,62 @@ router.get("/", async (req, res) => {
  *         $ref: '#/components/responses/Error'
  */
 router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
+  // let sql =
+  //   "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+  //   "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
+  //   "FROM team t JOIN team_auth_names ta " +
+  //   "ON t.id = ta.team_id " +
+  //   "WHERE t.user_id = ? " +
+  //   "GROUP BY t.name, t.flag, t.logo, t.tag, t.public_team";
+  // try {
+  //   const teams = await db.query(sql, [req.user.id]);
+  //   if (teams.length < 1) {
+  //     res.status(404).json({ message: "No teams found for current user." });
+  //     return;
+  //   }
+  //   for (let row in teams) {
+  //     teams[row].auth_name = JSON.parse(teams[row].auth_name);
+  //     teams[row].auth_name = await getTeamImages(teams[row].auth_name, false);
+  //   }
+  //   res.json({ teams });
+  // } catch (err) {
+  //   res.status(500).json({ message: err });
+  // }
+  teamID = req.params.team_id;
   let sql =
-    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
-    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': \"', ta.name, '\"')  SEPARATOR ', '), '}') as auth_name " +
-    "FROM team t JOIN team_auth_names ta " +
-    "ON t.id = ta.team_id " +
-    "WHERE t.user_id = ? " +
-    "GROUP BY t.name, t.flag, t.logo, t.tag, t.public_team";
+    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, '' as auth_name " +
+    "FROM team t WHERE t.user_id = ?";
+  let authNameSql =
+    "SELECT CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
+    "{ \"name\": \"', ta.name, '\"}')  SEPARATOR ', '), '}') as auth_name, " +
+    "team_id " +
+    "FROM team_auth_names ta WHERE team_id IN (?)";
+  let teamIDs = [];
   try {
-    const teams = await db.query(sql, [req.user.id]);
-    if(teams.length < 1){
-      res.
-        status(404).
-        json({message: "No teams found for current user."});
+    let teams = await db.query(sql, req.user.id);
+    // let teamAuths = await db.query(authNameSql, teamID);
+    // Oddly enough, if a team doesn't exist, it still returns null!
+    // Check this and return a 404 if we don't exist.
+    if (teams.length == 0) {
+      res.status(404).json({ message: "No team found for id " + teamID });
       return;
     }
-    for(let row in teams){
-      teams[row].auth_name = JSON.parse(teams[row].auth_name);
-      teams[row].auth_name = await getTeamImages(teams[row].auth_name, false);
+    // If we're an empty set, try just getting the team basic info.
+    Object.keys(teams).forEach((key) => {
+      teamIDs.push(teams[key].id);
+    });
+    let teamAuths = await db.query(authNameSql, teamIDs);
+    for (let row in teams) {
+      for(let authRow in teamAuths) {
+        if(teams[row].id == teamAuths[authRow].team_id){
+          teams[row].auth_name = JSON.parse(teamAuths[authRow].auth_name);
+          teams[row].auth_name = await getTeamImages(teams[row].auth_name, false);
+        }
+      }
     }
-    res.json({teams});
+    res.json({ teams });
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.toString() });
   }
 });
 
@@ -208,23 +239,30 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
 router.get("/:team_id", async (req, res) => {
   teamID = req.params.team_id;
   let sql =
-    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
-    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': { \"name\": \"', ta.name, '\"}')  SEPARATOR ', '), '}') as auth_name " +
-    "FROM team t JOIN team_auth_names ta " +
-    "ON t.id = ta.team_id  " +
-    "where t.id = ?";
+    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, '' as auth_name " +
+    "FROM team t WHERE t.id = ?";
+  let authNameSql =
+    "SELECT CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
+    "{ \"name\": \"', ta.name, '\"}')  SEPARATOR ', '), '}') as auth_name " +
+    "FROM team_auth_names ta WHERE team_id = ?";
   try {
     let team = await db.query(sql, teamID);
+    let teamAuths = await db.query(authNameSql, teamID);
     // Oddly enough, if a team doesn't exist, it still returns null!
     // Check this and return a 404 if we don't exist.
-    if(team[0].id === null) {
-      res.status(404).json({message: "No team found for id " + teamID});
+    if (team.length == 0) {
+      res.status(404).json({ message: "No team found for id " + teamID });
       return;
     }
-    team[0].auth_name = JSON.parse(team[0].auth_name);
-    team[0].auth_name = await getTeamImages(team[0].auth_name);
-    team = JSON.parse(JSON.stringify(team[0]));
-    res.json({team});
+    // If we're an empty set, try just getting the team basic info.
+    
+    if (teamAuths[0].auth_name != null) {
+      team[0].auth_name = JSON.parse(teamAuths[0].auth_name);
+      team[0].auth_name = await getTeamImages(team[0].auth_name);
+      team = JSON.parse(JSON.stringify(team[0]));
+    }
+
+    res.json({ team });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -274,8 +312,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
       flag: flag,
       logo: logo,
       tag: tag,
-      public_team: public_team
-    }
+      public_team: public_team,
+    },
   ];
   let sql =
     "INSERT INTO team (user_id, name, flag, logo, tag, public_team) VALUES ?";
@@ -283,14 +321,14 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
   try {
     await db.withTransaction(async () => {
       const insertTeam = await db.query(sql, [
-        newTeam.map(item => [
+        newTeam.map((item) => [
           item.user_id,
           item.name,
           item.flag,
           item.logo,
           item.tag,
-          item.public_team
-        ])
+          item.public_team,
+        ]),
       ]);
       teamID = insertTeam.insertId;
       sql =
@@ -345,11 +383,16 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
 router.put("/", Utils.ensureAuthenticated, async (req, res) => {
   let checkUserSql = "SELECT * FROM team WHERE id = ?";
   const checkUser = await db.query(checkUserSql, [req.body[0].id]);
-  if(checkUser[0] == null) {
-    res.status(404).json({message: "Team does not exist."});
+  if (checkUser[0] == null) {
+    res.status(404).json({ message: "Team does not exist." });
     return;
-  } else if (checkUser[0].user_id != req.user.id && !(Utils.superAdminCheck(req.user))) {
-    res.status(403).json({message: "User is not authorized to perform action."});
+  } else if (
+    checkUser[0].user_id != req.user.id &&
+    !Utils.superAdminCheck(req.user)
+  ) {
+    res
+      .status(403)
+      .json({ message: "User is not authorized to perform action." });
     return;
   }
   let teamID = req.body[0].id;
@@ -361,40 +404,43 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
   let publicTeam = req.body[0].public_team;
   let userId = req.body[0].user_id;
   let updateTeam = {
-      user_id: userId,
-      name: teamName,
-      flag: teamFlag,
-      logo: teamLogo,
-      tag: teamTag,
-      public_team: publicTeam
-    };
-    updateTeam = await db.buildUpdateStatement(updateTeam);
-    if(Object.keys(updateTeam).length === 0){
-      res.status(412).json({message: "No update data has been provided."});
-      return;
-    }
-  let sql =
-    "UPDATE team SET ? WHERE id=?";
+    user_id: userId,
+    name: teamName,
+    flag: teamFlag,
+    logo: teamLogo,
+    tag: teamTag,
+    public_team: publicTeam,
+    id: teamID,
+  };
+  updateTeam = await db.buildUpdateStatement(updateTeam);
+  if (Object.keys(updateTeam).length === 0) {
+    res.status(412).json({ message: "No update data has been provided." });
+    return;
+  }
+  let sql = "UPDATE team SET ? WHERE id=?";
   try {
     await db.withTransaction(async () => {
-      await db.query(sql, [
-        updateTeam,
-        teamID
-      ]);
+      await db.query(sql, [updateTeam, teamID]);
       sql =
         "UPDATE team_auth_names SET name = ? WHERE auth = ? AND team_id = ?";
       for (let key in teamAuths) {
         let usersSteamId = await Utils.getSteamPID(key);
-        let updateTeamAuth = await db.query(sql, [teamAuths[key], usersSteamId, teamID]);
-        if(updateTeamAuth.affectedRows < 1){
+        let updateTeamAuth = await db.query(sql, [
+          teamAuths[key],
+          usersSteamId,
+          teamID,
+        ]);
+        if (updateTeamAuth.affectedRows < 1) {
           // Insert a new auth if it doesn't exist. Technically "updating a team".
-          let insertSql = "INSERT INTO team_auth_names (team_id, auth, name) VALUES (?, ?, ?)";
+          let insertSql =
+            "INSERT INTO team_auth_names (team_id, auth, name) VALUES (?, ?, ?)";
           await db.query(insertSql, [teamID, usersSteamId, teamAuths[key]]);
         }
       }
       res.json({ message: "Team successfully updated" });
     });
   } catch (err) {
+    console.log(err.toString());
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -404,7 +450,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
  *
  * /teams:
  *   delete:
- *     description: Delete a team object if there is no map stats associated with it.
+ *     description: Delete a team object if there is no map stats associated with it. Optionally deletes a team member from a team, if a steam ID is provided.
  *     produces:
  *       - application/json
  *     requestBody:
@@ -417,6 +463,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
  *              team_id:
  *                type: integer
  *                required: true
+ *              steam_id:
+ *                type: string
+ *                required: false
  *     tags:
  *       - teams
  *     responses:
@@ -437,50 +486,68 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
   let teamID = req.body[0].team_id;
   let checkUserSql = "SELECT * FROM team WHERE id = ?";
   const checkUser = await db.query(checkUserSql, [teamID]);
-  if(checkUser[0] == null) {
-    res.status(404).json({message: "Team does not exist."});
+  if (checkUser[0] == null) {
+    res.status(404).json({ message: "Team does not exist." });
     return;
-  } else if (checkUser[0].user_id != req.user.id && !(Utils.superAdminCheck(req.user))) {
-    res.status(403).json({message: "User is not authorized to perform action."});
+  } else if (
+    checkUser[0].user_id != req.user.id &&
+    !Utils.superAdminCheck(req.user)
+  ) {
+    res
+      .status(403)
+      .json({ message: "User is not authorized to perform action." });
     return;
-  }
-  try {
-    // First find any matches/mapstats/playerstats associated with the team.
-    let playerStatSql =
-      "SELECT COUNT(*) as RECORDS FROM player_stats WHERE team_id = ?";
-    let mapStatSql =
-      "SELECT COUNT(*) as RECORDS FROM map_stats WHERE winner = ?";
-    let matchSql =
-      "SELECT COUNT(*) as RECORDS FROM `match` WHERE team1_id = ? OR team2_id = ?";
-    const playerStatCount = await db.query(playerStatSql, teamID);
-    const mapStatCount = await db.query(mapStatSql, teamID);
-    const matchCount = await db.query(matchSql, [teamID, teamID]);
-    if (
-      playerStatCount[0].RECORDS > 0 ||
-      mapStatCount[0].RECORDS > 0 ||
-      matchCount[0].RECORDS > 0
-    ) {
-      throw "Cannot delete team as it has more than one of the following true:\n" +
-        "Player Stat Records: " +
-        playerStatCount[0].RECORDS +
-        "\n" +
-        "Map Stat Records: " +
-        mapStatCount[0].RECORDS +
-        "\n" +
-        "Match Records: " +
-        matchCount[0].RECORDS;
+  } else if (req.body[0].steam_id != null) {
+    let deleteSql =
+      "DELETE FROM team_auth_names WHERE auth = ? AND team_id = ?";
+    let steamAuth = req.body[0].steam_id;
+    try {
+      await db.query(deleteSql, [steamAuth, teamID]);
+      res.json({ message: "Team member deleted successfully!" });
+    } catch (err) {
+      res.status(500).json({ message: err.toString() });
     }
-    // Otherwise, let's continue with delete. Start with auths.
-    await db.withTransaction(async () => {
-      let deleteTeamAuthSql = "DELETE FROM team_auth_names WHERE team_id = ?";
-      let deleteTeamsql = "DELETE FROM team WHERE id = ?";
-      await db.query(deleteTeamAuthSql, teamID);
-      await db.query(deleteTeamsql, teamID);
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.toString() });
+  } else {
+    try {
+      // First find any matches/mapstats/playerstats associated with the team.
+      let playerStatSql =
+        "SELECT COUNT(*) as RECORDS FROM player_stats WHERE team_id = ?";
+      let mapStatSql =
+        "SELECT COUNT(*) as RECORDS FROM map_stats WHERE winner = ?";
+      let matchSql =
+        "SELECT COUNT(*) as RECORDS FROM `match` WHERE team1_id = ? OR team2_id = ?";
+      const playerStatCount = await db.query(playerStatSql, teamID);
+      const mapStatCount = await db.query(mapStatSql, teamID);
+      const matchCount = await db.query(matchSql, [teamID, teamID]);
+      if (
+        playerStatCount[0].RECORDS > 0 ||
+        mapStatCount[0].RECORDS > 0 ||
+        matchCount[0].RECORDS > 0
+      ) {
+        throw (
+          "Cannot delete team as it has more than one of the following true:\n" +
+          "Player Stat Records: " +
+          playerStatCount[0].RECORDS +
+          "\n" +
+          "Map Stat Records: " +
+          mapStatCount[0].RECORDS +
+          "\n" +
+          "Match Records: " +
+          matchCount[0].RECORDS
+        );
+      }
+      // Otherwise, let's continue with delete. Start with auths.
+      await db.withTransaction(async () => {
+        let deleteTeamAuthSql = "DELETE FROM team_auth_names WHERE team_id = ?";
+        let deleteTeamsql = "DELETE FROM team WHERE id = ?";
+        await db.query(deleteTeamAuthSql, teamID);
+        await db.query(deleteTeamsql, teamID);
+      });
+    } catch (err) {
+      res.status(500).json({ message: err.toString() });
+    }
+    res.json({ message: "Team has been deleted successfully!" });
   }
-  res.json({ message: "Team has been deleted successfully!" });
 });
 
 /**
@@ -512,12 +579,13 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
  *       500:
  *         $ref: '#/components/responses/Error'
  */
-router.get("/:team_id/recent", async(req, res) => {
+router.get("/:team_id/recent", async (req, res) => {
   try {
     teamId = req.params.team_id;
-    let sql = "SELECT rec_matches.* FROM team t, `match` rec_matches WHERE t.id = ? AND (rec_matches.team1_id = ? OR rec_matches.team2_id = ?) ORDER BY rec_matches.id DESC LIMIT 5";
+    let sql =
+      "SELECT rec_matches.* FROM team t, `match` rec_matches WHERE t.id = ? AND (rec_matches.team1_id = ? OR rec_matches.team2_id = ?) ORDER BY rec_matches.id DESC LIMIT 5";
     const matches = await db.query(sql, [teamId, teamId, teamId]);
-    res.json({matches});
+    res.json({ matches });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -557,16 +625,16 @@ router.get("/:team_id/recent", async(req, res) => {
  *             schema:
  *               type: object
  *               properties:
- *                    result: 
+ *                    result:
  *                      type: string
  *                      description: Whether a team won, lost, or tied.
- *                      
+ *
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
-router.get("/:team_id/result/:match_id", async(req, res) => {
+router.get("/:team_id/result/:match_id", async (req, res) => {
   try {
     let otherTeam = null;
     let myScore = 0;
@@ -577,11 +645,11 @@ router.get("/:team_id/result/:match_id", async(req, res) => {
     let teamSql = "SELECT * FROM team WHERE id = ?";
     let statusString = "";
     const curMatch = await db.query(matchSql, [matchId]);
-    if (curMatch.length === 0){
-      res.status(404).json({"result": "Team did not participate in match."});
+    if (curMatch.length === 0) {
+      res.status(404).json({ result: "Team did not participate in match." });
       return;
     }
-    if (curMatch[0].team1_id == teamId){
+    if (curMatch[0].team1_id == teamId) {
       otherTeam = await db.query(teamSql, [curMatch[0].team2_id]);
       myScore = curMatch[0].team1_score;
       otherTeamScore = curMatch[0].team2_score;
@@ -592,7 +660,8 @@ router.get("/:team_id/result/:match_id", async(req, res) => {
     }
     // If match is a bo1, just get the map score.
     if (curMatch[0].max_maps == 1) {
-      let mapSql = "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ? LIMIT 1";
+      let mapSql =
+        "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ? LIMIT 1";
       const mapStatBo1 = await db.query(mapSql, [matchId]);
       if (mapStatBo1.length > 0) {
         if (curMatch[0].team1_id == teamId) {
@@ -605,18 +674,25 @@ router.get("/:team_id/result/:match_id", async(req, res) => {
       }
     }
     // Start building the return string.
-    if (curMatch[0].end_time == null && (curMatch[0].cancelled == false || curMatch[0].cancelled == null) && curMatch[0].start_time != null)
-        statusString = "Live, "+ myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
-    else if (myScore < otherTeamScore) 
-      statusString = "Lost, "+ myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
-    else if (myScore > otherTeamScore) 
-      statusString = "Won, "+ myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
+    if (
+      curMatch[0].end_time == null &&
+      (curMatch[0].cancelled == false || curMatch[0].cancelled == null) &&
+      curMatch[0].start_time != null
+    )
+      statusString =
+        "Live, " + myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
+    else if (myScore < otherTeamScore)
+      statusString =
+        "Lost, " + myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
+    else if (myScore > otherTeamScore)
+      statusString =
+        "Won, " + myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
     else if (curMatch[0].winner != null)
       statusString = "Forfeit win vs " + otherTeam[0].name;
     else
-      statusString = "Tied, "+ myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
-    res.json({"result" : statusString});
-
+      statusString =
+        "Tied, " + myScore + ":" + otherTeamScore + " vs " + otherTeam[0].name;
+    res.json({ result: statusString });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -628,23 +704,20 @@ router.get("/:team_id/result/:match_id", async(req, res) => {
  * @memberof module:routes/teams
  * @param {Object} idList - An object list of steam IDs.
  */
-const getTeamImages = async (idList, getImage=true) => {
-  for(let steamId of Object.keys(idList)){
-    if(!getImage){
-      if(idList[steamId] == "") {
+const getTeamImages = async (idList, getImage = true) => {
+  for (let steamId of Object.keys(idList)) {
+    if (!getImage) {
+      if (idList[steamId] == "") {
         idList[steamId] = await Utils.getSteamName(steamId);
       }
     } else {
-      if(idList[steamId].name == "") {
+      if (idList[steamId].name == "") {
         idList[steamId].name = await Utils.getSteamName(steamId);
       }
       idList[steamId].image = await Utils.getSteamImage(steamId);
     }
-    
   }
   return idList;
-}
-
-
+};
 
 module.exports = router;

@@ -129,24 +129,32 @@ class Utils {
    * @memberof module:utils
    * @inner */
   static async ensureAuthenticated(req, res, next) {
-    if(req.body[0] != null && req.body[0].user_api != null) {
+    if (
+      req.body[0] != null &&
+      req.body[0].user_api != null &&
+      req.body[0].user_id
+    ) {
       // Check the user based on API.
-      encApiKey = await Utils.encrypt(req.body[0].user_api);
-      let sqlQuery = "SELECT * FROM user WHERE api_key = ?";
-      const ourUser = await db.query(sqlQuery, [encApiKey]);
+      let apiKey = req.body[0].user_api;
+      let userId = req.body[0].user_id;
+      let sqlQuery = "SELECT * FROM user WHERE id = ?";
+      const ourUser = await db.query(sqlQuery, userId);
       if (ourUser.length > 0) {
-        let curUser = {
-          steam_id: ourUser[0].steam_id,          
-          name: ourUser[0].name,
-          super_admin: ourUser[0].super_admin,
-          admin: ourUser[0].admin,
-          id: ourUser[0].id,
-          small_image: ourUser[0].small_image,
-          medium_image: ourUser[0].medium_image,
-          large_image: ourUser[0].large_image
-        };
-        req.user = curUser;
-        return next();
+        let uncDb = await Utils.decrypt(ourUser[0].api_key);
+        if (uncDb == apiKey) {
+          let curUser = {
+            steam_id: ourUser[0].steam_id,
+            name: ourUser[0].name,
+            super_admin: ourUser[0].super_admin,
+            admin: ourUser[0].admin,
+            id: ourUser[0].id,
+            small_image: ourUser[0].small_image,
+            medium_image: ourUser[0].medium_image,
+            large_image: ourUser[0].large_image,
+          };
+          req.user = curUser;
+          return next();
+        }
       }
     }
     if (req.isAuthenticated()) {
@@ -252,7 +260,6 @@ class Utils {
     let summaryInfo = await SteamAPI.getUserSummary(auth64);
     return summaryInfo.avatar.medium;
   }
-
 }
 
 module.exports = Utils;

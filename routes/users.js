@@ -189,7 +189,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         let mediumImage = req.body[0].medium_image;
         let largeImage = req.body[0].large_image;
         let apiKey = randString.generate({
-          length: 64,
+          length: 32,
           capitalization: "uppercase",
         });
         apiKey = await Utils.encrypt(apiKey);
