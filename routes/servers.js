@@ -330,7 +330,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       let publicServer = req.body[0].public_server;
       let sql =
         "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server) VALUES (?,?,?,?,?,?)";
-      await db.query(sql, [
+      let insertServer = await db.query(sql, [
         userId,
         ipString,
         port,
@@ -351,7 +351,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
             "Game Server did not respond in time. However, we have still inserted the server successfully.",
         });
       } else {
-        res.json({ message: "Game server inserted successfully!" });
+        res.json({ message: "Game server inserted successfully!", id: insertServer.insertId });
       }
     });
   } catch (err) {

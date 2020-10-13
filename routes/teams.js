@@ -335,7 +335,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
         let usersSteamId = await Utils.getSteamPID(key);
         await db.query(sql, [teamID, usersSteamId, auths[key]]);
       }
-      res.json({ message: "Team successfully inserted with ID " + teamID });
+      res.json({ message: "Team successfully inserted.", id: teamID });
     });
   } catch (err) {
     res.status(500).json({ message: err.toString() });

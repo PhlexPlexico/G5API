@@ -192,11 +192,12 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           length: 32,
           capitalization: "uppercase",
         });
+        let userId = null;
         apiKey = await Utils.encrypt(apiKey);
         // Check if user is allowed to create?
         let sql =
           "INSERT INTO user (steam_id, name, admin, super_admin, small_image, medium_image, large_image, api_key) VALUES (?,?,?,?,?,?,?,?)";
-        await db.query(sql, [
+        let newUser = await db.query(sql, [
           steamId,
           steamName,
           isAdmin,
@@ -206,7 +207,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           largeImage,
           apiKey,
         ]);
-        res.json({ message: "User created successfully" });
+        userId = newUser.insertId;
+        res.json({ message: "User created successfully.", id: userId });
       });
     } else {
       res.status(403).json({ message: "You are not authorized to do this." });

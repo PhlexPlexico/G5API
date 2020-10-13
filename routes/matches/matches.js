@@ -637,7 +637,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       };
       let sql = "INSERT INTO `match` SET ?";
       insertSet = await db.buildUpdateStatement(insertSet);
-      await db.query(sql, [insertSet]);
+      let insertMatch = await db.query(sql, [insertSet]);
       sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
       for (let key in req.body[0].spectator_auths) {
         await db.query(sql, [req.body[0].match_id, key]);
@@ -669,7 +669,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         sql = "UPDATE game_server SET in_use = 1 WHERE id = ?";
         await db.query(sql, [req.body[0].server_id]);
       }
-      res.json({ message: "Match inserted successfully!" });
+      res.json({ message: "Match inserted successfully!", id: insertMatch.insertId });
     });
   } catch (err) {
     res.status(500).json({ message: err.toString() });

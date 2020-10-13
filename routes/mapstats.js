@@ -236,8 +236,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           start_time: req.body[0].start_time,
         };
         let sql = "INSERT INTO map_stats SET ?";
-        await db.query(sql, [mapStatSet]);
-        res.json({ message: "Map stats inserted successfully!" });
+        let insertedStats = await db.query(sql, [mapStatSet]);
+        res.json({ message: "Map stats inserted successfully!", id: insertedStats.insertId });
       });
     }
   } catch (err) {

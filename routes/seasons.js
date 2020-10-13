@@ -230,8 +230,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         end_date: req.body[0].end_date,
       };
       let sql = "INSERT INTO season SET ?";
-      await db.query(sql, [insertSet]);
-      res.json({ message: "Season inserted successfully!" });
+      let insertSeason = await db.query(sql, [insertSet]);
+      res.json({ message: "Season inserted successfully!", id: insertSeason.insertId });
     });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
