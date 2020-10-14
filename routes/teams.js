@@ -269,6 +269,56 @@ router.get("/:team_id", async (req, res) => {
 /**
  * @swagger
  *
+ * /teams/:team_id/basic:
+ *   get:
+ *     description: Returns a provided teams top-level info, no team names/steamid returned..
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: team_id
+ *         required: true
+ *         schema:
+ *            type: integer
+ *     tags:
+ *       - teams
+ *     responses:
+ *       200:
+ *         description: Team info
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: object
+ *                properties:
+ *                  team:
+ *                    $ref: '#/components/schemas/TeamData'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.get("/:team_id/basic", async (req, res) => {
+  teamID = req.params.team_id;
+  let sql =
+    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, '' as auth_name " +
+    "FROM team t WHERE t.id = ?";
+  try {
+    let team = await db.query(sql, teamID);
+    // Oddly enough, if a team doesn't exist, it still returns null!
+    // Check this and return a 404 if we don't exist.
+    if (team.length == 0) {
+      res.status(404).json({ message: "No team found for id " + teamID });
+      return;
+    }
+    team = JSON.parse(JSON.stringify(team[0]));
+    res.json({ team });
+  } catch (err) {
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
  * /teams:
  *   post:
  *     description: Creates a new team to use.
