@@ -730,7 +730,7 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
     else otherName = otherTeam[0].name;
     if (
       curMatch[0].end_time == null &&
-      (curMatch[0].cancelled == false || curMatch[0].cancelled == null) &&
+      (curMatch[0].cancelled == 0 || curMatch[0].cancelled == null) &&
       curMatch[0].start_time != null
     )
       statusString =
@@ -743,6 +743,9 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
         "Won, " + myScore + ":" + otherTeamScore + " vs " + otherName;
     else if (curMatch[0].winner != null)
       statusString = "Forfeit win vs " + otherName;
+    else if (curMatch[0].cancelled == 1) {
+      statusString = "Cancelled"
+    }
     else
       statusString =
         "Tied, " + myScore + ":" + otherTeamScore + " vs " + otherName;
