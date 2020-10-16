@@ -164,7 +164,6 @@ router.get("/", async (req, res) => {
  *         $ref: '#/components/responses/Error'
  */
 router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
-  teamID = req.params.team_id;
   let sql =
     "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, '' as auth_name " +
     "FROM team t WHERE t.user_id = ?";
@@ -176,11 +175,12 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
   let teamIDs = [];
   try {
     let teams = await db.query(sql, req.user.id);
+    console.log(teams);
     // let teamAuths = await db.query(authNameSql, teamID);
     // Oddly enough, if a team doesn't exist, it still returns null!
     // Check this and return a 404 if we don't exist.
     if (teams.length == 0) {
-      res.status(404).json({ message: "No team found for id " + teamID });
+      res.status(404).json({ message: "No teams found for " + req.user.name });
       return;
     }
     // If we're an empty set, try just getting the team basic info.
