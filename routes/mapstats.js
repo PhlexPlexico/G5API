@@ -150,7 +150,7 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/:match_id", async (req, res, next) => {
   try {
-    matchID = req.params.match_id;
+    let matchID = req.params.match_id;
     let sql = "SELECT * FROM map_stats where match_id = ?";
     const mapstats = await db.query(sql, matchID);
     if (mapstats.length === 0) {
@@ -158,6 +158,60 @@ router.get("/:match_id", async (req, res, next) => {
       return;
     }
     res.json({mapstats});
+  } catch (err) {
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /mapstats/:match_id/:map_id:
+ *   get:
+ *     description: Map statistics for a given match and map.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *       - name: map_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - mapstats
+ *     responses:
+ *       200:
+ *         description: Stats for a single given map in a match.
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  mapstats:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/MapStatsData'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.get("/:match_id/:map_id", async (req, res, next) => {
+  try {
+    let matchID = req.params.match_id;
+    let mapID = req.params.map_id;
+    let sql = "SELECT * FROM map_stats where match_id = ? AND id = ?";
+    const mapstats = await db.query(sql, [matchID, mapID]);
+    if (mapstats.length === 0) {
+      res.status(404).json({ message: "No stats found." });
+      return;
+    }
+    const mapstat = JSON.parse(JSON.stringify(mapstats[0]));
+    res.json({mapstat});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
