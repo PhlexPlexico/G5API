@@ -26,7 +26,7 @@ exports.down = function(db, callback) {
   async.series([
     db.removeColumn('user', 'api_key'),
     db.removeColumn('match', 'is_pug')
-  ], callback())
+  ], callback());
 };
 
 exports._meta = {

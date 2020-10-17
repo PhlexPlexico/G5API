@@ -121,6 +121,13 @@ const Utils = require("../utility/utils");
  *         firstkill_t:
  *           type: integer
  *           description: Integer representing amount of times a player killed as a T first in a round.
+ *         kast:
+ *           type: integer
+ *           description: Integer representing the KAST value of a player during the match.
+ *         contribution_score:
+ *           type: integer
+ *           description: Integer representing the contribution score of a player.
+ * 
  *   responses:
  *     NoPlayerStatData:
  *       description: No playerstat data was provided.

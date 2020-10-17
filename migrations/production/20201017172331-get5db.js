@@ -17,18 +17,18 @@ exports.setup = function(options, seedLink) {
 
 exports.up = function(db, callback) {
   async.series([
-    db.addColumn('user', 'api_key',  { type: 'string', length: 170, unique: true }),
-    db.addColumn('match', 'is_pug', { type: 'boolean', defaultValue: false })
+    db.addColumn('player_stats', 'kast',  { type: 'int', length: 5 }),
+    db.addColumn('player_stats', 'contribution_score',  { type: 'int', length: 5 })
   ], callback());
 };
 
 exports.down = function(db, callback) {
   async.series([
-    db.removeColumn('user', 'api_key'),
-    db.removeColumn('match', 'is_pug')
+    db.removeColumn('player_stats', 'kast'),
+    db.removeColumn('player_stats', 'contribution_score')
   ], callback());
 };
 
 exports._meta = {
-  "version": 2
+  "version": 4
 };

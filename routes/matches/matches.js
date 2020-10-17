@@ -1017,7 +1017,6 @@ async function build_team_dict(team, teamNumber, matchData) {
     if (playerAuths[i].name == "") normalizedAuths[key] = null;
     else normalizedAuths[key] = playerAuths[i].name;
   }
-  console.log(matchData.max_maps);
   let teamData = {
     name: team.name,
     tag: team.tag,

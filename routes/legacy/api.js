@@ -731,6 +731,8 @@ router.post("/:match_id/map/:map_number/player/:steam_id/update", playerStatRate
     let playerFirstKillCT = req.query.firstkill_ct == null ? null : parseInt(req.query.firstkill_ct);
     let playerFirstDeathCT = req.query.firstdeath_ct == null ? null : parseInt(req.query.firstdeath_ct);
     let playerFirstDeathT = req.query.firstdeath_t == null ? null : parseInt(req.query.firstdeath_t);
+    let playerKast = req.query.kast == null ? null : parseInt(req.query.kast);
+    let playerContrib = req.query.contribution_score == null ? null : parseInt(req.query.contribution_score);
     // Data manipulation inside function.
     let updateStmt = {};
     let updateSql;
@@ -795,7 +797,9 @@ router.post("/:match_id/map/:map_number/player/:steam_id/update", playerStatRate
         firstdeath_ct: playerFirstDeathCT,
         firstdeath_t: playerFirstDeathT,
         firstkill_ct: playerFirstKillCT,
-        firstkill_t: playerFirstKillT
+        firstkill_t: playerFirstKillT,
+        kast: playerKast,
+        contribution_score: playerContrib
       };
       // Remove any values that may not be updated.
       for (let key in updateStmt) {
