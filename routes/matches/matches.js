@@ -1017,6 +1017,7 @@ async function build_team_dict(team, teamNumber, matchData) {
     if (playerAuths[i].name == "") normalizedAuths[key] = null;
     else normalizedAuths[key] = playerAuths[i].name;
   }
+  console.log(matchData.max_maps);
   let teamData = {
     name: team.name,
     tag: team.tag,
@@ -1029,7 +1030,7 @@ async function build_team_dict(team, teamNumber, matchData) {
         ? matchData.team1_series_score
         : matchData.team2_series_score,
     matchtext:
-      teamNumber === 1 ? matchData.team1_string : matchData.team2_string,
+      matchData.max_maps == 1 ? teamNumber === 1 ? matchData.team1_string : matchData.team2_string : null,
   };
   for (let key in teamData) {
     if (teamData[key] === null) delete teamData[key];
