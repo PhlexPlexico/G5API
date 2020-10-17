@@ -52,7 +52,8 @@ describe('Update a match', () => {
         start_time: new Date().toISOString().slice(0, 19).replace('T', ' '),
         plugin_version: '0.7.2',
         match_cvars: {
-          "Test": "Test Value"
+          "mp_autobalanceteams": "1",
+          "mp_test_value": 0
         }
       }
     ];

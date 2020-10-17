@@ -1,9 +1,8 @@
- /**
+/**
  * @swagger
  * resourcePath: /seasons
  * description: Express API router for seasons in get5.
  */
-
 
 const express = require("express");
 
@@ -11,8 +10,7 @@ const router = express.Router();
 
 const db = require("../db");
 
-const Utils = require('../utility/utils');
-
+const Utils = require("../utility/utils");
 
 /**
  * @swagger
@@ -40,6 +38,13 @@ const Utils = require('../utility/utils');
  *          type: string
  *          format: date-time
  *          description: Optional season end date.
+ *        season_cvar:
+ *          type: object
+ *          description: Objects for default CVARs when selecting a season.
+ *    cvars:
+ *      type: object
+ *      description: Key value pairs representing convars for the match server. Key is command and value is what to set it to.
+ * 
  *   responses:
  *     NoSeasonData:
  *       description: No season data was provided.
@@ -80,13 +85,22 @@ const Utils = require('../utility/utils');
 router.get("/", async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
-    let sql = "SELECT * FROM `season`";
+    let sql =
+      "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
+      "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\": \"',sc.cvar_value,'\"')),'}') as cvars " +
+      "FROM season s LEFT OUTER JOIN season_cvar sc " +
+      "ON s.id = sc.season_id " +
+      "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
     const seasons = await db.query(sql);
     if (seasons.length === 0) {
       res.status(404).json({ message: "No seasons found." });
       return;
     }
-    res.json({seasons});
+    for(let row in seasons) {
+      if (seasons[row].cvars == null) delete seasons[row].cvars;
+      else seasons[row].cvars = JSON.parse(seasons[row].cvars);
+    }
+    res.json({ seasons });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -123,18 +137,72 @@ router.get("/", async (req, res, next) => {
 router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
-    let sql = "SELECT * FROM `season` WHERE user_id = ?";
+    let sql = 
+    "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
+    "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
+    "FROM season s LEFT OUTER JOIN season_cvar sc " +
+    "ON s.id = sc.season_id " +
+    "WHERE s.user_id = ? " +
+    "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
     const seasons = await db.query(sql, [req.user.id]);
     if (seasons.length === 0) {
       res.status(404).json({ message: "No seasons found." });
       return;
     }
-    res.json({seasons});
+    for(let row in seasons) {
+      if (seasons[row].cvars == null) delete seasons[row].cvars;
+      else seasons[row].cvars = JSON.parse(seasons[row].cvars);
+    }
+    res.json({ seasons });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
 });
 
+/**
+ * @swagger
+ *
+ * /seasons/:season_id/cvar:
+ *   get:
+ *     description: Get the default CVARs of a given season ID.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: All matches within the system.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/cvars'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.get("/:season_id/cvar", Utils.ensureAuthenticated, async (req, res, next) => {
+  try {
+    // Check if admin, if they are use this query.
+    let sql = 
+    "SELECT CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
+    "FROM season_cvar sc " +
+    "WHERE sc.season_id = ? ";
+    const cvar = await db.query(sql, [req.params.season_id]);
+    console.log(cvar[0]);
+    if (cvar[0].cvars == null) {
+      res.status(404).json({ message: "No cvars found for seaosn id " + req.params.season_id + "." });
+      return;
+    }
+    for(let row in cvar) {
+      if (cvar[row].cvars == null) delete cvar[row].cvars;
+      else cvar[row].cvars = JSON.parse(cvar[row].cvars);
+    }
+    res.json(cvar[0]);
+  } catch (err) {
+    res.status(500).json({ message: err.toString() });
+  }
+});
 
 /**
  * @swagger
@@ -173,18 +241,18 @@ router.get("/:season_id", async (req, res, next) => {
   try {
     seasonID = req.params.season_id;
     let sql = "SELECT * FROM `match` where season_id = ?";
-    let seasonSql = "SELECT * FROM season WHERE season_id = ?";
+    let seasonSql = "SELECT * FROM season WHERE id = ?";
     const seasons = await db.query(seasonSql, seasonID);
     const matches = await db.query(sql, seasonID);
-    if (seasons.length === 0){
-      res.status(404).json({message: "Season not found."});
+    if (seasons.length === 0) {
+      res.status(404).json({ message: "Season not found." });
       return;
     }
-    if (matches.length === 0){
-      res.status(404).json({message: "No match found in season."});
+    if (matches.length === 0) {
+      res.status(404).json({ message: "No match found in season." });
       return;
     }
-    res.json({matches});
+    res.json({ matches });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -223,6 +291,7 @@ router.get("/:season_id", async (req, res, next) => {
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     await db.withTransaction(async () => {
+      let defaultCvar = req.body[0].season_cvar;
       let insertSet = {
         user_id: req.user.id,
         name: req.body[0].name,
@@ -231,7 +300,21 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       };
       let sql = "INSERT INTO season SET ?";
       let insertSeason = await db.query(sql, [insertSet]);
-      res.json({ message: "Season inserted successfully!", id: insertSeason.insertId });
+      if(defaultCvar != null) {
+        sql = "INSERT INTO season_cvar SET ?";
+        for(let key in defaultCvar) {
+          insertSet = {
+            season_id: insertSeason.insertId,
+            cvar_name: key,
+            cvar_value: defaultCvar[key]
+          };
+          await db.query(sql, [insertSet]);
+        }
+      }
+      res.json({
+        message: "Season inserted successfully!",
+        id: insertSeason.insertId,
+      });
     });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
@@ -254,7 +337,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *            type: array
  *            items:
  *              $ref: '#/components/schemas/SeasonData'
- *            
+ *
  *     tags:
  *       - seasons
  *     responses:
@@ -277,8 +360,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
-  if(req.body[0].season_id == null){
-    res.status(404).json({ message: "No season found." })
+  if (req.body[0].season_id == null) {
+    res.status(404).json({ message: "No season found." });
     return;
   }
   const seasonRow = await db.query(seasonUserId, req.body[0].season_id);
@@ -295,22 +378,24 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   } else {
     try {
-        await db.withTransaction(async () => {
-          let updateStmt = {
-            user_id: req.body[0].user_id,
-            name: req.body[0].name,
-            start_date: req.body[0].start_date,
-            end_date: req.body[0].end_date,
-          };
-          // Remove any values that may not be updated.
-          updateStmt = await db.buildUpdateStatement(updateStmt);
-          if(Object.keys(updateStmt).length === 0){
-            res.status(412).json({message: "No update data has been provided."});
-            return;
-          }
-          let sql = "UPDATE season SET ? WHERE id = ?";
-          await db.query(sql, [updateStmt, req.body[0].season_id]);
-          res.json({ message: "Season updated successfully!" });
+      await db.withTransaction(async () => {
+        let updateStmt = {
+          user_id: req.body[0].user_id,
+          name: req.body[0].name,
+          start_date: req.body[0].start_date,
+          end_date: req.body[0].end_date,
+        };
+        // Remove any values that may not be updated.
+        updateStmt = await db.buildUpdateStatement(updateStmt);
+        if (Object.keys(updateStmt).length === 0) {
+          res
+            .status(412)
+            .json({ message: "No update data has been provided." });
+          return;
+        }
+        let sql = "UPDATE season SET ? WHERE id = ?";
+        await db.query(sql, [updateStmt, req.body[0].season_id]);
+        res.json({ message: "Season updated successfully!" });
       });
     } catch (err) {
       console.log(err);
@@ -318,7 +403,6 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     }
   }
 });
-
 
 /**
  * @swagger
@@ -372,15 +456,15 @@ router.delete("/", async (req, res, next) => {
     return;
   } else {
     try {
-      await db.withTransaction( async () => {
+      await db.withTransaction(async () => {
         let deleteSql = "DELETE FROM season WHERE id = ?";
         let deleteStmt = {
-          id: req.body[0].season_id
+          id: req.body[0].season_id,
         };
         deleteStmt = await db.buildUpdateStatement(deleteStmt);
         await db.query(deleteSql, [deleteStmt, req.body[0].season_id]);
         res.json({ message: "Season deleted successfully!" });
-    });
+      });
     } catch (err) {
       res.status(500).json({ message: err.toString() });
     }
