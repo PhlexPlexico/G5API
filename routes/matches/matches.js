@@ -110,6 +110,9 @@ const GameServer = require("../../utility/serverrcon");
  *         is_pug:
  *           type: boolean
  *           description: Flag that indicates whether teams are required or not and to keep track of stats for pug/non-pug games.
+ *         match_cvars:
+ *           type: object
+ *           description: An object of key-value pairs containing different unique match CVARs.
  * 
  *     MatchConfig:
  *        type: object
@@ -484,6 +487,7 @@ router.get("/:match_id/config", async (req, res, next) => {
   try {
     let sql = "SELECT * FROM `match` WHERE id = ?";
     let matchID = parseInt(req.params.match_id);
+    let matchCvars;
     const matchInfo = await db.query(sql, [matchID]);
     if (matchInfo.length === 0) {
       res.status(404).json({ message: "No match found." });
@@ -529,6 +533,11 @@ router.get("/:match_id/config", async (req, res, next) => {
       matchJSON.team1 = await build_team_dict(team1Data[0], 1, matchInfo[0]);
       matchJSON.team2 = await build_team_dict(team2Data[0], 2, matchInfo[0]);
     }
+    sql = "SELECT * FROM match_cvar WHERE match_id = ?";
+    matchCvars = await db.query(sql, matchID);
+    matchCvars.forEach(row => {
+      matchJSON.cvars[row.cvar_name] = row.cvar_value;
+    });
     res.json(matchJSON);
   } catch (err) {
     console.log(err);
@@ -635,8 +644,16 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         team2_string: teamTwoName[0].name == null ? null : teamTwoName[0].name,
         is_pug: req.body[0].is_pug
       };
+      let cvarInsertSet = req.body[0].match_cvars;
       let sql = "INSERT INTO `match` SET ?";
+      let cvarSql = "INSERT INTO match_cvar SET ?";
       insertSet = await db.buildUpdateStatement(insertSet);
+      if (cvarInsertSet != null) {
+        cvarInsertSet = await db.buildUpdateStatement(cvarInsertSet);
+        if (Object.keys(cvarInsertSet).length != 0) {
+          await db.query(cvarSql, [cvarInsertSet]);
+        }
+      }
       let insertMatch = await db.query(sql, [insertSet]);
       sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
       for (let key in req.body[0].spectator_auths) {
@@ -864,6 +881,15 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           }
         }
       });
+      if(req.body[0].match_cvars != null){
+        await db.withTransaction(async () => {
+          let newCvars = req.body[0].match_cvars;
+          sql = "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";;
+          for (let key in newCvars) {
+            await db.query(sql, [req.body[0].match_id, key, newCvars[key]]);
+          }
+        });
+      }
       res.json({ message: "Match updated successfully!" });
     }
   } catch (err) {

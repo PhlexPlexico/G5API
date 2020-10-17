@@ -45,12 +45,15 @@ describe('Create a match', () => {
 });
 
 describe('Update a match', () => {
-  it('Should update a match with a start time.', async done => {
+  it('Should update a match with a start time and a test CVAR.', async done => {
     let updatedMatchData = [
       {
         match_id: 1,
         start_time: new Date().toISOString().slice(0, 19).replace('T', ' '),
-        plugin_version: '0.7.2'
+        plugin_version: '0.7.2',
+        match_cvars: {
+          "Test": "Test Value"
+        }
       }
     ];
     request
