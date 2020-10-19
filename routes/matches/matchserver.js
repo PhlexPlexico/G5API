@@ -305,7 +305,7 @@ router.put(
       return;
     } else {
       let getServerSQL =
-        "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
+        "SELECT ip_string, port, rcon_password, user_id FROM game_server WHERE id=?";
       const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
       if(
         !Utils.superAdminCheck(req.user) &&

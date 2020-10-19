@@ -395,7 +395,15 @@ router.get("/:user_id/recent", async (req, res, next) => {
   try {
     let userOrSteamID = req.params.user_id;
     let sql =
-      "SELECT rec_matches.* FROM user u, `match` rec_matches WHERE u.id = ? OR u.steam_id = ? LIMIT 5";
+      "SELECT rec_matches.id, " +
+      "rec_matches.user_id, " +
+      "rec_matches.team1_id, " +
+      "rec_matches.team2_id, " +
+      "rec_matches.team1_string, " +
+      "rec_matches.team2_string " +
+      "FROM user u, `match` rec_matches " +
+      "WHERE u.id = ? OR u.steam_id = ? "+
+      "ORDER BY rec_matches.id DESC LIMIT 5";
     const recentMatches = await db.query(sql, [userOrSteamID, userOrSteamID]);
     res.json(recentMatches);
   } catch (err) {

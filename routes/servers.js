@@ -113,6 +113,60 @@ router.get("/", async (req, res, next) => {
 /**
  * @swagger
  *
+ * /servers/available:
+ *   get:
+ *     description: Get all available servers depending on access level.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - servers
+ *     responses:
+ *       200:
+ *         description: All visible server information
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  servers:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/ServerData'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.get("/available", async (req, res, next) => {
+  try {
+    // Check if admin or super admin, adjust by providing rcon password or not.
+    let sql = "";
+    if (Utils.superAdminCheck(req.user)) {
+      sql =
+        "SELECT gs.id, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.in_use=0";
+    } else if (Utils.adminCheck(req.user)) {
+      sql =
+        "SELECT gs.id, gs.display_name, gs.ip_string, gs.port, gs.public_server, usr.name FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.in_use=0";
+    } else {
+      sql =
+        "SELECT gs.id, gs.display_name, usr.name FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id AND gs.in_use=0";
+    }
+    const servers = await db.query(sql);
+    if (Utils.superAdminCheck(req.user)) {
+      for (let serverRow of servers) {
+        serverRow.rcon_password = await Utils.decrypt(serverRow.rcon_password);
+      }
+    }
+    res.json({servers});
+  } catch (err) {
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
  * /servers/myservers:
  *   get:
  *     description: Set of servers from the logged in user.
