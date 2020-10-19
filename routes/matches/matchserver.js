@@ -307,6 +307,15 @@ router.put(
       let getServerSQL =
         "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
       const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
+      if(
+        !Utils.superAdminCheck(req.user) &&
+        serverRow[0].user_id != req.user.id  
+      ) {
+        res
+        .status(403)
+        .json({ message: "User is not authorized to perform action." });
+        return;
+      }
       let serverUpdate = new GameServer(
         serverRow[0].ip_string,
         serverRow[0].port,
