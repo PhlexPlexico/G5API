@@ -173,8 +173,8 @@ router.get(
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
-      req.user.id != matchRow[0].user_id ||
-      !Utils.adminCheck(req.user)
+      !Utils.adminCheck(req.user) &&
+      req.user.id != matchRow[0].user_id
     ) {
       res
         .status(403)
@@ -289,8 +289,8 @@ router.put(
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
-      req.user.id != matchRow[0].user_id ||
-      !Utils.adminCheck(req.user)
+      !Utils.adminCheck(req.user) &&
+      req.user.id != matchRow[0].user_id
     ) {
       res
         .status(403)
@@ -376,8 +376,8 @@ router.get(
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
-      req.user.id != matchRow[0].user_id ||
-      !Utils.adminCheck(req.user)
+      !Utils.adminCheck(req.user) &&
+      req.user.id != matchRow[0].user_id
     ) {
       res
         .status(403)
@@ -455,11 +455,11 @@ router.get(
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
-      req.user.id != matchRow[0].user_id ||
-      !Utils.adminCheck(req.user)
+      !Utils.adminCheck(req.user) &&
+      req.user.id != matchRow[0].user_id
     ) {
       res
-        .status(401)
+        .status(403)
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
@@ -552,8 +552,8 @@ router.put(
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
-      req.user.id != matchRow[0].user_id ||
-      !Utils.adminCheck(req.user)
+      !Utils.adminCheck(req.user) &&
+      req.user.id != matchRow[0].user_id
     ) {
       res
         .status(403)
@@ -576,7 +576,7 @@ router.put(
         null,
         serverRow[0].rcon_password
       );
-      let steamID = Utils.convertToSteam64(req.body[0].steam_id);
+      let steamID = Utils.getSteamPID(req.body[0].steam_id);
       let teamId = req.body[0].team_id;
       let nickName = req.body[0].nickname;
       if(teamId != "team1" || teamId != "team2"){
@@ -598,7 +598,7 @@ router.put(
 /**
  * @swagger
  *
- *  /matches/:match_id/rcon:
+ *  /matches/:match_id/addspec:
  *   put:
  *     description: Sends an add player to spectator command.
  *     produces:
@@ -647,8 +647,8 @@ router.put(
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
-      req.user.id != matchRow[0].user_id ||
-      !Utils.adminCheck(req.user)
+      !Utils.adminCheck(req.user) &&
+      req.user.id != matchRow[0].user_id
     ) {
       res
         .status(403)
@@ -671,7 +671,7 @@ router.put(
         null,
         serverRow[0].rcon_password
       );
-      let steamID = Utils.convertToSteam64(req.body[0].steam_id);
+      let steamID = Utils.getSteamPID(req.body[0].steam_id);
       try{
         let rconResponse = await serverUpdate.addUser("spec", steamID);
         res.json({ message: "User added to spectator successfully.", response: rconResponse });
@@ -725,8 +725,8 @@ router.get(
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
-      req.user.id != matchRow[0].user_id ||
-      !Utils.adminCheck(req.user)
+      !Utils.adminCheck(req.user) &&
+      req.user.id != matchRow[0].user_id
     ) {
       res
         .status(403)
@@ -815,8 +815,8 @@ router.post(
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
-      req.user.id != matchRow[0].user_id ||
-      !Utils.adminCheck(req.user)
+      !Utils.adminCheck(req.user) &&
+      req.user.id != matchRow[0].user_id
     ) {
       res
         .status(403)
