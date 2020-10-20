@@ -641,7 +641,11 @@ router.get("/:team_id/recent", async (req, res) => {
       "rec_matches.team2_id, " +
       "rec_matches.team1_string, " +
       "rec_matches.team2_string " +
-      "FROM team t, `match` rec_matches WHERE t.id = ? AND (rec_matches.team1_id = ? OR rec_matches.team2_id = ?) ORDER BY rec_matches.id DESC LIMIT 5";
+      "FROM team t, `match` rec_matches " +
+      "WHERE t.id = ? AND " + 
+      "(rec_matches.team1_id = ? OR rec_matches.team2_id = ?) " +
+      "AND rec_matches.cancelled = 0 " +
+      "ORDER BY rec_matches.id DESC LIMIT 5";
     const matches = await db.query(sql, [teamId, teamId, teamId]);
     res.json({ matches });
   } catch (err) {

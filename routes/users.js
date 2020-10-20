@@ -135,15 +135,19 @@ router.get("/:user_id", async (req, res, next) => {
       sql = "SELECT * FROM user WHERE id = ? OR steam_id = ?";
     } else {
       sql =
-        "SELECT id, name, steam_id, small_image, medium_image, large_image FROM user where id = ? OR steam_id = ?";
+        "SELECT id, name, steam_id, small_image, medium_image, large_image, admin, super_admin FROM user where id = ? OR steam_id = ?";
     }
 
     let user = await db.query(sql, [userOrSteamID, userOrSteamID]);
-    user = JSON.parse(JSON.stringify(user[0]));
-    if (user.api_key != null) {
-      user.api_key = await Utils.decrypt(user.api_key);
+    if (user[0] != null) {
+      user = JSON.parse(JSON.stringify(user[0]));
+      if (user.api_key != null) {
+        user.api_key = await Utils.decrypt(user.api_key);
+      }
+      res.json({ user });
+    } else {
+      res.status(404).json({message: "User does not exist in the system." });
     }
-    res.json({ user });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -256,8 +260,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     let userToBeUpdated = await db.query(
-      "SELECT name, admin, super_admin FROM user WHERE id = ?",
-      [req.body[0].steam_id]
+      "SELECT id, name, admin, super_admin FROM user WHERE id = ? OR steam_id = ?",
+      [req.body[0].steam_id, req.body[0].steam_id]
     );
     let isAdmin =
       req.body[0].admin === null ? userToBeUpdated[0].admin : req.body[0].admin;
@@ -279,6 +283,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         : null;
     if (apiKey != null) apiKey = await Utils.encrypt(apiKey);
     let steamId = req.body[0].steam_id;
+    let userId = userToBeUpdated[0].id;
     let updateUser = {};
     if (Utils.adminCheck(req.user)) {
       updateUser = {
@@ -290,7 +295,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         large_image: largeImage,
         api_key: apiKey,
       };
-    } else if (req.user.steam_id == steamId) {
+    } else if (req.user.steam_id == steamId || req.user.id == userId) {
       updateUser = {
         api_key: apiKey,
       };
@@ -379,7 +384,7 @@ router.get("/:user_id/steam", async (req, res, next) => {
  *       - users
  *     responses:
  *       200:
- *         description: Update successfull
+ *         description: Last five matches from the user.
  *         content:
  *           application/json:
  *             schema:
@@ -401,11 +406,13 @@ router.get("/:user_id/recent", async (req, res, next) => {
       "rec_matches.team2_id, " +
       "rec_matches.team1_string, " +
       "rec_matches.team2_string " +
-      "FROM user u, `match` rec_matches " +
-      "WHERE u.id = ? OR u.steam_id = ? "+
+      "FROM `match` rec_matches JOIN player_stats ps " +
+      "ON ps.match_id = rec_matches.id JOIN user us ON " +
+      "us.steam_id = ps.steam_id " +
+      "WHERE rec_matches.cancelled = 0 AND (us.id=? OR us.steam_id=?) " +
       "ORDER BY rec_matches.id DESC LIMIT 5";
-    const recentMatches = await db.query(sql, [userOrSteamID, userOrSteamID]);
-    res.json(recentMatches);
+    const matches = await db.query(sql, [userOrSteamID, userOrSteamID]);
+    res.json({matches});
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
