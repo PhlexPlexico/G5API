@@ -499,7 +499,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
 router.delete("/", async (req, res, next) => {
   let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
   const seasonRow = await db.query(seasonUserId, req.body[0].season_id);
-  if (seasonRow.length === 0) {
+  if (seasonRow[0] == null) {
     res.status(404).json({ message: "No season found." });
     return;
   } else if (
@@ -514,11 +514,8 @@ router.delete("/", async (req, res, next) => {
     try {
       await db.withTransaction(async () => {
         let deleteSql = "DELETE FROM season WHERE id = ?";
-        let deleteStmt = {
-          id: req.body[0].season_id,
-        };
-        deleteStmt = await db.buildUpdateStatement(deleteStmt);
-        await db.query(deleteSql, [deleteStmt, req.body[0].season_id]);
+        let seasonId = req.body[0].season_id;
+        await db.query(deleteSql, [seasonId]);
         res.json({ message: "Season deleted successfully!" });
       });
     } catch (err) {

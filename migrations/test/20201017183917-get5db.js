@@ -25,7 +25,7 @@ exports.up = function(db, callback) {
           name: 'season_id_season_cvar_fk',
           table: 'season',
           rules: {
-            onDelete: 'CASCADE',
+            onDelete: 'SET NULL',
             onUpdate: 'RESTRICT'
           },
           mapping: 'id'
