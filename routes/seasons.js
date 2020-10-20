@@ -240,6 +240,61 @@ router.get("/:season_id/cvar", Utils.ensureAuthenticated, async (req, res, next)
 router.get("/:season_id", async (req, res, next) => {
   try {
     seasonID = req.params.season_id;
+    let sql = "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, team2_score, team1_series_score, team2_series_score, team1_string, team2_string, cancelled, forfeit, start_time, end_time, max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, season_id, is_pug FROM `match` where season_id = ?";
+    let seasonSql = "SELECT * FROM season WHERE id = ?";
+    const seasons = await db.query(seasonSql, seasonID);
+    const matches = await db.query(sql, seasonID);
+    if (seasons.length === 0) {
+      res.status(404).json({ message: "Season not found." });
+      return;
+    }
+    if (matches.length === 0) {
+      res.status(404).json({ message: "No match found in season." });
+      return;
+    }
+    const season = JSON.parse(JSON.stringify(seasons[0]));
+    res.json({ matches, season });
+  } catch (err) {
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /seasons/:season_id/info:
+ *   get:
+ *     description: Gets the basic info a season.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: season_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: Season stats
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  matches:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/MatchData'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.get("/:season_id/info", async (req, res, next) => {
+  try {
+    seasonID = req.params.season_id;
     let sql = "SELECT * FROM `match` where season_id = ?";
     let seasonSql = "SELECT * FROM season WHERE id = ?";
     const seasons = await db.query(seasonSql, seasonID);
@@ -257,6 +312,7 @@ router.get("/:season_id", async (req, res, next) => {
     res.status(500).json({ message: err.toString() });
   }
 });
+
 
 /**
  * @swagger
