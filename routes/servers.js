@@ -96,7 +96,7 @@ router.get("/", async (req, res, next) => {
         "SELECT gs.id, gs.in_use, gs.display_name, gs.ip_string, gs.port, gs.public_server, usr.name FROM game_server gs, user usr WHERE usr.id = gs.user_id";
     } else {
       sql =
-        "SELECT gs.id, gs.in_use, gs.display_name, usr.name FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id";
+        "SELECT gs.id, gs.in_use, gs.display_name, usr.name, gs.public_server FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id";
     }
     const servers = await db.query(sql);
     if (Utils.superAdminCheck(req.user)) {
