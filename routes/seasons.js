@@ -162,6 +162,61 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
 /**
  * @swagger
  *
+ * /seasons/myseasons/availble:
+ *   get:
+ *     description: Set of seasons from the logged in user that can currently be used.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: All seasons of a user that are still running.
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  seasons:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/SeasonData'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.get("/myseasons/available", Utils.ensureAuthenticated, async (req, res, next) => {
+  try {
+    // Check if admin, if they are use this query.
+    let sql = 
+    "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
+    "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
+    "FROM season s LEFT OUTER JOIN season_cvar sc " +
+    "ON s.id = sc.season_id " +
+    "WHERE s.user_id = ? " +
+    "AND s.end_date >= CURDATE() " +
+    "OR s.end_date IS NULL " +
+    "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
+    const seasons = await db.query(sql, [req.user.id]);
+    if (seasons.length === 0) {
+      res.status(404).json({ message: "No seasons found." });
+      return;
+    }
+    for(let row in seasons) {
+      if (seasons[row].cvars == null) delete seasons[row].cvars;
+      else seasons[row].cvars = JSON.parse(seasons[row].cvars);
+    }
+    res.json({ seasons });
+  } catch (err) {
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
  * /seasons/:season_id/cvar:
  *   get:
  *     description: Get the default CVARs of a given season ID.
