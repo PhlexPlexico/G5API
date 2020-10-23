@@ -202,6 +202,7 @@ router.get(
         team2_score: 0,
         end_time: new Date().toISOString().slice(0, 19).replace("T", " "),
         winner: null,
+        cancelled: 1
       };
       if (mapStat.length == 0) {
         mapStatSql = "INSERT map_stats SET ?";
@@ -213,7 +214,7 @@ router.get(
       await db.withTransaction(async () => {
         if (mapStat.length == 0) await db.query(mapStatSql, [newStatStmt]);
         else await db.query(mapStatSql, [newStatStmt, req.params.match_id]);
-        await db.query(matchSql, [matchUpdateStmt]);
+        await db.query(matchSql, [matchUpdateStmt, req.params.match_id]);
         await db.query(serverUpdateSql, [matchRow[0].server_id]);
       });
       let getServerSQL =
