@@ -644,16 +644,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         team2_string: teamTwoName[0].name == null ? null : teamTwoName[0].name,
         is_pug: req.body[0].is_pug
       };
-      let cvarInsertSet = req.body[0].match_cvars;
       let sql = "INSERT INTO `match` SET ?";
-      let cvarSql = "INSERT INTO match_cvar SET ?";
+      let cvarSql = "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";
       insertSet = await db.buildUpdateStatement(insertSet);
-      if (cvarInsertSet != null) {
-        cvarInsertSet = await db.buildUpdateStatement(cvarInsertSet);
-        if (Object.keys(cvarInsertSet).length != 0) {
-          await db.query(cvarSql, [cvarInsertSet]);
-        }
-      }
       let insertMatch = await db.query(sql, [insertSet]);
       sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
       for (let key in req.body[0].spectator_auths) {
@@ -681,6 +674,14 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
             return;
           }
         }
+      }
+      if(req.body[0].match_cvars != null){
+        await db.withTransaction(async () => {
+          let cvarInsertSet = req.body[0].match_cvars;
+          for (let key in cvarInsertSet) {
+            await db.query(cvarSql, [insertMatch.insertId, key, cvarInsertSet[key]]);
+          }
+        });
       }
       if (req.body[0].server_id) {
         sql = "UPDATE game_server SET in_use = 1 WHERE id = ?";
@@ -884,7 +885,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       if(req.body[0].match_cvars != null){
         await db.withTransaction(async () => {
           let newCvars = req.body[0].match_cvars;
-          sql = "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";;
+          sql = "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";
           for (let key in newCvars) {
             await db.query(sql, [req.body[0].match_id, key, newCvars[key]]);
           }
