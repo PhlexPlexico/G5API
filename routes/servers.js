@@ -506,7 +506,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
                 "Game Server did not respond in time. However, we have still updated the server successfully.",
             });
           } else {
-            res.json({ message: "Game server inserted successfully!" });
+            res.json({ message: "Game server updated successfully!" });
           }
         } else
           res.status(500).json({ message: "ERROR - Game server not updated." });
