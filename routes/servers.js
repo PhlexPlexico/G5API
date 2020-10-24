@@ -47,6 +47,10 @@ const Utils = require("../utility/utils");
  *        public_server:
  *          type: boolean
  *          description: Whether a server can be publically used.
+ *        flag:
+ *          type: string
+ *          description: Two character code representing a flag, like teams.
+ * 
  *   responses:
  *     NoServerData:
  *       description: No server data was provided.
@@ -90,13 +94,13 @@ router.get("/", async (req, res, next) => {
     let sql = "";
     if (Utils.superAdminCheck(req.user)) {
       sql =
-        "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, usr.id as user_id FROM game_server gs, user usr WHERE usr.id = gs.user_id";
+        "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, usr.id as user_id, gs.flag FROM game_server gs, user usr WHERE usr.id = gs.user_id";
     } else if (Utils.adminCheck(req.user)) {
       sql =
-        "SELECT gs.id, gs.in_use, gs.display_name, gs.ip_string, gs.port, gs.public_server, usr.name, usr.id as user_id FROM game_server gs, user usr WHERE usr.id = gs.user_id";
+        "SELECT gs.id, gs.in_use, gs.display_name, gs.ip_string, gs.port, gs.public_server, usr.name, usr.id as user_id, gs.flag  FROM game_server gs, user usr WHERE usr.id = gs.user_id";
     } else {
       sql =
-        "SELECT gs.id, gs.in_use, gs.display_name, usr.name, gs.public_server FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id";
+        "SELECT gs.id, gs.in_use, gs.display_name, usr.name, gs.public_server, gs.flag FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id";
     }
     const servers = await db.query(sql);
     if (Utils.superAdminCheck(req.user)) {
@@ -144,13 +148,13 @@ router.get("/available", async (req, res, next) => {
     let sql = "";
     if (Utils.superAdminCheck(req.user)) {
       sql =
-        "SELECT gs.id, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, usr.id as user_id FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.in_use=0";
+        "SELECT gs.id, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, usr.id, gs.flag  as user_id FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.in_use=0";
     } else if (Utils.adminCheck(req.user)) {
       sql =
-        "SELECT gs.id, gs.display_name, gs.ip_string, gs.port, gs.public_server, usr.name, usr.id as user_id FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.in_use=0";
+        "SELECT gs.id, gs.display_name, gs.ip_string, gs.port, gs.public_server, usr.name, usr.id as user_id, gs.flag  FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.in_use=0";
     } else {
       sql =
-        "SELECT gs.id, gs.display_name, usr.name FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id AND gs.in_use=0";
+        "SELECT gs.id, gs.display_name, usr.name, gs.flag FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id AND gs.in_use=0";
     }
     const servers = await db.query(sql);
     if (Utils.superAdminCheck(req.user)) {
@@ -196,7 +200,7 @@ router.get("/myservers", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
     let sql =
-      "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, usr.id as user_id FROM game_server gs, user usr WHERE usr.id = gs.user_id AND usr.id=?";
+      "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, usr.id as user_id, gs.flag FROM game_server gs, user usr WHERE usr.id = gs.user_id AND usr.id=?";
     const servers = await db.query(sql, req.user.id);
     for (let serverRow of servers) {
       serverRow.rcon_password = await Utils.decrypt(serverRow.rcon_password);
@@ -248,11 +252,11 @@ router.get(
       let server;
       if (Utils.superAdminCheck(req.user)) {
         sql =
-          "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.id = ?";
+          "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, gs.flag FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.id = ?";
         server = await db.query(sql, [serverID]);
       } else {
         sql =
-          "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.id = ? AND usr.id = ?";
+          "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, gs.flag FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.id = ? AND usr.id = ?";
         server = await db.query(sql, [serverID, req.user.id]);
       }
       if (server.length < 1) {
@@ -382,8 +386,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       let displayName = req.body[0].display_name;
       let rconPass = await Utils.encrypt(req.body[0].rcon_password);
       let publicServer = req.body[0].public_server;
+      let flagCode = req.body[0].flag;
       let sql =
-        "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server) VALUES (?,?,?,?,?,?)";
+        "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server, flag) VALUES (?,?,?,?,?,?,?)";
       let insertServer = await db.query(sql, [
         userId,
         ipString,
@@ -391,6 +396,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         rconPass,
         displayName,
         publicServer,
+        flagCode
       ]);
       let ourServer = new GameServer(
         req.body[0].ip_string,
@@ -478,6 +484,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
               : await Utils.encrypt(req.body[0].rcon_password),
           public_server: req.body[0].public_server,
           user_id: req.body[0].user_id,
+          flag: req.body[0].flag
         };
         // Remove any unwanted nulls.
         updateStmt = await db.buildUpdateStatement(updateStmt);
