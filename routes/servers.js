@@ -148,13 +148,13 @@ router.get("/available", async (req, res, next) => {
     let sql = "";
     if (Utils.superAdminCheck(req.user)) {
       sql =
-        "SELECT gs.id, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, usr.id, gs.flag  as user_id FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.in_use=0";
+        "SELECT gs.id, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, usr.id as user_id, gs.flag FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.in_use=0";
     } else if (Utils.adminCheck(req.user)) {
       sql =
         "SELECT gs.id, gs.display_name, gs.ip_string, gs.port, gs.public_server, usr.name, usr.id as user_id, gs.flag  FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.in_use=0";
     } else {
       sql =
-        "SELECT gs.id, gs.display_name, usr.name, gs.flag FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id AND gs.in_use=0";
+        "SELECT gs.id, gs.display_name, usr.name, usr.id as user_id, gs.flag FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id AND gs.in_use=0";
     }
     const servers = await db.query(sql);
     if (Utils.superAdminCheck(req.user)) {
