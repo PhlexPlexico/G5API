@@ -27,7 +27,9 @@ describe('Create Team', () => {
             tag: 'TPSHLF',
             public_team: 1,
             auth_name: {
-                "76561198025644200": "Not Phlex"
+                "76561198025644200": {
+                    "name": "Not Phlex"
+                }
             }
         }];
         request
@@ -49,8 +51,12 @@ describe('Create Team', () => {
             tag: 'PRVSHLF',
             public_team: 0,
             auth_name: {
-                "76561198025644200": "Not Phlex",
-                "76561198025644194": "Actually Phlex"
+                "76561198025644200": {
+                    "name": "Not Phlex"
+                },
+                "76561198025644194": {
+                    "name": "Actually Phlex"
+                }
             }
         }];
         request
@@ -72,8 +78,12 @@ describe('Create Team', () => {
             tag: 'PRVSHLF2',
             public_team: 1,
             auth_name: {
-                "76561198025644200": "Not Phlex",
-                "76561198025644194": "Actually Phlex"
+                "76561198025644200": {
+                    "name": "Not Phlex"
+                },
+                "76561198025644194": {
+                    "name": "Actually Phlex"
+                }
             }
         }];
         request
@@ -95,8 +105,14 @@ describe('Create Team', () => {
             tag: 'PRVSHLF3',
             public_team: 1,
             auth_name: {
-                "76561198025644200": "Not Phlex",
-                "12345": "Actually Phlex"
+                "76561198025644200": { 
+                    "name": "Not Phlex",
+                    "captain": 0
+                },
+                "12345": {
+                    "name": "Actually Phlex",
+                    "captain": 0
+                }
             }
         }];
         request
@@ -130,7 +146,9 @@ describe('Update a team', () => {
             tag: 'BTMSHLF',
             public_team: 1,
             auth_name: {
-                "12345": "New team member!"
+                "12345": {
+                    "name": "New team member!"
+                } 
             }
         }];
         request
@@ -153,7 +171,9 @@ describe('Update a team', () => {
             tag: 'BTMSHLF',
             public_team: 1,
             auth_name: {
-                "12345": "New team member EDITED!"
+                "12345": {
+                    "name": "New team member EDITED!"
+                } 
             }
         }];
         request

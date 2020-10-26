@@ -109,7 +109,7 @@ router.get(
       await db.withTransaction(async () => {
         if (mapStat.length == 0) await db.query(mapStatSql, [newStatStmt]);
         else await db.query(mapStatSql, [newStatStmt, req.params.match_id]);
-        await db.query(matchSql, [matchUpdateStmt]);
+        await db.query(matchSql, [matchUpdateStmt, req.params.match_id]);
         await db.query(serverUpdateSql, [matchRow[0].server_id]);
       });
       let getServerSQL =

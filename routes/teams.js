@@ -22,6 +22,16 @@ const Utils = require("../utility/utils");
  *
  * components:
  *   schemas:
+ *     AuthObject:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Name that the user wishes to be called. Can be left null and will use Steam name.
+ *         captain:
+ *           type: boolean
+ *           description: Boolean value representing if a user is a team captain or not.
+ * 
  *     TeamData:
  *      type: object
  *      required:
@@ -44,15 +54,9 @@ const Utils = require("../utility/utils");
  *          required: false
  *        auth_name:
  *          type: object
- *          additional_properties:
- *            key:
- *              type: string
- *              description: Key value that is a Steam ID. Can be any steam identifier as it will convert to Steam64.
- *            value:
- *              type: string
- *              description: Name that the user wishes to be called. Can be left null and will use Steam name.
- *            description: Key value pair representing the players in a team.
- *            required: false
+ *          additionalProperties:
+ *            $ref: "#/components/schemas/AuthObject"
+ * 
  *        tag:
  *          type: string
  *          description: A string with a shorthand tag for a team.
@@ -96,14 +100,12 @@ const Utils = require("../utility/utils");
  */
 router.get("/", async (req, res) => {
   let sql =
-    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, '' as auth_name " +
-    "FROM team t";
-  let authNameSql =
-    "SELECT CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
-    "{ \"name\": \"', ta.name, '\"}')  SEPARATOR ', '), '}') as auth_name, " +
-    "team_id " +
-    "FROM team_auth_names ta WHERE team_id IN (?)";
-  let teamIDs = [];
+    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
+      "{ \"name\": \"', ta.name, '\", \"captain\": \"', ta.captain, '\"}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
+    "FROM team t LEFT OUTER JOIN team_auth_names ta " +
+    "ON t.id = ta.team_id " +
+    "GROUP BY t.id"
   try {
     let teams = await db.query(sql);
     // let teamAuths = await db.query(authNameSql, teamID);
@@ -113,20 +115,13 @@ router.get("/", async (req, res) => {
       res.status(404).json({ message: "No teams found in the system." });
       return;
     }
-    // If we're an empty set, try just getting the team basic info.
-    Object.keys(teams).forEach((key) => {
-      teamIDs.push(teams[key].id);
-    });
-    let teamAuths = await db.query(authNameSql, teamIDs);
     for (let row in teams) {
-      for (let authRow in teamAuths) {
-        if (teams[row].id == teamAuths[authRow].team_id) {
-          teams[row].auth_name = JSON.parse(teamAuths[authRow].auth_name);
-          teams[row].auth_name = await getTeamImages(
-            teams[row].auth_name,
-            false
-          );
-        }
+      if(teams[row].auth_name != null) {
+        teams[row].auth_name = JSON.parse(teams[row].auth_name);
+        teams[row].auth_name = await getTeamImages(
+          teams[row].auth_name,
+          false
+        );
       }
     }
     res.json({ teams });
@@ -165,17 +160,15 @@ router.get("/", async (req, res) => {
  */
 router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
   let sql =
-    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, '' as auth_name " +
-    "FROM team t WHERE t.user_id = ?";
-  let authNameSql =
-    "SELECT CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
-    "{ \"name\": \"', ta.name, '\"}')  SEPARATOR ', '), '}') as auth_name, " +
-    "team_id " +
-    "FROM team_auth_names ta WHERE team_id IN (?)";
-  let teamIDs = [];
+    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
+      "{ \"name\": \"', ta.name, '\", \"captain\": ', ta.captain, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
+    "FROM team t LEFT OUTER JOIN team_auth_names ta " +
+    "ON t.id = ta.team_id " +
+    "WHERE t.user_id = ? " +
+    "GROUP BY t.id"
   try {
     let teams = await db.query(sql, req.user.id);
-    console.log(teams);
     // let teamAuths = await db.query(authNameSql, teamID);
     // Oddly enough, if a team doesn't exist, it still returns null!
     // Check this and return a 404 if we don't exist.
@@ -183,20 +176,13 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
       res.status(404).json({ message: "No teams found for " + req.user.name });
       return;
     }
-    // If we're an empty set, try just getting the team basic info.
-    Object.keys(teams).forEach((key) => {
-      teamIDs.push(teams[key].id);
-    });
-    let teamAuths = await db.query(authNameSql, teamIDs);
     for (let row in teams) {
-      for (let authRow in teamAuths) {
-        if (teams[row].id == teamAuths[authRow].team_id) {
-          teams[row].auth_name = JSON.parse(teamAuths[authRow].auth_name);
-          teams[row].auth_name = await getTeamImages(
-            teams[row].auth_name,
-            false
-          );
-        }
+      if(teams[row].auth_name != null) {
+        teams[row].auth_name = JSON.parse(teams[row].auth_name);
+        teams[row].auth_name = await getTeamImages(
+          teams[row].auth_name,
+          false
+        );
       }
     }
     res.json({ teams });
@@ -238,15 +224,15 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
 router.get("/:team_id", async (req, res) => {
   teamID = req.params.team_id;
   let sql =
-    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, '' as auth_name " +
-    "FROM team t WHERE t.id = ?";
-  let authNameSql =
-    "SELECT CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
-    "{ \"name\": \"', ta.name, '\"}')  SEPARATOR ', '), '}') as auth_name " +
-    "FROM team_auth_names ta WHERE team_id = ?";
+    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
+      "{ \"name\": \"', ta.name, '\", \"captain\": ', ta.captain, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
+    "FROM team t LEFT OUTER JOIN team_auth_names ta " +
+    "ON t.id = ta.team_id " +
+    "WHERE t.id = ? " +
+    "GROUP BY t.id"
   try {
     let team = await db.query(sql, teamID);
-    let teamAuths = await db.query(authNameSql, teamID);
     // Oddly enough, if a team doesn't exist, it still returns null!
     // Check this and return a 404 if we don't exist.
     if (team.length == 0) {
@@ -255,8 +241,8 @@ router.get("/:team_id", async (req, res) => {
     }
     // If we're an empty set, try just getting the team basic info.
 
-    if (teamAuths[0].auth_name != null) {
-      team[0].auth_name = JSON.parse(teamAuths[0].auth_name);
+    if (team[0].auth_name != null) {
+      team[0].auth_name = JSON.parse(team[0].auth_name);
       team[0].auth_name = await getTeamImages(team[0].auth_name);
     }
     team = JSON.parse(JSON.stringify(team[0]));
@@ -380,10 +366,11 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
       ]);
       teamID = insertTeam.insertId;
       sql =
-        "INSERT INTO team_auth_names (team_id, auth, name) VALUES (?, ?, ?)";
+        "INSERT INTO team_auth_names (team_id, auth, name, captain) VALUES (?, ?, ?, ?)";
       for (let key in auths) {
+        let isCaptain = auths[key].captain == null ? 0 : auths[key].captain;
         let usersSteamId = await Utils.getSteamPID(key);
-        await db.query(sql, [teamID, usersSteamId, auths[key]]);
+        await db.query(sql, [teamID, usersSteamId, auths[key].name, isCaptain]);
       }
       res.json({ message: "Team successfully inserted.", id: teamID });
     });
@@ -470,19 +457,21 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
     await db.withTransaction(async () => {
       await db.query(sql, [updateTeam, teamID]);
       sql =
-        "UPDATE team_auth_names SET name = ? WHERE auth = ? AND team_id = ?";
+        "UPDATE team_auth_names SET name = ?, captain = ? WHERE auth = ? AND team_id = ?";
       for (let key in teamAuths) {
+        let isCaptain = teamAuths[key].captain == null ? 0 : teamAuths[key].captain;
         let usersSteamId = await Utils.getSteamPID(key);
         let updateTeamAuth = await db.query(sql, [
-          teamAuths[key],
+          teamAuths[key].name,
+          isCaptain,
           usersSteamId,
           teamID,
         ]);
         if (updateTeamAuth.affectedRows < 1) {
           // Insert a new auth if it doesn't exist. Technically "updating a team".
           let insertSql =
-            "INSERT INTO team_auth_names (team_id, auth, name) VALUES (?, ?, ?)";
-          await db.query(insertSql, [teamID, usersSteamId, teamAuths[key]]);
+            "INSERT INTO team_auth_names (team_id, auth, name, captain) VALUES (?, ?, ?, ?)";
+          await db.query(insertSql, [teamID, usersSteamId, teamAuths[key].name, isCaptain]);
         }
       }
       res.json({ message: "Team successfully updated" });
