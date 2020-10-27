@@ -668,7 +668,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           (await newServer.isServerAlive()) &&
           (await newServer.isGet5Available())
         ) {
-          if (!(await newServer.prepareGet5Match(req.get("Host"), apiKey))) {
+          if (!(await newServer.prepareGet5Match(config.get("server.clientHome") + "/api/", apiKey))) {
             res.status(500).json({
               message:
                 "Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.",

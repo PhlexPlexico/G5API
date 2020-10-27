@@ -117,7 +117,7 @@ class ServerRcon {
       }
       if (!this.server.authenticated) await this.authenticateServer();
       let loadMatchResponse = await this.server.execute(
-        "get5_loadmatch_url " + get5URLString
+        "get5_loadmatch_url " + "\"" + get5URLString + "\""
       );
       if (loadMatchResponse) return false;
       loadMatchResponse = await this.server.execute(
