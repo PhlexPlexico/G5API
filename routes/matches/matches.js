@@ -621,6 +621,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     } else if (req.body[0].enforce_teams == null && (req.body[0].is_pug == null || req.body[0].is_pug == 0)) {
       enfTeam = 1;
     }
+    let skipVeto = req.body[0].skip_veto == null ? false : req.body[0].skip_veto
     await db.withTransaction(async () => {
       let insertSet = {
         user_id: req.user.id,
@@ -631,7 +632,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         start_time: req.body[0].start_time,
         max_maps: req.body[0].max_maps,
         title: req.body[0].title,
-        skip_veto: req.body[0].skip_veto,
+        skip_veto: skipVeto,
         veto_first: req.body[0].veto_first,
         veto_mappool: req.body[0].veto_mappool,
         side_type:
@@ -668,7 +669,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           (await newServer.isServerAlive()) &&
           (await newServer.isGet5Available())
         ) {
-          if (!(await newServer.prepareGet5Match(config.get("server.clientHome") + "/api/", apiKey))) {
+          if (!(await newServer.prepareGet5Match(config.get("server.clientHome") + "/api/matches/"+insertMatch.insertId, apiKey))) {
             res.status(500).json({
               message:
                 "Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.",
