@@ -47,6 +47,9 @@ class ServerRcon {
       }
       if (!this.server.authenticated) await this.authenticateServer();
       let get5Status = await this.server.execute("get5_web_avaliable");
+      // Weird L coming in from the console call?
+      get5Status = get5Status.substring(0, get5Status.lastIndexOf("L"));
+      console.log(get5Status);
       let get5JsonStatus = await JSON.parse(get5Status);
       if (get5Status.includes("Unknown command")) {
         console.log("Either get5 or get5_apistats plugin missing.");
