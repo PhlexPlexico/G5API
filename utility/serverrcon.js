@@ -143,7 +143,7 @@ class ServerRcon {
         return false;
       }
       if (!this.server.authenticated) await this.authenticateServer();
-      let loadMatchResponse = await this.server.execute("get5_end_match");
+      let loadMatchResponse = await this.server.execute("get5_endmatch");
       if (loadMatchResponse) return false;
       return true;
     } catch (err) {

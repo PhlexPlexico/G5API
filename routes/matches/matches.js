@@ -500,7 +500,7 @@ router.get("/:match_id/config", async (req, res, next) => {
       match_title: matchInfo[0].title,
       side_type: matchInfo[0].side_type,
       veto_first: matchInfo[0].veto_first,
-      skip_veto: matchInfo[0].skip_veto,
+      skip_veto: matchInfo[0].skip_veto == 0 ? false : true,
       min_players_to_ready:
         matchInfo[0].min_player_ready !== null
           ? matchInfo[0].min_player_ready
