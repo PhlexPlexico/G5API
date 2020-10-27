@@ -15,6 +15,8 @@ const Utils = require("../../utility/utils");
 
 const GameServer = require("../../utility/serverrcon");
 
+const config = require('config');
+
 /**
  * @swagger
  *
@@ -510,7 +512,7 @@ router.get("/:match_id/config", async (req, res, next) => {
       team1: {},
       team2: {},
       cvars: {
-        get5_web_api_url: "http://" + req.get("host") + "/",
+        get5_web_api_url: config.get("server.clientHome") + "/api/",
         get5_check_auths: matchInfo[0].enforce_teams,
       },
       spectators: {},
