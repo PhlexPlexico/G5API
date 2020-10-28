@@ -196,6 +196,7 @@ router.get(
         winner: null,
         team1_score: 0,
         team2_score: 0,
+        match_id: req.params.match_id
       };
       let matchUpdateStmt = {
         team1_score: 0,
