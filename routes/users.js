@@ -193,7 +193,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         let mediumImage = req.body[0].medium_image;
         let largeImage = req.body[0].large_image;
         let apiKey = randString.generate({
-          length: 32,
+          length: 64,
           capitalization: "uppercase",
         });
         let userId = null;

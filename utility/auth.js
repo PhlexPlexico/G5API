@@ -55,7 +55,7 @@ function returnStrategy (identifier, profile, done) {
         //Generate API key in user session to allow posting/getting/etc with
         //an account that's not in a session.
         let apiKey = randString.generate({
-          length: 32,
+          length: 64,
           capitalization: "uppercase",
         });
         sql = "INSERT INTO user SET ?";
