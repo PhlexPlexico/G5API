@@ -184,6 +184,46 @@ router.get("/", async (req, res, next) => {
 /**
  * @swagger
  *
+ * /playerstats/unique:
+ *   get:
+ *     description: Gets a unique player count from the map stats table.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Player stats from a given user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: object
+ *                properties:
+ *                  type: integer
+ *                  description: Unique count of players who have played matches.
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.get("/unique", async (req, res, next) => {
+  try {
+    //
+    let sql = "SELECT COUNT(DISTINCT steam_id) as cnt FROM player_stats";
+    const playercount = await db.query(sql);
+    if (playercount[0].cnt === 0) {
+      res.status(404).json({ message: "No stats found." });
+      return;
+    }
+    res.json({count: playercount[0].cnt});
+  } catch (err) {
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
  * /playerstats/:steam_id:
  *   get:
  *     description: Player stats from a given Steam ID.
