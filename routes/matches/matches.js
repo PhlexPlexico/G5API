@@ -606,6 +606,10 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       length: 24,
       capitalization: "uppercase",
     });
+    let matchSpecAuths = [];
+    req.body[0].spectator_auths.forEach(async auth => {
+      matchSpecAuths.push(Utils.getSteamPID(auth));
+    });
     // Almost same behaviour. If we don't indicate pug or enforce teams,
     // enforce by default. Otherwise. do some checks to see if the teams 
     // should be enforced. By default, we wish to enforce teams.
@@ -652,7 +656,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       insertSet = await db.buildUpdateStatement(insertSet);
       let insertMatch = await db.query(sql, [insertSet]);
       sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
-      for (let key in req.body[0].spectator_auths) {
+      for (let key in matchSpecAuths) {
         await db.query(sql, [req.body[0].match_id, key]);
       }
       if (!req.body[0].ignore_server) {
