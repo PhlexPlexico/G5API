@@ -681,9 +681,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         ) {
           if (
             !(await newServer.prepareGet5Match(
-              config.get("server.clientHome") +
-                "/api/matches/" +
-                insertMatch.insertId,
+              config.get("server.apiURL") + "/matches/" + insertMatch.insertId,
               apiKey
             ))
           ) {
@@ -769,7 +767,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       return;
     }
     let currentMatchInfo =
-      "SELECT user_id, server_id, cancelled, forfeit, end_time, api_key, veto_mappool, max_maps, skip_veto, is_pug FROM `match` WHERE id = ?";
+      "SELECT id, user_id, server_id, cancelled, forfeit, end_time, api_key, veto_mappool, max_maps, skip_veto, is_pug FROM `match` WHERE id = ?";
     const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
     if (matchRow.length === 0) {
       res.status(404).json({ message: "No match found." });
@@ -902,7 +900,10 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
                 newServeInfo[0].rcon_password
               );
               if (
-                newServer.prepareGet5Match(req.get("Host"), matchRow[0].api_key)
+                newServer.prepareGet5Match(
+                  config.get("server.apiURL") + "/matches/" + matchRow[0].id,
+                  matchRow[0].api_key
+                )
               ) {
                 sql = "UPDATE game_server SET in_use=1 WHERE id=?";
                 await db.query(sql, [req.body[0].server_id]);
