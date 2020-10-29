@@ -15,7 +15,7 @@ const Utils = require("../../utility/utils");
 
 const GameServer = require("../../utility/serverrcon");
 
-const config = require('config');
+const config = require("config");
 
 /**
  * @swagger
@@ -115,7 +115,7 @@ const config = require('config');
  *         match_cvars:
  *           type: object
  *           description: An object of key-value pairs containing different unique match CVARs.
- * 
+ *
  *     MatchConfig:
  *        type: object
  *        properties:
@@ -306,7 +306,7 @@ router.get("/", async (req, res, next) => {
       res.status(404).json({ message: "No matches found." });
       return;
     }
-    res.json({matches});
+    res.json({ matches });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -349,7 +349,7 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(404).json({ message: "No matches found." });
       return;
     }
-    res.json({matches});
+    res.json({ matches });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -409,7 +409,7 @@ router.get("/:match_id", async (req, res, next) => {
       return;
     }
     const match = JSON.parse(JSON.stringify(matches[0]));
-    res.json({match});
+    res.json({ match });
   } catch (err) {
     console.log(err.toString());
     res.status(500).json({ message: err.toString() });
@@ -452,7 +452,7 @@ router.get("/limit/:limiter", async (req, res, next) => {
     let lim = parseInt(req.params.limiter);
     let sql = "SELECT * FROM `match` ORDER BY end_time DESC LIMIT ?";
     const matches = await db.query(sql, lim);
-    res.json({matches});
+    res.json({ matches });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -518,7 +518,7 @@ router.get("/:match_id/config", async (req, res, next) => {
       spectators: {},
       maplist:
         matchInfo[0].veto_mappool !== null
-          ? matchInfo[0].veto_mappool.replace(/[,]+/g,'').split(" ")
+          ? matchInfo[0].veto_mappool.replace(/[,]+/g, "").split(" ")
           : null,
       min_spectators_to_ready: 0,
     };
@@ -537,7 +537,7 @@ router.get("/:match_id/config", async (req, res, next) => {
     }
     sql = "SELECT * FROM match_cvar WHERE match_id = ?";
     matchCvars = await db.query(sql, matchID);
-    matchCvars.forEach(row => {
+    matchCvars.forEach((row) => {
       matchJSON.cvars[row.cvar_name] = row.cvar_value;
     });
     res.json(matchJSON);
@@ -607,11 +607,12 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       capitalization: "uppercase",
     });
     let matchSpecAuths = [];
-    req.body[0].spectator_auths.forEach(async auth => {
-      matchSpecAuths.push(Utils.getSteamPID(auth));
-    });
+    if (req.body[0].spectator_auths != null)
+      req.body[0].spectator_auths.forEach(async (auth) => {
+        matchSpecAuths.push(Utils.getSteamPID(auth));
+      });
     // Almost same behaviour. If we don't indicate pug or enforce teams,
-    // enforce by default. Otherwise. do some checks to see if the teams 
+    // enforce by default. Otherwise. do some checks to see if the teams
     // should be enforced. By default, we wish to enforce teams.
     let enfTeam = 1;
     if (req.body[0].enforce_teams == null && req.body[0].is_pug == null) {
@@ -622,10 +623,14 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       enfTeam = 1;
     } else if (req.body[0].enforce_teams == 0) {
       enfTeam = 0;
-    } else if (req.body[0].enforce_teams == null && (req.body[0].is_pug == null || req.body[0].is_pug == 0)) {
+    } else if (
+      req.body[0].enforce_teams == null &&
+      (req.body[0].is_pug == null || req.body[0].is_pug == 0)
+    ) {
       enfTeam = 1;
     }
-    let skipVeto = req.body[0].skip_veto == null ? false : req.body[0].skip_veto
+    let skipVeto =
+      req.body[0].skip_veto == null ? false : req.body[0].skip_veto;
     await db.withTransaction(async () => {
       let insertSet = {
         user_id: req.user.id,
@@ -649,10 +654,11 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         winner: null,
         team1_string: teamOneName[0].name == null ? null : teamOneName[0].name,
         team2_string: teamTwoName[0].name == null ? null : teamTwoName[0].name,
-        is_pug: req.body[0].is_pug
+        is_pug: req.body[0].is_pug,
       };
       let sql = "INSERT INTO `match` SET ?";
-      let cvarSql = "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";
+      let cvarSql =
+        "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";
       insertSet = await db.buildUpdateStatement(insertSet);
       let insertMatch = await db.query(sql, [insertSet]);
       sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
@@ -673,7 +679,14 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           (await newServer.isServerAlive()) &&
           (await newServer.isGet5Available())
         ) {
-          if (!(await newServer.prepareGet5Match(config.get("server.clientHome") + "/api/matches/"+insertMatch.insertId, apiKey))) {
+          if (
+            !(await newServer.prepareGet5Match(
+              config.get("server.clientHome") +
+                "/api/matches/" +
+                insertMatch.insertId,
+              apiKey
+            ))
+          ) {
             res.status(500).json({
               message:
                 "Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.",
@@ -682,11 +695,15 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           }
         }
       }
-      if(req.body[0].match_cvars != null){
+      if (req.body[0].match_cvars != null) {
         await db.withTransaction(async () => {
           let cvarInsertSet = req.body[0].match_cvars;
           for (let key in cvarInsertSet) {
-            await db.query(cvarSql, [insertMatch.insertId, key, cvarInsertSet[key]]);
+            await db.query(cvarSql, [
+              insertMatch.insertId,
+              key,
+              cvarInsertSet[key],
+            ]);
           }
         });
       }
@@ -694,7 +711,10 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         sql = "UPDATE game_server SET in_use = 1 WHERE id = ?";
         await db.query(sql, [req.body[0].server_id]);
       }
-      res.json({ message: "Match inserted successfully!", id: insertMatch.insertId });
+      res.json({
+        message: "Match inserted successfully!",
+        id: insertMatch.insertId,
+      });
     });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
@@ -788,19 +808,22 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         if (req.body[0].server_id == matchRow[0].server_id) diffServer = true;
       }
       await db.withTransaction(async () => {
-        let vetoSql = "SELECT map FROM veto WHERE match_id = ? AND pick_or_veto = 'pick'";
+        let vetoSql =
+          "SELECT map FROM veto WHERE match_id = ? AND pick_or_veto = 'pick'";
         let vetoMapPool = null;
         let maxMaps = null;
-        vetoList = JSON.parse(JSON.stringify(await db.query(vetoSql, req.body[0].match_id)));
-        if(Object.keys(vetoList).length > 0){
-          vetoList.forEach(veto => {
+        vetoList = JSON.parse(
+          JSON.stringify(await db.query(vetoSql, req.body[0].match_id))
+        );
+        if (Object.keys(vetoList).length > 0) {
+          vetoList.forEach((veto) => {
             vetoMapPool = vetoMapPool.concat(veto.map + ", ");
           });
           maxMaps = Object.keys(vetoList).length;
           // Remove last two characters.
           vetoMapPool = vetoMapPool.substring(0, vetoMapPool.length - 2);
           //If we're identical to the matches map pool, it usually means we've begun.
-          if(vetoMapPool == matchRow[0].veto_mappool){
+          if (vetoMapPool == matchRow[0].veto_mappool) {
             vetoMapPool = null;
             maxMaps = null;
           }
@@ -821,9 +844,13 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           max_maps: maxMaps,
           skip_veto: vetoMapPool == null ? null : 1,
           veto_first: req.body[0].veto_first,
-          veto_mappool: vetoMapPool == null ? req.body[0].veto_mappool : vetoMapPool,
+          veto_mappool:
+            vetoMapPool == null ? req.body[0].veto_mappool : vetoMapPool,
           side_type: req.body[0].side_type,
-          enforce_teams: (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) ? 0 : req.body[0].enforce_teams, // Do not update these unless required.
+          enforce_teams:
+            matchRow[0].is_pug != null && matchRow[0].is_pug == 1
+              ? 0
+              : req.body[0].enforce_teams, // Do not update these unless required.
         };
         // Remove any values that may not be updated.
         updateStmt = await db.buildUpdateStatement(updateStmt);
@@ -889,10 +916,11 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           }
         }
       });
-      if(req.body[0].match_cvars != null){
+      if (req.body[0].match_cvars != null) {
         await db.withTransaction(async () => {
           let newCvars = req.body[0].match_cvars;
-          sql = "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";
+          sql =
+            "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";
           for (let key in newCvars) {
             await db.query(sql, [req.body[0].match_id, key, newCvars[key]]);
           }
@@ -1037,7 +1065,11 @@ async function build_team_dict(team, teamNumber, matchData) {
         ? matchData.team1_series_score
         : matchData.team2_series_score,
     matchtext:
-      matchData.max_maps == 1 ? teamNumber === 1 ? matchData.team1_string : matchData.team2_string : null,
+      matchData.max_maps == 1
+        ? teamNumber === 1
+          ? matchData.team1_string
+          : matchData.team2_string
+        : null,
   };
   for (let key in teamData) {
     if (teamData[key] === null) delete teamData[key];
