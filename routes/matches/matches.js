@@ -632,6 +632,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     }
     let skipVeto =
       req.body[0].skip_veto == null ? false : req.body[0].skip_veto;
+    let insertMatch;
     await db.withNewTransaction(newSingle, async () => {
       let insertSet = {
         user_id: req.user.id,
@@ -661,34 +662,10 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       let cvarSql =
         "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";
       insertSet = await db.buildUpdateStatement(insertSet);
-      let insertMatch = await newSingle.query(sql, [insertSet]);
+      insertMatch = await newSingle.query(sql, [insertSet]);
       sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
       for (let key in matchSpecAuths) {
         await newSingle.query(sql, [req.body[0].match_id, key]);
-      }
-      if (!req.body[0].ignore_server) {
-        let ourServerSql =
-          "SELECT rcon_password, ip_string, port FROM game_server WHERE id=?";
-        const serveInfo = await newSingle.query(ourServerSql, [req.body[0].server_id]);
-        const newServer = new GameServer(
-          serveInfo[0][0].ip_string,
-          serveInfo[0][0].port,
-          null,
-          serveInfo[0][0].rcon_password
-        );
-        if (
-          (await newServer.isServerAlive()) &&
-          (await newServer.isGet5Available())
-        ) {
-          if (
-            !(await newServer.prepareGet5Match(
-              config.get("server.apiURL") + "/matches/" + insertMatch[0].insertId + "/config",
-              apiKey
-            ))
-          ) {
-            throw "Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.";
-          }
-        }
       }
       if (req.body[0].match_cvars != null) {
         await db.withNewTransaction(newSingle, async () => {
@@ -702,17 +679,42 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           }
         });
       }
-      if (req.body[0].server_id) {
-        await db.withNewTransaction(newSingle, async () => {
-          sql = "UPDATE game_server SET in_use = 1 WHERE id = ?";
-          await newSingle.query(sql, [req.body[0].server_id]);
-        });
-      }
-      res.json({
-        message: "Match inserted successfully!",
-        id: insertMatch[0].insertId,
-      });
     });
+    if (!req.body[0].ignore_server) {
+      let ourServerSql =
+        "SELECT rcon_password, ip_string, port FROM game_server WHERE id=?";
+      const serveInfo = await db.query(ourServerSql, [req.body[0].server_id]);
+      const newServer = new GameServer(
+        serveInfo[0].ip_string,
+        serveInfo[0].port,
+        null,
+        serveInfo[0].rcon_password
+      );
+      if (
+        (await newServer.isServerAlive()) &&
+        (await newServer.isGet5Available())
+      ) {
+        if (
+          !(await newServer.prepareGet5Match(
+            config.get("server.apiURL") + "/matches/" + insertMatch[0].insertId + "/config",
+            apiKey
+          ))
+        ) {
+          throw "Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.";
+        }
+      }
+    }
+    if (req.body[0].server_id) {
+      await db.withNewTransaction(newSingle, async () => {
+        sql = "UPDATE game_server SET in_use = 1 WHERE id = ?";
+        await newSingle.query(sql, [req.body[0].server_id]);
+      });
+    }
+    res.json({
+      message: "Match inserted successfully!",
+      id: insertMatch[0].insertId,
+    });
+
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
