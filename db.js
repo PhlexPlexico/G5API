@@ -10,7 +10,7 @@ const dbCfg = {
   database: config.get(process.env.NODE_ENV+".database"),
   connectionLimit: config.get(process.env.NODE_ENV+".connectionLimit")
 }
-const connection = mysql.createPool( dbCfg );
+const connPool = mysql.createPool( dbCfg );
 
 class Database {
   constructor() {
@@ -18,7 +18,7 @@ class Database {
   }
 
   async query(sql, args) {
-      const result = await connection.query(sql, args);
+      const result = await connPool.query(sql, args);
       return result[0];
   }
   async buildUpdateStatement(objValues){
@@ -29,7 +29,7 @@ class Database {
   }
 
   async getConnection () {
-    return await connection.getConnection();
+    return await connPool.getConnection();
   }
   /** Inner function - boilerplate transaction call.
   * @name withTransaction
@@ -40,7 +40,7 @@ class Database {
   * @param {*} callback - The callback function that is operated on, usually a db.query()
   */
   async withTransaction(callback) {
-    const singleConn = await connection.getConnection();
+    const singleConn = await connPool.getConnection();
     await singleConn.beginTransaction();
     try {
       await callback();
