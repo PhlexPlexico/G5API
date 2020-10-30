@@ -121,7 +121,7 @@ class ServerRcon {
       let loadMatchResponse = await this.server.execute(
         "get5_loadmatch_url " + "\"" + get5URLString + "\""
       );
-      if (loadMatchResponse.includes("Failed to load match config")) return false;
+      if (loadMatchResponse.includes("Failed")) return false;
       else if (loadMatchResponse.includes("another match already loaded")) return false;
       loadMatchResponse = await this.server.execute(
         "get5_web_api_key " + get5APIKeyString
