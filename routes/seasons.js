@@ -357,7 +357,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         sql = "INSERT INTO season_cvar SET ?";
         for(let key in defaultCvar) {
           insertSet = {
-            season_id: insertSeason.insertId,
+            season_id: insertSeason[0].insertId,
             cvar_name: key,
             cvar_value: defaultCvar[key]
           };
@@ -366,7 +366,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       }
       res.json({
         message: "Season inserted successfully!",
-        id: insertSeason.insertId,
+        id: insertSeason[0].insertId,
       });
     });
   } catch (err) {

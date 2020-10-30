@@ -682,7 +682,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         ) {
           if (
             !(await newServer.prepareGet5Match(
-              config.get("server.apiURL") + "/matches/" + insertMatch.insertId + "/config",
+              config.get("server.apiURL") + "/matches/" + insertMatch[0].insertId + "/config",
               apiKey
             ))
           ) {
@@ -695,7 +695,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           let cvarInsertSet = req.body[0].match_cvars;
           for (let key in cvarInsertSet) {
             await newSingle.query(cvarSql, [
-              insertMatch.insertId,
+              insertMatch[0].insertId,
               key,
               cvarInsertSet[key],
             ]);
@@ -710,7 +710,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       }
       res.json({
         message: "Match inserted successfully!",
-        id: insertMatch.insertId,
+        id: insertMatch[0].insertId,
       });
     });
   } catch (err) {

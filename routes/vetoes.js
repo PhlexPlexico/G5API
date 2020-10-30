@@ -210,7 +210,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         }
         let sql = "INSERT INTO veto SET ?";
         vetoId = await newSingle.query(sql, [insertStmt]);
-        res.json({ message: "Veto inserted successfully!", id: vetoId.insertId });
+        res.json({ message: "Veto inserted successfully!", id: vetoId[0].insertId });
       });
     } catch ( err ) {
       res.status(500).json({ message: err.toString() })

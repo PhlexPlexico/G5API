@@ -412,7 +412,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
             "Game Server did not respond in time. However, we have still inserted the server successfully.",
         });
       } else {
-        res.json({ message: "Game server inserted successfully!", id: insertServer.insertId });
+        res.json({ message: "Game server inserted successfully!", id: insertServer[0].insertId });
       }
     });
   } catch (err) {

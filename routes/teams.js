@@ -355,7 +355,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
 
   try {
     await db.withNewTransaction(newSingle, async () => {
-      const insertTeam = await db.query(sql, [
+      const insertTeam = await newSingle.query(sql, [
         newTeam.map((item) => [
           item.user_id,
           item.name,
@@ -365,7 +365,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
           item.public_team,
         ]),
       ]);
-      teamID = insertTeam.insertId;
+      teamID = insertTeam[0].insertId;
       sql =
         "INSERT INTO team_auth_names (team_id, auth, name, captain) VALUES (?, ?, ?, ?)";
       for (let key in auths) {

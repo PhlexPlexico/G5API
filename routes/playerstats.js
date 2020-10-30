@@ -429,7 +429,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         // Remove any values that may not be inserted off the hop.
         insertSet = await db.buildUpdateStatement(insertSet);
         let insertPlayStats = await newSingle.query(sql, [insertSet]);
-        res.json({ message: "Player Stats inserted successfully!", id: insertPlayStats.insertId });
+        res.json({ message: "Player Stats inserted successfully!", id: insertPlayStats[0].insertId });
       });
     }
   } catch (err) {

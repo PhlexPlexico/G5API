@@ -212,7 +212,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           largeImage,
           apiKey,
         ]);
-        userId = newUser.insertId;
+        userId = newUser[0].insertId;
         res.json({ message: "User created successfully.", id: userId });
       });
     } else {
