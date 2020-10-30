@@ -354,6 +354,7 @@ router.get("/match/:match_id", async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
+  let newSingle = await db.getConnection();
   try {
     if (
       req.body[0].match_id == null ||
@@ -391,7 +392,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
       return;
     } else {
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         let insertSet = {
           match_id: req.body[0].match_id,
           map_id: req.body[0].map_id,
@@ -427,7 +428,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         let sql = "INSERT INTO player_stats SET ?";
         // Remove any values that may not be inserted off the hop.
         insertSet = await db.buildUpdateStatement(insertSet);
-        let insertPlayStats = await db.query(sql, [insertSet]);
+        let insertPlayStats = await newSingle.query(sql, [insertSet]);
         res.json({ message: "Player Stats inserted successfully!", id: insertPlayStats.insertId });
       });
     }
@@ -470,6 +471,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *        $ref: '#/components/responses/Error'
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
+  let newSingle = await db.getConnection();
   try {
     if (
       req.body[0].match_id == null ||
@@ -505,7 +507,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
       return;
     } else {
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         let updateStmt = {
           name: req.body[0].name,
           kills: req.body[0].kills,
@@ -544,13 +546,13 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         }
         let sql =
           "UPDATE player_stats SET ? WHERE map_id = ? AND match_id = ? AND steam_id = ?";
-        const updatedPlayerStats = await db.query(sql, [
+        const updatedPlayerStats = await newSingle.query(sql, [
           updateStmt,
           req.body[0].map_id,
           req.body[0].match_id,
           req.body[0].steam_id,
         ]);
-        if (updatedPlayerStats.affectedRows > 0) {
+        if (updatedPlayerStats[0].affectedRows > 0) {
           res.json({ message: "Player Stats were updated successfully!" });
           return;
         } else {
@@ -561,7 +563,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           updateStmt.match_id = req.body[0].match_id;
           //If a player is a standin we should still record stats as "that team".
           updateStmt.team_id = req.body[0].team_id;
-          await db.query(sql, [updateStmt]);
+          await newSingle.query(sql, [updateStmt]);
           res.json({ message: "Player Stats Inserted Successfully!" });
           return;
         }
@@ -610,6 +612,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.delete("/", async (req, res, next) => {
+  let newSingle = await db.getConnection();
   try {
     if (req.body[0].match_id == null) {
       res.status(412).json({ message: "Required Data Not Provided" });
@@ -635,19 +638,13 @@ router.delete("/", async (req, res, next) => {
       matchRow[0].mtch_end_time != null
     ) {
       let deleteSql = "DELETE FROM player_stats WHERE match_id = ?";
-      await db.withTransaction(async () => {
-        const delRows = await db.query(deleteSql, [req.body[0].match_id]);
-        if (delRows.affectedRows > 0) {
+      await db.withNewTransaction(newSingle, async () => {
+        const delRows = await newSingle.query(deleteSql, [req.body[0].match_id]);
+        if (delRows[0].affectedRows > 0) {
           res.json({ message: "Player stats has been deleted successfully." });
           return;
         } else {
-          res
-            .status(500)
-            .json({
-              message:
-                "Something went wrong deleting the data. Player stats remain intact.",
-            });
-          return;
+          throw "Something went wrong deleting the data. Player stats remain intact."
         }
       });
     } else {

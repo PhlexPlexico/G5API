@@ -341,8 +341,9 @@ router.get("/:season_id", async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
+  let newSingle = await db.getConnection();
   try {
-    await db.withTransaction(async () => {
+    await db.withNewTransaction(newSingle, async () => {
       let defaultCvar = req.body[0].season_cvar;
       let insertSet = {
         user_id: req.user.id,
@@ -351,7 +352,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         end_date: req.body[0].end_date,
       };
       let sql = "INSERT INTO season SET ?";
-      let insertSeason = await db.query(sql, [insertSet]);
+      let insertSeason = await newSingle.query(sql, [insertSet]);
       if(defaultCvar != null) {
         sql = "INSERT INTO season_cvar SET ?";
         for(let key in defaultCvar) {
@@ -360,7 +361,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
             cvar_name: key,
             cvar_value: defaultCvar[key]
           };
-          await db.query(sql, [insertSet]);
+          await newSingle.query(sql, [insertSet]);
         }
       }
       res.json({
@@ -411,6 +412,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
+  let newSingle = await db.getConnection();
   let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
   if (req.body[0].season_id == null) {
     res.status(404).json({ message: "No season found." });
@@ -430,7 +432,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   } else {
     try {
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         let defaultCvar = req.body[0].season_cvar;
         let updateStmt = {
           user_id: req.body[0].user_id,
@@ -447,10 +449,10 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           return;
         }
         let sql = "UPDATE season SET ? WHERE id = ?";
-        await db.query(sql, [updateStmt, req.body[0].season_id]);
+        await newSingle.query(sql, [updateStmt, req.body[0].season_id]);
         if(defaultCvar != null) {
           sql = "DELETE FROM season_cvar WHERE season_id = ?";
-          await db.query(sql, [req.body[0].season_id]);
+          await newSingle.query(sql, [req.body[0].season_id]);
           sql = "INSERT INTO season_cvar SET ?";
           for(let key in defaultCvar) {
             insertSet = {
@@ -507,6 +509,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.delete("/", async (req, res, next) => {
+  let newSingle = await db.getConnection();
   let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
   const seasonRow = await db.query(seasonUserId, req.body[0].season_id);
   if (seasonRow[0] == null) {
@@ -522,10 +525,10 @@ router.delete("/", async (req, res, next) => {
     return;
   } else {
     try {
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         let deleteSql = "DELETE FROM season WHERE id = ?";
         let seasonId = req.body[0].season_id;
-        await db.query(deleteSql, [seasonId]);
+        await newSingle.query(deleteSql, [seasonId]);
         res.json({ message: "Season deleted successfully!" });
       });
     } catch (err) {

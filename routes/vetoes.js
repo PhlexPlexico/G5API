@@ -181,7 +181,7 @@ router.get("/:match_id", async (req, res, next) => {
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
-
+  let newSingle = await db.getConnection();
   const matchRow = await db.query(matchUserId, req.body[0].match_id);
   if (matchRow.length === 0) {
     res.status(404).json({ message: "No match found." });
@@ -196,7 +196,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   } else {
     try {
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         let insertStmt = {
           match_id: req.body[0].match_id,
           map: req.body[0].map_name,
@@ -209,7 +209,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           return;
         }
         let sql = "INSERT INTO veto SET ?";
-        vetoId = await db.query(sql, [insertStmt]);
+        vetoId = await newSingle.query(sql, [insertStmt]);
         res.json({ message: "Veto inserted successfully!", id: vetoId.insertId });
       });
     } catch ( err ) {
@@ -257,6 +257,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
   let vetoId;
+  let newSingle = await db.getConnection();
   const matchRow = await db.query(matchUserId, req.body[0].match_id);
   if (matchRow.length === 0) {
     res.status(404).json({ message: "No match found." });
@@ -272,7 +273,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   } else {
     vetoId = req.body[0].veto_id;
     try {
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
 
         let updateStmt = {
           match_id: req.body[0].match_id,
@@ -286,7 +287,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           return;
         }
         let sql = "UPDATE veto SET ? WHERE id = ?";
-        await db.query(sql, [updateStmt, vetoId]);
+        await newSingle.query(sql, [updateStmt, vetoId]);
         res.json({ message: "Veto updated successfully!" });
       });
     } catch ( err ) {
@@ -336,6 +337,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.delete("/", Utils.ensureAuthenticated, async (req,res,next) => {
   let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
+  let newSingle = await db.getConnection();
   const matchRow = await db.query(matchUserId, req.body[0].match_id);
   if (matchRow.length === 0) {
     res.status(404).json({ message: "No match found." });
@@ -350,11 +352,11 @@ router.delete("/", Utils.ensureAuthenticated, async (req,res,next) => {
     return;
   } else {
     try {
-      await db.withTransaction (async () => {
+      await db.withNewTransaction (newSingle, async () => {
         let matchId = req.body[0].match_id;
         let sql = "DELETE FROM veto WHERE match_id = ?";
-        const delRows = await db.query(sql, [matchId]);
-        if (delRows.affectedRows > 0)
+        const delRows = await newSingle.query(sql, [matchId]);
+        if (delRows[0].affectedRows > 0)
           res.json({ message: "Vetoes deleted successfully!" });
         else
           res.status(412).json({ message: "Vetoes were not found, nothing to delete." });

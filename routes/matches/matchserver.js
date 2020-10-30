@@ -57,6 +57,7 @@ router.get(
   "/:match_id/forfeit/:winner_id",
   Utils.ensureAuthenticated,
   async (req, res, next) => {
+    let newSingle = await db.getConnection();
     let currentMatchInfo =
       "SELECT user_id, server_id, cancelled, forfeit, end_time, team1_id, team2_id FROM `match` WHERE id = ?";
     const matchRow = await db.query(currentMatchInfo, req.params.match_id);
@@ -106,11 +107,11 @@ router.get(
       }
       let matchSql = "UPDATE `match` SET ? WHERE id=?";
       let serverUpdateSql = "UPDATE game_server SET in_use=0 WHERE id=?";
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         if (mapStat.length == 0) await db.query(mapStatSql, [newStatStmt]);
-        else await db.query(mapStatSql, [newStatStmt, req.params.match_id]);
-        await db.query(matchSql, [matchUpdateStmt, req.params.match_id]);
-        await db.query(serverUpdateSql, [matchRow[0].server_id]);
+        else await newSingle.query(mapStatSql, [newStatStmt, req.params.match_id]);
+        await newSingle.query(matchSql, [matchUpdateStmt, req.params.match_id]);
+        await newSingle.query(serverUpdateSql, [matchRow[0].server_id]);
       });
       let getServerSQL =
         "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
@@ -166,6 +167,7 @@ router.get(
   "/:match_id/cancel/",
   Utils.ensureAuthenticated,
   async (req, res, next) => {
+    let newSingle = await db.getConnection();
     let currentMatchInfo =
       "SELECT user_id, server_id, cancelled, forfeit, end_time, team1_id, team2_id FROM `match` WHERE id = ?";
     const matchRow = await db.query(currentMatchInfo, req.params.match_id);
@@ -212,11 +214,11 @@ router.get(
       }
       let matchSql = "UPDATE `match` SET ? WHERE id=?";
       let serverUpdateSql = "UPDATE game_server SET in_use=0 WHERE id=?";
-      await db.withTransaction(async () => {
-        if (mapStat.length == 0) await db.query(mapStatSql, [newStatStmt]);
-        else await db.query(mapStatSql, [newStatStmt, req.params.match_id]);
-        await db.query(matchSql, [matchUpdateStmt, req.params.match_id]);
-        await db.query(serverUpdateSql, [matchRow[0].server_id]);
+      await db.withNewTransaction(newSingle, async () => {
+        if (mapStat.length == 0) await newSingle.query(mapStatSql, [newStatStmt]);
+        else await newSingle.query(mapStatSql, [newStatStmt, req.params.match_id]);
+        await newSingle.query(matchSql, [matchUpdateStmt, req.params.match_id]);
+        await newSingle.query(serverUpdateSql, [matchRow[0].server_id]);
       });
       let getServerSQL =
         "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";

@@ -378,8 +378,9 @@ router.get(
  *         $ref: '#/components/responses/Error'
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
+  let newSingle = await db.getConnection();
   try {
-    await db.withTransaction(async () => {
+    await db.withNewTransaction(newSingle, async () => {
       let userId = req.user.id;
       let ipString = req.body[0].ip_string;
       let port = req.body[0].port;
@@ -389,7 +390,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       let flagCode = req.body[0].flag;
       let sql =
         "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server, flag) VALUES (?,?,?,?,?,?,?)";
-      let insertServer = await db.query(sql, [
+      let insertServer = await newSingle.query(sql, [
         userId,
         ipString,
         port,
@@ -456,6 +457,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
+  let newSingle = await db.getConnection();
   let userCheckSql = "SELECT user_id FROM game_server WHERE id = ?";
   let userId = req.user.id;
   const checkUser = await db.query(userCheckSql, [req.body[0].server_id]);
@@ -472,7 +474,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   } else {
     try {
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         let serverId = req.body[0].server_id;
         let updateStmt = {
           ip_string: req.body[0].ip_string,
@@ -495,8 +497,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           return;
         }
         let sql = "UPDATE game_server SET ? WHERE id = ?";
-        updatedServer = await db.query(sql, [updateStmt, serverId]);
-        if (updatedServer.affectedRows > 0) {
+        updatedServer = await newSingle.query(sql, [updateStmt, serverId]);
+        if (updatedServer[0].affectedRows > 0) {
           // Get all server info
           sql = "SELECT ip_string, port, rcon_password FROM game_server WHERE id = ?";
           const serveInfo = await db.query(sql, [serverId]);
@@ -516,7 +518,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
             res.json({ message: "Game server updated successfully!" });
           }
         } else
-          res.status(500).json({ message: "ERROR - Game server not updated." });
+          throw "ERROR - Game server not updated.";
       });
     } catch (err) {
       res.status(500).json({ message: err.toString() });
@@ -561,6 +563,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
+  let newSingle = await db.getConnection();
   let userCheckSql = "SELECT user_id FROM game_server WHERE id = ?";
   const checkUser = await db.query(userCheckSql, [req.body[0].server_id]);
   if (checkUser[0] == null) {
@@ -576,22 +579,22 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   } else {
     try {
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         let userId = req.user.id;
         let serverId = req.body[0].server_id;
         let sql = "";
         let delRows = null;
         if (Utils.superAdminCheck(req.user)) {
           sql = "DELETE FROM game_server WHERE id = ?";
-          delRows = await db.query(sql, [serverId]);
+          delRows = await newSingle.query(sql, [serverId]);
         } else {
           sql = "DELETE FROM game_server WHERE id = ? AND user_id = ?";
-          delRows = await db.query(sql, [serverId, userId]);
+          delRows = await newSingle.query(sql, [serverId, userId]);
         }
-        if (delRows.affectedRows > 0)
+        if (delRows[0].affectedRows > 0)
           res.json({ message: "Game server deleted successfully!" });
         else {
-          res.status(500).json({ message: "Error! Unable to delete record. " });
+          throw "Error! Unable to delete record.";
         }
       });
     } catch (err) {

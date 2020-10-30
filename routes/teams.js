@@ -331,6 +331,7 @@ router.get("/:team_id/basic", async (req, res) => {
  *         $ref: '#/components/responses/Error'
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res) => {
+  let newSingle = await db.getConnection();
   let userID = req.user.id;
   let teamName = req.body[0].name;
   let flag = req.body[0].flag;
@@ -353,7 +354,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
     "INSERT INTO team (user_id, name, flag, logo, tag, public_team) VALUES ?";
 
   try {
-    await db.withTransaction(async () => {
+    await db.withNewTransaction(newSingle, async () => {
       const insertTeam = await db.query(sql, [
         newTeam.map((item) => [
           item.user_id,
@@ -370,7 +371,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
       for (let key in auths) {
         let isCaptain = auths[key].captain == null ? 0 : auths[key].captain;
         let usersSteamId = await Utils.getSteamPID(key);
-        await db.query(sql, [teamID, usersSteamId, auths[key].name, isCaptain]);
+        await newSingle.query(sql, [teamID, usersSteamId, auths[key].name, isCaptain]);
       }
       res.json({ message: "Team successfully inserted.", id: teamID });
     });
@@ -417,6 +418,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res) => {
   let checkUserSql = "SELECT * FROM team WHERE id = ?";
+  let newSingle = await db.getConnection();
   const checkUser = await db.query(checkUserSql, [req.body[0].id]);
   if (checkUser[0] == null) {
     res.status(404).json({ message: "Team does not exist." });
@@ -454,24 +456,24 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
   }
   let sql = "UPDATE team SET ? WHERE id=?";
   try {
-    await db.withTransaction(async () => {
-      await db.query(sql, [updateTeam, teamID]);
+    await db.withNewTransaction(newSingle, async () => {
+      await newSingle.query(sql, [updateTeam, teamID]);
       sql =
         "UPDATE team_auth_names SET name = ?, captain = ? WHERE auth = ? AND team_id = ?";
       for (let key in teamAuths) {
         let isCaptain = teamAuths[key].captain == null ? 0 : teamAuths[key].captain;
         let usersSteamId = await Utils.getSteamPID(key);
-        let updateTeamAuth = await db.query(sql, [
+        let updateTeamAuth = await newSingle.query(sql, [
           teamAuths[key].name,
           isCaptain,
           usersSteamId,
           teamID,
         ]);
-        if (updateTeamAuth.affectedRows < 1) {
+        if (updateTeamAuth[0].affectedRows < 1) {
           // Insert a new auth if it doesn't exist. Technically "updating a team".
           let insertSql =
             "INSERT INTO team_auth_names (team_id, auth, name, captain) VALUES (?, ?, ?, ?)";
-          await db.query(insertSql, [teamID, usersSteamId, teamAuths[key].name, isCaptain]);
+          await newSingle.query(insertSql, [teamID, usersSteamId, teamAuths[key].name, isCaptain]);
         }
       }
       res.json({ message: "Team successfully updated" });
@@ -520,6 +522,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
  *         $ref: '#/components/responses/Error'
  */
 router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
+  let newSingle = await db.getConnection();
   let teamID = req.body[0].team_id;
   let checkUserSql = "SELECT * FROM team WHERE id = ?";
   const checkUser = await db.query(checkUserSql, [teamID]);
@@ -578,11 +581,11 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
       //   );
       // }
       // Otherwise, let's continue with delete. Start with auths.
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         let deleteTeamAuthSql = "DELETE FROM team_auth_names WHERE team_id = ?";
         let deleteTeamsql = "DELETE FROM team WHERE id = ?";
-        await db.query(deleteTeamAuthSql, teamID);
-        await db.query(deleteTeamsql, teamID);
+        await newSingle.query(deleteTeamAuthSql, teamID);
+        await newSingle.query(deleteTeamsql, teamID);
       });
     } catch (err) {
       res.status(500).json({ message: err.toString() });

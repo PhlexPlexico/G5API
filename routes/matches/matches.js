@@ -579,6 +579,7 @@ router.get("/:match_id/config", async (req, res, next) => {
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
+    let newSingle = await db.getConnection();
     // Check if server available, if we are given a server.
     let serverSql =
       "SELECT in_use, user_id, public_server FROM game_server WHERE id = ?";
@@ -631,7 +632,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     }
     let skipVeto =
       req.body[0].skip_veto == null ? false : req.body[0].skip_veto;
-    await db.withTransaction(async () => {
+    await db.withNewTransaction(newSingle, async () => {
       let insertSet = {
         user_id: req.user.id,
         server_id: req.body[0].server_id,
@@ -660,20 +661,20 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       let cvarSql =
         "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";
       insertSet = await db.buildUpdateStatement(insertSet);
-      let insertMatch = await db.query(sql, [insertSet]);
+      let insertMatch = await newSingle.query(sql, [insertSet]);
       sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
       for (let key in matchSpecAuths) {
-        await db.query(sql, [req.body[0].match_id, key]);
+        await newSingle.query(sql, [req.body[0].match_id, key]);
       }
       if (!req.body[0].ignore_server) {
         let ourServerSql =
           "SELECT rcon_password, ip_string, port FROM game_server WHERE id=?";
-        const serveInfo = await db.query(ourServerSql, [req.body[0].server_id]);
+        const serveInfo = await newSingle.query(ourServerSql, [req.body[0].server_id]);
         const newServer = new GameServer(
-          serveInfo[0].ip_string,
-          serveInfo[0].port,
+          serveInfo[0][0].ip_string,
+          serveInfo[0][0].port,
           null,
-          serveInfo[0].rcon_password
+          serveInfo[0][0].rcon_password
         );
         if (
           (await newServer.isServerAlive()) &&
@@ -685,19 +686,15 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
               apiKey
             ))
           ) {
-            //res.status(500).json({
-              //message:
-                //"Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.",
-            //});
             throw "Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.";
           }
         }
       }
       if (req.body[0].match_cvars != null) {
-        await db.withTransaction(async () => {
+        await db.withNewTransaction(newSingle, async () => {
           let cvarInsertSet = req.body[0].match_cvars;
           for (let key in cvarInsertSet) {
-            await db.query(cvarSql, [
+            await newSingle.query(cvarSql, [
               insertMatch.insertId,
               key,
               cvarInsertSet[key],
@@ -706,8 +703,10 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         });
       }
       if (req.body[0].server_id) {
-        sql = "UPDATE game_server SET in_use = 1 WHERE id = ?";
-        await db.query(sql, [req.body[0].server_id]);
+        await db.withNewTransaction(newSingle, async () => {
+          sql = "UPDATE game_server SET in_use = 1 WHERE id = ?";
+          await newSingle.query(sql, [req.body[0].server_id]);
+        });
       }
       res.json({
         message: "Match inserted successfully!",
@@ -758,6 +757,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
+    let newSingle = await db.getConnection();
     let diffServer = false;
     let vetoList = null;
     let ourServerSql =
@@ -805,7 +805,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         }
         if (req.body[0].server_id == matchRow[0].server_id) diffServer = true;
       }
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         let vetoSql =
           "SELECT map FROM veto WHERE match_id = ? AND pick_or_veto = 'pick'";
         let vetoMapPool = null;
@@ -859,14 +859,14 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           return;
         }
         let sql = "UPDATE `match` SET ? WHERE id = ?";
-        await db.query(sql, [updateStmt, req.body[0].match_id]);
+        await newSingle.query(sql, [updateStmt, req.body[0].match_id]);
         sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
         for (let key in req.body[0].spectator_auths) {
           let newAuth = await Utils.convertToSteam64(key);
-          await db.query(sql, [req.body[0].match_id, newAuth]);
+          await newSingle.query(sql, [req.body[0].match_id, newAuth]);
         }
       });
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         const ourServer = await db.query(ourServerSql, [matchRow[0].server_id]);
         const serverConn = new GameServer(
           ourServer[0].ip_string,
@@ -881,14 +881,14 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         ) {
           if (serverConn.endGet5Match()) {
             sql = "UPDATE game_server SET in_use=0 WHERE id=?";
-            await db.query(sql, [matchRow[0].server_id]);
+            await newSingle.query(sql, [matchRow[0].server_id]);
           }
         } else {
           if (!req.body[0].ignore_server) {
             if (diffServer) {
               if (serverConn.endGet5Match()) {
                 sql = "UPDATE game_server SET in_use=0 WHERE id=?";
-                await db.query(sql, [matchRow[0].server_id]);
+                await newSingle.query(sql, [matchRow[0].server_id]);
               }
               const newServeInfo = await db.query(ourServerSql, [
                 req.body[0].server_id,
@@ -906,7 +906,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
                 )
               ) {
                 sql = "UPDATE game_server SET in_use=1 WHERE id=?";
-                await db.query(sql, [req.body[0].server_id]);
+                await newSingle.query(sql, [req.body[0].server_id]);
                 res.json({
                   message:
                     "Match updated successfully! Please move over the last backup from the old server to the new one!",
@@ -918,12 +918,12 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         }
       });
       if (req.body[0].match_cvars != null) {
-        await db.withTransaction(async () => {
+        await db.withNewTransaction(newSingle, async () => {
           let newCvars = req.body[0].match_cvars;
           sql =
             "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";
           for (let key in newCvars) {
-            await db.query(sql, [req.body[0].match_id, key, newCvars[key]]);
+            await newSingle.query(sql, [req.body[0].match_id, key, newCvars[key]]);
           }
         });
       }
@@ -969,6 +969,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
+  let newSingle = await db.getConnection();
   let userId = req.user.id;
   let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
   const matchRow = await db.query(matchUserId, req.body[0].match_id);
@@ -985,7 +986,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   } else {
     try {
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         let matchId = req.body[0].match_id;
         let isMatchCancelled =
           "SELECT cancelled, forfeit, end_time, user_id from `match` WHERE id = ?";
@@ -1014,16 +1015,14 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
           matchCancelledResult[0].end_time != null
         ) {
           let deleteMatchsql = "DELETE FROM `match` WHERE id = ?";
-          await db.query(playerStatDeleteSql, matchId);
-          await db.query(mapStatDeleteSql, matchId);
-          await db.query(spectatorDeleteSql, matchId);
-          const delRows = await db.query(deleteMatchsql, matchId);
-          if (delRows.affectedRows > 0)
+          await newSingle.query(playerStatDeleteSql, matchId);
+          await newSingle.query(mapStatDeleteSql, matchId);
+          await newSingle.query(spectatorDeleteSql, matchId);
+          const delRows = await newSingle.query(deleteMatchsql, matchId);
+          if (delRows[0].affectedRows > 0)
             res.json({ message: "Match deleted successfully!" });
           else
-            res.status(500).json({
-              message: "We found an issue deleting the match values.",
-            });
+            throw "We found an issue deleting the match values.";
           return;
         } else {
           res.status(403).json({

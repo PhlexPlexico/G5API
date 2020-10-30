@@ -47,9 +47,23 @@ class Database {
       await singleConn.commit();
     } catch (err) {
       await singleConn.rollback();
+      console.log(err);
       throw err;
     } finally {
       await singleConn.close();
+    } 
+  }
+
+  async withNewTransaction(singleCall, callback) {
+    await singleCall.beginTransaction();
+    try {
+      await callback();
+      await singleCall.commit();
+    } catch (err) {
+      await singleCall.rollback();
+      throw err;
+    } finally {
+      await singleCall.release();
     } 
   }
 

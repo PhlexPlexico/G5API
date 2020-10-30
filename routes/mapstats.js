@@ -255,6 +255,7 @@ router.get("/:match_id/:map_id", async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
+  let newSingle = await db.getConnection();
   try {
     if (req.body[0].match_id == null) {
       res.status(400).json({ message: "Match ID Not Provided" });
@@ -282,7 +283,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(422).json({ message: "Match is already finished." });
       return;
     } else {
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         let mapStatSet = {
           match_id: req.body[0].match_id,
           map_number: req.body[0].map_number,
@@ -290,7 +291,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           start_time: req.body[0].start_time,
         };
         let sql = "INSERT INTO map_stats SET ?";
-        let insertedStats = await db.query(sql, [mapStatSet]);
+        let insertedStats = await newSingle.query(sql, [mapStatSet]);
         res.json({ message: "Map stats inserted successfully!", id: insertedStats.insertId });
       });
     }
@@ -339,6 +340,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
+  let newSingle = await db.getConnection();
   try {
     if (req.body[0].map_stats_id == null) {
       res.status(412).json({ message: "Map stat ID Not Provided" });
@@ -366,7 +368,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(422).json({ message: "Match is already finished." });
       return;
     } else {
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         let mapStatId = req.body[0].map_stats_id;
           "SELECT a.user_id FROM `match` a, map_stats b WHERE b.id = ?";
         let updatedValues = {
@@ -385,8 +387,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           return;
         }
         let sql = "UPDATE map_stats SET ? WHERE id = ?";
-        updateMapStats = await db.query(sql, [updatedValues, mapStatId]);
-        if (updateMapStats.affectedRows > 0)
+        updateMapStats = await newSingle.query(sql, [updatedValues, mapStatId]);
+        if (updateMapStats[0].affectedRows > 0)
           res.json({ message: "Map Stats updated successfully!" });
         else
           res
@@ -441,6 +443,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
+  let newSingle = await db.getConnection();
   try {
     if (req.body[0].map_stats_id == null) {
       res.status(412).json({ message: "Map Stats ID Not Provided" });
@@ -468,12 +471,12 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(422).json({ message: "Match is already finished." });
       return;
     } else {
-      await db.withTransaction(async () => {
+      await db.withNewTransaction(newSingle, async () => {
         let userProfile = req.user.id; // Brought in from steam passport.
         let mapStatsId = req.body[0].map_stats_id;
         let deleteSql = "DELETE FROM map_stats WHERE id = ?";
-        const delRows = await db.query(deleteSql, [mapStatsId]);
-        if (delRows.affectedRows > 0)
+        const delRows = await newSingle.query(deleteSql, [mapStatsId]);
+        if (delRows[0].affectedRows > 0)
           res.json({ message: "Map Stats deleted successfully!" });
         else
           res
