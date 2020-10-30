@@ -73,14 +73,15 @@ class Database {
 
   async setupAdmins() {
     try {
-      await this.withTransaction(async () => {
+      let singleConn = await this.getConnection();
+      await this.withNewTransaction(singleConn, async () => {
         let listOfAdmins = config.get("admins.steam_ids").split(',');
         let listofSuperAdmins = config.get("super_admins.steam_ids").split(',');
         // Get list of admins from database and compare list and add new admins.
         let updateAdmins = "UPDATE user SET admin = 1 WHERE steam_id IN (?)";
         let updateSuperAdmins = "UPDATE user SET super_admin = 1 WHERE steam_id in(?)";
-        await this.query(updateAdmins, [listOfAdmins]);
-        await this.query(updateSuperAdmins, [listofSuperAdmins]);
+        await singleConn.query(updateAdmins, [listOfAdmins]);
+        await singleConn.query(updateSuperAdmins, [listofSuperAdmins]);
       });
     } catch (err) {
       console.log("Failed to import users. Error: " + err);

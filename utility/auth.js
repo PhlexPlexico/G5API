@@ -35,10 +35,11 @@ function strategyForEnvironment() {
   return strategy;
 }
 
-function returnStrategy (identifier, profile, done) {
+async function returnStrategy (identifier, profile, done) {
   process.nextTick(async () => {
     profile.identifier = identifier;
     try {
+      let singleConn = await db.getConnection();
       let isAdmin = 0;
       let isSuperAdmin = 0;
       let superAdminList = config.get("super_admins.steam_ids").split(',');
@@ -70,8 +71,8 @@ function returnStrategy (identifier, profile, done) {
           large_image: profile.photos[2].value,
           api_key: await Utils.encrypt(apiKey)
         }
-        await db.withTransaction(async () => {
-          curUser = await db.query(sql, [newUser]);
+        await db.withNewTransaction(singleConn, async () => {
+          curUser = await singleConn.query(sql, [newUser]);
         });
         sql = "SELECT * FROM user WHERE steam_id = ?";
         curUser = await db.query(sql, [profile.id]);
@@ -82,8 +83,8 @@ function returnStrategy (identifier, profile, done) {
           large_image: profile.photos[2].value
         }
         sql = "UPDATE user SET ? WHERE steam_id=?";
-        await db.withTransaction(async () => {
-          await db.query(sql, [updateUser, profile.id]);
+        await db.withNewTransaction(singleConn, async () => {
+          await singleConn.query(sql, [updateUser, profile.id]);
         });
       }
       return done(null, {
