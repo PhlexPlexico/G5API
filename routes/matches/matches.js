@@ -681,7 +681,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         ) {
           if (
             !(await newServer.prepareGet5Match(
-              config.get("server.apiURL") + "/matches/" + insertMatch.insertId,
+              config.get("server.apiURL") + "/matches/" + insertMatch.insertId + "/config",
               apiKey
             ))
           ) {
@@ -901,7 +901,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
               );
               if (
                 newServer.prepareGet5Match(
-                  config.get("server.apiURL") + "/matches/" + matchRow[0].id,
+                  config.get("server.apiURL") + "/matches/" + matchRow[0].id + "/config",
                   matchRow[0].api_key
                 )
               ) {
