@@ -121,11 +121,11 @@ class ServerRcon {
       let loadMatchResponse = await this.server.execute(
         "get5_loadmatch_url " + "\"" + get5URLString + "\""
       );
-      if (loadMatchResponse) return false;
+      if (loadMatchResponse.includes("Failed to load match config")) return false;
+      else if (loadMatchResponse.includes("another match already loaded")) return false;
       loadMatchResponse = await this.server.execute(
         "get5_web_api_key " + get5APIKeyString
       );
-      if (loadMatchResponse) return false;
       // Swap map to default dust2, ensures our cvars stick for the match.
       await this.server.execute("map de_dust2");
       return true;

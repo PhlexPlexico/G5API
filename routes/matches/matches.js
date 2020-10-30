@@ -488,7 +488,7 @@ router.get("/limit/:limiter", async (req, res, next) => {
 router.get("/:match_id/config", async (req, res, next) => {
   try {
     let sql = "SELECT * FROM `match` WHERE id = ?";
-    let matchID = parseInt(req.params.match_id);
+    let matchID = req.params.match_id;
     let matchCvars;
     const matchInfo = await db.query(sql, [matchID]);
     if (matchInfo.length === 0) {
@@ -685,11 +685,11 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
               apiKey
             ))
           ) {
-            res.status(500).json({
-              message:
-                "Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.",
-            });
-            return;
+            //res.status(500).json({
+              //message:
+                //"Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.",
+            //});
+            throw "Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.";
           }
         }
       }
