@@ -18,8 +18,12 @@ class Database {
   }
 
   async query(sql, args) {
+    try {
       const result = await connPool.query(sql, args);
       return result[0];
+    } catch (error) {
+      console.log(error);
+    }
   }
   async buildUpdateStatement(objValues){
     for (let key in objValues) {
