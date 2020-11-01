@@ -378,19 +378,20 @@ router.get(
  *         $ref: '#/components/responses/Error'
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let newSingle = await db.getConnection();
   try {
+    let newSingle = await db.getConnection();
+    let insertServer;
+    let userId = req.user.id;
+    let ipString = req.body[0].ip_string;
+    let port = req.body[0].port;
+    let displayName = req.body[0].display_name;
+    let rconPass = await Utils.encrypt(req.body[0].rcon_password);
+    let publicServer = req.body[0].public_server;
+    let flagCode = req.body[0].flag;
+    let sql =
+      "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server, flag) VALUES (?,?,?,?,?,?,?)";
     await db.withNewTransaction(newSingle, async () => {
-      let userId = req.user.id;
-      let ipString = req.body[0].ip_string;
-      let port = req.body[0].port;
-      let displayName = req.body[0].display_name;
-      let rconPass = await Utils.encrypt(req.body[0].rcon_password);
-      let publicServer = req.body[0].public_server;
-      let flagCode = req.body[0].flag;
-      let sql =
-        "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server, flag) VALUES (?,?,?,?,?,?,?)";
-      let insertServer = await newSingle.query(sql, [
+      insertServer = await newSingle.query(sql, [
         userId,
         ipString,
         port,
@@ -399,22 +400,22 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         publicServer,
         flagCode
       ]);
-      let ourServer = new GameServer(
-        req.body[0].ip_string,
-        req.body[0].port,
-        2500,
-        rconPass
-      );
-      let serverUp = await ourServer.isServerAlive();
-      if (!serverUp) {
-        res.json({
-          message:
-            "Game Server did not respond in time. However, we have still inserted the server successfully.",
-        });
-      } else {
-        res.json({ message: "Game server inserted successfully!", id: insertServer[0].insertId });
-      }
     });
+    let ourServer = new GameServer(
+      req.body[0].ip_string,
+      req.body[0].port,
+      2500,
+      rconPass
+    );
+    let serverUp = await ourServer.isServerAlive();
+    if (!serverUp) {
+      res.json({
+        message:
+          "Game Server did not respond in time. However, we have still inserted the server successfully.",
+      });
+    } else {
+      res.json({ message: "Game server inserted successfully!", id: insertServer[0].insertId });
+    }
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -474,52 +475,54 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   } else {
     try {
+      let serverId = req.body[0].server_id;
+      let updateStmt = {
+        ip_string: req.body[0].ip_string,
+        port: req.body[0].port,
+        display_name: req.body[0].display_name,
+        rcon_password:
+          req.body[0].rcon_password == null
+            ? null
+            : await Utils.encrypt(req.body[0].rcon_password),
+        public_server: req.body[0].public_server,
+        user_id: req.body[0].user_id,
+        flag: req.body[0].flag
+      };
+      // Remove any unwanted nulls.
+      updateStmt = await db.buildUpdateStatement(updateStmt);
+      if (Object.keys(updateStmt).length === 0) {
+        res
+          .status(412)
+          .json({ message: "No update data has been provided." });
+        return;
+      }
+      let sql = "UPDATE game_server SET ? WHERE id = ?";
+      let updatedServer;
+      let serveInfo;
       await db.withNewTransaction(newSingle, async () => {
-        let serverId = req.body[0].server_id;
-        let updateStmt = {
-          ip_string: req.body[0].ip_string,
-          port: req.body[0].port,
-          display_name: req.body[0].display_name,
-          rcon_password:
-            req.body[0].rcon_password == null
-              ? null
-              : await Utils.encrypt(req.body[0].rcon_password),
-          public_server: req.body[0].public_server,
-          user_id: req.body[0].user_id,
-          flag: req.body[0].flag
-        };
-        // Remove any unwanted nulls.
-        updateStmt = await db.buildUpdateStatement(updateStmt);
-        if (Object.keys(updateStmt).length === 0) {
-          res
-            .status(412)
-            .json({ message: "No update data has been provided." });
-          return;
-        }
-        let sql = "UPDATE game_server SET ? WHERE id = ?";
         updatedServer = await newSingle.query(sql, [updateStmt, serverId]);
-        if (updatedServer[0].affectedRows > 0) {
-          // Get all server info
-          sql = "SELECT ip_string, port, rcon_password FROM game_server WHERE id = ?";
-          const serveInfo = await newSingle.query(sql, [serverId]);
-          let ourServer = new GameServer(
-            req.body[0].ip_string == null ? serveInfo[0][0].ip_string : req.body[0].ip_string,
-            req.body[0].port == null ? serveInfo[0][0].port : req.body[0].port,
-            2500,
-            req.body[0].rcon_password == null ? serveInfo[0][0].rcon_password : Utils.encrypt(req.body[0].rcon_password)
-          );
-          let serverUp = await ourServer.isServerAlive();
-          if (!serverUp) {
-            res.json({
-              message:
-                "Game Server did not respond in time. However, we have still updated the server successfully.",
-            });
-          } else {
-            res.json({ message: "Game server updated successfully!" });
-          }
-        } else
-          throw "ERROR - Game server not updated.";
       });
+      if (updatedServer[0].affectedRows > 0) {
+        // Get all server info
+        sql = "SELECT ip_string, port, rcon_password FROM game_server WHERE id = ?";
+        serveInfo = await db.query(sql, [serverId]);
+        let ourServer = new GameServer(
+          req.body[0].ip_string == null ? serveInfo[0].ip_string : req.body[0].ip_string,
+          req.body[0].port == null ? serveInfo[0].port : req.body[0].port,
+          2500,
+          req.body[0].rcon_password == null ? serveInfo[0].rcon_password : Utils.encrypt(req.body[0].rcon_password)
+        );
+        let serverUp = await ourServer.isServerAlive();
+        if (!serverUp) {
+          res.json({
+            message:
+              "Game Server did not respond in time. However, we have still updated the server successfully.",
+          });
+        } else {
+          res.json({ message: "Game server updated successfully!" });
+        }
+      } else
+        throw "ERROR - Game server not updated.";
     } catch (err) {
       res.status(500).json({ message: err.toString() });
     }
@@ -579,11 +582,11 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   } else {
     try {
+      let userId = req.user.id;
+      let serverId = req.body[0].server_id;
+      let sql = "";
+      let delRows = null;
       await db.withNewTransaction(newSingle, async () => {
-        let userId = req.user.id;
-        let serverId = req.body[0].server_id;
-        let sql = "";
-        let delRows = null;
         if (Utils.superAdminCheck(req.user)) {
           sql = "DELETE FROM game_server WHERE id = ?";
           delRows = await newSingle.query(sql, [serverId]);
@@ -591,12 +594,12 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
           sql = "DELETE FROM game_server WHERE id = ? AND user_id = ?";
           delRows = await newSingle.query(sql, [serverId, userId]);
         }
-        if (delRows[0].affectedRows > 0)
-          res.json({ message: "Game server deleted successfully!" });
-        else {
-          throw "Error! Unable to delete record.";
-        }
       });
+      if (delRows[0].affectedRows > 0)
+        res.json({ message: "Game server deleted successfully!" });
+      else {
+        throw "Error! Unable to delete record.";
+      }
     } catch (err) {
       res.status(500).json({ message: err.toString() });
     }
