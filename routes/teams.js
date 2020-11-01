@@ -549,38 +549,6 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
     }
   } else {
     try {
-      // First find any matches/mapstats/playerstats associated with the team.
-      // TODO:Technically, since the database can live without TeamIDs, we can
-      //      now delete as needed and deal with how the data is represented on the front end.
-      //      So, we remove the team_auths, and the team from the platform, but the names are
-      //      kept in the Match strings to show some historical data.
-      // let playerStatSql =
-      //   "SELECT COUNT(*) as RECORDS FROM player_stats WHERE team_id = ?";
-      // let mapStatSql =
-      //   "SELECT COUNT(*) as RECORDS FROM map_stats WHERE winner = ?";
-      // let matchSql =
-      //   "SELECT COUNT(*) as RECORDS FROM `match` WHERE team1_id = ? OR team2_id = ?";
-      // const playerStatCount = await db.query(playerStatSql, teamID);
-      // const mapStatCount = await db.query(mapStatSql, teamID);
-      // const matchCount = await db.query(matchSql, [teamID, teamID]);
-      // if (
-      //   playerStatCount[0].RECORDS > 0 ||
-      //   mapStatCount[0].RECORDS > 0 ||
-      //   matchCount[0].RECORDS > 0
-      // ) {
-      //   throw (
-      //     "Cannot delete team as it has more than one of the following true:\n" +
-      //     "Player Stat Records: " +
-      //     playerStatCount[0].RECORDS +
-      //     "\n" +
-      //     "Map Stat Records: " +
-      //     mapStatCount[0].RECORDS +
-      //     "\n" +
-      //     "Match Records: " +
-      //     matchCount[0].RECORDS
-      //   );
-      // }
-      // Otherwise, let's continue with delete. Start with auths.
       await db.withNewTransaction(newSingle, async () => {
         let deleteTeamAuthSql = "DELETE FROM team_auth_names WHERE team_id = ?";
         let deleteTeamsql = "DELETE FROM team WHERE id = ?";
