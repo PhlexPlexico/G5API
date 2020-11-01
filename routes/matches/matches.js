@@ -668,16 +668,14 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         await newSingle.query(sql, [req.body[0].match_id, key]);
       }
       if (req.body[0].match_cvars != null) {
-        await db.withNewTransaction(newSingle, async () => {
-          let cvarInsertSet = req.body[0].match_cvars;
-          for (let key in cvarInsertSet) {
-            await newSingle.query(cvarSql, [
-              insertMatch[0].insertId,
-              key,
-              cvarInsertSet[key],
-            ]);
-          }
-        });
+        let cvarInsertSet = req.body[0].match_cvars;
+        for (let key in cvarInsertSet) {
+          await newSingle.query(cvarSql, [
+            insertMatch[0].insertId,
+            key,
+            cvarInsertSet[key]
+          ]);
+        }
       }
     });
     if (!req.body[0].ignore_server) {
@@ -869,12 +867,12 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         }
       });
       await db.withNewTransaction(newSingle, async () => {
-        const ourServer = await db.query(ourServerSql, [matchRow[0].server_id]);
+        const ourServer = await newSingle.query(ourServerSql, [matchRow[0].server_id]);
         const serverConn = new GameServer(
-          ourServer[0].ip_string,
-          ourServer[0].port,
+          ourServer[0][0].ip_string,
+          ourServer[0][0].port,
           null,
-          ourServer[0].rcon_password
+          ourServer[0][0].rcon_password
         );
         if (
           req.body[0].forfeit == 1 ||
@@ -997,13 +995,13 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
         let mapStatDeleteSql = "DELETE FROM map_stats WHERE match_id = ?";
         let spectatorDeleteSql =
           "DELETE FROM match_spectator WHERE match_id = ?";
-        const matchCancelledResult = await db.query(isMatchCancelled, matchId);
+        const matchCancelledResult = await newSingle.query(isMatchCancelled, matchId);
         if (matchCancelledResult.length === 0) {
           res.status(404).json({ message: "No match found." });
           return;
         }
         if (
-          matchCancelledResult[0].user_id != userId &&
+          matchCancelledResult[0][0].user_id != userId &&
           !Utils.superAdminCheck(req.user)
         ) {
           res.status(403).json({
@@ -1012,9 +1010,9 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
           });
           return;
         } else if (
-          matchCancelledResult[0].cancelled == 1 ||
-          matchCancelledResult[0].forfeit == 1 ||
-          matchCancelledResult[0].end_time != null
+          matchCancelledResult[0][0].cancelled == 1 ||
+          matchCancelledResult[0][0].forfeit == 1 ||
+          matchCancelledResult[0][0].end_time != null
         ) {
           let deleteMatchsql = "DELETE FROM `match` WHERE id = ?";
           await newSingle.query(playerStatDeleteSql, matchId);

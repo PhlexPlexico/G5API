@@ -501,12 +501,12 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         if (updatedServer[0].affectedRows > 0) {
           // Get all server info
           sql = "SELECT ip_string, port, rcon_password FROM game_server WHERE id = ?";
-          const serveInfo = await db.query(sql, [serverId]);
+          const serveInfo = await newSingle.query(sql, [serverId]);
           let ourServer = new GameServer(
-            req.body[0].ip_string == null ? serveInfo[0].ip_string : req.body[0].ip_string,
-            req.body[0].port == null ? serveInfo[0].port : req.body[0].port,
+            req.body[0].ip_string == null ? serveInfo[0][0].ip_string : req.body[0].ip_string,
+            req.body[0].port == null ? serveInfo[0][0].port : req.body[0].port,
             2500,
-            req.body[0].rcon_password == null ? serveInfo[0].rcon_password : Utils.encrypt(req.body[0].rcon_password)
+            req.body[0].rcon_password == null ? serveInfo[0][0].rcon_password : Utils.encrypt(req.body[0].rcon_password)
           );
           let serverUp = await ourServer.isServerAlive();
           if (!serverUp) {

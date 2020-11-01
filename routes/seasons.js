@@ -460,7 +460,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
               cvar_name: key,
               cvar_value: defaultCvar[key]
             };
-            await db.query(sql, [insertSet]);
+            await newSingle.query(sql, [insertSet]);
           }
         }
         res.json({ message: "Season updated successfully!" });
