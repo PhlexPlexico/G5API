@@ -4187,6 +4187,11 @@ rcon-srcds@DarkGL3/rcon-srcds:
   dependencies:
     queue "^6.0.1"
 
+rcon@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/rcon/-/rcon-1.0.3.tgz#d57ea3aa45c283ed546cec0d225980138d01d992"
+  integrity sha1-1X6jqkXCg+1UbOwNIlmAE40B2ZI=
+
 react-is@^16.12.0:
   version "16.13.1"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.13.1.tgz#789729a4dc36de2999dc156dd6c1d9c18cea56a4"
