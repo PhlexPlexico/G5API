@@ -47,8 +47,12 @@ class ServerRcon {
       }
       if (!this.server.authenticated) await this.authenticateServer();
       let get5Status = await this.server.execute("get5_web_avaliable");
-      // Weird L coming in from the console call?
-      get5Status = get5Status.substring(0, get5Status.lastIndexOf("L"));
+      console.log(get5Status.substring(0, get5Status.lastIndexOf("L")).length == 0);
+      // Weird L coming in from the console call? Incomplete packets.
+      get5Status = 
+        get5Status.substring(0, get5Status.lastIndexOf("L")).length == 0 
+          ? get5Status
+          : get5Status.substring(0, get5Status.lastIndexOf("L"));
       let get5JsonStatus = await JSON.parse(get5Status);
       if (get5Status.includes("Unknown command")) {
         console.log("Either get5 or get5_apistats plugin missing.");
@@ -61,7 +65,7 @@ class ServerRcon {
         return true;
       }
     } catch (err) {
-      console.error("Error on game server: " + err.toString());
+      console.error("Error on isAvailable server: " + err.toString());
       throw err;
     }
   }
@@ -100,7 +104,7 @@ class ServerRcon {
       let returnValue = await this.server.execute(rconCommandString);
       return returnValue;
     } catch (err) {
-      console.error("Error on game server: " + err.toString());
+      console.error("Error on sendRCON to server: " + err.toString());
       throw err;
     }
   }
@@ -130,7 +134,7 @@ class ServerRcon {
       await this.server.execute("map de_dust2");
       return true;
     } catch (err) {
-      console.error("Error on game server: " + err.toString());
+      console.error("Error on preparing match to server: " + err.toString());
       throw err;
     }
   }
@@ -149,7 +153,7 @@ class ServerRcon {
       if (loadMatchResponse) return false;
       return true;
     } catch (err) {
-      console.error("Error on game server: " + err.toString());
+      console.error("RCON error on ending match: " + err.toString());
       return false;
     }
   }
@@ -168,7 +172,7 @@ class ServerRcon {
       if (loadMatchResponse) return false;
       return true;
     } catch (err) {
-      console.error("Error on game server: " + err.toString());
+      console.error("RCON error on pause: " + err.toString());
       return false;
     }
   }
@@ -187,7 +191,7 @@ class ServerRcon {
       if (loadMatchResponse) return false;
       return true;
     } catch (err) {
-      console.error("Error on game server: " + err.toString());
+      console.error("RCON error on unpause server: " + err.toString());
       return false;
     }
   }
@@ -216,7 +220,7 @@ class ServerRcon {
         );
       return loadMatchResponse;
     } catch (err) {
-      console.error("Error on game server: " + err.toString());
+      console.error("RCON error on addUser: " + err.toString());
       throw err;
     }
   }
@@ -234,7 +238,7 @@ class ServerRcon {
       let loadMatchResponse = await this.server.execute("get5_listbackups");
       return loadMatchResponse;
     } catch (err) {
-      console.error("Error on game server: " + err.toString());
+      console.error("RCON error on getBackups: " + err.toString());
       throw err;
     }
   }
@@ -253,7 +257,7 @@ class ServerRcon {
       let loadMatchResponse = await this.server.execute("get5_loadbackup " + backupName);
       return loadMatchResponse;
     } catch (err) {
-      console.error("Error on game server: " + err.toString());
+      console.error("RCON error on restore backup: " + err.toString());
       throw err;
     }
   }
