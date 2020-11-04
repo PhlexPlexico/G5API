@@ -4,20 +4,18 @@
  * @requires db
  */
 
- /**
+/**
  * @swagger
  * resourcePath: /leaderboard
  * description: Leaderboard calls from the database.
  */
 const express = require("express");
 
-
 const router = express.Router();
 
 const db = require("../db");
 
 const Utils = require("../utility/utils");
-
 
 /**
  * @swagger
@@ -79,12 +77,11 @@ const Utils = require("../utility/utils");
 router.get("/", async (req, res) => {
   try {
     let leaderboard = await getTeamLeaderboard();
-    res.json({leaderboard});
+    res.json({ leaderboard });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
 });
-
 
 /**
  * @swagger
@@ -109,7 +106,7 @@ router.get("/", async (req, res) => {
 router.get("/players", async (req, res) => {
   try {
     let leaderboard = await getPlayerLeaderboard();
-    res.json({leaderboard});
+    res.json({ leaderboard });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: err });
@@ -138,8 +135,8 @@ router.get("/players", async (req, res) => {
  */
 router.get("/players/pug", async (req, res) => {
   try {
-    let leaderboard = await getPlayerLeaderboard(null,true);
-    res.json({leaderboard});
+    let leaderboard = await getPlayerLeaderboard(null, true);
+    res.json({ leaderboard });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: err });
@@ -175,7 +172,7 @@ router.get("/players/:season_id", async (req, res) => {
   try {
     let seasonId = req.params.season_id;
     let leaderboard = await getPlayerLeaderboard(seasonId);
-    res.json({leaderboard});
+    res.json({ leaderboard });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: err });
@@ -211,7 +208,7 @@ router.get("/:season_id", async (req, res) => {
   try {
     let seasonId = req.params.season_id;
     let leaderboard = await getTeamLeaderboard(seasonId);
-    res.json({leaderboard});
+    res.json({ leaderboard });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: err });
@@ -315,7 +312,8 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
    * 2. Grab raw values, and calculate things like HSP and KDR for each user. Get names and cache 'em even.
    * 3. Insert into list of objects for each user.
    */
-  let playerStatSql = `SELECT  steam_id, name, sum(kills) as kills,
+  let playerStatSql =
+    `SELECT  steam_id, name, sum(kills) as kills,
     sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
     sum(k2) as k2, sum(k3) as k3,
     sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
@@ -327,10 +325,13 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
         SELECT  id
         FROM    \`match\`
         WHERE   cancelled=0
-        AND     is_pug=`+pug+`
+        AND     is_pug=` +
+    pug +
+    `
     )
     GROUP BY steam_id, name`;
-  let playerStatSqlSeasons = `SELECT  steam_id, name, sum(kills) as kills,
+  let playerStatSqlSeasons =
+    `SELECT  steam_id, name, sum(kills) as kills,
     sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
     sum(k2) as k2, sum(k3) as k3,
     sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
@@ -343,15 +344,26 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
         FROM    \`match\`
         WHERE   cancelled=0
         AND season_id = ?
-        AND     is_pug=`+pug+`
+        AND     is_pug=` +
+    pug +
+    `
     )
     GROUP BY steam_id, name`;
-
+  let winSql = `SELECT COUNT(*) AS wins FROM \`match\` mtch 
+    JOIN player_stats pstat ON mtch.id = pstat.match_id 
+    WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?`;
+  let winSqlSeasons = `SELECT COUNT(*) AS wins FROM \`match\` mtch 
+    JOIN player_stats pstat ON mtch.id = pstat.match_id 
+    WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?
+    AND mtch.season_id = ?`;
+  let numWins;
   if (!seasonId) playerStats = await db.query(playerStatSql);
   else playerStats = await db.query(playerStatSqlSeasons, [seasonId]);
   for (let player of playerStats) {
     // Players can have multiple names. Avoid collision by combining everything, then performing averages.
     if (!allPlayers.some((el) => el.steamId === player.steam_id)) {
+      if (!seasonId) numWins = await db.query(winSql, [player.steam_id]);
+      else numWins = await db.query(winSqlSeasons, [player.steam_id]);
       allPlayers.push({
         steamId: player.steam_id,
         name:
@@ -392,16 +404,20 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
           parseFloat(player.k4),
           parseFloat(player.k5)
         ),
+        wins: numWins[0].wins,
       });
     } else {
       let collisionPlayer = allPlayers.find((user) => {
         return user.steamId === player.steam_id;
       });
       // Update name, or concat name?
-      collisionPlayer.name = (collisionPlayer.name + "/" + player.name).replace(
-        /\/+$/,
-        ""
-      );
+      if (player.name == "")
+        collisionPlayer.name = (
+          collisionPlayer.name +
+          "/" +
+          player.name
+        ).replace(/\/+$/, "");
+      else collisionPlayer.name = player.name.replace(/\/+$/, "");
       collisionPlayer.kills += parseFloat(player.kills);
       collisionPlayer.deaths += parseFloat(player.deaths);
       collisionPlayer.assists += parseFloat(player.assists);

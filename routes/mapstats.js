@@ -370,7 +370,6 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     } else {
       await db.withNewTransaction(newSingle, async () => {
         let mapStatId = req.body[0].map_stats_id;
-          "SELECT a.user_id FROM `match` a, map_stats b WHERE b.id = ?";
         let updatedValues = {
           end_time: req.body[0].end_time,
           team1_score: req.body[0].team1_score,
@@ -472,7 +471,6 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       return;
     } else {
       await db.withNewTransaction(newSingle, async () => {
-        let userProfile = req.user.id; // Brought in from steam passport.
         let mapStatsId = req.body[0].map_stats_id;
         let deleteSql = "DELETE FROM map_stats WHERE id = ?";
         const delRows = await newSingle.query(deleteSql, [mapStatsId]);
