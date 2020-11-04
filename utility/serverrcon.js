@@ -1,5 +1,5 @@
 const util = require("./utils");
-const Rcon = require("rcon-srcds");
+const Rcon = require("rcon");
 
 /**
  * Creates a new server object to run various tasks.
@@ -11,29 +11,35 @@ class ServerRcon {
    * @constructor
    * @param {string} hostName - IP String or host of server.
    * @param {number} portNumber - Integer port number of the server.
-   * @param {number} [timeOut] - Timeout you wish to have on server in milliseconds.
    * @param {string} rconPassword - Rcon password of the server, encrypted.
    */
-  constructor(hostName, portNumber, timeOut, rconPassword) {
-    this.server = new Rcon({
-      host: hostName,
-      port: portNumber,
-      timeout: timeOut == null ? 5000 : timeOut,
-    });
+  constructor(hostName, portNumber, rconPassword) {
+    this.host = hostName;
+    this.port = portNumber;
     this.password = util.decrypt(rconPassword);
   }
 
-  async authenticateServer() {
-    try {
-      if (process.env.NODE_ENV === "test") {
-        return false;
-      }
-      await this.server.authenticate(this.password);
-      return true;
-    } catch (err) {
-      console.error("Unable to authenticate to server. " + err.toString());
-      return false;
-    }
+  async execute(commandString) {
+    return new Promise(async (resolve, reject) => {
+      let resp;
+      let conn = new Rcon(this.host, this.port, this.password);
+      conn
+        .on("auth", function () {
+          conn.send(commandString);
+          conn.disconnect();
+        })
+        .on("response", function (str) {
+          resp = str;
+        })
+        .on("error", function (error) {
+          console.log("[RCON] Got error: " + error);
+          return reject(error);
+        })
+        .on("end", function () {
+          resolve(resp);
+        });
+      conn.connect();
+    });
   }
 
   /**
@@ -45,12 +51,10 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if (!this.server.authenticated) await this.authenticateServer();
-      let get5Status = await this.server.execute("get5_web_avaliable");
-      console.log(get5Status.substring(0, get5Status.lastIndexOf("L")).length == 0);
+      let get5Status = await this.execute("get5_web_available");
       // Weird L coming in from the console call? Incomplete packets.
-      get5Status = 
-        get5Status.substring(0, get5Status.lastIndexOf("L")).length == 0 
+      get5Status =
+        get5Status.substring(0, get5Status.lastIndexOf("L")).length == 0
           ? get5Status
           : get5Status.substring(0, get5Status.lastIndexOf("L"));
       let get5JsonStatus = await JSON.parse(get5Status);
@@ -61,7 +65,6 @@ class ServerRcon {
         console.log("Server already has a get5 match setup.");
         return false;
       } else {
-        console.log(get5JsonStatus);
         return true;
       }
     } catch (err) {
@@ -79,8 +82,7 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if (!this.server.authenticated) await this.authenticateServer();
-      let get5Status = await this.server.execute("status");
+      let get5Status = await this.execute("status");
       return get5Status != "";
     } catch (err) {
       console.error("Error on game server: " + err.toString());
@@ -100,8 +102,7 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if (!this.server.authenticated) await this.authenticateServer();
-      let returnValue = await this.server.execute(rconCommandString);
+      let returnValue = await this.execute(rconCommandString);
       return returnValue;
     } catch (err) {
       console.error("Error on sendRCON to server: " + err.toString());
@@ -121,17 +122,17 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if (!this.server.authenticated) await this.authenticateServer();
-      let loadMatchResponse = await this.server.execute(
-        "get5_loadmatch_url " + "\"" + get5URLString + "\""
+      let loadMatchResponse = await this.execute(
+        "get5_loadmatch_url " + '"' + get5URLString + '"'
       );
       if (loadMatchResponse.includes("Failed")) return false;
-      else if (loadMatchResponse.includes("another match already loaded")) return false;
-      loadMatchResponse = await this.server.execute(
+      else if (loadMatchResponse.includes("another match already loaded"))
+        return false;
+      loadMatchResponse = await this.execute(
         "get5_web_api_key " + get5APIKeyString
       );
       // Swap map to default dust2, ensures our cvars stick for the match.
-      await this.server.execute("map de_dust2");
+      // await this.execute("map de_dust2");
       return true;
     } catch (err) {
       console.error("Error on preparing match to server: " + err.toString());
@@ -148,8 +149,7 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if (!this.server.authenticated) await this.authenticateServer();
-      let loadMatchResponse = await this.server.execute("get5_endmatch");
+      let loadMatchResponse = await this.execute("get5_endmatch");
       if (loadMatchResponse) return false;
       return true;
     } catch (err) {
@@ -167,8 +167,7 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if (!this.server.authenticated) await this.authenticateServer();
-      let loadMatchResponse = await this.server.execute("sm_pause");
+      let loadMatchResponse = await this.execute("sm_pause");
       if (loadMatchResponse) return false;
       return true;
     } catch (err) {
@@ -186,8 +185,7 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if (!this.server.authenticated) await this.authenticateServer();
-      let loadMatchResponse = await this.server.execute("sm_unpause");
+      let loadMatchResponse = await this.execute("sm_unpause");
       if (loadMatchResponse) return false;
       return true;
     } catch (err) {
@@ -208,14 +206,13 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if (!this.server.authenticated) await this.authenticateServer();
       let loadMatchResponse;
       if (nickName)
-        loadMatchResponse = await this.server.execute(
+        loadMatchResponse = await this.execute(
           "get5_addplayer " + steamId + " " + teamString + " " + nickName
         );
       else
-        loadMatchResponse = await this.server.execute(
+        loadMatchResponse = await this.execute(
           "get5_addplayer " + steamId + " " + teamString
         );
       return loadMatchResponse;
@@ -234,8 +231,7 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if (!this.server.authenticated) await this.authenticateServer();
-      let loadMatchResponse = await this.server.execute("get5_listbackups");
+      let loadMatchResponse = await this.execute("get5_listbackups");
       return loadMatchResponse;
     } catch (err) {
       console.error("RCON error on getBackups: " + err.toString());
@@ -253,8 +249,9 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      if (!this.server.authenticated) await this.authenticateServer();
-      let loadMatchResponse = await this.server.execute("get5_loadbackup " + backupName);
+      let loadMatchResponse = await this.execute(
+        "get5_loadbackup " + backupName
+      );
       return loadMatchResponse;
     } catch (err) {
       console.error("RCON error on restore backup: " + err.toString());

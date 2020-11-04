@@ -685,7 +685,6 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       const newServer = new GameServer(
         serveInfo[0].ip_string,
         serveInfo[0].port,
-        null,
         serveInfo[0].rcon_password
       );
       if (
@@ -871,7 +870,6 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         const serverConn = new GameServer(
           ourServer[0][0].ip_string,
           ourServer[0][0].port,
-          null,
           ourServer[0][0].rcon_password
         );
         if (
@@ -896,7 +894,6 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
               const newServer = new GameServer(
                 newServeInfo[0].ip_string,
                 newServeInfo[0].port,
-                null,
                 newServeInfo[0].rcon_password
               );
               if (

@@ -119,7 +119,6 @@ router.get(
       let serverUpdate = new GameServer(
         serverRow[0].ip_string,
         serverRow[0].port,
-        null,
         serverRow[0].rcon_password
       );
       if (!serverUpdate.endGet5Match()) {
@@ -226,7 +225,6 @@ router.get(
       let serverUpdate = new GameServer(
         serverRow[0].ip_string,
         serverRow[0].port,
-        null,
         serverRow[0].rcon_password
       );
       if (!serverUpdate.endGet5Match()) {
@@ -323,7 +321,6 @@ router.put(
       let serverUpdate = new GameServer(
         serverRow[0].ip_string,
         serverRow[0].port,
-        null,
         serverRow[0].rcon_password
       );
       try {
@@ -410,7 +407,6 @@ router.get(
       let serverUpdate = new GameServer(
         serverRow[0].ip_string,
         serverRow[0].port,
-        null,
         serverRow[0].rcon_password
       );
 
@@ -489,7 +485,6 @@ router.get(
       let serverUpdate = new GameServer(
         serverRow[0].ip_string,
         serverRow[0].port,
-        null,
         serverRow[0].rcon_password
       );
 
@@ -586,7 +581,6 @@ router.put(
       let serverUpdate = new GameServer(
         serverRow[0].ip_string,
         serverRow[0].port,
-        null,
         serverRow[0].rcon_password
       );
       let steamID = await Utils.getSteamPID(req.body[0].steam_id);
@@ -681,7 +675,6 @@ router.put(
       let serverUpdate = new GameServer(
         serverRow[0].ip_string,
         serverRow[0].port,
-        null,
         serverRow[0].rcon_password
       );
       let steamID = Utils.getSteamPID(req.body[0].steam_id);
@@ -759,7 +752,6 @@ router.get(
       let serverUpdate = new GameServer(
         serverRow[0].ip_string,
         serverRow[0].port,
-        null,
         serverRow[0].rcon_password
       );
       try{
@@ -849,7 +841,6 @@ router.post(
       let serverUpdate = new GameServer(
         serverRow[0].ip_string,
         serverRow[0].port,
-        null,
         serverRow[0].rcon_password
       );
       if(req.body[0].backup_name == null){
