@@ -4181,9 +4181,10 @@ rc@^1.0.1, rc@^1.1.6, rc@^1.2.8:
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
 
-rcon-srcds@DarkGL3/rcon-srcds:
+rcon-srcds@^1.2.1:
   version "1.2.1"
-  resolved "https://codeload.github.com/DarkGL3/rcon-srcds/tar.gz/66a0894e698594ff622030f36cea7f8dd9df99cd"
+  resolved "https://registry.yarnpkg.com/rcon-srcds/-/rcon-srcds-1.2.1.tgz#3f1dfef1cedf386163df9d7c9e09f33ec0743627"
+  integrity sha512-ZE9TfXr8yZV1uIyRlMuwHAIkfB0HHmhY39WY0oUV80vbrLup/ZhfEtj+0g8n/6UGYhR3CVsbZTRj7bA/qWG67w==
   dependencies:
     queue "^6.0.1"
 

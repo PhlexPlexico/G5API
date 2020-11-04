@@ -326,6 +326,7 @@ router.get(
         let ourServer = new GameServer(
           serverInfo[0].ip_string,
           serverInfo[0].port,
+          2500,
           serverInfo[0].rcon_password
         );
         let serverUp = await ourServer.isServerAlive();
@@ -403,6 +404,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let ourServer = new GameServer(
       req.body[0].ip_string,
       req.body[0].port,
+      2500,
       rconPass
     );
     let serverUp = await ourServer.isServerAlive();
@@ -507,6 +509,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         let ourServer = new GameServer(
           req.body[0].ip_string == null ? serveInfo[0].ip_string : req.body[0].ip_string,
           req.body[0].port == null ? serveInfo[0].port : req.body[0].port,
+          2500,
           req.body[0].rcon_password == null ? serveInfo[0].rcon_password : Utils.encrypt(req.body[0].rcon_password)
         );
         let serverUp = await ourServer.isServerAlive();
