@@ -363,7 +363,7 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
     // Players can have multiple names. Avoid collision by combining everything, then performing averages.
     if (!allPlayers.some((el) => el.steamId === player.steam_id)) {
       if (!seasonId) numWins = await db.query(winSql, [player.steam_id]);
-      else numWins = await db.query(winSqlSeasons, [player.steam_id]);
+      else numWins = await db.query(winSqlSeasons, [player.steam_id, seasonId]);
       allPlayers.push({
         steamId: player.steam_id,
         name:
