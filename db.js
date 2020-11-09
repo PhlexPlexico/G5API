@@ -36,28 +36,13 @@ class Database {
     return await connPool.getConnection();
   }
   /** Inner function - boilerplate transaction call.
-  * @name withTransaction
+  * @name withNewTransaction
   * @function
   * @inner
   * @memberof module:routes/vetoes
-  * @param {*} db - The database object.
+  * @param {*} singleCall - The connection from the database pool.
   * @param {*} callback - The callback function that is operated on, usually a db.query()
   */
-  async withTransaction(callback) {
-    const singleConn = await connPool.getConnection();
-    await singleConn.beginTransaction();
-    try {
-      await callback();
-      await singleConn.commit();
-    } catch (err) {
-      await singleConn.rollback();
-      console.log(err);
-      throw err;
-    } finally {
-      await singleConn.close();
-    } 
-  }
-
   async withNewTransaction(singleCall, callback) {
     await singleCall.beginTransaction();
     try {

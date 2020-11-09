@@ -657,6 +657,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         team1_string: teamOneName[0].name == null ? null : teamOneName[0].name,
         team2_string: teamTwoName[0].name == null ? null : teamTwoName[0].name,
         is_pug: req.body[0].is_pug,
+        min_player_ready: req.body[0].min_players_to_ready
       };
       let sql = "INSERT INTO `match` SET ?";
       let cvarSql =
