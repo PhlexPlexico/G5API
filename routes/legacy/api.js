@@ -28,7 +28,7 @@ const basicRateLimit = rateLimit({
     keyGenerator: async (req) => {      
       try{
         const api_key = await db.query("SELECT api_key FROM `match` WHERE id = ?", req.params.match_id);
-        if(api_key[0].api_key.localeCompare(req.query.key))
+        if(api_key[0].api_key.localeCompare(req.body.key))
           return api_key[0].api_key;
         else
           return req.ip;
@@ -48,7 +48,7 @@ const updateMapRateLimit = rateLimit({
     keyGenerator: async (req) => {      
       try{
         const api_key = await db.query("SELECT api_key FROM `match` WHERE id = ?", req.params.match_id);
-        if(api_key[0].api_key.localeCompare(req.query.key))
+        if(api_key[0].api_key.localeCompare(req.body.key))
           return api_key[0].api_key;
         else
           return req.ip;
@@ -68,7 +68,7 @@ const playerStatRateLimit = rateLimit({
     keyGenerator: async (req) => {      
       try{
         const api_key = await db.query("SELECT api_key FROM `match` WHERE id = ?", req.params.match_id);
-        if(api_key[0].api_key.localeCompare(req.query.key))
+        if(api_key[0].api_key.localeCompare(req.body.key))
           return api_key[0].api_key;
         else
           return req.ip;
@@ -122,8 +122,8 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
   try {
     // Give from API call.
     let matchID = req.params.match_id == null ? null : req.params.match_id;
-    let winner = req.query.winner == null ? null : req.query.winner;
-    let forfeit = req.query.forfeit == null ? 0 : req.query.forfeit;
+    let winner = req.body.winner == null ? null : req.body.winner;
+    let forfeit = req.body.forfeit == null ? 0 : req.body.forfeit;
 
     // Local data manipulation.
     let teamIdWinner = null;
@@ -141,7 +141,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
       matchFinalized = false;
 
     // Throw error if wrong.
-    await check_api_key(matchValues[0].api_key, req.query.key, matchFinalized);
+    await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
 
     if(winner === "team1")
       teamIdWinner = matchValues[0].team1_id;
@@ -227,7 +227,7 @@ router.post("/:match_id/map/:map_number/start", basicRateLimit, async (req, res,
     // Give from API call.
     let matchID = req.params.match_id == null ? null : req.params.match_id;
     let mapNumber = req.params.map_number == null ? null : req.params.map_number;
-    let mapName = req.query.mapname == null ? null : req.query.mapname;
+    let mapName = req.body.mapname == null ? null : req.body.mapname;
     // Data manipulation inside function.
     let startTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
     let updateStmt = {};
@@ -244,7 +244,7 @@ router.post("/:match_id/map/:map_number/start", basicRateLimit, async (req, res,
       matchFinalized = false;
 
     // Throw error if wrong key or finished match.
-    await check_api_key(matchValues[0].api_key, req.query.key, matchFinalized);
+    await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
 
     // Begin transaction
     await db.withTransaction(async () => {
@@ -337,8 +337,8 @@ router.post("/:match_id/map/:map_number/update", updateMapRateLimit, async (req,
     // Give from API call.
     let matchID = req.params.match_id == null ? null : req.params.match_id;
     let mapNumber = req.params.map_number == null ? null : req.params.map_number;
-    let team1Score = req.query.team1_score;
-    let team2Score = req.query.team2_score;
+    let team1Score = req.body.team1_score;
+    let team2Score = req.body.team2_score;
     // Data manipulation inside function.
     let updateStmt = {};
     let updateSql;
@@ -352,7 +352,7 @@ router.post("/:match_id/map/:map_number/update", updateMapRateLimit, async (req,
       matchFinalized = false;
 
     // Throw error if wrong key or finished match.
-    await check_api_key(matchValues[0].api_key, req.query.key, matchFinalized);
+    await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
 
     await db.withTransaction(async ()  => {
       // Get or create mapstats.
@@ -426,9 +426,9 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
   try {
     // Give from API call.
     let matchID = req.params.match_id == null ? null : req.params.match_id;
-    let teamString = req.query.teamString == null ? null : req.query.teamString;
-    let mapBan = req.query.map == null ? null : req.query.map;
-    let pickOrBan = req.query.pick_or_veto == null ? null : req.query.pick_or_veto;
+    let teamString = req.body.teamString == null ? null : req.body.teamString;
+    let mapBan = req.body.map == null ? null : req.body.map;
+    let pickOrBan = req.body.pick_or_veto == null ? null : req.body.pick_or_veto;
     // Data manipulation inside function.
     let insertStmt = {};
     let insertSql;
@@ -444,7 +444,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
       matchFinalized = false;
 
     // Throw error if wrong key or finished match.
-    await check_api_key(matchValues[0].api_key, req.query.key, matchFinalized);
+    await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
 
     if (teamString === "team1")
         teamID = matchValues[0].team1_id;
@@ -525,7 +525,7 @@ router.post("/:match_id/map/:map_number/demo", basicRateLimit, async (req, res, 
     // Give from API call.
     let matchID = req.params.match_id == null ? null : req.params.match_id;
     let mapNum = req.params.map_number == null ? null : req.params.map_number;
-    let demoFile = req.query.demoFile == null ? null : req.query.demoFile;
+    let demoFile = req.body.demoFile == null ? null : req.body.demoFile;
     // Data manipulation inside function.
     let updateStmt = {};
     let updateSql;
@@ -535,7 +535,7 @@ router.post("/:match_id/map/:map_number/demo", basicRateLimit, async (req, res, 
     const matchValues = await db.query(sql, matchID);
     
     // Throw error if wrong key. Match finish doesn't matter.
-    await check_api_key(matchValues[0].api_key, req.query.key, false);
+    await check_api_key(matchValues[0].api_key, req.body.key, false);
 
     sql =
       "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
@@ -607,7 +607,7 @@ router.post("/:match_id/map/:map_number/finish", basicRateLimit, async (req, res
     // Give from API call.
     let matchID = req.params.match_id == null ? null : req.params.match_id;
     let mapNum = req.params.map_number == null ? null : req.params.map_number;
-    let winner = req.query.winner == null ? null : req.query.winner;
+    let winner = req.body.winner == null ? null : req.body.winner;
     // Data manipulation inside function.
     let updateStmt = {};
     let updateSql;
@@ -624,7 +624,7 @@ router.post("/:match_id/map/:map_number/finish", basicRateLimit, async (req, res
     if (matchValues[0].end_time !== null && matchValues[0].cancelled !== null)  
       matchFinalized = false;
     // Throw error if wrong key. Match finish doesn't matter.
-    await check_api_key(matchValues[0].api_key, req.query.key, matchFinalized);
+    await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
 
     sql =
       "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
@@ -704,35 +704,35 @@ router.post("/:match_id/map/:map_number/player/:steam_id/update", playerStatRate
     let matchID = req.params.match_id == null ? null : parseInt(req.params.match_id);
     let mapNum = req.params.map_number == null ? null : parseInt(req.params.map_number);
     let steamId = req.params.steam_id == null ? null : req.params.steam_id;
-    let playerName = req.query.name == null ? null : req.query.name;
-    let playerTeam = req.query.team == null ? null : req.query.team;
-    let playerKills = req.query.kills == null ? null : parseInt(req.query.kills);
-    let playerAssists = req.query.assists == null ? null : parseInt(req.query.assists) ;
-    let playerDeaths = req.query.deaths == null ? null : parseInt(req.query.deaths);
-    let playerFBA = req.query.flashbang_assists == null ? null : parseInt(req.query.flashbang_assists);
-    let playerTKs = req.query.teamkills == null ? null : parseInt(req.query.teamkills);
-    let playerSuicide = req.query.suicides == null ? null : parseInt(req.query.suicides);
-    let playerDamage = req.query.damage == null ? null : parseInt(req.query.damage);
-    let playerHSK = req.query.headshot_kills == null ? null : parseInt(req.query.headshot_kills);
-    let playerRoundsPlayed = req.query.roundsplayed == null ? null : parseInt(req.query.roundsplayed);
-    let playerBombsPlanted = req.query.bomb_plants == null ? null : parseInt(req.query.bomb_plants);
-    let playerBombsDefused = req.query.bomb_defuses == null ? null : parseInt(req.query.bomb_defuses);
-    let player1k = req.query['1kill_rounds'] == null ? null : parseInt(req.query['1kill_rounds']);
-    let player2k = req.query['2kill_rounds'] == null ? null : parseInt(req.query['2kill_rounds']);
-    let player3k = req.query['3kill_rounds'] == null ? null : parseInt(req.query['3kill_rounds']);
-    let player4k = req.query['4kill_rounds'] == null ? null : parseInt(req.query['4kill_rounds']);
-    let player5k = req.query['5kill_rounds'] == null ? null : parseInt(req.query['5kill_rounds']);
-    let player1v1 = req.query.v1 == null ? null : parseInt(req.query.v1);
-    let player1v2 = req.query.v2 == null ? null : parseInt(req.query.v2);
-    let player1v3 = req.query.v3 == null ? null : parseInt(req.query.v3);
-    let player1v4 = req.query.v4 == null ? null : parseInt(req.query.v4);
-    let player1v5 = req.query.v5 == null ? null : parseInt(req.query.v5);
-    let playerFirstKillT = req.query.firstkill_t == null ? null : parseInt(req.query.firstkill_t);
-    let playerFirstKillCT = req.query.firstkill_ct == null ? null : parseInt(req.query.firstkill_ct);
-    let playerFirstDeathCT = req.query.firstdeath_ct == null ? null : parseInt(req.query.firstdeath_ct);
-    let playerFirstDeathT = req.query.firstdeath_t == null ? null : parseInt(req.query.firstdeath_t);
-    let playerKast = req.query.kast == null ? null : parseInt(req.query.kast);
-    let playerContrib = req.query.contribution_score == null ? null : parseInt(req.query.contribution_score);
+    let playerName = req.body.name == null ? null : req.body.name;
+    let playerTeam = req.body.team == null ? null : req.body.team;
+    let playerKills = req.body.kills == null ? null : parseInt(req.body.kills);
+    let playerAssists = req.body.assists == null ? null : parseInt(req.body.assists) ;
+    let playerDeaths = req.body.deaths == null ? null : parseInt(req.body.deaths);
+    let playerFBA = req.body.flashbang_assists == null ? null : parseInt(req.body.flashbang_assists);
+    let playerTKs = req.body.teamkills == null ? null : parseInt(req.body.teamkills);
+    let playerSuicide = req.body.suicides == null ? null : parseInt(req.body.suicides);
+    let playerDamage = req.body.damage == null ? null : parseInt(req.body.damage);
+    let playerHSK = req.body.headshot_kills == null ? null : parseInt(req.body.headshot_kills);
+    let playerRoundsPlayed = req.body.roundsplayed == null ? null : parseInt(req.body.roundsplayed);
+    let playerBombsPlanted = req.body.bomb_plants == null ? null : parseInt(req.body.bomb_plants);
+    let playerBombsDefused = req.body.bomb_defuses == null ? null : parseInt(req.body.bomb_defuses);
+    let player1k = req.body['1kill_rounds'] == null ? null : parseInt(req.body['1kill_rounds']);
+    let player2k = req.body['2kill_rounds'] == null ? null : parseInt(req.body['2kill_rounds']);
+    let player3k = req.body['3kill_rounds'] == null ? null : parseInt(req.body['3kill_rounds']);
+    let player4k = req.body['4kill_rounds'] == null ? null : parseInt(req.body['4kill_rounds']);
+    let player5k = req.body['5kill_rounds'] == null ? null : parseInt(req.body['5kill_rounds']);
+    let player1v1 = req.body.v1 == null ? null : parseInt(req.body.v1);
+    let player1v2 = req.body.v2 == null ? null : parseInt(req.body.v2);
+    let player1v3 = req.body.v3 == null ? null : parseInt(req.body.v3);
+    let player1v4 = req.body.v4 == null ? null : parseInt(req.body.v4);
+    let player1v5 = req.body.v5 == null ? null : parseInt(req.body.v5);
+    let playerFirstKillT = req.body.firstkill_t == null ? null : parseInt(req.body.firstkill_t);
+    let playerFirstKillCT = req.body.firstkill_ct == null ? null : parseInt(req.body.firstkill_ct);
+    let playerFirstDeathCT = req.body.firstdeath_ct == null ? null : parseInt(req.body.firstdeath_ct);
+    let playerFirstDeathT = req.body.firstdeath_t == null ? null : parseInt(req.body.firstdeath_t);
+    let playerKast = req.body.kast == null ? null : parseInt(req.body.kast);
+    let playerContrib = req.body.contribution_score == null ? null : parseInt(req.body.contribution_score);
     // Data manipulation inside function.
     let updateStmt = {};
     let updateSql;
@@ -746,7 +746,7 @@ router.post("/:match_id/map/:map_number/player/:steam_id/update", playerStatRate
     if (matchValues[0].end_time !== null && matchValues[0].cancelled !== null)  
       matchFinalized = false;
     // Throw error if wrong key. Match finish doesn't matter.
-    await check_api_key(matchValues[0].api_key, req.query.key, matchFinalized);
+    await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
 
     sql =
       "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
