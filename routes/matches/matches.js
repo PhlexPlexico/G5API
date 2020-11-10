@@ -513,7 +513,7 @@ router.get("/:match_id/config", async (req, res, next) => {
       team2: {},
       cvars: {
         get5_web_api_url: config.get("server.apiURL"),
-        get5_check_auths: matchInfo[0].enforce_teams,
+        get5_check_auths: matchInfo[0].enforce_teams.toString(),
       },
       spectators: {},
       maplist:
