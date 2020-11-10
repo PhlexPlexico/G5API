@@ -379,7 +379,6 @@ router.post(
             team1_score: team1Score,
             team2_score: team2Score,
           };
-          console.log(updateStmt);
           updateSql =
             "UPDATE map_stats SET ? WHERE match_id = ? AND map_number = ?";
           await db.withNewTransaction(newSingle, async () => {
@@ -471,7 +470,6 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     const teamName = await db.query(sql, [teamID]);
     if (teamName[0] == null) teamNameString = "Decider";
     else teamNameString = teamName[0].name;
-    console.log(teamName);
     // Insert into veto now.
     await db.withNewTransaction(newSingle, async () => {
       insertStmt = {
@@ -668,13 +666,11 @@ router.post(
         winner: teamIdWinner,
       };
       // Remove any values that may not be updated.
-      for (let key in updateStmt) {
-        if (updateStmt[key] === null) delete updateStmt[key];
-      }
+      updateStmt = await db.buildUpdateStatement(updateStmt);
       await db.withNewTransaction(newSingle, async () => {
         updateSql = "UPDATE map_stats SET ? WHERE id = ?";
+        console.log(updateStmt);
         await newSingle.query(updateSql, [updateStmt, mapStatValues[0].id]);
-
         // Update match now.
         updateStmt = {
           team1_score: team1Score,
@@ -687,6 +683,7 @@ router.post(
       });
       res.status(200).send({message: "Success"});
     } catch (err) {
+      console.log(err);
       res.status(500).json({ message: err.toString() });
     }
   }
