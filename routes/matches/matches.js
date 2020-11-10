@@ -300,7 +300,13 @@ const config = require("config");
 router.get("/", async (req, res, next) => {
   try {
     let sql =
-      "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, team2_score, team1_series_score, team2_series_score, team1_string, team2_string, cancelled, forfeit, start_time, end_time, max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, season_id, is_pug FROM `match` WHERE cancelled = 0";
+      "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, " +
+      "team2_score, team1_series_score, team2_series_score, team1_string, team2_string, " +
+      "cancelled, forfeit, start_time, end_time, max_maps, title, skip_veto, private_match, " +
+      "enforce_teams, min_player_ready, season_id, is_pug " +
+      "FROM `match` " +
+      "WHERE cancelled = 0 " +
+      "OR cancelled IS NULL";
     const matches = await db.query(sql);
     if (matches.length === 0) {
       res.status(404).json({ message: "No matches found." });
@@ -308,6 +314,7 @@ router.get("/", async (req, res, next) => {
     }
     res.json({ matches });
   } catch (err) {
+    console.log(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -399,8 +406,11 @@ router.get("/:match_id", async (req, res, next) => {
     ) {
       sql = "SELECT * FROM `match` where id=?";
     } else {
-      sql =
-        "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, team2_score, team1_series_score, team2_series_score, team1_string, team2_string, cancelled, forfeit, start_time, end_time, max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, season_id, is_pug FROM `match` where id = ?";
+      sql = "SELECT id, user_id, server_id, team1_id, team2_id, winner, " + 
+      "team1_score, team2_score, team1_series_score, team2_series_score, " + 
+      "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " + 
+      "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
+      "season_id, is_pug FROM `match` where id = ?";
     }
     matchID = req.params.match_id;
     const matches = await db.query(sql, matchID);
@@ -512,8 +522,8 @@ router.get("/:match_id/config", async (req, res, next) => {
       team1: {},
       team2: {},
       cvars: {
-        get5_web_api_url: config.get("server.clientHome") + "/api/",
-        get5_check_auths: matchInfo[0].enforce_teams,
+        get5_web_api_url: config.get("server.apiURL"),
+        get5_check_auths: matchInfo[0].enforce_teams.toString(),
       },
       spectators: {},
       maplist:
@@ -657,6 +667,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         team1_string: teamOneName[0].name == null ? null : teamOneName[0].name,
         team2_string: teamTwoName[0].name == null ? null : teamTwoName[0].name,
         is_pug: req.body[0].is_pug,
+        min_player_ready: req.body[0].min_players_to_ready,
       };
       let sql = "INSERT INTO `match` SET ?";
       let cvarSql =
@@ -673,7 +684,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           await newSingle.query(cvarSql, [
             insertMatch[0].insertId,
             key,
-            cvarInsertSet[key]
+            cvarInsertSet[key],
           ]);
         }
       }
@@ -693,7 +704,10 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       ) {
         if (
           !(await newServer.prepareGet5Match(
-            config.get("server.apiURL") + "/matches/" + insertMatch[0].insertId + "/config",
+            config.get("server.apiURL") +
+              "/matches/" +
+              insertMatch[0].insertId +
+              "/config",
             apiKey
           ))
         ) {
@@ -711,7 +725,6 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       message: "Match inserted successfully!",
       id: insertMatch[0].insertId,
     });
-
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -866,7 +879,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         }
       });
       await db.withNewTransaction(newSingle, async () => {
-        const ourServer = await newSingle.query(ourServerSql, [matchRow[0].server_id]);
+        const ourServer = await newSingle.query(ourServerSql, [
+          matchRow[0].server_id,
+        ]);
         const serverConn = new GameServer(
           ourServer[0][0].ip_string,
           ourServer[0][0].port,
@@ -898,7 +913,10 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
               );
               if (
                 await newServer.prepareGet5Match(
-                  config.get("server.apiURL") + "/matches/" + matchRow[0].id + "/config",
+                  config.get("server.apiURL") +
+                    "/matches/" +
+                    matchRow[0].id +
+                    "/config",
                   matchRow[0].api_key
                 )
               ) {
@@ -920,7 +938,11 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           sql =
             "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";
           for (let key in newCvars) {
-            await newSingle.query(sql, [req.body[0].match_id, key, newCvars[key]]);
+            await newSingle.query(sql, [
+              req.body[0].match_id,
+              key,
+              newCvars[key],
+            ]);
           }
         });
       }
@@ -992,7 +1014,10 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
         let mapStatDeleteSql = "DELETE FROM map_stats WHERE match_id = ?";
         let spectatorDeleteSql =
           "DELETE FROM match_spectator WHERE match_id = ?";
-        const matchCancelledResult = await newSingle.query(isMatchCancelled, matchId);
+        const matchCancelledResult = await newSingle.query(
+          isMatchCancelled,
+          matchId
+        );
         if (matchCancelledResult.length === 0) {
           res.status(404).json({ message: "No match found." });
           return;
@@ -1018,8 +1043,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
           const delRows = await newSingle.query(deleteMatchsql, matchId);
           if (delRows[0].affectedRows > 0)
             res.json({ message: "Match deleted successfully!" });
-          else
-            throw "We found an issue deleting the match values.";
+          else throw "We found an issue deleting the match values.";
           return;
         } else {
           res.status(403).json({
