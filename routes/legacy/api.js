@@ -130,14 +130,13 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     let matchID = req.params.match_id == null ? null : req.params.match_id;
     let winner = req.body.winner == null ? null : req.body.winner;
     let forfeit = req.body.forfeit == null ? 0 : req.body.forfeit;
+    let team1Score = req.body.team1score;
+    let team2Score = req.body.team2score;
 
     // Local data manipulation.
     let teamIdWinner = null;
     let end_time = new Date().toISOString().slice(0, 19).replace("T", " ");
     let matchFinalized = true;
-    let team1Score = 0;
-    let team2Score = 0;
-
     let newSingle = await db.getConnection();
     // Database calls.
     let sql = "SELECT * FROM `match` WHERE id = ?";
@@ -172,10 +171,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
           new Date().toISOString().slice(0, 19).replace("T", " "),
         end_time: end_time,
       };
-      // Remove any values that may not be updated.
-      for (let key in updateStmt) {
-        if (updateStmt[key] === null) delete updateStmt[key];
-      }
+      updateStmt = await db.buildUpdateStatement(updateStmt);
       let updateSql = "UPDATE `match` SET ? WHERE id = ?";
       await newSingle.query(updateSql, [updateStmt, matchID]);
       // Set the server to not be in use.
@@ -626,14 +622,15 @@ router.post(
       let matchID = req.params.match_id == null ? null : req.params.match_id;
       let mapNum = req.params.map_number == null ? null : req.params.map_number;
       let winner = req.body.winner == null ? null : req.body.winner;
+      let team1Score;
+      let team2Score;
+      
       // Data manipulation inside function.
       let updateStmt = {};
       let updateSql;
       let mapEndTime = new Date().toISOString().slice(0, 19).replace("T", " ");
       let matchFinalized = true;
       let teamIdWinner;
-      let team1Score;
-      let team2Score;
       // Database calls.
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
@@ -651,13 +648,10 @@ router.post(
         res.status(404).send({message: "Failed to find map stats object."});
         return;
       }
-
-      // Update map stats with new demo file link.
-
-      if (winner === "team1") {
+      if (winner == "team1") {
         teamIdWinner = matchValues[0].team1_id;
         team1Score = matchValues[0].team1_score + 1;
-      } else if (winner === "team2") {
+      } else if (winner == "team2") {
         teamIdWinner = matchValues[0].team2_id;
         team2Score = matchValues[0].team2_score + 1;
       }
