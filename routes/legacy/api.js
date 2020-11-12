@@ -18,6 +18,21 @@ const db = require("../../db");
  */
 const rateLimit = require("express-rate-limit");
 
+/** ZIP files.
+ * @const
+ */
+const JSZip = require("jszip");
+
+/** Required to save files.
+ * @const
+ */
+const fs = require("fs");
+
+/** Config to check demo uploads.
+ * @const
+ */
+const config = require("config");
+
 /** Basic Rate limiter.
  * @const
  */
@@ -179,7 +194,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
         matchValues[0].server_id,
       ]);
     });
-    res.status(200).send({message: "Success"});
+    res.status(200).send({ message: "Success" });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: err.toString() });
@@ -289,7 +304,7 @@ router.post(
           await newSingle.query(insertSql, [insertStmt]);
         }
       });
-      res.status(200).send({message: "Success"});
+      res.status(200).send({ message: "Success" });
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: err.toString() });
@@ -367,7 +382,7 @@ router.post(
       await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
       // Get or create mapstats.
       sql = "SELECT * FROM map_stats WHERE match_id = ? AND map_number = ?";
-      
+
       const mapStats = await db.query(sql, [matchID, mapNumber]);
       if (mapStats.length > 0) {
         if (team1Score !== -1 && team2Score !== -1) {
@@ -380,9 +395,9 @@ router.post(
           await db.withNewTransaction(newSingle, async () => {
             await newSingle.query(updateSql, [updateStmt, matchID, mapNumber]);
           });
-          res.status(200).send({message: "Success"});
+          res.status(200).send({ message: "Success" });
         } else {
-          res.status(404).send({message: "Failed to find map stats object"});
+          res.status(404).send({ message: "Failed to find map stats object" });
         }
       }
     } catch (err) {
@@ -479,7 +494,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
       insertSql = "INSERT INTO veto SET ?";
       await newSingle.query(insertSql, [insertStmt]);
     });
-    res.status(200).send({message: "Success"});
+    res.status(200).send({ message: "Success" });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -488,9 +503,9 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
 /**
  * @swagger
  *
- * /match/:match_id/vetoUpdate:
+ *  /:match_id/map/:map_number/demo:
  *   post:
- *     description: Route serving to update the vetos in the database.
+ *     description: Route serving to update the demo link per map.
  *     produces:
  *       - application/json
  *     requestBody:
@@ -550,7 +565,7 @@ router.post(
       const mapStatValues = await db.query(sql, [matchID, mapNum]);
 
       if (mapStatValues.length < 1) {
-        res.status(404).send({message: "Failed to find map stats object."});
+        res.status(404).send({ message: "Failed to find map stats object." });
         return;
       }
 
@@ -566,7 +581,88 @@ router.post(
       await db.withNewTransaction(newSingle, async () => {
         await newSingle.query(updateSql, [updateStmt, mapStatValues[0].id]);
       });
-      res.status(200).send({message: "Success"});
+      res.status(200).send({ message: "Success" });
+    } catch (err) {
+      res.status(500).json({ message: err.toString() });
+    }
+  }
+);
+
+/**
+ * @swagger
+ *
+ *  /:match_id/map/:map_number/demo/upload/:api_key:
+ *   post:
+ *     description: Route serving to upload the demo file from the game server.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/octet-stream:
+ *
+ *     tags:
+ *       - legacy
+ *     responses:
+ *       200:
+ *         description: Success.
+ *         content:
+ *             text/plain:
+ *                schema:
+ *                  type: string
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.post(
+  "/:match_id/map/:map_number/demo/upload/:api_key",
+  basicRateLimit,
+  async (req, res, next) => {
+    if (!config.get("server.uploadDemos")) {
+      res
+        .status(403)
+        .send({ message: "Demo uploads disabled for this server." });
+      return;
+    }
+    try {
+      let matchID = req.params.match_id;
+      let mapNumber = req.params.map_number;
+      // This is required since we're sending an octet stream.
+      let apiKey = req.params.api_key;
+      let zip = new JSZip();
+      // Database calls.
+      let sql = "SELECT * FROM `match` WHERE id = ?";
+      const matchValues = await db.query(sql, matchID);
+
+      await check_api_key(matchValues[0].api_key, apiKey, false);
+
+      sql =
+        "SELECT id, demoFile FROM `map_stats` WHERE match_id = ? AND map_number = ?";
+      const mapStatValues = await db.query(sql, [matchID, mapNumber]);
+
+      if (mapStatValues.length < 1) {
+        res.status(404).send({ message: "Failed to find map stats object." });
+        return;
+      }
+
+      zip.file(matchValues[0].demoFile + ".dem", req.body, { binary: true });
+      zip
+        .generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
+        .then((buf) => {
+          fs.writeFile(
+            "public/" + matchValues[0].demoFile + ".zip",
+            buf,
+            "binary",
+            function (err) {
+              if (err) {
+                console.log(err);
+                throw err;
+              }
+            }
+          );
+        });
+      res.status(200).send({ message: "Success!" });
     } catch (err) {
       res.status(500).json({ message: err.toString() });
     }
@@ -624,7 +720,7 @@ router.post(
       let winner = req.body.winner == null ? null : req.body.winner;
       let team1Score;
       let team2Score;
-      
+
       // Data manipulation inside function.
       let updateStmt = {};
       let updateSql;
@@ -645,7 +741,7 @@ router.post(
       const mapStatValues = await db.query(sql, [matchID, mapNum]);
 
       if (mapStatValues.length < 1) {
-        res.status(404).send({message: "Failed to find map stats object."});
+        res.status(404).send({ message: "Failed to find map stats object." });
         return;
       }
       if (winner == "team1") {
@@ -675,7 +771,7 @@ router.post(
         updateSql = "UPDATE `match` SET ? WHERE ID = ?";
         await newSingle.query(updateSql, [updateStmt, matchID]);
       });
-      res.status(200).send({message: "Success"});
+      res.status(200).send({ message: "Success" });
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: err.toString() });
@@ -806,7 +902,7 @@ router.post(
       sql = "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
       const mapStatValues = await db.query(sql, [matchID, mapNum]);
       if (mapStatValues.length < 1) {
-        res.status(404).send({message: "Failed to find map stats object."});
+        res.status(404).send({ message: "Failed to find map stats object." });
         return;
       }
 
@@ -873,7 +969,7 @@ router.post(
           ]);
         }
       });
-      res.status(200).send({message: "Success"});
+      res.status(200).send({ message: "Success" });
     } catch (err) {
       res.status(500).json({ message: err.toString() });
     }
@@ -890,7 +986,7 @@ router.post(
 async function check_api_key(match_api_key, given_api_key, match_finished) {
   if (match_api_key.localeCompare(given_api_key) !== 0)
     throw "Not a correct API Key.";
-  if (match_finished === 1) throw "Match is already finalized.";
+  if (match_finished == 1) throw "Match is already finalized.";
   return;
 }
 

@@ -3,6 +3,7 @@ config/production.json*
 config/development.json*
 config/test.json
 docs/
+public/*.zip
 coverage/
 dump.rdb
 # Logs

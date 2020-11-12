@@ -5,7 +5,6 @@ const logger = require("morgan");
 const helmet = require("helmet");
 const cors = require("cors");
 const morgan = require("morgan");
-
 //Route Files
 const indexRouter = require("./routes/index");
 const leaderboardRouter = require("./routes/leaderboard");
@@ -36,10 +35,11 @@ const redis = require("redis");
 const app = express();
 
 app.use(logger("dev"));
+app.use(express.raw({type: 'application/octet-stream', limit: "2gb"}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-//app.use(express.static(path.join(__dirname, 'public')));
+app.use("/demo", express.static("public"));
 
 // Security defaults with helmet
 app.use(helmet());

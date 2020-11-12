@@ -74,6 +74,7 @@
     "http-errors": "~1.7.3",
     "jsdoc": "^3.6.3",
     "jsonwebtoken": "^8.5.1",
+    "jszip": "^3.5.0",
     "morgan": "^1.9.1",
     "mysql2": "^2.1.0",
     "nodemon": "^1.19.4",
