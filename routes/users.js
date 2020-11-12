@@ -402,7 +402,7 @@ router.get("/:user_id/recent", async (req, res, next) => {
   try {
     let userOrSteamID = req.params.user_id;
     let sql =
-      "SELECT rec_matches.id, " +
+      "SELECT DISTINCT rec_matches.id, " +
       "rec_matches.user_id, " +
       "rec_matches.team1_id, " +
       "rec_matches.team2_id, " +
@@ -411,7 +411,8 @@ router.get("/:user_id/recent", async (req, res, next) => {
       "FROM `match` rec_matches JOIN player_stats ps " +
       "ON ps.match_id = rec_matches.id JOIN user us ON " +
       "us.steam_id = ps.steam_id " +
-      "WHERE rec_matches.cancelled = 0 AND (us.id=? OR us.steam_id=?) " +
+      "WHERE (rec_matches.cancelled = 0 OR rec_matches.cancelled IS NULL) " +
+      "AND (us.id=? OR us.steam_id=?) " +
       "ORDER BY rec_matches.id DESC LIMIT 5";
     const matches = await db.query(sql, [userOrSteamID, userOrSteamID]);
     res.json({matches});
