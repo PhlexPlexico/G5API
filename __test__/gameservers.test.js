@@ -150,8 +150,8 @@ describe("Being a bad actor", () => {
     const result = await request
       .get("/servers/2")
       .expect("Content-Type", /json/);
-    expect(result.statusCode).toEqual(403);
-    expect(result.body.message).toMatch(/not authorized/);
+    expect(result.statusCode).toEqual(200);
+    expect(result.body.rcon_password).toEqual(undefined);
     done();
   });
 
