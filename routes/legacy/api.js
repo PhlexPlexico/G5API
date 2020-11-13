@@ -157,7 +157,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     let sql = "SELECT * FROM `match` WHERE id = ?";
     const matchValues = await db.query(sql, matchID);
 
-    if (matchValues[0].end_time !== null && matchValues[0].cancelled !== null)
+    if (matchValues[0].end_time == null && (matchValues[0].cancelled == null || matchValues[0].cancelled == 0))
       matchFinalized = false;
 
     // Throw error if wrong.
@@ -263,7 +263,7 @@ router.post(
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
 
-      if (matchValues[0].end_time != null && matchValues[0].cancelled != null)
+      if (matchValues[0].end_time == null && (matchValues[0].cancelled == null || matchValues[0].cancelled == 0))
         matchFinalized = false;
       // Throw error if wrong key or finished match.
       await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
@@ -375,7 +375,7 @@ router.post(
       const matchValues = await db.query(sql, matchID);
       let newSingle = await db.getConnection();
 
-      if (matchValues[0].end_time !== null && matchValues[0].cancelled !== null)
+      if (matchValues[0].end_time == null && (matchValues[0].cancelled == null || matchValues[0].cancelled == 0))
         matchFinalized = false;
 
       // Throw error if wrong key or finished match.
@@ -468,7 +468,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     let sql = "SELECT * FROM `match` WHERE id = ?";
     const matchValues = await db.query(sql, matchID);
     let newSingle = await db.getConnection();
-    if (matchValues[0].end_time !== null && matchValues[0].cancelled !== null)
+    if (matchValues[0].end_time == null && (matchValues[0].cancelled == null || matchValues[0].cancelled == 0))
       matchFinalized = false;
 
     // Throw error if wrong key or finished match.
@@ -570,9 +570,9 @@ router.post(
       }
 
       // Update map stats with new demo file link.
-
+      // If we have a demo that's in a path, remove and pop.
       updateStmt = {
-        demoFile: demoFile,
+        demoFile: demoFile.split("/").pop(),
       };
       // Remove any values that may not be updated.
       updateStmt = await db.buildUpdateStatement(updateStmt);
@@ -615,7 +615,7 @@ router.post(
  *       500:
  *         $ref: '#/components/responses/Error'
  */
-router.post(
+router.put(
   "/:match_id/map/:map_number/demo/upload/:api_key",
   basicRateLimit,
   async (req, res, next) => {
@@ -632,10 +632,14 @@ router.post(
       let apiKey = req.params.api_key;
       let zip = new JSZip();
       // Database calls.
+      let matchFinalized = true;
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
-
-      await check_api_key(matchValues[0].api_key, apiKey, false);
+      
+      if (matchValues[0].end_time == null && (matchValues[0].cancelled == null || matchValues[0].cancelled == 0))
+        matchFinalized = false;
+      // Throw error if wrong key or finished match.
+      await check_api_key(matchValues[0].api_key, apiKey, matchFinalized);
 
       sql =
         "SELECT id, demoFile FROM `map_stats` WHERE match_id = ? AND map_number = ?";
@@ -645,13 +649,12 @@ router.post(
         res.status(404).send({ message: "Failed to find map stats object." });
         return;
       }
-
-      zip.file(matchValues[0].demoFile + ".dem", req.body, { binary: true });
+      zip.file(mapStatValues[0].demoFile + ".dem", req.body, { binary: true });
       zip
         .generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
         .then((buf) => {
           fs.writeFile(
-            "public/" + matchValues[0].demoFile + ".zip",
+            "public/" + mapStatValues[0].demoFile + ".zip",
             buf,
             "binary",
             function (err) {
@@ -732,7 +735,7 @@ router.post(
       const matchValues = await db.query(sql, matchID);
       let newSingle = await db.getConnection();
 
-      if (matchValues[0].end_time !== null && matchValues[0].cancelled !== null)
+      if (matchValues[0].end_time == null && (matchValues[0].cancelled == null || matchValues[0].cancelled == 0))
         matchFinalized = false;
       // Throw error if wrong key. Match finish doesn't matter.
       await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
@@ -894,7 +897,7 @@ router.post(
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
       let newSingle = await db.getConnection();
-      if (matchValues[0].end_time !== null && matchValues[0].cancelled !== null)
+      if (matchValues[0].end_time == null && (matchValues[0].cancelled == null || matchValues[0].cancelled == 0))
         matchFinalized = false;
       // Throw error if wrong key. Match finish doesn't matter.
       await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
@@ -986,7 +989,7 @@ router.post(
 async function check_api_key(match_api_key, given_api_key, match_finished) {
   if (match_api_key.localeCompare(given_api_key) !== 0)
     throw "Not a correct API Key.";
-  if (match_finished == 1) throw "Match is already finalized.";
+  if (match_finished == true) throw "Match is already finalized.";
   return;
 }
 
