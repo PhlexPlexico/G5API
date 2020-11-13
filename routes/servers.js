@@ -260,9 +260,15 @@ router.get(
         server = await db.query(sql, [serverID, req.user.id]);
       }
       if (server.length < 1) {
-        res
-          .status(403)
-          .json({ message: "User is not authorized to view server info, or server does not exist." });
+        // Grab bare min. so a user can see a connect button or the like.
+        sql = 
+          "SELECT gs.ip_string, gs.port FROM game_server gs WHERE gs.id = ?";
+        server = await db.query(sql, [serverID]);
+        server = JSON.parse(JSON.stringify(server[0]));
+        res.json({server});
+        // res
+        //   .status(403)
+        //   .json({ message: "User is not authorized to view server info, or server does not exist." });
       } else {
         server[0].rcon_password = await Utils.decrypt(server[0].rcon_password);
         server = JSON.parse(JSON.stringify(server[0]));

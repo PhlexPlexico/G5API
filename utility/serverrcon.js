@@ -209,7 +209,7 @@ class ServerRcon {
       let loadMatchResponse;
       if (nickName)
         loadMatchResponse = await this.execute(
-          "get5_addplayer " + steamId + " " + teamString + " " + nickName
+          "get5_addplayer " + steamId + " " + teamString + " " + "\"" + nickName + "\""
         );
       else
         loadMatchResponse = await this.execute(
