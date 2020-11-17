@@ -516,8 +516,8 @@ router.get("/:match_id/config", async (req, res, next) => {
           ? matchInfo[0].min_player_ready
           : 5,
       players_per_team:
-        matchInfo[0].min_player_ready !== null
-          ? matchInfo[0].min_player_ready
+        matchInfo[0].players_per_team !== null
+          ? matchInfo[0].players_per_team
           : 5,
       team1: {},
       team2: {},
@@ -668,6 +668,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         team2_string: teamTwoName[0].name == null ? null : teamTwoName[0].name,
         is_pug: req.body[0].is_pug,
         min_player_ready: req.body[0].min_players_to_ready,
+        players_per_team: req.body[0].players_per_team
       };
       let sql = "INSERT INTO `match` SET ?";
       let cvarSql =
@@ -861,6 +862,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
             matchRow[0].is_pug != null && matchRow[0].is_pug == 1
               ? 0
               : req.body[0].enforce_teams, // Do not update these unless required.
+          players_per_team:
+            req.body[0].players_per_team == null ? null : players_per_team
         };
         // Remove any values that may not be updated.
         updateStmt = await db.buildUpdateStatement(updateStmt);
