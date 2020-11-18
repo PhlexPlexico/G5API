@@ -1,29 +1,29 @@
 # G5API - API Backend for Get5
 _**Status: Under active development.**_
 
-G5API is going to be a replacement for the get5-webpanel. _Currently_ this is the backend only, as it will allow the plugin to interface with a database and Steam OAuth, as well as make various calls to functionality that is seen in the [get5-webpanel](https://github.com/phlexplexico/get5-webpanel).
+G5API is a replacement for the get5-webpanel. This is the backend only, as it will allow the plugin to interface with a database and Steam OAuth, as well as make various calls to functionality that is seen in the [get5-webpanel](https://github.com/phlexplexico/get5-webpanel).
 
 If you would like a supplemental front-end, please see [Get5Vue](https://github.com/phlexplexico/g5v).
 
 
 ## What does it do?
-Currently, very basic CRUD operations, as well as legacy calls that the get5-web api used, as referenced [here](https://github.com/PhlexPlexico/get5-web/blob/development/get5/api.py). Right now, this is a build to try my hand at using Express as a middleware, and try some JavaScript technologies so that others may create their own front-end applications, with all the difficult back-end stuff being completed.  
+G5API is an API that will allow users to create, manage, and control Counter-Strike: Global Offensive matches. Add teams, create matches, and most importantly, track statistics across the entire use of the platform, and create Seasons/Tournaments and track on those.  
 
-This API should be complete enough to do basic operations to the game and match creation.
+This API should be complete enough to provide the most functionality out of [get5](https://github.com/splewis/get5).
 
-For the get5_api plugin, there are legacy routes currently put into place located in the `./routes/legacy/` and still point to `/match/` on this app. So this could techinically be used as a drop-in replacement for recording stats.
+For the [get5_api plugin](https://github.com/PhlexPlexico/get5-webapi), the routes currently put into place located in the `./routes/legacy/` and still point to `/match/` on this app.
 
 Game server interaction will still take place under the `/matches/:match_id` directive, but the logic can be found under `./matches/matchserver.js`.
 
-The webapi plugin for this can be downloaded from [here](https://github.com/PhlexPlexico/get5-webapi) to include the use of vetoes being recorded.
+The webapi plugin for this can be downloaded from [here](https://github.com/PhlexPlexico/get5-webapi) to include the use of vetoes being recorded, as well as demoes being uploaded to the API once the match is complete.
 
 ## What does it NOT do?
-This is simply a back-end to get myself used to JavaScript and Node. Right now you should be able to log into Steam, and query the data that is currently existing in your database, as well as make any modifications via POST/PUT/DELETE commands, and create matches on a server/setup a game and have it record stats.
+This is simply a back-end to get myself used to JavaScript and Node. You will need a [front end](https://github.com/phlexplexico/g5v) or create something that can make it work! 
 
 ## Why?
 [Get5-webpanel](https://github.com/phlexplexico/get5-webpanel) is a now out-dated webpanel, with python2.7 being officially EOL. Being built all on Flask, with ORM (SQLAlchemy), and Jinja2, its tech spans more than a few years old. While it works really well for now, it is becoming increasingly harder to deploy to more modern hardware/software (such as Ubuntu 19) to ensure easy setup.
 
-The intent will to be provide similar functionality with the use of NodeJS and Express, and this API will take care of session authentication as well, via the use of [`passport-steam`](https://github.com/liamcurry/passport-steam), and rcon server commands via [`rcon-srcds`](https://github.com/EnriqCG/rcon-srcds), as well as more normalization in the database.
+The intent will to be provide similar functionality with the use of NodeJS and Express, and this API will take care of session authentication as well, via the use of [`passport-steam`](https://github.com/liamcurry/passport-steam), and rcon server commands via [`rcon`](https://github.com/pushrax/node-rcon), as well as more normalization in the database.
 
 ## Building
 In order to build this application, I've opted to use [Yarn](https://yarnpkg.com/lang/en/).
@@ -42,7 +42,7 @@ You can specify which database to use in the `development.json` area. *Please no
 ### Migrate production database:
 ```yarn migrate-prod-create && yarn migrate-prod-upgrade```
 
-This will attempt to update a production database by creating any tables that don't exist. It will not drop the database prior to importing new tables.
+This will attempt to update a production database by creating any tables that don't exist. It will not drop the database prior to importing new tables. If you are on windows, you will just have to create the database yourself, and then run `yarn migrate-prod-upgrade`.
 
 ### Build and run: 
 ```yarn start``` 
@@ -64,7 +64,7 @@ Will *require* `test.json` to exist in projects `config` folder. It will grab th
 ## Contribution
 Sure! If you have a knack for APIs and a penchant for JavaScript, I could always use help! Create a fork of this application, make your changes, and submit a PR. I will be using the [Issues](https://github.com/g5api/issues) page to track what calls still need to be completed. This project won't be finished anytime soon, as I would like to make sure there is a proper handle on authentication with the API, as well as proper security implemented to prevent any unwanted uses with the application. 
 
-If you so choose to contribute, please make sure you include documentation for the API calls, as it is how I am keeping track of all the functionality. I'm using [JSDoc](https://devdocs.io/jsdoc/) to provide documentation, as well as OpenAPI/Swagger. Please read over some of the files to get accustomed to usage.
+If you so choose to contribute, please make sure you include documentation for the API calls, as it is how I am keeping track of all the functionality. I'm using [JSDoc](https://devdocs.io/jsdoc/) as well as [Swagger](https://swagger.io) to provide documentation. Please read over some of the files to get accustomed to usage.
 
 If you are creating a front-end for this, please create an issue and let me know, so I can append it to the README, so other users' will be able to easily track it down.
 

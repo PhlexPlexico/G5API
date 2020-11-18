@@ -146,7 +146,7 @@ router.get("/:user_id", async (req, res, next) => {
       }
       res.json({ user });
     } else {
-      res.status(404).json({message: "User does not exist in the system." });
+      res.status(404).json({ message: "User does not exist in the system." });
     }
   } catch (err) {
     res.status(500).json({ message: err.toString() });
@@ -415,7 +415,7 @@ router.get("/:user_id/recent", async (req, res, next) => {
       "AND (us.id=? OR us.steam_id=?) " +
       "ORDER BY rec_matches.id DESC LIMIT 5";
     const matches = await db.query(sql, [userOrSteamID, userOrSteamID]);
-    res.json({matches});
+    res.json({ matches });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }

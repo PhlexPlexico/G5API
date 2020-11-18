@@ -9,8 +9,7 @@ const router = express.Router();
 
 const db = require("../db");
 
-const Utils = require('../utility/utils');
-
+const Utils = require("../utility/utils");
 
 /**
  * @swagger
@@ -35,7 +34,7 @@ const Utils = require('../utility/utils');
  *         pick_or_veto:
  *           type: string
  *           description: The choice of either pick or ban.
- * 
+ *
  *   responses:
  *     NoVetoData:
  *       description: No veto data was provided.
@@ -81,12 +80,11 @@ router.get("/", async (req, res, next) => {
       res.status(404).json({ message: "No vetoes found." });
       return;
     }
-    res.json({vetoes});
+    res.json({ vetoes });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
 });
-
 
 /**
  * @swagger
@@ -130,7 +128,7 @@ router.get("/:match_id", async (req, res, next) => {
       res.status(404).json({ message: "No vetoes found." });
       return;
     }
-    res.json({vetoes});
+    res.json({ vetoes });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -201,19 +199,24 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           match_id: req.body[0].match_id,
           map: req.body[0].map_name,
           team_name: req.body[0].team_name,
-          pick_or_veto: req.body[0].pick_or_ban
-        }
+          pick_or_veto: req.body[0].pick_or_ban,
+        };
         insertStmt = await db.buildUpdateStatement(insertStmt);
-        if(Object.keys(insertStmt).length === 0){
-          res.status(412).json({message: "No insert data has been provided."});
+        if (Object.keys(insertStmt).length === 0) {
+          res
+            .status(412)
+            .json({ message: "No insert data has been provided." });
           return;
         }
         let sql = "INSERT INTO veto SET ?";
         vetoId = await newSingle.query(sql, [insertStmt]);
-        res.json({ message: "Veto inserted successfully!", id: vetoId[0].insertId });
+        res.json({
+          message: "Veto inserted successfully!",
+          id: vetoId[0].insertId,
+        });
       });
-    } catch ( err ) {
-      res.status(500).json({ message: err.toString() })
+    } catch (err) {
+      res.status(500).json({ message: err.toString() });
     }
   }
 });
@@ -274,24 +277,25 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     vetoId = req.body[0].veto_id;
     try {
       await db.withNewTransaction(newSingle, async () => {
-
         let updateStmt = {
           match_id: req.body[0].match_id,
           map: req.body[0].map_name,
           team_name: req.body[0].team_name,
-          pick_or_veto: req.body[0].pick_or_ban
-        }
+          pick_or_veto: req.body[0].pick_or_ban,
+        };
         updateStmt = await db.buildUpdateStatement(updateStmt);
-        if(Object.keys(updateStmt).length === 0){
-          res.status(412).json({message: "No update data has been provided."});
+        if (Object.keys(updateStmt).length === 0) {
+          res
+            .status(412)
+            .json({ message: "No update data has been provided." });
           return;
         }
         let sql = "UPDATE veto SET ? WHERE id = ?";
         await newSingle.query(sql, [updateStmt, vetoId]);
         res.json({ message: "Veto updated successfully!" });
       });
-    } catch ( err ) {
-      res.status(500).json({ message: err.toString() })
+    } catch (err) {
+      res.status(500).json({ message: err.toString() });
     }
   }
 });
@@ -335,7 +339,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *       500:
  *         $ref: '#/components/responses/Error'
  */
-router.delete("/", Utils.ensureAuthenticated, async (req,res,next) => {
+router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
   let newSingle = await db.getConnection();
   const matchRow = await db.query(matchUserId, req.body[0].match_id);
@@ -352,23 +356,23 @@ router.delete("/", Utils.ensureAuthenticated, async (req,res,next) => {
     return;
   } else {
     try {
-      await db.withNewTransaction (newSingle, async () => {
+      await db.withNewTransaction(newSingle, async () => {
         let matchId = req.body[0].match_id;
         let sql = "DELETE FROM veto WHERE match_id = ?";
         const delRows = await newSingle.query(sql, [matchId]);
         if (delRows[0].affectedRows > 0)
           res.json({ message: "Vetoes deleted successfully!" });
         else
-          res.status(412).json({ message: "Vetoes were not found, nothing to delete." });
+          res
+            .status(412)
+            .json({ message: "Vetoes were not found, nothing to delete." });
         return;
       });
-    } catch( err ){
+    } catch (err) {
       console.log(err);
-      res.statuss(500).json({message: err});
+      res.statuss(500).json({ message: err });
     }
   }
 });
-
-
 
 module.exports = router;

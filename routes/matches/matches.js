@@ -406,11 +406,12 @@ router.get("/:match_id", async (req, res, next) => {
     ) {
       sql = "SELECT * FROM `match` where id=?";
     } else {
-      sql = "SELECT id, user_id, server_id, team1_id, team2_id, winner, " + 
-      "team1_score, team2_score, team1_series_score, team2_series_score, " + 
-      "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " + 
-      "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-      "season_id, is_pug FROM `match` where id = ?";
+      sql =
+        "SELECT id, user_id, server_id, team1_id, team2_id, winner, " +
+        "team1_score, team2_score, team1_series_score, team2_series_score, " +
+        "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
+        "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
+        "season_id, is_pug FROM `match` where id = ?";
     }
     matchID = req.params.match_id;
     const matches = await db.query(sql, matchID);
@@ -668,7 +669,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         team2_string: teamTwoName[0].name == null ? null : teamTwoName[0].name,
         is_pug: req.body[0].is_pug,
         min_player_ready: req.body[0].min_players_to_ready,
-        players_per_team: req.body[0].players_per_team
+        players_per_team: req.body[0].players_per_team,
       };
       let sql = "INSERT INTO `match` SET ?";
       let cvarSql =
@@ -816,7 +817,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           res.status(403).json({ message: "User does not own this server." });
           return;
         }
-        if (req.body[0].server_id == matchRow[0].server_id) diffServer = true;
+        if (req.body[0].server_id != matchRow[0].server_id) diffServer = true;
       }
       await db.withNewTransaction(newSingle, async () => {
         let vetoSql =
@@ -863,7 +864,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
               ? 0
               : req.body[0].enforce_teams, // Do not update these unless required.
           players_per_team:
-            req.body[0].players_per_team == null ? null : players_per_team
+            req.body[0].players_per_team == null ? null : players_per_team,
         };
         // Remove any values that may not be updated.
         updateStmt = await db.buildUpdateStatement(updateStmt);
@@ -898,6 +899,19 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           if (serverConn.endGet5Match()) {
             sql = "UPDATE game_server SET in_use=0 WHERE id=?";
             await newSingle.query(sql, [matchRow[0].server_id]);
+          }
+          if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
+            let pugSql =
+              "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
+            await newSingle.query(pugSql, [
+              matchRow[0].team1_id,
+              matchRow[0].team2_id,
+            ]);
+            pugSql = "DELETE FROM team WHERE id = ? OR id = ?";
+            await newSingle.query(pugSql, [
+              matchRow[0].team1_id,
+              matchRow[0].team2_id,
+            ]);
           }
         } else {
           if (!req.body[0].ignore_server) {

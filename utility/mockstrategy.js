@@ -12,7 +12,7 @@ function Strategy(name, strategyCallback) {
   this._cb = strategyCallback;
 }
 util.inherits(Strategy, passport.Strategy);
-Strategy.prototype.authenticate = function() {
+Strategy.prototype.authenticate = function () {
   this._cb(null, this._identifier, (error, user) => {
     this.success(user);
   });

@@ -157,7 +157,10 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     let sql = "SELECT * FROM `match` WHERE id = ?";
     const matchValues = await db.query(sql, matchID);
 
-    if (matchValues[0].end_time == null && (matchValues[0].cancelled == null || matchValues[0].cancelled == 0))
+    if (
+      matchValues[0].end_time == null &&
+      (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
+    )
       matchFinalized = false;
 
     // Throw error if wrong.
@@ -193,6 +196,22 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
       await newSingle.query("UPDATE game_server SET in_use = 0 WHERE id = ?", [
         matchValues[0].server_id,
       ]);
+
+      // Check if we are pugging.
+      if (matchValues[0].is_pug != null && matchValues[0].is_pug == 1) {
+        // Now we delete the team that was playing, to make sure we free up that database.
+        let deleteSql =
+          "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
+        await newSingle.query(deleteSql, [
+          matchValues[0].team1_id,
+          matchValues[0].team2_id,
+        ]);
+        deleteSql = "DELETE FROM team WHERE id = ? OR id = ?";
+        await newSingle.query(deleteSql, [
+          matchValues[0].team1_id,
+          matchValues[0].team2_id,
+        ]);
+      }
     });
     res.status(200).send({ message: "Success" });
   } catch (err) {
@@ -263,7 +282,10 @@ router.post(
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
 
-      if (matchValues[0].end_time == null && (matchValues[0].cancelled == null || matchValues[0].cancelled == 0))
+      if (
+        matchValues[0].end_time == null &&
+        (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
+      )
         matchFinalized = false;
       // Throw error if wrong key or finished match.
       await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
@@ -375,7 +397,10 @@ router.post(
       const matchValues = await db.query(sql, matchID);
       let newSingle = await db.getConnection();
 
-      if (matchValues[0].end_time == null && (matchValues[0].cancelled == null || matchValues[0].cancelled == 0))
+      if (
+        matchValues[0].end_time == null &&
+        (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
+      )
         matchFinalized = false;
 
       // Throw error if wrong key or finished match.
@@ -468,7 +493,10 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     let sql = "SELECT * FROM `match` WHERE id = ?";
     const matchValues = await db.query(sql, matchID);
     let newSingle = await db.getConnection();
-    if (matchValues[0].end_time == null && (matchValues[0].cancelled == null || matchValues[0].cancelled == 0))
+    if (
+      matchValues[0].end_time == null &&
+      (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
+    )
       matchFinalized = false;
 
     // Throw error if wrong key or finished match.
@@ -635,8 +663,11 @@ router.put(
       let matchFinalized = true;
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
-      
-      if (matchValues[0].end_time == null && (matchValues[0].cancelled == null || matchValues[0].cancelled == 0))
+
+      if (
+        matchValues[0].end_time == null &&
+        (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
+      )
         matchFinalized = false;
       // Throw error if wrong key or finished match.
       await check_api_key(matchValues[0].api_key, apiKey, matchFinalized);
@@ -735,7 +766,10 @@ router.post(
       const matchValues = await db.query(sql, matchID);
       let newSingle = await db.getConnection();
 
-      if (matchValues[0].end_time == null && (matchValues[0].cancelled == null || matchValues[0].cancelled == 0))
+      if (
+        matchValues[0].end_time == null &&
+        (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
+      )
         matchFinalized = false;
       // Throw error if wrong key. Match finish doesn't matter.
       await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
@@ -762,7 +796,6 @@ router.post(
       updateStmt = await db.buildUpdateStatement(updateStmt);
       await db.withNewTransaction(newSingle, async () => {
         updateSql = "UPDATE map_stats SET ? WHERE id = ?";
-        console.log(updateStmt);
         await newSingle.query(updateSql, [updateStmt, mapStatValues[0].id]);
         // Update match now.
         updateStmt = {
@@ -773,6 +806,20 @@ router.post(
         updateStmt = await db.buildUpdateStatement(updateStmt);
         updateSql = "UPDATE `match` SET ? WHERE ID = ?";
         await newSingle.query(updateSql, [updateStmt, matchID]);
+
+        if (matchValues[0].is_pug != null && matchValues[0].is_pug == 1) {
+          // teamIdWinner is updated in the player stats.
+          let teamAuthSql =
+            "SELECT GROUP_CONCAT(CONCAT('\"', ta.auth, '\"')) as auth_name FROM team_auth_names ta WHERE team_id = ?";
+          const teamAuths = await newSingle.query(teamAuthSql, [teamIdWinner]);
+          updateSql =
+            "UPDATE player_stats SET winner = 1 WHERE match_id = ? AND map_id = ? AND steam_id IN (?)";
+          await newSingle.query(updateSql, [
+            matchID,
+            mapNum,
+            teamAuths[0][0].auth_name,
+          ]);
+        }
       });
       res.status(200).send({ message: "Success" });
     } catch (err) {
@@ -897,7 +944,10 @@ router.post(
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
       let newSingle = await db.getConnection();
-      if (matchValues[0].end_time == null && (matchValues[0].cancelled == null || matchValues[0].cancelled == 0))
+      if (
+        matchValues[0].end_time == null &&
+        (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
+      )
         matchFinalized = false;
       // Throw error if wrong key. Match finish doesn't matter.
       await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);

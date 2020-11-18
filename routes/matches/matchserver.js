@@ -1,4 +1,4 @@
- /**
+/**
  * @swagger
  * resourcePath: /matches
  * description: Express API router for matche server calls in get5.
@@ -14,7 +14,6 @@ const randString = require("randomstring");
 const Utils = require("../../utility/utils");
 
 const GameServer = require("../../utility/serverrcon");
-
 
 /**
  * @swagger
@@ -34,7 +33,7 @@ const GameServer = require("../../utility/serverrcon");
  *         description: The current match.
  *         schema:
  *            type:integer
- *         
+ *
  *     tags:
  *       - matches
  *     responses:
@@ -59,7 +58,7 @@ router.get(
   async (req, res, next) => {
     let newSingle = await db.getConnection();
     let currentMatchInfo =
-      "SELECT user_id, server_id, cancelled, forfeit, end_time, team1_id, team2_id FROM `match` WHERE id = ?";
+      "SELECT user_id, server_id, cancelled, forfeit, end_time, team1_id, team2_id, is_pug FROM `match` WHERE id = ?";
     const matchRow = await db.query(currentMatchInfo, req.params.match_id);
     if (matchRow.length === 0) {
       res.status(404).json({ message: "No match found." });
@@ -109,9 +108,23 @@ router.get(
       let serverUpdateSql = "UPDATE game_server SET in_use=0 WHERE id=?";
       await db.withNewTransaction(newSingle, async () => {
         if (mapStat.length == 0) await db.query(mapStatSql, [newStatStmt]);
-        else await newSingle.query(mapStatSql, [newStatStmt, req.params.match_id]);
+        else
+          await newSingle.query(mapStatSql, [newStatStmt, req.params.match_id]);
         await newSingle.query(matchSql, [matchUpdateStmt, req.params.match_id]);
         await newSingle.query(serverUpdateSql, [matchRow[0].server_id]);
+        if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
+          let pugSql =
+            "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
+          await newSingle.query(pugSql, [
+            matchRow[0].team1_id,
+            matchRow[0].team2_id,
+          ]);
+          pugSql = "DELETE FROM team WHERE id = ? OR id = ?";
+          await newSingle.query(pugSql, [
+            matchRow[0].team1_id,
+            matchRow[0].team2_id,
+          ]);
+        }
       });
       let getServerSQL =
         "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
@@ -145,7 +158,7 @@ router.get(
  *         description: The current matches identification number.
  *         schema:
  *            type:integer
- *         
+ *
  *     tags:
  *       - matches
  *     responses:
@@ -168,7 +181,7 @@ router.get(
   async (req, res, next) => {
     let newSingle = await db.getConnection();
     let currentMatchInfo =
-      "SELECT user_id, server_id, cancelled, forfeit, end_time, team1_id, team2_id FROM `match` WHERE id = ?";
+      "SELECT user_id, server_id, cancelled, forfeit, end_time, team1_id, team2_id, is_pug FROM `match` WHERE id = ?";
     const matchRow = await db.query(currentMatchInfo, req.params.match_id);
     if (matchRow.length === 0) {
       res.status(404).json({ message: "No match found." });
@@ -197,14 +210,14 @@ router.get(
         winner: null,
         team1_score: 0,
         team2_score: 0,
-        match_id: req.params.match_id
+        match_id: req.params.match_id,
       };
       let matchUpdateStmt = {
         team1_score: 0,
         team2_score: 0,
         end_time: new Date().toISOString().slice(0, 19).replace("T", " "),
         winner: null,
-        cancelled: 1
+        cancelled: 1,
       };
       if (mapStat.length == 0) {
         mapStatSql = "INSERT map_stats SET ?";
@@ -214,10 +227,25 @@ router.get(
       let matchSql = "UPDATE `match` SET ? WHERE id=?";
       let serverUpdateSql = "UPDATE game_server SET in_use=0 WHERE id=?";
       await db.withNewTransaction(newSingle, async () => {
-        if (mapStat.length == 0) await newSingle.query(mapStatSql, [newStatStmt]);
-        else await newSingle.query(mapStatSql, [newStatStmt, req.params.match_id]);
+        if (mapStat.length == 0)
+          await newSingle.query(mapStatSql, [newStatStmt]);
+        else
+          await newSingle.query(mapStatSql, [newStatStmt, req.params.match_id]);
         await newSingle.query(matchSql, [matchUpdateStmt, req.params.match_id]);
         await newSingle.query(serverUpdateSql, [matchRow[0].server_id]);
+        if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
+          let pugSql =
+            "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
+          await newSingle.query(pugSql, [
+            matchRow[0].team1_id,
+            matchRow[0].team2_id,
+          ]);
+          pugSql = "DELETE FROM team WHERE id = ? OR id = ?";
+          await newSingle.query(pugSql, [
+            matchRow[0].team1_id,
+            matchRow[0].team2_id,
+          ]);
+        }
       });
       let getServerSQL =
         "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
@@ -309,13 +337,13 @@ router.put(
       let getServerSQL =
         "SELECT ip_string, port, rcon_password, user_id FROM game_server WHERE id=?";
       const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
-      if(
+      if (
         !Utils.superAdminCheck(req.user) &&
-        serverRow[0].user_id != req.user.id  
+        serverRow[0].user_id != req.user.id
       ) {
         res
-        .status(403)
-        .json({ message: "User is not authorized to perform action." });
+          .status(403)
+          .json({ message: "User is not authorized to perform action." });
         return;
       }
       let serverUpdate = new GameServer(
@@ -358,7 +386,7 @@ router.put(
  *         description: The current matches identification number.
  *         schema:
  *            type:integer
- *         
+ *
  *     tags:
  *       - matches
  *     responses:
@@ -436,7 +464,7 @@ router.get(
  *         description: The current matches identification number.
  *         schema:
  *            type:integer
- *         
+ *
  *     tags:
  *       - matches
  *     responses:
@@ -586,16 +614,27 @@ router.put(
       let steamID = await Utils.getSteamPID(req.body[0].steam_id);
       let teamId = req.body[0].team_id;
       let nickName = req.body[0].nickname;
-      if(teamId != "team1" && teamId != "team2"){
-        res.status(400).json({message: "Please choose either team1 or team2." });
+      if (teamId != "team1" && teamId != "team2") {
+        res
+          .status(400)
+          .json({ message: "Please choose either team1 or team2." });
         return;
       }
-      try{
-        let rconResponse = await serverUpdate.addUser(teamId, steamID, nickName);
-        res.json({ message: "User added successfully.", response: rconResponse });
-      }catch(err){
-        res.status(500).json({ message: "Error on game server.", response: err });
-      } finally{
+      try {
+        let rconResponse = await serverUpdate.addUser(
+          teamId,
+          steamID,
+          nickName
+        );
+        res.json({
+          message: "User added successfully.",
+          response: rconResponse,
+        });
+      } catch (err) {
+        res
+          .status(500)
+          .json({ message: "Error on game server.", response: err });
+      } finally {
         return;
       }
     }
@@ -678,12 +717,17 @@ router.put(
         serverRow[0].rcon_password
       );
       let steamID = Utils.getSteamPID(req.body[0].steam_id);
-      try{
+      try {
         let rconResponse = await serverUpdate.addUser("spec", steamID);
-        res.json({ message: "User added to spectator successfully.", response: rconResponse });
-      }catch(err){
-        res.status(500).json({ message: "Error on game server.", response: err });
-      } finally{
+        res.json({
+          message: "User added to spectator successfully.",
+          response: rconResponse,
+        });
+      } catch (err) {
+        res
+          .status(500)
+          .json({ message: "Error on game server.", response: err });
+      } finally {
         return;
       }
     }
@@ -703,7 +747,7 @@ router.put(
  *         description: The current matches identification number.
  *         schema:
  *            type:integer
- *         
+ *
  *     tags:
  *       - matches
  *     responses:
@@ -754,12 +798,14 @@ router.get(
         serverRow[0].port,
         serverRow[0].rcon_password
       );
-      try{
+      try {
         let rconResponse = await serverUpdate.getBackups();
         res.json({ message: "Backups retrieved.", response: rconResponse });
-      }catch(err){
-        res.status(500).json({ message: "Error on game server.", response: err });
-      } finally{
+      } catch (err) {
+        res
+          .status(500)
+          .json({ message: "Error on game server.", response: err });
+      } finally {
         return;
       }
     }
@@ -843,16 +889,20 @@ router.post(
         serverRow[0].port,
         serverRow[0].rcon_password
       );
-      if(req.body[0].backup_name == null){
+      if (req.body[0].backup_name == null) {
         res.status(412).json({ message: "Please provide the backup name." });
         return;
       }
-      try{
-        let rconResponse = await serverUpdate.restoreBackup(req.body[0].backup_name);
+      try {
+        let rconResponse = await serverUpdate.restoreBackup(
+          req.body[0].backup_name
+        );
         res.json({ message: "Restored backup.", response: rconResponse });
-      }catch(err){
-        res.status(500).json({ message: "Error on game server.", response: err });
-      } finally{
+      } catch (err) {
+        res
+          .status(500)
+          .json({ message: "Error on game server.", response: err });
+      } finally {
         return;
       }
     }

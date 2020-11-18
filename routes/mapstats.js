@@ -1,4 +1,4 @@
- /**
+/**
  * @swagger
  * resourcePath: /mapstats
  * description: Express API router for mapstats in get5.
@@ -10,7 +10,6 @@ const router = express.Router();
 const db = require("../db");
 
 const Utils = require("../utility/utils");
-
 
 /**
  * @swagger
@@ -54,7 +53,7 @@ const Utils = require("../utility/utils");
  *         demoFile:
  *           type: string
  *           description: The URL pointing to the demo uploaded.
- * 
+ *
  *   responses:
  *     MatchAlreadyFinished:
  *       description: Match already finished.
@@ -69,7 +68,6 @@ const Utils = require("../utility/utils");
  *           schema:
  *             $ref: '#/components/schemas/SimpleResponse'
  */
-
 
 /**
  * @swagger
@@ -108,12 +106,11 @@ router.get("/", async (req, res, next) => {
       res.status(404).json({ message: "No stats found." });
       return;
     }
-    res.json({mapstats});
+    res.json({ mapstats });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
 });
-
 
 /**
  * @swagger
@@ -157,7 +154,7 @@ router.get("/:match_id", async (req, res, next) => {
       res.status(404).json({ message: "No stats found." });
       return;
     }
-    res.json({mapstats});
+    res.json({ mapstats });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -211,12 +208,11 @@ router.get("/:match_id/:map_id", async (req, res, next) => {
       return;
     }
     const mapstat = JSON.parse(JSON.stringify(mapstats[0]));
-    res.json({mapstat});
+    res.json({ mapstat });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
 });
-
 
 /**
  * @swagger
@@ -292,14 +288,16 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         };
         let sql = "INSERT INTO map_stats SET ?";
         let insertedStats = await newSingle.query(sql, [mapStatSet]);
-        res.json({ message: "Map stats inserted successfully!", id: insertedStats[0].insertId });
+        res.json({
+          message: "Map stats inserted successfully!",
+          id: insertedStats[0].insertId,
+        });
       });
     }
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
 });
-
 
 /**
  * @swagger
@@ -400,7 +398,6 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     res.status(500).json({ message: err.toString() });
   }
 });
-
 
 /**
  * @swagger

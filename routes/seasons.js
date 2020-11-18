@@ -44,7 +44,7 @@ const Utils = require("../utility/utils");
  *    cvars:
  *      type: object
  *      description: Key value pairs representing convars for the match server. Key is command and value is what to set it to.
- * 
+ *
  *   responses:
  *     NoSeasonData:
  *       description: No season data was provided.
@@ -96,7 +96,7 @@ router.get("/", async (req, res, next) => {
       res.status(404).json({ message: "No seasons found." });
       return;
     }
-    for(let row in seasons) {
+    for (let row in seasons) {
       if (seasons[row].cvars == null) delete seasons[row].cvars;
       else seasons[row].cvars = JSON.parse(seasons[row].cvars);
     }
@@ -137,19 +137,19 @@ router.get("/", async (req, res, next) => {
 router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if admin, if they are use this query.
-    let sql = 
-    "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
-    "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
-    "FROM season s LEFT OUTER JOIN season_cvar sc " +
-    "ON s.id = sc.season_id " +
-    "WHERE s.user_id = ? " +
-    "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
+    let sql =
+      "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
+      "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
+      "FROM season s LEFT OUTER JOIN season_cvar sc " +
+      "ON s.id = sc.season_id " +
+      "WHERE s.user_id = ? " +
+      "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
     const seasons = await db.query(sql, [req.user.id]);
     if (seasons.length === 0) {
       res.status(404).json({ message: "No seasons found." });
       return;
     }
-    for(let row in seasons) {
+    for (let row in seasons) {
       if (seasons[row].cvars == null) delete seasons[row].cvars;
       else seasons[row].cvars = JSON.parse(seasons[row].cvars);
     }
@@ -187,32 +187,36 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
  *       500:
  *         $ref: '#/components/responses/Error'
  */
-router.get("/myseasons/available", Utils.ensureAuthenticated, async (req, res, next) => {
-  try {
-    // Check if admin, if they are use this query.
-    let sql = 
-    "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
-    "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
-    "FROM season s LEFT OUTER JOIN season_cvar sc " +
-    "ON s.id = sc.season_id " +
-    "WHERE s.user_id = ? " +
-    "AND s.end_date >= CURDATE() " +
-    "OR s.end_date IS NULL " +
-    "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
-    const seasons = await db.query(sql, [req.user.id]);
-    if (seasons.length === 0) {
-      res.status(404).json({ message: "No seasons found." });
-      return;
+router.get(
+  "/myseasons/available",
+  Utils.ensureAuthenticated,
+  async (req, res, next) => {
+    try {
+      // Check if admin, if they are use this query.
+      let sql =
+        "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
+        "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
+        "FROM season s LEFT OUTER JOIN season_cvar sc " +
+        "ON s.id = sc.season_id " +
+        "WHERE s.user_id = ? " +
+        "AND s.end_date >= CURDATE() " +
+        "OR s.end_date IS NULL " +
+        "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
+      const seasons = await db.query(sql, [req.user.id]);
+      if (seasons.length === 0) {
+        res.status(404).json({ message: "No seasons found." });
+        return;
+      }
+      for (let row in seasons) {
+        if (seasons[row].cvars == null) delete seasons[row].cvars;
+        else seasons[row].cvars = JSON.parse(seasons[row].cvars);
+      }
+      res.json({ seasons });
+    } catch (err) {
+      res.status(500).json({ message: err.toString() });
     }
-    for(let row in seasons) {
-      if (seasons[row].cvars == null) delete seasons[row].cvars;
-      else seasons[row].cvars = JSON.parse(seasons[row].cvars);
-    }
-    res.json({ seasons });
-  } catch (err) {
-    res.status(500).json({ message: err.toString() });
   }
-});
+);
 
 /**
  * @swagger
@@ -236,27 +240,36 @@ router.get("/myseasons/available", Utils.ensureAuthenticated, async (req, res, n
  *       500:
  *         $ref: '#/components/responses/Error'
  */
-router.get("/:season_id/cvar", Utils.ensureAuthenticated, async (req, res, next) => {
-  try {
-    // Check if admin, if they are use this query.
-    let sql = 
-    "SELECT CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
-    "FROM season_cvar sc " +
-    "WHERE sc.season_id = ? ";
-    const cvar = await db.query(sql, [req.params.season_id]);
-    if (cvar[0].cvars == null) {
-      res.status(404).json({ message: "No cvars found for season id " + req.params.season_id + "." });
-      return;
+router.get(
+  "/:season_id/cvar",
+  Utils.ensureAuthenticated,
+  async (req, res, next) => {
+    try {
+      // Check if admin, if they are use this query.
+      let sql =
+        "SELECT CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
+        "FROM season_cvar sc " +
+        "WHERE sc.season_id = ? ";
+      const cvar = await db.query(sql, [req.params.season_id]);
+      if (cvar[0].cvars == null) {
+        res
+          .status(404)
+          .json({
+            message:
+              "No cvars found for season id " + req.params.season_id + ".",
+          });
+        return;
+      }
+      for (let row in cvar) {
+        if (cvar[row].cvars == null) delete cvar[row].cvars;
+        else cvar[row].cvars = JSON.parse(cvar[row].cvars);
+      }
+      res.json(cvar[0]);
+    } catch (err) {
+      res.status(500).json({ message: err.toString() });
     }
-    for(let row in cvar) {
-      if (cvar[row].cvars == null) delete cvar[row].cvars;
-      else cvar[row].cvars = JSON.parse(cvar[row].cvars);
-    }
-    res.json(cvar[0]);
-  } catch (err) {
-    res.status(500).json({ message: err.toString() });
   }
-});
+);
 
 /**
  * @swagger
@@ -294,7 +307,8 @@ router.get("/:season_id/cvar", Utils.ensureAuthenticated, async (req, res, next)
 router.get("/:season_id", async (req, res, next) => {
   try {
     seasonID = req.params.season_id;
-    let sql = "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, team2_score, team1_series_score, team2_series_score, team1_string, team2_string, cancelled, forfeit, start_time, end_time, max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, season_id, is_pug FROM `match` where season_id = ?";
+    let sql =
+      "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, team2_score, team1_series_score, team2_series_score, team1_string, team2_string, cancelled, forfeit, start_time, end_time, max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, season_id, is_pug FROM `match` where season_id = ?";
     let seasonSql = "SELECT * FROM season WHERE id = ?";
     const seasons = await db.query(seasonSql, seasonID);
     const matches = await db.query(sql, seasonID);
@@ -308,7 +322,6 @@ router.get("/:season_id", async (req, res, next) => {
     res.status(500).json({ message: err.toString() });
   }
 });
-
 
 /**
  * @swagger
@@ -353,13 +366,13 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       };
       let sql = "INSERT INTO season SET ?";
       let insertSeason = await newSingle.query(sql, [insertSet]);
-      if(defaultCvar != null) {
+      if (defaultCvar != null) {
         sql = "INSERT INTO season_cvar SET ?";
-        for(let key in defaultCvar) {
+        for (let key in defaultCvar) {
           insertSet = {
             season_id: insertSeason[0].insertId,
             cvar_name: key,
-            cvar_value: defaultCvar[key]
+            cvar_value: defaultCvar[key],
           };
           await newSingle.query(sql, [insertSet]);
         }
@@ -450,15 +463,15 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         }
         let sql = "UPDATE season SET ? WHERE id = ?";
         await newSingle.query(sql, [updateStmt, req.body[0].season_id]);
-        if(defaultCvar != null) {
+        if (defaultCvar != null) {
           sql = "DELETE FROM season_cvar WHERE season_id = ?";
           await newSingle.query(sql, [req.body[0].season_id]);
           sql = "INSERT INTO season_cvar SET ?";
-          for(let key in defaultCvar) {
+          for (let key in defaultCvar) {
             insertSet = {
               season_id: req.body[0].season_id,
               cvar_name: key,
-              cvar_value: defaultCvar[key]
+              cvar_value: defaultCvar[key],
             };
             await newSingle.query(sql, [insertSet]);
           }

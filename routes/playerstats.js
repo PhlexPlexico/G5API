@@ -5,7 +5,6 @@
  */
 const express = require("express");
 
-
 const router = express.Router();
 
 const db = require("../db");
@@ -17,10 +16,10 @@ const Utils = require("../utility/utils");
  * @swagger
  *
  * components:
- *   schemas: 
+ *   schemas:
  *     PlayerStats:
  *       type: object
- *       required: 
+ *       required:
  *         - api_key
  *         - match_id
  *         - map_id
@@ -127,7 +126,7 @@ const Utils = require("../utility/utils");
  *         contribution_score:
  *           type: integer
  *           description: Integer representing the contribution score of a player.
- * 
+ *
  *   responses:
  *     NoPlayerStatData:
  *       description: No playerstat data was provided.
@@ -136,7 +135,6 @@ const Utils = require("../utility/utils");
  *           schema:
  *             $ref: '#/components/schemas/SimpleResponse'
  */
-
 
 /**
  * @swagger
@@ -175,7 +173,7 @@ router.get("/", async (req, res, next) => {
       res.status(404).json({ message: "No stats found on the site!" });
       return;
     }
-    res.json({playerStats});
+    res.json({ playerStats });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -215,7 +213,7 @@ router.get("/unique", async (req, res, next) => {
       res.status(404).json({ message: "No stats found." });
       return;
     }
-    res.json({count: playercount[0].cnt});
+    res.json({ count: playercount[0].cnt });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -264,7 +262,7 @@ router.get("/:steam_id", async (req, res, next) => {
       res.status(404).json({ message: "No stats found for player " + steamID });
       return;
     }
-    res.json({playerstats});
+    res.json({ playerstats });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -312,7 +310,7 @@ router.get("/match/:match_id", async (req, res, next) => {
       res.status(404).json({ message: "No stats found for match " + matchID });
       return;
     }
-    res.json({playerstats});
+    res.json({ playerstats });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
   }
@@ -429,7 +427,10 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         // Remove any values that may not be inserted off the hop.
         insertSet = await db.buildUpdateStatement(insertSet);
         let insertPlayStats = await newSingle.query(sql, [insertSet]);
-        res.json({ message: "Player Stats inserted successfully!", id: insertPlayStats[0].insertId });
+        res.json({
+          message: "Player Stats inserted successfully!",
+          id: insertPlayStats[0].insertId,
+        });
       });
     }
   } catch (err) {
@@ -639,12 +640,14 @@ router.delete("/", async (req, res, next) => {
     ) {
       let deleteSql = "DELETE FROM player_stats WHERE match_id = ?";
       await db.withNewTransaction(newSingle, async () => {
-        const delRows = await newSingle.query(deleteSql, [req.body[0].match_id]);
+        const delRows = await newSingle.query(deleteSql, [
+          req.body[0].match_id,
+        ]);
         if (delRows[0].affectedRows > 0) {
           res.json({ message: "Player stats has been deleted successfully." });
           return;
         } else {
-          throw "Something went wrong deleting the data. Player stats remain intact."
+          throw "Something went wrong deleting the data. Player stats remain intact.";
         }
       });
     } else {
