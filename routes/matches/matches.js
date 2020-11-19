@@ -623,24 +623,6 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       req.body[0].spectator_auths.forEach(async (auth) => {
         matchSpecAuths.push(Utils.getSteamPID(auth));
       });
-    // Almost same behaviour. If we don't indicate pug or enforce teams,
-    // enforce by default. Otherwise. do some checks to see if the teams
-    // should be enforced. By default, we wish to enforce teams.
-    let enfTeam = 1;
-    if (req.body[0].enforce_teams == null && req.body[0].is_pug == null) {
-      enfTeam = 1;
-    } else if (req.body[0].enforce_teams == null && req.body[0].is_pug == 1) {
-      enfTeam = 0;
-    } else if (req.body[0].enforce_teams == 1) {
-      enfTeam = 1;
-    } else if (req.body[0].enforce_teams == 0) {
-      enfTeam = 0;
-    } else if (
-      req.body[0].enforce_teams == null &&
-      (req.body[0].is_pug == null || req.body[0].is_pug == 0)
-    ) {
-      enfTeam = 1;
-    }
     let skipVeto =
       req.body[0].skip_veto == null ? false : req.body[0].skip_veto;
     let insertMatch;
@@ -662,7 +644,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         plugin_version: req.body[0].plugin_version,
         private_match:
           req.body[0].private_match == null ? 0 : req.body[0].private_match,
-        enforce_teams: enfTeam,
+        enforce_teams:
+          req.body[0].enforce_teams == null ? 1 : req.body[0].enforce_teams,
         api_key: apiKey,
         winner: null,
         team1_string: teamOneName[0].name == null ? null : teamOneName[0].name,
