@@ -137,7 +137,7 @@ class Utils {
       // Check the user based on API.
       let apiKey = req.body[0].user_api;
       let userId = req.body[0].user_id;
-      let sqlQuery = "SELECT api_key FROM user WHERE id = ?";
+      let sqlQuery = "SELECT * FROM user WHERE id = ?";
       const ourUser = await db.query(sqlQuery, userId);
       if (ourUser.length > 0) {
         let uncDb = await Utils.decrypt(ourUser[0].api_key);
