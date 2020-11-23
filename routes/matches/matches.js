@@ -759,6 +759,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let vetoList = null;
     let ourServerSql =
       "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
+    let message = "Match updated successfully!";
     if (req.body[0].match_id == null) {
       res.status(404).json({ message: "Match ID Not Provided" });
       return;
@@ -812,11 +813,13 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         );
         if (Object.keys(vetoList).length > 0) {
           vetoList.forEach((veto) => {
-            vetoMapPool = vetoMapPool.concat(veto.map + ", ");
+            console.log(veto);
+            if (vetoMapPool == null) vetoMapPool = veto.map;
+            else vetoMapPool = vetoMapPool + " " + veto.map;
           });
           maxMaps = Object.keys(vetoList).length;
           // Remove last two characters.
-          vetoMapPool = vetoMapPool.substring(0, vetoMapPool.length - 2);
+          // vetoMapPool = vetoMapPool.substring(0, vetoMapPool.length - 2);
           //If we're identical to the matches map pool, it usually means we've begun.
           if (vetoMapPool == matchRow[0].veto_mappool) {
             vetoMapPool = null;
@@ -869,17 +872,20 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         const ourServer = await newSingle.query(ourServerSql, [
           matchRow[0].server_id,
         ]);
-        const serverConn = new GameServer(
-          ourServer[0][0].ip_string,
-          ourServer[0][0].port,
-          ourServer[0][0].rcon_password
-        );
+        const serverConn =
+          matchRow[0].server_id != null
+            ? new GameServer(
+                ourServer[0][0].ip_string,
+                ourServer[0][0].port,
+                ourServer[0][0].rcon_password
+              )
+            : null;
         if (
           req.body[0].forfeit == 1 ||
           req.body[0].cancelled == 1 ||
           req.body[0].end_time != null
         ) {
-          if (serverConn.endGet5Match()) {
+          if (serverConn != null && serverConn.endGet5Match()) {
             sql = "UPDATE game_server SET in_use=0 WHERE id=?";
             await newSingle.query(sql, [matchRow[0].server_id]);
           }
@@ -899,7 +905,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         } else {
           if (!req.body[0].ignore_server) {
             if (diffServer) {
-              if (serverConn.endGet5Match()) {
+              if (serverConn != null && serverConn.endGet5Match()) {
+                console.log("Should not be here!");
                 sql = "UPDATE game_server SET in_use=0 WHERE id=?";
                 await newSingle.query(sql, [matchRow[0].server_id]);
               }
@@ -922,11 +929,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
               ) {
                 sql = "UPDATE game_server SET in_use=1 WHERE id=?";
                 await newSingle.query(sql, [req.body[0].server_id]);
-                res.json({
-                  message:
-                    "Match updated successfully! Please move over the last backup from the old server to the new one!",
-                });
-                return;
+                message = "Match updated successfully! Please move over the last backup from the old server to the new one!";
               }
             }
           }
@@ -946,7 +949,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           }
         });
       }
-      res.json({ message: "Match updated successfully!" });
+      res.json({ message: message });
+      return;
     }
   } catch (err) {
     res.status(500).json({ message: err.toString() });

@@ -249,16 +249,18 @@ router.get(
       });
       let getServerSQL =
         "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
-      const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
-      let serverUpdate = new GameServer(
-        serverRow[0].ip_string,
-        serverRow[0].port,
-        serverRow[0].rcon_password
-      );
-      if (!serverUpdate.endGet5Match()) {
-        console.log(
-          "Error attempting to stop match on game server side. Will continue."
+      if (matchRow[0].server_id != null) {
+        const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
+        let serverUpdate = new GameServer(
+          serverRow[0].ip_string,
+          serverRow[0].port,
+          serverRow[0].rcon_password
         );
+        if (!serverUpdate.endGet5Match()) {
+          console.log(
+            "Error attempting to stop match on game server side. Will continue."
+          );
+        }
       }
       res.json({ message: "Match has been cancelled successfully." });
       return;
