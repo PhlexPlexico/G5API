@@ -18,11 +18,15 @@ class Database {
   }
 
   async query(sql, args) {
+    const connection = await this.getConnection();
     try {
-      const result = await connPool.query(sql, args);
+      const result = await connection.query(sql, args);
       return result[0];
     } catch (error) {
-      console.log(error);
+      console.log("SQL ERROR SQL ERROR SQL ERROR SQL ERROR SQL ERROR\n" + error);
+      throw err;
+    } finally {
+      await connection.release();
     }
   }
   async buildUpdateStatement(objValues){
