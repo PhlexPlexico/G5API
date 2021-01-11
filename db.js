@@ -24,7 +24,7 @@ class Database {
       return result[0];
     } catch (error) {
       console.log("SQL ERROR SQL ERROR SQL ERROR SQL ERROR SQL ERROR\n" + error);
-      throw err;
+      throw error;
     } finally {
       await connection.release();
     }
