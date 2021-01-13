@@ -10,7 +10,7 @@ const dbCfg = {
   database: config.get(process.env.NODE_ENV+".database"),
   connectionLimit: config.get(process.env.NODE_ENV+".connectionLimit")
 }
-const connPool = mysql.createPool( dbCfg );
+const connPool = mysql.createPool(dbCfg);
 
 class Database {
   constructor() {
@@ -19,16 +19,20 @@ class Database {
 
   async query(sql, args) {
     const connection = await this.getConnection();
+    let isDestroyed = false;
     try {
       const result = await connection.query(sql, args);
       return result[0];
     } catch (error) {
       console.log("SQL ERROR SQL ERROR SQL ERROR SQL ERROR SQL ERROR\n" + error);
+      if (error.includes("closed state")) isDestroyed = true;
       throw error;
     } finally {
-      await connection.release();
+      if (isDestroyed) connection.destroy();
+      else connection.release();
     }
   }
+
   async buildUpdateStatement(objValues){
     for (let key in objValues) {
       if (objValues[key] == null) delete objValues[key];
