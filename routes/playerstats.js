@@ -126,6 +126,9 @@ const Utils = require("../utility/utils");
  *         contribution_score:
  *           type: integer
  *           description: Integer representing the contribution score of a player.
+ *         mvp:
+ *           type: integer
+ *           description: Integer representing the amount of MVPs the players had.
  *
  *   responses:
  *     NoPlayerStatData:
@@ -422,6 +425,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           firstdeath_t: req.body[0].firstdeath_t,
           firstkill_ct: req.body[0].firstkill_ct,
           firstkill_t: req.body[0].firstkill_t,
+          kast: req.body[0].kast,
+          contribution_score: req.body[0].contribution_score,
+          mvp: req.body[0].mvp
         };
         let sql = "INSERT INTO player_stats SET ?";
         // Remove any values that may not be inserted off the hop.
@@ -536,6 +542,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           firstdeath_t: req.body[0].firstdeath_t,
           firstkill_ct: req.body[0].firstkill_ct,
           firstkill_t: req.body[0].firstkill_t,
+          kast: req.body[0].kast,
+          contribution_score: req.body[0].contribution_score,
+          mvp: req.body[0].mvp
         };
         // Remove any values that may not be updated.
         updateStmt = await db.buildUpdateStatement(updateStmt);

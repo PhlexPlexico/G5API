@@ -935,6 +935,11 @@ router.post(
         req.body.contribution_score == null
           ? null
           : parseInt(req.body.contribution_score);
+      let playerMvp = 
+        req.body.mvp == null
+        ? null
+        : parseInt(req.body.mvp);
+
       // Data manipulation inside function.
       let updateStmt = {};
       let updateSql;
@@ -1006,6 +1011,7 @@ router.post(
         firstkill_t: playerFirstKillT,
         kast: playerKast,
         contribution_score: playerContrib,
+        mvp: playerMvp,
       };
       // Remove any values that may not be updated.
       updateStmt = await db.buildUpdateStatement(updateStmt);
