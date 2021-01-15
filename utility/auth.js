@@ -59,8 +59,8 @@ async function returnStrategy(identifier, profile, done) {
       } else if (adminList.indexOf(profile.id.toString()) >= 0) {
         isAdmin = 1;
       }
-      let curUser = await db.query(sql, [profile.id]);
-      if (curUser.length < 1) {
+      let curUser = await singleConn.query(sql, [profile.id]);
+      if (curUser[0].length < 1) {
         //Generate API key in user session to allow posting/getting/etc with
         //an account that's not in a session.
         let apiKey = randString.generate({
@@ -83,7 +83,7 @@ async function returnStrategy(identifier, profile, done) {
           curUser = await singleConn.query(sql, [newUser]);
         });
         sql = "SELECT * FROM user WHERE steam_id = ?";
-        curUser = await db.query(sql, [profile.id]);
+        curUser = await singleConn.query(sql, [profile.id]);
       } else {
         let updateUser = {
           small_image: profile.photos[0].value,
@@ -100,11 +100,11 @@ async function returnStrategy(identifier, profile, done) {
         name: profile.displayName,
         super_admin: isSuperAdmin,
         admin: isAdmin,
-        id: curUser[0].id,
+        id: curUser[0][0].id,
         small_image: profile.photos[0].value,
         medium_image: profile.photos[1].value,
         large_image: profile.photos[2].value,
-        api_key: await Utils.decrypt(curUser[0].api_key),
+        api_key: await Utils.decrypt(curUser[0][0].api_key),
       });
     } catch (err) {
       console.log(

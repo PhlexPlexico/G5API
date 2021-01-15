@@ -53,14 +53,17 @@ class Database {
   */
   async withNewTransaction(singleCall, callback) {
     await singleCall.beginTransaction();
+    let isDestroyed = false;
     try {
       await callback();
       await singleCall.commit();
     } catch (err) {
       await singleCall.rollback();
+      isDestroyed = true;
       throw err;
     } finally {
-      await singleCall.release();
+      if (isDestroyed) await singleCall.destroy();
+      else await singleCall.release();
     } 
   }
 
