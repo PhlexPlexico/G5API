@@ -1075,7 +1075,7 @@ async function build_team_dict(team, teamNumber, matchData) {
   let normalizedAuths = {};
   for (let i = 0; i < playerAuths.length; i++) {
     const key = playerAuths[i].auth;
-    if (playerAuths[i].name == "") normalizedAuths[key] = null;
+    if (playerAuths[i].name == "") normalizedAuths[key] = "";
     else normalizedAuths[key] = playerAuths[i].name;
   }
   let teamData = {
