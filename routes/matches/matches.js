@@ -501,6 +501,7 @@ router.get("/:match_id/config", async (req, res, next) => {
     let sql = "SELECT * FROM `match` WHERE id = ?";
     let matchID = req.params.match_id;
     let matchCvars;
+    let matchSpecs;
     const matchInfo = await db.query(sql, [matchID]);
     if (matchInfo.length === 0) {
       res.status(404).json({ message: "No match found." });
@@ -526,12 +527,16 @@ router.get("/:match_id/config", async (req, res, next) => {
         get5_web_api_url: config.get("server.apiURL"),
         get5_check_auths: matchInfo[0].enforce_teams.toString(),
       },
-      spectators: {},
+      spectators: {
+        players: []
+      },
       maplist:
         matchInfo[0].veto_mappool !== null
           ? matchInfo[0].veto_mappool.replace(/[,]+/g, "").split(" ")
           : null,
-      min_spectators_to_ready: 0,
+      min_spectators_to_ready: matchInfo[0].min_spectators_to_ready !== null
+          ? matchInfo[0].min_spectators_to_ready
+          : 0,
     };
     if (matchInfo[0].max_maps === 2) {
       matchJSON.bo2_series = true;
@@ -550,6 +555,11 @@ router.get("/:match_id/config", async (req, res, next) => {
     matchCvars = await db.query(sql, matchID);
     matchCvars.forEach((row) => {
       matchJSON.cvars[row.cvar_name] = row.cvar_value;
+    });
+    sql = "SELECT * FROM match_spectator WHERE match_id=?";
+    matchSpecs = await db.query(sql, matchID);
+    matchSpecs.forEach((row) => {
+      matchJSON.spectators.players.append(row.auth);
     });
     res.json(matchJSON);
   } catch (err) {
@@ -653,6 +663,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         is_pug: req.body[0].is_pug,
         min_player_ready: req.body[0].min_players_to_ready,
         players_per_team: req.body[0].players_per_team,
+        min_spectators_to_ready: req.body[0].min_spectators_to_ready !== null
+          ? req.body[0].min_spectators_to_ready
+          : 0,
       };
       let sql = "INSERT INTO `match` SET ?";
       let cvarSql =
@@ -851,6 +864,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
               : req.body[0].enforce_teams, // Do not update these unless required.
           players_per_team:
             req.body[0].players_per_team == null ? null : players_per_team,
+          min_spectators_to_ready: req.body[0].min_spectators_to_ready !== null
+          ? req.body[0].min_spectators_to_ready
+          : 0,
         };
         // Remove any values that may not be updated.
         updateStmt = await db.buildUpdateStatement(updateStmt);
