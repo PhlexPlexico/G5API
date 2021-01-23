@@ -631,7 +631,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let matchSpecAuths = [];
     if (req.body[0].spectator_auths != null)
       req.body[0].spectator_auths.forEach(async (auth) => {
-        matchSpecAuths.push(Utils.getSteamPID(auth));
+        matchSpecAuths.push(await Utils.getSteamPID(auth));
       });
     let skipVeto =
       req.body[0].skip_veto == null ? false : req.body[0].skip_veto;
@@ -674,7 +674,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       insertMatch = await newSingle.query(sql, [insertSet]);
       sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
       for (let key in matchSpecAuths) {
-        await newSingle.query(sql, [req.body[0].match_id, key]);
+        await newSingle.query(sql, [insertMatch[0].insertId, key]);
       }
       if (req.body[0].match_cvars != null) {
         let cvarInsertSet = req.body[0].match_cvars;
@@ -880,7 +880,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         await newSingle.query(sql, [updateStmt, req.body[0].match_id]);
         sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
         for (let key in req.body[0].spectator_auths) {
-          let newAuth = await Utils.convertToSteam64(key);
+          let newAuth = await Utils.convertToSteam64(req.body[0].spectator_auths[key]);
           await newSingle.query(sql, [req.body[0].match_id, newAuth]);
         }
       });
