@@ -59,7 +59,7 @@ const config = require("config");
  *           description: The ID of winner of the match.
  *         max_maps:
  *           type: integer
- *           description: The number of max maps played per series.
+ *           description: The number of max maps played per series. This must either be 2, or an odd number.
  *         title:
  *           type: string
  *           description: The title of the match, default is 'Map {MAPNUMBER} of {MAXMAPS}'.
@@ -158,7 +158,7 @@ const config = require("config");
  *           min_spectators_to_ready:
  *            type: integer
  *            description: Value representing specatators to ready up.
- *           maps_to_win:
+ *           num_maps:
  *            type: integer
  *            description: The amount of maps required to win a match.
  *
@@ -229,7 +229,7 @@ const config = require("config");
  *           description: The ending time of the match.
  *         max_maps:
  *           type: integer
- *           description: The number of max maps played per series.
+ *           description: The number of max maps played per series. This must either be 2, or an odd number.
  *         title:
  *           type: string
  *           description: The title of the match, default is 'Map {MAPNUMBER} of {MAXMAPS}'.
@@ -538,11 +538,15 @@ router.get("/:match_id/config", async (req, res, next) => {
           ? matchInfo[0].min_spectators_to_ready
           : 0,
     };
-    if (matchInfo[0].max_maps === 2) {
+    // Per get5, bo2 series and max_maps are deprecated.
+    // Use num_maps to send in instead. Get5 logic takes care of 
+    // the configuration and checks if a series is either bo2 or odd.
+    /*if (matchInfo[0].max_maps === 2) {
       matchJSON.bo2_series = true;
     } else {
       matchJSON.maps_to_win = parseInt(matchInfo[0].max_maps / 2 + 1);
-    }
+    }*/
+    matchJSON.num_maps = matchInfo[0].max_maps;
     // Fill out team data only if we are not PUGging.
     if (matchInfo[0].is_pug == 0 || matchInfo[0].is_pug == null) {
       sql = "SELECT * FROM team WHERE id = ?";
