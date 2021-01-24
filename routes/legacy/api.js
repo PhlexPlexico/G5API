@@ -939,7 +939,21 @@ router.post(
         req.body.mvp == null
         ? null
         : parseInt(req.body.mvp);
-
+      let knifeKills = 
+        req.body.knife_kills == null
+        ? null
+        : parseInt(req.body.knife_kills);
+      let enemiesFlashed = 
+        req.body.enemies_flashed == null
+        ? null
+        : parseInt(req.body.enemies_flashed);
+      let friendlyFlashed = 
+        req.body.friendlies_flashed == null
+        ? null
+        : parseInt(req.body.friendlies_flashed);
+      let utilDmg = req.body.util_damage == null
+        ? null
+        : parseInt(req.body.util_damage);
       // Data manipulation inside function.
       let updateStmt = {};
       let updateSql;
@@ -990,9 +1004,13 @@ router.post(
         assists: playerAssists,
         flashbang_assists: playerFBA,
         teamkills: playerTKs,
+        knife_kills: knifeKills,
         suicides: playerSuicide,
         headshot_kills: playerHSK,
         damage: playerDamage,
+        util_damage: utilDmg,
+        enemies_flashed: enemiesFlashed,
+        friendlies_flashed: friendlyFlashed,
         bomb_plants: playerBombsPlanted,
         bomb_defuses: playerBombsDefused,
         v1: player1v1,
@@ -1011,7 +1029,7 @@ router.post(
         firstkill_t: playerFirstKillT,
         kast: playerKast,
         contribution_score: playerContrib,
-        mvp: playerMvp,
+        mvp: playerMvp
       };
       // Remove any values that may not be updated.
       updateStmt = await db.buildUpdateStatement(updateStmt);
