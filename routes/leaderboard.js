@@ -324,7 +324,9 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
     sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
     sum(v2) as v2, sum(v3) as v3, sum(v4) as v4,
     sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba,
-    sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps
+    sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps,
+    sum(knife_kills) as knifekills, sum(friendlies_flashed) as fflash,
+    sum(enemies_flashed) as eflash, sum(util_damage) as utildmg
     FROM    player_stats
     WHERE   match_id IN (
         SELECT  id
@@ -342,7 +344,9 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
     sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
     sum(v2) as v2, sum(v3) as v3, sum(v4) as v4,
     sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba,
-    sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps
+    sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps,
+    sum(knife_kills) as knifekills, sum(friendlies_flashed) as fflash,
+    sum(enemies_flashed) as eflash, sum(util_damage) as utildmg
     FROM    player_stats
     WHERE   match_id IN (
         SELECT  id
@@ -411,7 +415,10 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
           parseFloat(player.k5)
         ),
         wins: numWins[0].wins,
-        total_maps: player.totalMaps
+        total_maps: player.totalMaps,
+        enemies_flashed: parseFloat(player.eflash),
+        friendlies_flashed: parseFloat(player.fflash),
+        util_damage: parseFloat(player.utildmg)
       });
     } else {
       let collisionPlayer = allPlayers.find((user) => {
@@ -460,6 +467,9 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
         parseFloat(collisionPlayer.k4),
         parseFloat(collisionPlayer.k5)
       );
+      collisionPlayer.enemies_flashed += parseFloat(player.eflash);
+      collisionPlayer.friendlies_flashed += parseFloat(player.fflash);
+      collisionPlayer.util_damage += parseFloat(player.utildmg);
     }
   }
   return allPlayers;
