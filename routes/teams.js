@@ -490,6 +490,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
           console.log(err);
       }
     );
+    updateTeam.logo = logoName;
   }
   updateTeam = await db.buildUpdateStatement(updateTeam);
   if (Object.keys(updateTeam).length === 0) {
