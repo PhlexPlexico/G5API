@@ -29,12 +29,14 @@ function strategyForEnvironment() {
       strategy = new SteamStrategy(
         {
           returnURL:
-            config.get("server.hostname") +
-            ":" +
-            config.get("server.port") +
+            // config.get("server.hostname") +
+            // ":" +
+            // config.get("server.port") +
+            config.get("server.apiURL") +
             "/auth/steam/return",
           realm:
-            config.get("server.hostname") + ":" + config.get("server.port"),
+            config.get("server.apiURL"),
+            // config.get("server.hostname") + ":" + config.get("server.port"),
           apiKey: config.get("server.steamAPIKey"),
         },
         returnStrategy
