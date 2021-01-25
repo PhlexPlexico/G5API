@@ -29,6 +29,8 @@
   },
   "scripts": {
     "start": "nodemon ./bin/www",
+    "startprod": "pm2 start ./bin/www --name \"G5API\"",
+    "stopprod": "pm2 stop G5API; pm2 delete G5API",
     "doc": "jsdoc -c jsdoc.conf.json",
     "docclean": "rm -rf ./docs",
     "migrate-create-dev": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --env development --config config/development.json db:create get5dev",
@@ -80,6 +82,7 @@
     "nodemon": "^1.19.4",
     "passport": "^0.4.0",
     "passport-steam": "^1.0.14",
+    "pm2": "^4.5.1",
     "randomstring": "^1.1.5",
     "rcon": "^1.0.3",
     "redis": "^3.0.2",
