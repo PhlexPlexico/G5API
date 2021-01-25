@@ -29,7 +29,7 @@
   },
   "scripts": {
     "start": "nodemon ./bin/www",
-    "startprod": "pm2 start ./bin/www --name \"G5API\"",
+    "startprod": "pm2 start ./prodrun.json --name \"G5API\"",
     "stopprod": "pm2 stop G5API; pm2 delete G5API",
     "doc": "jsdoc -c jsdoc.conf.json",
     "docclean": "rm -rf ./docs",
