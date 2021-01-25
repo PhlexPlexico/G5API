@@ -17,6 +17,8 @@ const db = require("../db");
 
 const Utils = require("../utility/utils");
 
+const randString = require("randomstring");
+
 /**
  * @swagger
  *
@@ -50,7 +52,8 @@ const Utils = require("../utility/utils");
  *          required: false
  *        logo:
  *          type: string
- *          description: A string representing the logo stored on the webserver.
+ *          format: byte
+ *          description: A base64 png or svg to save to disk.
  *          required: false
  *        auth_name:
  *          type: object
@@ -329,17 +332,35 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
   let userID = req.user.id;
   let teamName = req.body[0].name;
   let flag = req.body[0].flag;
-  let logo = req.body[0].logo;
+  let logo = req.body[0].logo_file;
+  let logoName = null;
   let auths = req.body[0].auth_name;
   let tag = req.body[0].tag;
   let public_team = req.body[0].public_team;
   let teamID = null;
+  if (logo) {
+    // Generate a 5 character logo "name".
+    logoName = randString.generate({
+      length: 5,
+      charset: "alphanumeric",
+    });
+    let base64Data = logo.replace(/^data:image\/png;base64,/, "");
+    require("fs").writeFile(
+      "public/img/logos/" + logoName + ".png",
+      base64Data,
+      "base64",
+      function (err) {
+        if(err)
+          console.log(err);
+      }
+    );
+  }
   newTeam = [
     {
       user_id: userID,
       name: teamName,
       flag: flag,
-      logo: logo,
+      logo: logoName,
       tag: tag,
       public_team: public_team,
     },
@@ -434,7 +455,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
   let teamID = req.body[0].id;
   let teamName = req.body[0].name;
   let teamFlag = req.body[0].flag;
-  let teamLogo = req.body[0].logo;
+  let teamLogo = req.body[0].logo_file;
+  let logoName = null;
   let teamAuths = req.body[0].auth_name;
   let teamTag = req.body[0].tag;
   let publicTeam = req.body[0].public_team;
@@ -443,11 +465,33 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
     user_id: userId,
     name: teamName,
     flag: teamFlag,
-    logo: teamLogo,
+    logo: logoName,
     tag: teamTag,
     public_team: publicTeam,
     id: teamID,
   };
+  if (teamLogo) {
+    // Overwrite the current file.
+    if (checkUser[0].logo == null) {
+      logoName = randString.generate({
+        length: 5,
+        charset: "alphanumeric",
+      });
+    } else {
+      logoName = checkUser[0].logo;
+    }
+    let base64Data = teamLogo.replace(/^data:image\/png;base64,/, "");
+    require("fs").writeFile(
+      "public/img/logos/" + logoName + ".png",
+      base64Data,
+      "base64",
+      function (err) {
+        if(err)
+          console.log(err);
+      }
+    );
+    updateTeam.logo = logoName;
+  }
   updateTeam = await db.buildUpdateStatement(updateTeam);
   if (Object.keys(updateTeam).length === 0) {
     res.status(412).json({ message: "No update data has been provided." });
@@ -554,6 +598,14 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
     }
   } else {
     try {
+      // Remove file if exists.
+      if (checkUser[0].logo) {
+        require("fs").unlink("public/img/logos/" + checkUser[0].logo+".png", (err) => {
+          if (err) {
+            console.log(err);
+          }
+        });
+      }
       await db.withNewTransaction(newSingle, async () => {
         let deleteTeamAuthSql = "DELETE FROM team_auth_names WHERE team_id = ?";
         let deleteTeamsql = "DELETE FROM team WHERE id = ?";
@@ -562,6 +614,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
       });
     } catch (err) {
       res.status(500).json({ message: err.toString() });
+      return;
     }
     res.json({ message: "Team has been deleted successfully!" });
   }

@@ -36,10 +36,11 @@ const app = express();
 
 app.use(logger("dev"));
 app.use(express.raw({type: 'application/octet-stream', limit: "2gb"}));
-app.use(express.json());
+app.use(express.json({limit: "512kb"}));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use("/demo", express.static("public"));
+app.use("/img", express.static("public/img/logos"));
 
 // Security defaults with helmet
 app.use(helmet());
