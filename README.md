@@ -47,7 +47,20 @@ This will attempt to update a production database by creating any tables that do
 ### Build and run: 
 ```yarn start``` 
 
-Spins up a development server (by default, please use the `NODE_ENV` variable to change this) where you can make all your calls. Since steam authentication is enabled, you will need to auth with steam first before making any calls that would modify any data.
+Spins up a **development** server (by default, please use the `NODE_ENV` variable to change this) where you can make all your calls. Since steam authentication is enabled, you will need to auth with steam first before making any calls that would modify any data.
+
+If you wish to run a production build, set your `NODE_ENV` to production, then make the following call:
+
+```bash
+yarn startprod
+```
+
+This will launch an instance of the application via `pm2` which is more stable for a production environment. If y ou wish to stop the instance, you may call the following:
+
+```bash
+yarn stopprod
+```
+Which also deletes the instance in pm2.
 
 ### Docker Build Instructions:
 This guide assumes you have a MariaDB or MySQL compatible server running. You can deploy one in docker following the [MariaDB guide](https://hub.docker.com/_/mariadb/).
