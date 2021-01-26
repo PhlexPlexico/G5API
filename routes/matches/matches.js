@@ -991,7 +991,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *            properties:
  *              match_id:
  *                type: integer
- *                required: true
+ *              all_cancelled:
+ *                type: boolean
  *     tags:
  *       - matches
  *     responses:
@@ -1012,69 +1013,78 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let newSingle = await db.getConnection();
   let userId = req.user.id;
   let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
-  const matchRow = await db.query(matchUserId, req.body[0].match_id);
-  if (matchRow.length === 0) {
-    res.status(404).json({ message: "No match found." });
-    return;
-  } else if (
-    matchRow[0].user_id != req.user.id &&
-    !Utils.superAdminCheck(req.user)
-  ) {
-    res
-      .status(403)
-      .json({ message: "User is not authorized to perform action." });
-    return;
-  } else {
+  if(req.body[0].all_cancelled == false || req.body[0].all_cancelled == null) {
+    const matchRow = await db.query(matchUserId, req.body[0].match_id);
+    if (matchRow.length === 0) {
+      res.status(404).json({ message: "No match found." });
+      return;
+    } else if (
+      matchRow[0].user_id != req.user.id &&
+      !Utils.superAdminCheck(req.user)
+    ) {
+      res
+        .status(403)
+        .json({ message: "User is not authorized to perform action." });
+      return;
+    } else {
+      try {
+        await db.withNewTransaction(newSingle, async () => {
+          let matchId = req.body[0].match_id;
+          let isMatchCancelled =
+            "SELECT cancelled, forfeit, end_time, user_id from `match` WHERE id = ?";
+          // First find any matches/mapstats/playerstats associated with the team.
+          let playerStatDeleteSql = "DELETE FROM player_stats WHERE match_id = ?";
+          let mapStatDeleteSql = "DELETE FROM map_stats WHERE match_id = ?";
+          let spectatorDeleteSql =
+            "DELETE FROM match_spectator WHERE match_id = ?";
+          const matchCancelledResult = await newSingle.query(
+            isMatchCancelled,
+            matchId
+          );
+          if (
+            matchCancelledResult[0][0].cancelled == 1 ||
+            matchCancelledResult[0][0].forfeit == 1 ||
+            matchCancelledResult[0][0].end_time != null
+          ) {
+            let deleteMatchsql = "DELETE FROM `match` WHERE id = ?";
+            await newSingle.query(playerStatDeleteSql, matchId);
+            await newSingle.query(mapStatDeleteSql, matchId);
+            await newSingle.query(spectatorDeleteSql, matchId);
+            const delRows = await newSingle.query(deleteMatchsql, matchId);
+            if (delRows[0].affectedRows > 0)
+              res.json({ message: "Match deleted successfully!" });
+            else throw "We found an issue deleting the match values.";
+            return;
+          } else {
+            res.status(403).json({
+              message: "Cannot delete match as it is not cancelled.",
+            });
+            return;
+          }
+        });
+      } catch (err) {
+        res.status(500).json({ message: err.toString() });
+      }
+    }
+  } else if (req.body[0].all_cancelled == true) {
     try {
       await db.withNewTransaction(newSingle, async () => {
-        let matchId = req.body[0].match_id;
-        let isMatchCancelled =
-          "SELECT cancelled, forfeit, end_time, user_id from `match` WHERE id = ?";
-        // First find any matches/mapstats/playerstats associated with the team.
-        let playerStatDeleteSql = "DELETE FROM player_stats WHERE match_id = ?";
-        let mapStatDeleteSql = "DELETE FROM map_stats WHERE match_id = ?";
-        let spectatorDeleteSql =
-          "DELETE FROM match_spectator WHERE match_id = ?";
-        const matchCancelledResult = await newSingle.query(
-          isMatchCancelled,
-          matchId
-        );
-        if (matchCancelledResult.length === 0) {
-          res.status(404).json({ message: "No match found." });
-          return;
-        }
-        if (
-          matchCancelledResult[0][0].user_id != userId &&
-          !Utils.superAdminCheck(req.user)
-        ) {
-          res.status(403).json({
-            message:
-              "You do not have authorized access to delete these matches.",
-          });
-          return;
-        } else if (
-          matchCancelledResult[0][0].cancelled == 1 ||
-          matchCancelledResult[0][0].forfeit == 1 ||
-          matchCancelledResult[0][0].end_time != null
-        ) {
-          let deleteMatchsql = "DELETE FROM `match` WHERE id = ?";
-          await newSingle.query(playerStatDeleteSql, matchId);
-          await newSingle.query(mapStatDeleteSql, matchId);
-          await newSingle.query(spectatorDeleteSql, matchId);
-          const delRows = await newSingle.query(deleteMatchsql, matchId);
-          if (delRows[0].affectedRows > 0)
-            res.json({ message: "Match deleted successfully!" });
-          else throw "We found an issue deleting the match values.";
-          return;
-        } else {
-          res.status(403).json({
-            message: "Cannot delete match as it is not cancelled.",
-          });
-          return;
-        }
+        let deleteCancelledStats = "DELETE FROM player_stats WHERE match_id IN (SELECT id FROM `match` WHERE cancelled = 1 AND user_id = ?)";
+        let deleteCancelledMapStats = "DELETE FROM map_stats WHERE match_id IN (SELECT id FROM `match` WHERE cancelled = 1 AND user_id = ?)";
+        let deleteCancelledSpecs = "DELETE FROM match_spectator WHERE match_id IN (SELECT id FROM `match` WHERE cancelled = 1 AND user_id = ?)";
+        let deleteMatch = "DELETE FROM `match` WHERE cancelled = 1 AND user_id = ?";
+        await newSingle.query(deleteCancelledStats, [userId]);
+        await newSingle.query(deleteCancelledMapStats, [userId]);
+        await newSingle.query(deleteCancelledSpecs, [userId]);
+        const delRows = await newSingle.query(deleteMatch, [userId]);
+        if (delRows[0].affectedRows > 0)
+          res.json({ message: "Matches deleted successfully!" });
+        else res.json({ message: "No cancelled matches to delete." });
+        return;
       });
-    } catch (err) {
+    } catch (error) {
       res.status(500).json({ message: err.toString() });
+      return;
     }
   }
 });

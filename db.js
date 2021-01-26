@@ -25,7 +25,7 @@ class Database {
       return result[0];
     } catch (error) {
       console.log("SQL ERROR SQL ERROR SQL ERROR SQL ERROR SQL ERROR\n" + error);
-      if (error.includes("closed state")) isDestroyed = true;
+      if (error.toString().includes("closed state")) isDestroyed = true;
       throw error;
     } finally {
       if (isDestroyed) connection.destroy();
