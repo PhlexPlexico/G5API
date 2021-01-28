@@ -64,7 +64,7 @@ exports.down = function(db, callback) {
     db.removeColumn('player_stats', 'enemies_flashed'),
     db.removeColumn('player_stats', 'friendlies_flashed'),
     db.removeColumn('player_stats', 'knife_kills'),
-    db.changeColumn('player_stats', 'name', { type: 'string', length: 40, defaultValue: '', notNull: true}),
+    db.changeColumn('player_stats', 'name', { type: 'string', length: 40}),
     db.changeColumn('player_stats', 'kills', { type: 'int', length: 11}),
     db.changeColumn('player_stats', 'headshot_kills', { type: 'int', length: 11}),
     db.changeColumn('player_stats', 'deaths', { type: 'int', length: 11}),
