@@ -18,6 +18,7 @@ const serversRouter = require("./routes/servers");
 const teamsRouter = require("./routes/teams");
 const usersRouter = require("./routes/users");
 const vetoesRouter = require("./routes/vetoes");
+const mapListRouter = require("./routes/maps");
 //End Route Files
 
 const swaggerUi = require("swagger-ui-express");
@@ -143,6 +144,7 @@ app.use("/playerstats", playerstatsRouter);
 app.use("/seasons", seasonsRouter);
 app.use("/match", legacyAPICalls);
 app.use("/leaderboard", leaderboardRouter);
+app.use("/maps", mapListRouter);
 //END ROUTES
 
 // Steam API Calls.
