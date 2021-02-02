@@ -137,6 +137,53 @@ router.get("/:user_id", async (req, res, next) => {
   }
 });
 
+/** @swagger
+ *
+ * /maps/:user_id/enabled:
+ *   get:
+ *     description: Get the maplist of a specific user that are enabled.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: user_id
+ *         description: The database or steam ID of the user
+ *         required: true
+ *         schema:
+ *            type: integer
+ *     tags:
+ *       - users
+ *     responses:
+ *       200:
+ *         description: Get a specific user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: object
+ *                properties:
+ *                  user:
+ *                      $ref: '#/components/schemas/NewUser'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.get("/:user_id/enabled", async (req, res, next) => {
+  try {
+    let newSingle = await db.getConnection();
+    let maplist;
+    let sql =
+      "SELECT * FROM map_list WHERE user_id = ? AND enabled = true";
+    await db.withNewTransaction(newSingle, async () => {
+      maplist = await newSingle.query(sql, [req.params.user_id]);
+    });
+    maplist = maplist[0]
+    if (maplist[0] != null)
+      res.json({ maplist });
+    else
+      res.status(404).json({message: "Maplist does not exist in the system for given user."});
+  } catch (err) {
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
 /**
  * @swagger
  *
