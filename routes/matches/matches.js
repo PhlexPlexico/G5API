@@ -465,14 +465,14 @@ router.get("/limit/:limiter", async (req, res, next) => {
       req.user !== undefined &&
       (Utils.superAdminCheck(req.user))
     ) {
-      sql = "SELECT * FROM `match` WHERE cancelled IS NULL ORDER BY end_time DESC LIMIT ?";
+      sql = "SELECT * FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?";
     } else {
       sql =
         "SELECT id, user_id, server_id, team1_id, team2_id, winner, " +
         "team1_score, team2_score, team1_series_score, team2_series_score, " +
         "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
         "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug FROM `match` WHERE cancelled IS NULL ORDER BY end_time DESC LIMIT ?";
+        "season_id, is_pug FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?";
     }
     const matches = await db.query(sql, lim);
     res.json({ matches });
