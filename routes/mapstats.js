@@ -163,9 +163,9 @@ router.get("/:match_id", async (req, res, next) => {
 /**
  * @swagger
  *
- * /mapstats/:match_id/:map_id:
+ * /mapstats/:match_id/:map_number:
  *   get:
- *     description: Map statistics for a given match and map.
+ *     description: Map statistics for a given match and map number.
  *     produces:
  *       - application/json
  *     parameters:
