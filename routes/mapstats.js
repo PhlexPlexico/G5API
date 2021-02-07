@@ -173,7 +173,7 @@ router.get("/:match_id", async (req, res, next) => {
  *         required: true
  *         schema:
  *          type: integer
- *       - name: map_id
+ *       - name: map_number
  *         required: true
  *         schema:
  *          type: integer
@@ -197,11 +197,11 @@ router.get("/:match_id", async (req, res, next) => {
  *       500:
  *         $ref: '#/components/responses/Error'
  */
-router.get("/:match_id/:map_id", async (req, res, next) => {
+router.get("/:match_id/:map_number", async (req, res, next) => {
   try {
     let matchID = req.params.match_id;
-    let mapID = req.params.map_id;
-    let sql = "SELECT * FROM map_stats where match_id = ? AND id = ?";
+    let mapID = req.params.map_number;
+    let sql = "SELECT * FROM map_stats where match_id = ? AND map_number = ?";
     const mapstats = await db.query(sql, [matchID, mapID]);
     if (mapstats.length === 0) {
       res.status(404).json({ message: "No stats found." });
