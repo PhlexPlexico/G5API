@@ -1,6 +1,6 @@
 {
   "name": "g5api",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "licenses": [
     {
@@ -76,7 +76,6 @@
     "helmet": "^3.21.2",
     "http-errors": "~1.7.3",
     "jsdoc": "^3.6.3",
-    "jsonwebtoken": "^8.5.1",
     "jszip": "^3.5.0",
     "morgan": "^1.9.1",
     "mysql2": "^2.2.5",

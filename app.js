@@ -25,7 +25,6 @@ const swaggerUi = require("swagger-ui-express");
 const swaggerJSDoc = require("swagger-jsdoc");
 
 const passport = require("./utility/auth");
-const jwt = require("jsonwebtoken");
 const bearerToken = require("express-bearer-token");
 const config = require("config");
 const session = require("express-session");
@@ -156,7 +155,6 @@ app.get(
   }
 );
 
-// Deal with setting JWT cookie during sign in. We can now check cookie + OAuth to see if we're logged in.
 app.get(
   "/auth/steam/return",
   (req, res, next) => {
