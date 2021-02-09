@@ -18,18 +18,16 @@ class Database {
   }
 
   async query(sql, args) {
-    const connection = await this.getConnection();
-    let isDestroyed = false;
     try {
-      const result = await connection.query(sql, args);
+      const connection = await this.getConnection();
+      let result;
+      await this.withNewTransaction(connection, async () => {
+        result = await connection.query(sql, args);
+      });
       return result[0];
     } catch (error) {
       console.log("SQL ERROR SQL ERROR SQL ERROR SQL ERROR SQL ERROR\n" + error);
-      if (error.toString().includes("closed state")) isDestroyed = true;
       throw error;
-    } finally {
-      if (isDestroyed) connection.destroy();
-      else connection.release();
     }
   }
 
@@ -81,7 +79,7 @@ class Database {
       });
     } catch (err) {
       console.log("Failed to import users. Error: " + err);
-    }
+    } 
   }
 }
 
