@@ -556,13 +556,13 @@ router.get("/:match_id/config", async (req, res, next) => {
       matchJSON.maps_to_win = parseInt(matchInfo[0].max_maps / 2 + 1);
     }
     // Fill out team data only if we are not PUGging.
-    if (matchInfo[0].is_pug == 0 || matchInfo[0].is_pug == null) {
-      sql = "SELECT * FROM team WHERE id = ?";
-      const team1Data = await db.query(sql, [matchInfo[0].team1_id]);
-      const team2Data = await db.query(sql, [matchInfo[0].team2_id]);
-      matchJSON.team1 = await build_team_dict(team1Data[0], 1, matchInfo[0]);
-      matchJSON.team2 = await build_team_dict(team2Data[0], 2, matchInfo[0]);
-    }
+    //if (matchInfo[0].is_pug == 0 || matchInfo[0].is_pug == null) {
+    sql = "SELECT * FROM team WHERE id = ?";
+    const team1Data = await db.query(sql, [matchInfo[0].team1_id]);
+    const team2Data = await db.query(sql, [matchInfo[0].team2_id]);
+    matchJSON.team1 = await build_team_dict(team1Data[0], 1, matchInfo[0]);
+    matchJSON.team2 = await build_team_dict(team2Data[0], 2, matchInfo[0]);
+    //}
     sql = "SELECT * FROM match_cvar WHERE match_id = ?";
     matchCvars = await db.query(sql, matchID);
     matchCvars.forEach((row) => {
