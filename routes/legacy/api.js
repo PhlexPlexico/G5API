@@ -145,6 +145,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     let matchID = req.params.match_id == null ? null : req.params.match_id;
     let winner = req.body.winner == null ? null : req.body.winner;
     let forfeit = req.body.forfeit == null ? 0 : req.body.forfeit;
+    let cancelled = null;
     let team1Score = req.body.team1score;
     let team2Score = req.body.team2score;
 
@@ -157,20 +158,28 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     let sql = "SELECT * FROM `match` WHERE id = ?";
     const matchValues = await db.query(sql, matchID);
 
+    // Additional check here to see if we are cancelled through /cancel or not.
     if (
       matchValues[0].end_time == null &&
       (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
     )
       matchFinalized = false;
-
     // Throw error if wrong.
-    await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
+    // Special edge case for cancelled matches on remote server.
+    // DO NOT throw error, just do nothing and report back we're finalized.
+    if (matchValues[0].api_key.localeCompare(req.body.key) !== 0)
+      throw "Not a correct API Key.";
+    if (match_finished == true) {
+      res.status(200).send({ message: "Match already finalized" });
+      return;
+    } 
 
     if (winner === "team1") teamIdWinner = matchValues[0].team1_id;
     else if (winner === "team2") teamIdWinner = matchValues[0].team2_id;
     else if (winner === "none") {
       teamIdWinner = null;
-      forfeit = 1;
+      cancelled = 1;
+      forfeit = 0;
     }
     if (forfeit === 1) {
       if (winner === "team1") {
@@ -195,6 +204,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
           matchValues[0].start_time ||
           new Date().toISOString().slice(0, 19).replace("T", " "),
         end_time: end_time,
+        cancelled: cancelled
       };
       updateStmt = await db.buildUpdateStatement(updateStmt);
       let updateSql = "UPDATE `match` SET ? WHERE id = ?";
