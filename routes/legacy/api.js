@@ -168,6 +168,10 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
 
     if (winner === "team1") teamIdWinner = matchValues[0].team1_id;
     else if (winner === "team2") teamIdWinner = matchValues[0].team2_id;
+    else if (winner === "none") {
+      teamIdWinner = null;
+      forfeit = 1;
+    }
     if (forfeit === 1) {
       if (winner === "team1") {
         team1Score = 1;
@@ -175,6 +179,9 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
       } else if (winner === "team2") {
         team1Score = 0;
         team2Score = 1;
+      } else if (winner === "none") {
+        team1Score = 0;
+        team2Score = 0;
       }
     }
 
