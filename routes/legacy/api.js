@@ -169,7 +169,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     // DO NOT throw error, just do nothing and report back we're finalized.
     if (matchValues[0].api_key.localeCompare(req.body.key) !== 0)
       throw "Not a correct API Key.";
-    if (match_finished == true) {
+    if (matchFinalized == true) {
       res.status(200).send({ message: "Match already finalized" });
       return;
     } 
