@@ -254,7 +254,7 @@ const getTeamLeaderboard = async (seasonId = null) => {
         winningTeam = await db.query(teamSelectSql, [stats.winner]);
         // If we don't have a team don't report to the team table.
         // This means that it was a PUG and not an actual team.
-        if (winningTeam[0].id == null) {
+        if (winningTeam[0] == null) {
           continue;
         }
         if (winningTeam[0].id === match.team1_id) {
