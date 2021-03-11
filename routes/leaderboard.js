@@ -319,7 +319,7 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
     sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
     sum(v2) as v2, sum(v3) as v3, sum(v4) as v4,
     sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba,
-    sum(damage) as dmg, sum(headshot_kills) as hsk
+    sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps
     FROM    player_stats
     WHERE   match_id IN (
         SELECT  id
@@ -337,7 +337,7 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
     sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
     sum(v2) as v2, sum(v3) as v3, sum(v4) as v4,
     sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba,
-    sum(damage) as dmg, sum(headshot_kills) as hsk
+    sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps
     FROM    player_stats
     WHERE   match_id IN (
         SELECT  id
