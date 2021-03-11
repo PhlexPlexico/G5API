@@ -191,9 +191,22 @@ router.get(
   "/myseasons/available",
   Utils.ensureAuthenticated,
   async (req, res, next) => {
+    let sql;
+    let seasons;
     try {
-      // Check if admin, if they are use this query.
-      let sql =
+      // Check if super admin, if they are use this query.
+      if (Utils.superAdminCheck(req.user)) {
+        sql =
+        "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
+        "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
+        "FROM season s LEFT OUTER JOIN season_cvar sc " +
+        "ON s.id = sc.season_id " +
+        "WHERE s.end_date >= CURDATE() " +
+        "OR s.end_date IS NULL " +
+        "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
+        seasons = await db.query(sql, [req.user.id]);
+      } else {
+        sql =
         "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
         "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
         "FROM season s LEFT OUTER JOIN season_cvar sc " +
@@ -202,7 +215,8 @@ router.get(
         "AND s.end_date >= CURDATE() " +
         "OR s.end_date IS NULL " +
         "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
-      const seasons = await db.query(sql, [req.user.id]);
+        seasons = await db.query(sql, [req.user.id]);
+      }
       if (seasons.length === 0) {
         res.status(404).json({ message: "No seasons found." });
         return;
