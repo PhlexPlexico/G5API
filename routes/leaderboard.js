@@ -410,6 +410,7 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
           parseFloat(player.k5)
         ),
         wins: numWins[0].wins,
+        total_maps: player.totalMaps
       });
     } else {
       let collisionPlayer = allPlayers.find((user) => {
@@ -440,6 +441,7 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
       collisionPlayer.fba += parseFloat(player.fba);
       collisionPlayer.hsk += parseFloat(player.hsk);
       collisionPlayer.total_damage += parseFloat(player.dmg);
+      collisionPlayer.total_maps += parseFloat(player.totalMaps);
       collisionPlayer.hsp =
         parseFloat(collisionPlayer.kills) === 0
           ? 0
