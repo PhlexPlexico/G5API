@@ -356,19 +356,20 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
     GROUP BY steam_id, name`;
   let winSql = `SELECT COUNT(*) AS wins FROM \`match\` mtch 
     JOIN player_stats pstat ON mtch.id = pstat.match_id 
-    WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?`;
+    WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?
+    AND is_pug = ?`;
   let winSqlSeasons = `SELECT COUNT(*) AS wins FROM \`match\` mtch 
     JOIN player_stats pstat ON mtch.id = pstat.match_id 
     WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?
-    AND mtch.season_id = ?`;
+    AND mtch.season_id = ? AND is_pug = ?`;
   let numWins;
   if (!seasonId) playerStats = await db.query(playerStatSql);
   else playerStats = await db.query(playerStatSqlSeasons, [seasonId]);
   for (let player of playerStats) {
     // Players can have multiple names. Avoid collision by combining everything, then performing averages.
     if (!allPlayers.some((el) => el.steamId === player.steam_id)) {
-      if (!seasonId) numWins = await db.query(winSql, [player.steam_id]);
-      else numWins = await db.query(winSqlSeasons, [player.steam_id, seasonId]);
+      if (!seasonId) numWins = await db.query(winSql, [player.steam_id, pug]);
+      else numWins = await db.query(winSqlSeasons, [player.steam_id, seasonId, pug]);
       allPlayers.push({
         steamId: player.steam_id,
         name:
