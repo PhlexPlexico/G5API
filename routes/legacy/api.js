@@ -617,7 +617,7 @@ router.post(
       // Update map stats with new demo file link.
       // If we have a demo that's in a path, remove and pop.
       updateStmt = {
-        demoFile: demoFile.split("/").pop(),
+        demoFile: demoFile.split("/").pop().replace("dem", "zip"),
       };
       // Remove any values that may not be updated.
       updateStmt = await db.buildUpdateStatement(updateStmt);
