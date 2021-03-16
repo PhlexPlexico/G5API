@@ -49,6 +49,14 @@ This will attempt to update a production database by creating any tables that do
 
 Spins up a development server (by default, please use the `NODE_ENV` variable to change this) where you can make all your calls. Since steam authentication is enabled, you will need to auth with steam first before making any calls that would modify any data.
 
+### Docker Build Instructions:
+This guide assumes you have a MariaDB or MySQL compatible server running. You can deploy one in docker following the [MariaDB guide](https://hub.docker.com/_/mariadb/).
+First, you will need to set a password in ```config\redis.conf```.
+Next, rename ```config\production.json.template to config\production.json```.
+Fill this file out according to the [configuration](https://github.com/PhlexPlexico/G5API/wiki/Configuration) page. For redisHost, set ```"localhost"```, redisPort ```6379```, redisTTL ```86400```, and redisPass to the password set in ```config\redis.config```.
+Now, you can build your docker image.
+Run the command ```docker build -t yourname\g5api:latest .``` Once this has finished, you can run the container using ```docker container run --name g5api -p 3301:3301 -v redisVol:/RedisFiles yourname\g5api:latest```
+
 ### Docs: 
 ```yarn doc```
 
