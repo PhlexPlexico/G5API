@@ -202,22 +202,6 @@ router.get(
       res.status(401).json({ message: "Match is already finished." });
       return;
     } else {
-      // Let the server cancel the match first, or attempt to?
-      let getServerSQL =
-        "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
-      if (matchRow[0].server_id != null) {
-        const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
-        let serverUpdate = new GameServer(
-          serverRow[0].ip_string,
-          serverRow[0].port,
-          serverRow[0].rcon_password
-        );
-        if (!serverUpdate.endGet5Match()) {
-          console.log(
-            "Error attempting to stop match on game server side. Will continue."
-          );
-        }
-      }
       let mapStatSql =
         "SELECT * FROM map_stats WHERE match_id=? AND map_number=0";
       const mapStat = await db.query(mapStatSql, [req.params.match_id]);
@@ -263,7 +247,22 @@ router.get(
           ]);
         }
       });
-      
+      // Let the server cancel the match first, or attempt to?
+      let getServerSQL =
+        "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
+      if (matchRow[0].server_id != null) {
+        const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
+        let serverUpdate = new GameServer(
+          serverRow[0].ip_string,
+          serverRow[0].port,
+          serverRow[0].rcon_password
+        );
+        if (!serverUpdate.endGet5Match()) {
+          console.log(
+            "Error attempting to stop match on game server side. Will continue."
+          );
+        }
+      }
       res.json({ message: "Match has been cancelled successfully." });
       return;
     }

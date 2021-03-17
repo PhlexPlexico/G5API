@@ -571,7 +571,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let newSingle = await db.getConnection();
-  let userCheckSql = "SELECT user_id FROM game_server WHERE id = ?";
+  let userCheckSql = "SELECT user_id, in_use FROM game_server WHERE id = ?";
   const checkUser = await db.query(userCheckSql, [req.body[0].server_id]);
   if (checkUser[0] == null) {
     res.status(404).json({ message: "Server does not exist." });
@@ -584,6 +584,10 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       .status(403)
       .json({ message: "User is not authorized to perform action." });
     return;
+  } else if (checkUser[0].in_use == 1) {
+    res
+      .status(403)
+      .json({ message: "Please cancel the match before deleting this server." });
   } else {
     try {
       let userId = req.user.id;
