@@ -677,26 +677,32 @@ router.put(
       let apiKey = req.params.api_key;
       let zip = new JSZip();
       // Database calls.
-      let matchFinalized = true;
       let sql = "SELECT * FROM `match` WHERE id = ?";
+      let currentDate = new Date();
       const matchValues = await db.query(sql, matchID);
 
-      if (
-        matchValues[0].end_time == null &&
-        (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
-      )
-        matchFinalized = false;
-      // Throw error if wrong key or finished match.
-      await check_api_key(matchValues[0].api_key, apiKey, matchFinalized);
+      // Throw error if wrong key or finished match. Finalized match doesn't matter.
+      // However, we do need a window of time where this request is only valid.
+      // SO therefore we cannot use this, but need to check when the map is finished
+      // and compare based on that if we kick out or not.
+      // await check_api_key(matchValues[0].api_key, apiKey, false);
+      if (matchValues[0].api_key.localeCompare(apiKey) !== 0)
+        throw "Not a correct API Key.";
 
       sql =
-        "SELECT id, demoFile FROM `map_stats` WHERE match_id = ? AND map_number = ?";
+        "SELECT id, demoFile, end_time FROM `map_stats` WHERE match_id = ? AND map_number = ?";
       const mapStatValues = await db.query(sql, [matchID, mapNumber]);
 
       if (mapStatValues.length < 1) {
         res.status(404).send({ message: "Failed to find map stats object." });
         return;
       }
+      let endTimeMs = new Date(mapStatValues[0].end_time);
+      let timeDifference = Math.abs(currentDate - endTimeMs);
+      let minuteDifference = Math.floor((timeDifference/1000)/60);
+      if (minuteDifference > 8)
+        res.status(500).json({message: "Demo can no longer be uploaded."});
+
       zip.file(mapStatValues[0].demoFile + ".dem", req.body, { binary: true });
       zip
         .generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
