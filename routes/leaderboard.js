@@ -375,7 +375,7 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
         name:
           player.name == null
             ? await Utils.getSteamName(player.steam_id)
-            : player.name,
+            : player.name.replace("/\"/g", "\\\""),
         kills: parseFloat(player.kills),
         deaths: parseFloat(player.deaths),
         assists: parseFloat(player.assists),
@@ -423,8 +423,8 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
           collisionPlayer.name +
           "/" +
           player.name
-        ).replace(/\/+$/, "");
-      else collisionPlayer.name = player.name.replace(/\/+$/, "");
+        ).replace(/\/+$/, "").replace("/\"/g", "\\\"");
+      else collisionPlayer.name = player.name.replace(/\/+$/, "").replace("/\"/g", "\\\"");
       collisionPlayer.kills += parseFloat(player.kills);
       collisionPlayer.deaths += parseFloat(player.deaths);
       collisionPlayer.assists += parseFloat(player.assists);

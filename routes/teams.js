@@ -105,7 +105,7 @@ router.get("/", async (req, res) => {
   let sql =
     "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
     "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
-    "{ \"name\": \"', ta.name, '\", \"captain\": \"', ta.captain, '\"}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
+    "{ \"name\": ', JSON_QUOTE(ta.name), ', \"captain\": \"', ta.captain, '\"}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
     "FROM team t LEFT OUTER JOIN team_auth_names ta " +
     "ON t.id = ta.team_id " +
     "GROUP BY t.id";
@@ -118,14 +118,16 @@ router.get("/", async (req, res) => {
       res.status(404).json({ message: "No teams found in the system." });
       return;
     }
+    
     for (let row in teams) {
       if (teams[row].auth_name != null) {
-        teams[row].auth_name = JSON.parse(teams[row].auth_name);
+        teams[row].auth_name = JSON.parse(teams[row].auth_name.replace("/\\\\\"/g", "\\\""));
         teams[row].auth_name = await getTeamImages(teams[row].auth_name, false);
       }
     }
     res.json({ teams });
   } catch (err) {
+    console.log(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -162,7 +164,7 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
   let sql =
     "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
     "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
-    "{ \"name\": \"', ta.name, '\", \"captain\": ', ta.captain, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
+    "{ \"name\": ', JSON_QUOTE(ta.name), ', \"captain\": ', ta.captain, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
     "FROM team t LEFT OUTER JOIN team_auth_names ta " +
     "ON t.id = ta.team_id " +
     "WHERE t.user_id = ? " +
@@ -223,7 +225,7 @@ router.get("/:team_id", async (req, res) => {
   let sql =
     "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
     "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
-    "{ \"name\": \"', ta.name, '\", \"captain\": ', ta.captain, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
+    "{ \"name\": ', JSON_QUOTE(ta.name), ', \"captain\": ', ta.captain, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
     "FROM team t LEFT OUTER JOIN team_auth_names ta " +
     "ON t.id = ta.team_id " +
     "WHERE t.id = ? " +
