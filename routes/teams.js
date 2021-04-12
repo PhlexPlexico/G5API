@@ -736,10 +736,18 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
       otherTeam = await db.query(teamSql, [curMatch[0].team2_id]);
       myScore = curMatch[0].team1_score;
       otherTeamScore = curMatch[0].team2_score;
+      otherName =
+        curMatch[0].team2_string == null
+        ? "Team Removed From Match"
+        : curMatch[0].team2_string;
     } else {
       otherTeam = await db.query(teamSql, [curMatch[0].team1_id]);
       myScore = curMatch[0].team2_score;
       otherTeamScore = curMatch[0].team1_score;
+      otherName =
+        curMatch[0].team1_string == null
+        ? "Team Removed From Match"
+        : curMatch[0].team1_string;
     }
     // If match is a bo1, just get the map score.
     if (curMatch[0].max_maps == 1) {
@@ -756,8 +764,6 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
         }
       }
     }
-    if (otherTeam.length == 0) otherName = "Team Removed From Match";
-    else otherName = otherTeam[0].name;
     if (
       curMatch[0].end_time == null &&
       (curMatch[0].cancelled == 0 || curMatch[0].cancelled == null) &&
