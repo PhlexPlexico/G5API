@@ -63,6 +63,9 @@ const Utils = require("../utility/utils");
  *         teamkills:
  *           type: integer
  *           description: Integer representing amount of team kills.
+ *         knife_kills:
+ *           type: integer
+ *           description: Integer representing amount of knife kills.
  *         suicides:
  *           type: integer
  *           description: Integer representing amount of suicides.
@@ -72,6 +75,15 @@ const Utils = require("../utility/utils");
  *         damage:
  *           type: integer
  *           description: Integer representing amount of damage.
+ *         util_damage:
+ *           type: integer
+ *           description: Integer representing amount of damage in utility.
+ *         enemies_flashed:
+ *           type: integer
+ *           description: Integer reprsentation of enemies flashed.
+ *         friendlies_flashed:
+ *           type: integer
+ *           description: Integer reprsentation of teammates flashed.
  *         bomb_plants:
  *           type: integer
  *           description: Integer representing amount of bomb plants.
@@ -628,9 +640,13 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           assists: req.body[0].assists,
           flashbang_assists: req.body[0].flashbang_assists,
           teamkills: req.body[0].teamkills,
+          knife_kills: req.body[0].knife_kills,
           suicides: req.body[0].suicides,
           headshot_kills: req.body[0].headshot_kills,
           damage: req.body[0].damage,
+          util_damage: req.body[0].util_damage,
+          enemies_flashed: req.body[0].enemies_flashed,
+          friendlies_flashed: req.body[0].friendlies_flashed,
           bomb_plants: req.body[0].bomb_plants,
           bomb_defuses: req.body[0].bomb_defuses,
           v1: req.body[0].v1,
@@ -649,7 +665,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           firstkill_t: req.body[0].firstkill_t,
           kast: req.body[0].kast,
           contribution_score: req.body[0].contribution_score,
-          mvp: req.body[0].mvp,
+          mvp: req.body[0].mvp
         };
         let sql = "INSERT INTO player_stats SET ?";
         // Remove any values that may not be inserted off the hop.
@@ -745,9 +761,13 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           assists: req.body[0].assists,
           flashbang_assists: req.body[0].flashbang_assists,
           teamkills: req.body[0].teamkills,
+          knife_kills: req.body[0].knife_kills,
           suicides: req.body[0].suicides,
           headshot_kills: req.body[0].headshot_kills,
           damage: req.body[0].damage,
+          util_damage: req.body[0].util_damage,
+          enemies_flashed: req.body[0].enemies_flashed,
+          friendlies_flashed: req.body[0].friendlies_flashed,
           bomb_plants: req.body[0].bomb_plants,
           bomb_defuses: req.body[0].bomb_defuses,
           v1: req.body[0].v1,
@@ -766,7 +786,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           firstkill_t: req.body[0].firstkill_t,
           kast: req.body[0].kast,
           contribution_score: req.body[0].contribution_score,
-          mvp: req.body[0].mvp,
+          mvp: req.body[0].mvp
         };
         // Remove any values that may not be updated.
         updateStmt = await db.buildUpdateStatement(updateStmt);
