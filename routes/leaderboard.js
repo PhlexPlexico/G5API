@@ -415,7 +415,7 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
           parseFloat(player.k5)
         ),
         wins: numWins[0].wins,
-        total_maps: player.totalMaps,
+        total_maps: player.totalMaps,        
         enemies_flashed: parseFloat(player.eflash),
         friendlies_flashed: parseFloat(player.fflash),
         util_damage: parseFloat(player.utildmg)
