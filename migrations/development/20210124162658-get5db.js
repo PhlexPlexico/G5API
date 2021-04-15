@@ -97,5 +97,5 @@ exports.down = function(db, callback) {
 };
 
 exports._meta = {
-  "version": 13
+  "version": 14
 };
