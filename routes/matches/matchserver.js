@@ -740,6 +740,99 @@ router.put(
 /**
  * @swagger
  *
+ *  /matches/:match_id/removeuser:
+ *   put:
+ *     description: Sends a get5_removeplayer command to the game server with a given steam ID.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         description: The current matches identification number.
+ *         schema:
+ *            type:integer
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              steam_id:
+ *                type: string
+ *                description: The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match response.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.put(
+  "/:match_id/removeuser/",
+  Utils.ensureAuthenticated,
+  async (req, res, next) => {
+    let currentMatchInfo =
+      "SELECT user_id, server_id, cancelled, forfeit, end_time, team1_id, team2_id FROM `match` WHERE id = ?";
+    const matchRow = await db.query(currentMatchInfo, req.params.match_id);
+    if (matchRow.length === 0) {
+      res.status(404).json({ message: "No match found." });
+      return;
+    } else if (
+      !Utils.adminCheck(req.user) &&
+      req.user.id != matchRow[0].user_id
+    ) {
+      res
+        .status(403)
+        .json({ message: "User is not authorized to perform action." });
+      return;
+    } else if (
+      matchRow[0].cancelled == 1 ||
+      matchRow[0].forfeit == 1 ||
+      matchRow[0].end_time != null
+    ) {
+      res.status(401).json({ message: "Match is already finished." });
+      return;
+    } else {
+      let getServerSQL =
+        "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
+      const serverRow = await db.query(getServerSQL, [matchRow[0].server_id]);
+      let serverUpdate = new GameServer(
+        serverRow[0].ip_string,
+        serverRow[0].port,
+        serverRow[0].rcon_password
+      );
+      let steamID = await Utils.getSteamPID(req.body[0].steam_id);
+      try {
+        let rconResponse = await serverUpdate.removeUser(steamID);
+        res.json({
+          message: "User removed from match successfully.",
+          response: rconResponse,
+        });
+      } catch (err) {
+        res
+          .status(500)
+          .json({ message: "Error on game server.", response: err });
+      } finally {
+        return;
+      }
+    }
+  }
+);
+
+/**
+ * @swagger
+ *
  *  /matches/:match_id/backup:
  *   get:
  *     description: Retrieves the name of backups on the game server.
