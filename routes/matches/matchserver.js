@@ -552,7 +552,7 @@ router.get(
  *          schema:
  *            type: object
  *            properties:
- *              user_id:
+ *              steam_id:
  *                type: string
  *                description: The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
  *              team_id:
@@ -719,7 +719,7 @@ router.put(
         serverRow[0].port,
         serverRow[0].rcon_password
       );
-      let steamID = Utils.getSteamPID(req.body[0].steam_id);
+      let steamID = await Utils.getSteamPID(req.body[0].steam_id);
       try {
         let rconResponse = await serverUpdate.addUser("spec", steamID);
         res.json({
