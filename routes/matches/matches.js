@@ -555,15 +555,12 @@ router.get("/:match_id/config", async (req, res, next) => {
     } else {
       matchJSON.maps_to_win = parseInt(matchInfo[0].max_maps / 2 + 1);
     }
-    // Fill out team data only if we are not PUGging.
-    //if (matchInfo[0].is_pug == 0 || matchInfo[0].is_pug == null) {
     sql = "SELECT * FROM team WHERE id = ?";
     const team1Data = await db.query(sql, [matchInfo[0].team1_id]);
     const team2Data = await db.query(sql, [matchInfo[0].team2_id]);
     
     matchJSON.team1 = JSON.parse(await build_team_dict(team1Data[0], 1, matchInfo[0]));
     matchJSON.team2 = JSON.parse(await build_team_dict(team2Data[0], 2, matchInfo[0]));
-    //}
     sql = "SELECT * FROM match_cvar WHERE match_id = ?";
     matchCvars = await db.query(sql, matchID);
     matchCvars.forEach((row) => {
@@ -818,9 +815,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           "SELECT map FROM veto WHERE match_id = ? AND pick_or_veto = 'pick'";
         let vetoMapPool = null;
         let maxMaps = null;
-        
+        vetoList = await newSingle.query(vetoSql, req.body[0].match_id)
         vetoList = JSON.parse(
-          JSON.stringify(await db.query(vetoSql, req.body[0].match_id))
+          JSON.stringify(vetoList[0])
         );
         if (Object.keys(vetoList).length > 0) {
           vetoList.forEach((veto) => {

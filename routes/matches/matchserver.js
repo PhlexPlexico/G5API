@@ -107,7 +107,7 @@ router.get(
           }
           let matchSql = "UPDATE `match` SET ? WHERE id=?";
           let serverUpdateSql = "UPDATE game_server SET in_use=0 WHERE id=?";
-          if (mapStat[0].length == 0) await db.query(mapStatSql, [newStatStmt]);
+          if (mapStat[0].length == 0) await newSingle.query(mapStatSql, [newStatStmt]);
           else
             await newSingle.query(mapStatSql, [
               newStatStmt,
@@ -1013,7 +1013,7 @@ router.post(
           );
           let getServerSQL =
             "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
-          const serverRow = await db.query(getServerSQL, [
+          const serverRow = await newSingle.query(getServerSQL, [
             matchServerId[0][0].server_id,
           ]);
           let serverUpdate = new GameServer(
