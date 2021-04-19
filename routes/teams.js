@@ -723,7 +723,7 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
     let statusString = "";
     let otherName = "";
     const curMatch = await db.query(matchSql, [matchId]);
-    if (curMatch[0] == null) {
+    if (curMatch.length < 1) {
       res.status(404).json({ result: "Team did not participate in match." });
       return;
     }
@@ -747,7 +747,7 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
       let mapSql =
         "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ? LIMIT 1";
       const mapStatBo1 = await db.query(mapSql, [matchId]);
-      if (mapStatBo1[0] == null) {
+      if (mapStatBo1.length < 1) {
         if (curMatch[0].team1_id == teamId) {
           myScore = mapStatBo1[0].team1_score;
           otherTeamScore = mapStatBo1[0].team2_score;
