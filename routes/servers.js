@@ -266,7 +266,6 @@ router.get("/:server_id", Utils.ensureAuthenticated, async (req, res, next) => {
       // Grab bare min. so a user can see a connect button or the like.
       sql = "SELECT gs.ip_string, gs.port FROM game_server gs WHERE gs.id = ?";
       server = await db.query(sql, [serverID]);
-      console.log(server);
       if (server[0]) {
         server = JSON.parse(JSON.stringify(server[0]));
         res.json({ server });
@@ -275,7 +274,7 @@ router.get("/:server_id", Utils.ensureAuthenticated, async (req, res, next) => {
       }
     } else {
       server[0].rcon_password = Utils.decrypt(server[0].rcon_password);
-      server = JSON.parse(JSON.stringify(server));
+      server = JSON.parse(JSON.stringify(server[0]));
       res.json({ server });
     }
   } catch (err) {
