@@ -169,15 +169,17 @@ const Utils = require("../utility/utils");
  */
 router.get("/", async (req, res, next) => {
   try {
-    // Check if admin, if they are use this query.
+    let newSingle = await db.getConnection();
     let sql = "SELECT * FROM player_stats";
-    const playerStats = await db.query(sql);
-    if (playerStats.length === 0) {
+    let playerStats = await newSingle.query(sql);
+    if (playerStats[0].length === 0) {
       res.status(404).json({ message: "No stats found on the site!" });
       return;
     }
+    playerStats = playerStats[0];
     res.json({ playerStats });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -209,15 +211,16 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/unique", async (req, res, next) => {
   try {
-    //
+    let newSingle = await db.getConnection();
     let sql = "SELECT COUNT(DISTINCT steam_id) as cnt FROM player_stats";
-    const playercount = await db.query(sql);
+    const playercount = await newSingle.query(sql);
     if (playercount[0].cnt === 0) {
       res.status(404).json({ message: "No stats found." });
       return;
     }
     res.json({ count: playercount[0].cnt });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -257,16 +260,18 @@ router.get("/unique", async (req, res, next) => {
  */
 router.get("/:steam_id", async (req, res, next) => {
   try {
-    //
-    steamID = req.params.steam_id;
+    let newSingle = await db.getConnection();
+    let steamID = req.params.steam_id;
     let sql = "SELECT * FROM player_stats where steam_id = ?";
-    const playerstats = await db.query(sql, steamID);
-    if (playerstats.length === 0) {
+    let playerstats = await newSingle.query(sql, steamID);
+    if (playerstats[0].length === 0) {
       res.status(404).json({ message: "No stats found for player " + steamID });
       return;
     }
+    playerstats = playerstats[0];
     res.json({ playerstats });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -306,8 +311,8 @@ router.get("/:steam_id", async (req, res, next) => {
  */
 router.get("/:steam_id/pug", async (req, res, next) => {
   try {
-    //
-    steamID = req.params.steam_id;
+    let newSingle = await db.getConnection();
+    let steamID = req.params.steam_id;
     let sql = `SELECT steam_id, name, sum(kills) as kills,
           sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
           sum(k2) as k2, sum(k3) as k3,
@@ -326,12 +331,13 @@ router.get("/:steam_id/pug", async (req, res, next) => {
           WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?
           AND is_pug = 1`;
     let numWins;
-    let playerstats = await db.query(sql, steamID);
-    if (playerstats.length === 0) {
+    let playerstats = await newSingle.query(sql, steamID);
+    if (playerstats[0].length === 0) {
       res.status(404).json({ message: "No stats found for player " + steamID });
       return;
     }
-    numWins = await db.query(winSql, [playerstats[0].steam_id]);
+    playerstats = playerstats[0];
+    numWins = await newSingle.query(winSql, [playerstats[0].steam_id]);
     let pugstats = {
       steamId: playerstats[0].steam_id,
       name:
@@ -373,11 +379,12 @@ router.get("/:steam_id/pug", async (req, res, next) => {
         parseFloat(playerstats[0].k4),
         parseFloat(playerstats[0].k5)
       ),
-      wins: numWins[0].wins,
+      wins: numWins[0][0].wins,
       total_maps: playerstats[0].totalMaps,
     };
     res.json({ pugstats });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -417,8 +424,8 @@ router.get("/:steam_id/pug", async (req, res, next) => {
  */
 router.get("/:steam_id/official", async (req, res, next) => {
   try {
-    //
-    steamID = req.params.steam_id;
+    let steamID = req.params.steam_id;
+    let newSingle = await db.getConnection();
     let sql = `SELECT steam_id, name, sum(kills) as kills,
            sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
            sum(k2) as k2, sum(k3) as k3,
@@ -437,12 +444,13 @@ router.get("/:steam_id/official", async (req, res, next) => {
            WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?
            AND is_pug = 0`;
     let numWins;
-    let playerstats = await db.query(sql, steamID);
+    let playerstats = await newSingle.query(sql, steamID);
     if (playerstats.length === 0) {
       res.status(404).json({ message: "No stats found for player " + steamID });
       return;
     }
-    numWins = await db.query(winSql, [playerstats[0].steam_id]);
+    playerstats = playerstats[0];
+    numWins = await newSingle.query(winSql, [playerstats[0].steam_id]);
     let pugstats = {
       steamId: playerstats[0].steam_id,
       name:
@@ -484,11 +492,12 @@ router.get("/:steam_id/official", async (req, res, next) => {
         parseFloat(playerstats[0].k4),
         parseFloat(playerstats[0].k5)
       ),
-      wins: numWins[0].wins,
+      wins: numWins[0][0].wins,
       total_maps: playerstats[0].totalMaps,
     };
     res.json({ pugstats });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -528,15 +537,18 @@ router.get("/:steam_id/official", async (req, res, next) => {
  */
 router.get("/match/:match_id", async (req, res, next) => {
   try {
+    let newSingle = await db.getConnection();
     matchID = req.params.match_id;
     let sql = "SELECT * FROM player_stats where match_id = ?";
-    const playerstats = await db.query(sql, matchID);
-    if (playerstats.length === 0) {
+    let playerstats = await newSingle.query(sql, matchID);
+    if (playerstats[0].length === 0) {
       res.status(404).json({ message: "No stats found for match " + matchID });
       return;
     }
+    playerstats = playerstats[0];
     res.json({ playerstats });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -592,12 +604,12 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     }
     let currentMatchInfo =
       "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time, mtch.api_key as mtch_api_key FROM `match` mtch WHERE mtch.id=?";
-    const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
-    if (matchRow.length === 0) {
+    const matchRow = await newSingle.query(currentMatchInfo, req.body[0].match_id);
+    if (matchRow[0].length === 0) {
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
-      matchRow[0].mtch_api_key != req.body[0].api_key &&
+      matchRow[0][0].mtch_api_key != req.body[0].api_key &&
       !Utils.superAdminCheck(req.user)
     ) {
       res
@@ -605,9 +617,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
-      matchRow[0].cancelled == 1 ||
-      matchRow[0].forfeit == 1 ||
-      matchRow[0].mtch_end_time != null
+      matchRow[0][0].cancelled == 1 ||
+      matchRow[0][0].forfeit == 1 ||
+      matchRow[0][0].mtch_end_time != null
     ) {
       res.status(403).json({
         message:
@@ -714,12 +726,12 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     }
     let currentMatchInfo =
       "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time, mtch.api_key as mtch_api_key FROM `match` mtch, map_stats mstat WHERE mtch.id=? AND mstat.match_id=mtch.id";
-    const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
-    if (matchRow.length === 0) {
+    const matchRow = await newSingle.query(currentMatchInfo, req.body[0].match_id);
+    if (matchRow[0].length === 0) {
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
-      matchRow[0].mtch_api_key != req.body[0].api_key &&
+      matchRow[0][0].mtch_api_key != req.body[0].api_key &&
       !Utils.superAdminCheck(req.user)
     ) {
       res
@@ -727,9 +739,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
-      matchRow[0].cancelled == 1 ||
-      matchRow[0].forfeit == 1 ||
-      matchRow[0].mtch_end_time != null
+      matchRow[0][0].cancelled == 1 ||
+      matchRow[0][0].forfeit == 1 ||
+      matchRow[0][0].mtch_end_time != null
     ) {
       res.status(401).json({
         message: "Match is already finished. Cannot update historical matches.",
@@ -852,12 +864,12 @@ router.delete("/", async (req, res, next) => {
     }
     let currentMatchInfo =
       "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time, mtch.api_key as mtch_api_key FROM `match` mtch, map_stats mstat WHERE mtch.id=?";
-    const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
-    if (matchRow.length === 0) {
+    const matchRow = await newSingle.query(currentMatchInfo, req.body[0].match_id);
+    if (matchRow[0].length === 0) {
       res.status(404).json({ message: "No player stats data found." });
       return;
     } else if (
-      matchRow[0].user_id != req.user.id &&
+      matchRow[0][0].user_id != req.user.id &&
       !Utils.superAdminCheck(req.user)
     ) {
       res
@@ -865,9 +877,9 @@ router.delete("/", async (req, res, next) => {
         .json({ message: "User is not authorized to perform action." });
       return;
     } else if (
-      matchRow[0].cancelled == 1 ||
-      matchRow[0].forfeit == 1 ||
-      matchRow[0].mtch_end_time != null
+      matchRow[0][0].cancelled == 1 ||
+      matchRow[0][0].forfeit == 1 ||
+      matchRow[0][0].mtch_end_time != null
     ) {
       let deleteSql = "DELETE FROM player_stats WHERE match_id = ?";
       await db.withNewTransaction(newSingle, async () => {

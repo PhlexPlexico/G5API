@@ -331,7 +331,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let currentMatchInfo = "SELECT match_id FROM map_stats WHERE id = ?";
     const matchRow = await newSingle.query(currentMatchInfo, req.body[0].map_stats_id);
     let errMessage = await Utils.getUserMatchAccess(
-      matchRow[0].match_id,
+      matchRow[0][0].match_id,
       req.user,
       false
     );
@@ -417,10 +417,11 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(412).json({ message: "Map Stats ID Not Provided" });
       return;
     }
+    let newSingle = await db.getConnection();
     let currentMatchInfo = "SELECT match_id FROM map_stats WHERE id = ?";
     const matchRow = await newSingle.query(currentMatchInfo, req.body[0].map_stats_id);
     let errMessage = await Utils.getUserMatchAccess(
-      matchRow[0].match_id,
+      matchRow[0][0].match_id,
       req.user,
       false
     );
@@ -428,7 +429,6 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(errMessage.status).json({ message: errMessage.message });
       return;
     } else {
-      let newSingle = await db.getConnection();
       await db.withNewTransaction(newSingle, async () => {
         let mapStatsId = req.body[0].map_stats_id;
         let deleteSql = "DELETE FROM map_stats WHERE id = ?";

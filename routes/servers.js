@@ -91,6 +91,7 @@ const Utils = require("../utility/utils");
  */
 router.get("/", async (req, res, next) => {
   try {
+    let newSingle = await db.getConnection();
     // Check if admin or super admin, adjust by providing rcon password or not.
     let sql = "";
     if (Utils.superAdminCheck(req.user)) {
@@ -103,14 +104,16 @@ router.get("/", async (req, res, next) => {
       sql =
         "SELECT gs.id, gs.in_use, gs.display_name, usr.name, gs.public_server, gs.flag FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id";
     }
-    const servers = await db.query(sql);
+    let servers = await newSingle.query(sql);
     if (Utils.superAdminCheck(req.user)) {
-      for (let serverRow of servers) {
+      for (let serverRow of servers[0]) {
         serverRow.rcon_password = await Utils.decrypt(serverRow.rcon_password);
       }
     }
+    servers = servers[0];
     res.json({ servers });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -145,6 +148,7 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/available", async (req, res, next) => {
   try {
+    let newSingle = await db.getConnection();
     // Check if admin or super admin, adjust by providing rcon password or not.
     let sql = "";
     if (Utils.superAdminCheck(req.user)) {
@@ -157,14 +161,16 @@ router.get("/available", async (req, res, next) => {
       sql =
         "SELECT gs.id, gs.display_name, usr.name, usr.id as user_id, gs.flag FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id AND gs.in_use=0";
     }
-    const servers = await db.query(sql);
+    let servers = await newSingle.query(sql);
     if (Utils.superAdminCheck(req.user)) {
-      for (let serverRow of servers) {
+      for (let serverRow of servers[0]) {
         serverRow.rcon_password = await Utils.decrypt(serverRow.rcon_password);
       }
     }
+    servers = servers[0];
     res.json({ servers });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -199,15 +205,18 @@ router.get("/available", async (req, res, next) => {
  */
 router.get("/myservers", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
+    let newSingle = await db.getConnection();
     // Check if admin, if they are use this query.
     let sql =
       "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, usr.id as user_id, gs.flag, gs.gotv_port FROM game_server gs, user usr WHERE usr.id = gs.user_id AND usr.id=?";
-    const servers = await db.query(sql, req.user.id);
-    for (let serverRow of servers) {
+    let servers = await newSingle.query(sql, req.user.id);
+    for (let serverRow of servers[0]) {
       serverRow.rcon_password = await Utils.decrypt(serverRow.rcon_password);
     }
+    servers = servers[0];
     res.json({ servers });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -246,30 +255,32 @@ router.get("/myservers", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.get("/:server_id", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
+    let newSingle = await db.getConnection();
     let serverID = req.params.server_id;
     let sql = "";
     let server;
     if (Utils.superAdminCheck(req.user)) {
       sql =
         "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, gs.flag, gs.gotv_port FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.id = ?";
-      server = await db.query(sql, [serverID]);
+      server = await newSingle.query(sql, [serverID]);
     } else {
       sql =
         "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, gs.flag, gs.gotv_port FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.id = ? AND usr.id = ?";
-      server = await db.query(sql, [serverID, req.user.id]);
+      server = await newSingle.query(sql, [serverID, req.user.id]);
     }
-    if (server.length < 1) {
+    if (server[0].length < 1) {
       // Grab bare min. so a user can see a connect button or the like.
       sql = "SELECT gs.ip_string, gs.port FROM game_server gs WHERE gs.id = ?";
-      server = await db.query(sql, [serverID]);
-      server = JSON.parse(JSON.stringify(server[0]));
+      server = await newSingle.query(sql, [serverID]);
+      server = JSON.parse(JSON.stringify(server[0][0]));
       res.json({ server });
     } else {
-      server[0].rcon_password = await Utils.decrypt(server[0].rcon_password);
-      server = JSON.parse(JSON.stringify(server[0]));
+      server[0][0].rcon_password = await Utils.decrypt(server[0][0].rcon_password);
+      server = JSON.parse(JSON.stringify(server[0][0]));
       res.json({ server });
     }
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -307,15 +318,16 @@ router.get(
   "/:server_id/status",
   Utils.ensureAuthenticated,
   async (req, res, next) => {
+    let newSingle = await db.getConnection();
     let userCheckSql =
       "SELECT user_id, ip_string, port, rcon_password FROM game_server WHERE id=?";
     let userId = req.user.id;
-    const serverInfo = await db.query(userCheckSql, [req.params.server_id]);
-    if (serverInfo[0] == null) {
+    let serverInfo = await newSingle.query(userCheckSql, [req.params.server_id]);
+    if (serverInfo[0].length === 0) {
       res.status(404).json({ message: "Server does not exist." });
       return;
     } else if (
-      serverInfo[0].user_id != userId &&
+      serverInfo[0][0].user_id != userId &&
       !Utils.superAdminCheck(req.user)
     ) {
       res
@@ -325,9 +337,9 @@ router.get(
     } else {
       try {
         let ourServer = new GameServer(
-          serverInfo[0].ip_string,
-          serverInfo[0].port,
-          serverInfo[0].rcon_password
+          serverInfo[0][0].ip_string,
+          serverInfo[0][0].port,
+          serverInfo[0][0].rcon_password
         );
         let serverUp = await ourServer.isServerAlive();
         if (!serverUp) {
@@ -339,6 +351,7 @@ router.get(
           res.json({ message: "Server is alive and online." });
         }
       } catch (err) {
+        console.error(err);
         res.status(500).json({ message: err.toString() });
       }
     }
@@ -419,6 +432,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
     }
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -463,12 +477,12 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let newSingle = await db.getConnection();
   let userCheckSql = "SELECT user_id FROM game_server WHERE id = ?";
   let userId = req.user.id;
-  const checkUser = await db.query(userCheckSql, [req.body[0].server_id]);
-  if (checkUser[0] == null) {
+  const checkUser = await newSingle.query(userCheckSql, [req.body[0].server_id]);
+  if (checkUser[0][0] == null) {
     res.status(404).json({ message: "Server does not exist." });
     return;
   } else if (
-    checkUser[0].user_id != userId &&
+    checkUser[0][0].user_id != userId &&
     !Utils.superAdminCheck(req.user)
   ) {
     res
@@ -507,14 +521,14 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         // Get all server info
         sql =
           "SELECT ip_string, port, rcon_password FROM game_server WHERE id = ?";
-        serveInfo = await db.query(sql, [serverId]);
+        serveInfo = await newSingle.query(sql, [serverId]);
         let ourServer = new GameServer(
           req.body[0].ip_string == null
-            ? serveInfo[0].ip_string
+            ? serveInfo[0][0].ip_string
             : req.body[0].ip_string,
-          req.body[0].port == null ? serveInfo[0].port : req.body[0].port,
+          req.body[0].port == null ? serveInfo[0][0].port : req.body[0].port,
           req.body[0].rcon_password == null
-            ? serveInfo[0].rcon_password
+            ? serveInfo[0][0].rcon_password
             : Utils.encrypt(req.body[0].rcon_password)
         );
         let serverUp = await ourServer.isServerAlive();
@@ -528,6 +542,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         }
       } else throw "ERROR - Game server not updated.";
     } catch (err) {
+      console.error(err);
       res.status(500).json({ message: err.toString() });
     }
   }
@@ -572,19 +587,19 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
 router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let newSingle = await db.getConnection();
   let userCheckSql = "SELECT user_id, in_use FROM game_server WHERE id = ?";
-  const checkUser = await db.query(userCheckSql, [req.body[0].server_id]);
-  if (checkUser[0] == null) {
+  const checkUser = await newSingle.query(userCheckSql, [req.body[0].server_id]);
+  if (checkUser[0][0] == null) {
     res.status(404).json({ message: "Server does not exist." });
     return;
   } else if (
-    checkUser[0].user_id != req.user.id &&
+    checkUser[0][0].user_id != req.user.id &&
     !Utils.superAdminCheck(req.user)
   ) {
     res
       .status(403)
       .json({ message: "User is not authorized to perform action." });
     return;
-  } else if (checkUser[0].in_use == 1) {
+  } else if (checkUser[0][0].in_use == 1) {
     res
       .status(403)
       .json({ message: "Please cancel the match before deleting this server." });
@@ -609,6 +624,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
         throw "Error! Unable to delete record.";
       }
     } catch (err) {
+      console.error(err);
       res.status(500).json({ message: err.toString() });
     }
   }
