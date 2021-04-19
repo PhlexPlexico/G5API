@@ -402,7 +402,7 @@ router.get("/:match_id", async (req, res, next) => {
       return;
     } else if (
       req.user !== undefined &&
-      (matchRow[0][0].user_id == req.user.id || Utils.superAdminCheck(req.user))
+      (matchRow[0].user_id == req.user.id || Utils.superAdminCheck(req.user))
     ) {
       sql = "SELECT * FROM `match` where id=?";
     } else {
