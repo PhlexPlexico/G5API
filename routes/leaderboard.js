@@ -79,6 +79,7 @@ router.get("/", async (req, res) => {
     let leaderboard = await getTeamLeaderboard();
     res.json({ leaderboard });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -108,7 +109,7 @@ router.get("/players", async (req, res) => {
     let leaderboard = await getPlayerLeaderboard();
     res.json({ leaderboard });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err });
   }
 });
@@ -138,7 +139,7 @@ router.get("/players/pug", async (req, res) => {
     let leaderboard = await getPlayerLeaderboard(null, true);
     res.json({ leaderboard });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err });
   }
 });
@@ -174,7 +175,7 @@ router.get("/players/:season_id", async (req, res) => {
     let leaderboard = await getPlayerLeaderboard(seasonId);
     res.json({ leaderboard });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err });
   }
 });
@@ -210,7 +211,7 @@ router.get("/:season_id", async (req, res) => {
     let leaderboard = await getTeamLeaderboard(seasonId);
     res.json({ leaderboard });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err });
   }
 });
@@ -222,7 +223,6 @@ router.get("/:season_id", async (req, res) => {
  * @inner */
 const getTeamLeaderboard = async (seasonId = null) => {
   try {
-    let newSingle = await db.getConnection();
     /* Logic:
      * 1. Get all matches.
      * 2. Loops through each match id, and get all map stats.
@@ -237,39 +237,38 @@ const getTeamLeaderboard = async (seasonId = null) => {
     if (!seasonId) {
       matchSql =
         "SELECT id, team1_id, team2_id FROM `match` WHERE end_time IS NOT NULL AND winner IS NOT NULL AND cancelled = false";
-      allMatches = await newSingle.query(matchSql);
+      allMatches = await db.query(matchSql);
     } else {
       matchSql =
         "SELECT id, team1_id, team2_id FROM `match` WHERE end_time IS NOT NULL AND winner IS NOT NULL AND cancelled = FALSE AND season_id = ?";
-      allMatches = await newSingle.query(matchSql, [seasonId]);
+      allMatches = await db.query(matchSql, [seasonId]);
     }
-    allMatches = allMatches[0];
     for (let match of allMatches) {
       let mapStatSql =
         "SELECT * FROM map_stats WHERE match_id = ? AND winner IS NOT NULL";
       let teamSelectSql = "SELECT id, name FROM team WHERE id = ?";
       let winningTeam, losingTeam;
-      const mapStats = await newSingle.query(mapStatSql, match.id);
-      for (let stats of mapStats[0]) {
+      const mapStats = await db.query(mapStatSql, match.id);
+      for (let stats of mapStats) {
         winningRounds = 0;
         losingRounds = 0;
-        winningTeam = await newSingle.query(teamSelectSql, [stats.winner]);
+        winningTeam = await db.query(teamSelectSql, [stats.winner]);
         // If we don't have a team don't report to the team table.
         // This means that it was a PUG and not an actual team.
-        if (winningTeam[0][0] == null) {
+        if (winningTeam[0] == null) {
           continue;
         }
-        if (winningTeam[0][0].id === match.team1_id) {
-          losingTeam = await newSingle.query(teamSelectSql, [match.team2_id]);
+        if (winningTeam[0].id === match.team1_id) {
+          losingTeam = await db.query(teamSelectSql, [match.team2_id]);
           winningRounds += stats.team1_score;
           losingRounds += stats.team2_score;
         } else {
-          losingTeam = await newSingle.query(teamSelectSql, [match.team1_id]);
+          losingTeam = await db.query(teamSelectSql, [match.team1_id]);
           winningRounds += stats.team2_score;
           losingRounds += stats.team1_score;
         }
-        let winName = winningTeam[0][0].name;
-        let loseName = losingTeam[0][0].name;
+        let winName = winningTeam[0].name;
+        let loseName = losingTeam[0].name;
         // Instantiate the object, needed only once.
         if (!teamStandings.some((el) => el.name === winName)) {
           teamStandings.push({
@@ -365,14 +364,13 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
     WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?
     AND mtch.season_id = ? AND is_pug = ?`;
   let numWins;
-  let newSingle = await db.getConnection();
-  if (!seasonId) playerStats = await newSingle.query(playerStatSql);
-  else playerStats = await newSingle.query(playerStatSqlSeasons, [seasonId]);
-  for (let player of playerStats[0]) {
+  if (!seasonId) playerStats = await db.query(playerStatSql);
+  else playerStats = await db.query(playerStatSqlSeasons, [seasonId]);
+  for (let player of playerStats) {
     // Players can have multiple names. Avoid collision by combining everything, then performing averages.
     if (!allPlayers.some((el) => el.steamId === player.steam_id)) {
-      if (!seasonId) numWins = await newSingle.query(winSql, [player.steam_id, pug]);
-      else numWins = await newSingle.query(winSqlSeasons, [player.steam_id, seasonId, pug]);
+      if (!seasonId) numWins = await db.query(winSql, [player.steam_id, pug]);
+      else numWins = await db.query(winSqlSeasons, [player.steam_id, seasonId, pug]);
       allPlayers.push({
         steamId: player.steam_id,
         name:
@@ -413,7 +411,7 @@ const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
           parseFloat(player.k4),
           parseFloat(player.k5)
         ),
-        wins: numWins[0][0].wins,
+        wins: numWins[0].wins,
         total_maps: player.totalMaps
       });
     } else {

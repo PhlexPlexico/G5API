@@ -93,7 +93,7 @@ class Utils {
       let decryptedText = aes.utils.utf8.fromBytes(decryptedBytes);
       return decryptedText;
     } catch (err) {
-      console.log(err);
+      console.error(err);
       // fail silently.
       return null;
     }
@@ -120,7 +120,7 @@ class Utils {
       encryptedHex = hexIV + encryptedHex;
       return encryptedHex;
     } catch (err) {
-      console.log(err);
+      console.error(err);
       throw err;
     }
   }

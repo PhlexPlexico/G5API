@@ -299,7 +299,6 @@ const config = require("config");
  */
 router.get("/", async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let sql =
       "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, " +
       "team2_score, team1_series_score, team2_series_score, team1_string, team2_string, " +
@@ -308,12 +307,11 @@ router.get("/", async (req, res, next) => {
       "FROM `match` " +
       "WHERE cancelled = 0 " +
       "OR cancelled IS NULL";
-    let matches = await newSingle.query(sql);
-    if (matches[0].length === 0) {
+    const matches = await db.query(sql);
+    if (matches.length === 0) {
       res.status(404).json({ message: "No matches found." });
       return;
     }
-    matches = matches[0];
     res.json({ matches });
   } catch (err) {
     console.error(err);
@@ -351,14 +349,12 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let sql = "SELECT * FROM `match` WHERE user_id = ?";
-    const matches = await newSingle.query(sql, [req.user.id]);
-    if (matches[0].length === 0) {
+    const matches = await db.query(sql, [req.user.id]);
+    if (matches.length === 0) {
       res.status(404).json({ message: "No matches found." });
       return;
     }
-    matches = matches[0];
     res.json({ matches });
   } catch (err) {
     console.error(err);
@@ -398,10 +394,9 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.get("/:match_id", async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
     let sql;
-    const matchRow = await newSingle.query(matchUserId, req.params.match_id);
+    const matchRow = await db.query(matchUserId, req.params.match_id);
     if (matchRow[0].length === 0) {
       res.status(404).json({ message: "No match found." });
       return;
@@ -419,12 +414,12 @@ router.get("/:match_id", async (req, res, next) => {
         "season_id, is_pug FROM `match` where id = ?";
     }
     matchID = req.params.match_id;
-    const matches = await newSingle.query(sql, matchID);
-    if (matches[0].length === 0) {
+    const matches = await db.query(sql, matchID);
+    if (matches.length === 0) {
       res.status(404).json({ message: "No match found." });
       return;
     }
-    const match = JSON.parse(JSON.stringify(matches[0][0]));
+    const match = JSON.parse(JSON.stringify(matches[0]));
     res.json({ match });
   } catch (err) {
     console.error(err);
@@ -465,7 +460,6 @@ router.get("/:match_id", async (req, res, next) => {
  */
 router.get("/limit/:limiter", async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let lim = parseInt(req.params.limiter);
     if (req.user !== undefined && Utils.superAdminCheck(req.user)) {
       sql =
@@ -478,8 +472,7 @@ router.get("/limit/:limiter", async (req, res, next) => {
         "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
         "season_id, is_pug FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?";
     }
-    let matches = await newSingle.query(sql, lim);
-    matches = matches[0];
+    let matches = await db.query(sql, lim);
     res.json({ matches });
   } catch (err) {
     console.error(err);
@@ -516,72 +509,69 @@ router.get("/limit/:limiter", async (req, res, next) => {
  */
 router.get("/:match_id/config", async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let sql = "SELECT * FROM `match` WHERE id = ?";
     let matchID = req.params.match_id;
     let matchCvars;
     let matchSpecs;
-    const matchInfo = await newSingle.query(sql, [matchID]);
-    if (matchInfo[0].length === 0) {
+    const matchInfo = await db.query(sql, [matchID]);
+    if (matchInfo.length === 0) {
       res.status(404).json({ message: "No match found." });
       return;
     }
     let matchJSON = {
       matchid: matchID,
-      match_title: matchInfo[0][0].title,
-      side_type: matchInfo[0][0].side_type,
-      veto_first: matchInfo[0][0].veto_first,
-      skip_veto: matchInfo[0][0].skip_veto == 0 ? false : true,
+      match_title: matchInfo[0].title,
+      side_type: matchInfo[0].side_type,
+      veto_first: matchInfo[0].veto_first,
+      skip_veto: matchInfo[0].skip_veto == 0 ? false : true,
       min_players_to_ready:
-        matchInfo[0][0].min_player_ready !== null
-          ? matchInfo[0][0].min_player_ready
+        matchInfo[0].min_player_ready !== null
+          ? matchInfo[0].min_player_ready
           : 5,
       players_per_team:
-        matchInfo[0][0].players_per_team !== null
-          ? matchInfo[0][0].players_per_team
+        matchInfo[0].players_per_team !== null
+          ? matchInfo[0].players_per_team
           : 5,
       team1: {},
       team2: {},
       cvars: {
         get5_web_api_url: config.get("server.apiURL"),
-        get5_check_auths: matchInfo[0][0].enforce_teams.toString(),
+        get5_check_auths: matchInfo[0].enforce_teams.toString(),
       },
       spectators: {
         players: [],
       },
       maplist:
-        matchInfo[0][0].veto_mappool !== null
-          ? matchInfo[0][0].veto_mappool.replace(/[,]+/g, "").split(" ")
+        matchInfo[0].veto_mappool !== null
+          ? matchInfo[0].veto_mappool.replace(/[,]+/g, "").split(" ")
           : null,
       min_spectators_to_ready:
-        matchInfo[0][0].min_spectators_to_ready !== null
-          ? matchInfo[0][0].min_spectators_to_ready
+        matchInfo[0].min_spectators_to_ready !== null
+          ? matchInfo[0].min_spectators_to_ready
           : 0,
     };
-    if (matchInfo[0].max_maps === 2) {
+    if (matchInfo.max_maps === 2) {
       matchJSON.bo2_series = true;
     } else {
-      matchJSON.maps_to_win = parseInt(matchInfo[0][0].max_maps / 2 + 1);
+      matchJSON.maps_to_win = parseInt(matchInfo[0].max_maps / 2 + 1);
     }
     sql = "SELECT * FROM team WHERE id = ?";
-    const team1Data = await newSingle.query(sql, [matchInfo[0][0].team1_id]);
-    const team2Data = await newSingle.query(sql, [matchInfo[0][0].team2_id]);
+    const team1Data = await db.query(sql, [matchInfo[0].team1_id]);
+    const team2Data = await db.query(sql, [matchInfo[0].team2_id]);
 
     matchJSON.team1 = JSON.parse(
-      await build_team_dict(team1Data[0][0], 1, matchInfo[0][0])
+      await build_team_dict(team1Data[0], 1, matchInfo[0])
     );
     matchJSON.team2 = JSON.parse(
-      await build_team_dict(team2Data[0][0], 2, matchInfo[0][0])
+      await build_team_dict(team2Data[0], 2, matchInfo[0])
     );
     sql = "SELECT * FROM match_cvar WHERE match_id = ?";
-    matchCvars = await newSingle.query(sql, matchID);
-    matchCvars = matchCvars[0];
+    matchCvars = await db.query(sql, matchID);
     matchCvars.forEach((row) => {
       matchJSON.cvars[row.cvar_name] = row.cvar_value;
     });
     sql = "SELECT * FROM match_spectator WHERE match_id=?";
-    matchSpecs = await newSingle.query(sql, matchID);
-    matchSpecs = matchSpecs[0];
+    matchSpecs = await db.query(sql, matchID);
     matchSpecs.forEach((row) => {
       matchJSON.spectators.players.push(row.auth);
     });
@@ -629,29 +619,29 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let serverSql =
       "SELECT in_use, user_id, public_server FROM game_server WHERE id = ?";
     if (req.body[0].server_id != null) {
-      const serverInUse = await newSingle.query(serverSql, [
+      const serverInUse = await db.query(serverSql, [
         req.body[0].server_id,
       ]);
-      if (serverInUse[0][0].in_use) {
+      if (serverInUse[0].in_use) {
         res.status(401).json({
           message:
             "Server is already in use, please select a different server.",
         });
         return;
       } else if (
-        serverInUse[0][0].user_id != req.user.id &&
+        serverInUse[0].user_id != req.user.id &&
         !Utils.superAdminCheck(req.user) &&
-        serverInUse[0][0].public_server == 0
+        serverInUse[0].public_server == 0
       ) {
         res.status(403).json({ message: "User does not own this server." });
         return;
       }
     }
     let teamNameSql = "SELECT name FROM team WHERE id = ?";
-    let teamOneName = await newSingle.query(teamNameSql, [
+    let teamOneName = await db.query(teamNameSql, [
       req.body[0].team1_id,
     ]);
-    let teamTwoName = await newSingle.query(teamNameSql, [
+    let teamTwoName = await db.query(teamNameSql, [
       req.body[0].team2_id,
     ]);
     let apiKey = randString.generate({
@@ -689,9 +679,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         api_key: apiKey,
         winner: null,
         team1_string:
-          teamOneName[0][0].name == null ? null : teamOneName[0][0].name,
+          teamOneName[0].name == null ? null : teamOneName[0].name,
         team2_string:
-          teamTwoName[0][0].name == null ? null : teamTwoName[0][0].name,
+          teamTwoName[0].name == null ? null : teamTwoName[0].name,
         is_pug: req.body[0].is_pug,
         min_player_ready: req.body[0].min_players_to_ready,
         players_per_team: req.body[0].players_per_team,
@@ -724,13 +714,13 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     if (!req.body[0].ignore_server) {
       let ourServerSql =
         "SELECT rcon_password, ip_string, port FROM game_server WHERE id=?";
-      const serveInfo = await newSingle.query(ourServerSql, [
+      const serveInfo = await db.query(ourServerSql, [
         req.body[0].server_id,
       ]);
       const newServer = new GameServer(
-        serveInfo[0][0].ip_string,
-        serveInfo[0][0].port,
-        serveInfo[0][0].rcon_password
+        serveInfo[0].ip_string,
+        serveInfo[0].port,
+        serveInfo[0].rcon_password
       );
       if (
         (await newServer.isServerAlive()) &&
@@ -820,7 +810,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     } else {
       let currentMatchInfo =
         "SELECT id, user_id, server_id, cancelled, forfeit, end_time, api_key, veto_mappool, max_maps, skip_veto, is_pug FROM `match` WHERE id = ?";
-      const matchRow = await newSingle.query(
+      const matchRow = await db.query(
         currentMatchInfo,
         req.body[0].match_id
       );
@@ -828,18 +818,18 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         // Check if server is owned, public, or in use by another match.
         let serverCheckSql =
           "SELECT in_use, user_id, public_server FROM game_server WHERE id=?";
-        const returnedServer = await newSingle.query(serverCheckSql, [
+        const returnedServer = await db.query(serverCheckSql, [
           req.body[0].server_id,
         ]);
         if (
-          returnedServer[0][0].user_id != req.user.id &&
+          returnedServer[0].user_id != req.user.id &&
           !Utils.superAdminCheck(req.user) &&
-          returnedServer[0][0].public_server == 0
+          returnedServer[0].public_server == 0
         ) {
           res.status(403).json({ message: "User does not own this server." });
           return;
         }
-        if (req.body[0].server_id != matchRow[0][0].server_id)
+        if (req.body[0].server_id != matchRow[0].server_id)
           diffServer = true;
       }
 
@@ -860,7 +850,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           // Remove last two characters.
           // vetoMapPool = vetoMapPool.substring(0, vetoMapPool.length - 2);
           //If we're identical to the matches map pool, it usually means we've begun.
-          if (vetoMapPool == matchRow[0][0].veto_mappool) {
+          if (vetoMapPool == matchRow[0].veto_mappool) {
             vetoMapPool = null;
             maxMaps = null;
           }
@@ -885,7 +875,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
             vetoMapPool == null ? req.body[0].veto_mappool : vetoMapPool,
           side_type: req.body[0].side_type,
           enforce_teams:
-            matchRow[0][0].is_pug != null && matchRow[0][0].is_pug == 1
+            matchRow[0].is_pug != null && matchRow[0].is_pug == 1
               ? 0
               : req.body[0].enforce_teams, // Do not update these unless required.
           players_per_team:
@@ -915,10 +905,10 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
       await db.withNewTransaction(newSingle, async () => {
         const ourServer = await newSingle.query(ourServerSql, [
-          matchRow[0][0].server_id,
+          matchRow[0].server_id,
         ]);
         const serverConn =
-          matchRow[0][0].server_id != null
+          matchRow[0].server_id != null
             ? new GameServer(
                 ourServer[0][0].ip_string,
                 ourServer[0][0].port,
@@ -932,26 +922,25 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         ) {
           if (serverConn != null && serverConn.endGet5Match()) {
             sql = "UPDATE game_server SET in_use=0 WHERE id=?";
-            await newSingle.query(sql, [matchRow[0][0].server_id]);
+            await newSingle.query(sql, [matchRow[0].server_id]);
           }
-          if (matchRow[0][0].is_pug != null && matchRow[0][0].is_pug == 1) {
+          if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
             let pugSql =
               "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
             await newSingle.query(pugSql, [
-              matchRow[0][0].team1_id,
-              matchRow[0][0].team2_id,
+              matchRow[0].team1_id,
+              matchRow[0].team2_id,
             ]);
             pugSql = "DELETE FROM team WHERE id = ? OR id = ?";
             await newSingle.query(pugSql, [
-              matchRow[0][0].team1_id,
-              matchRow[0][0].team2_id,
+              matchRow[0].team1_id,
+              matchRow[0].team2_id,
             ]);
           }
         } else {
           if (!req.body[0].ignore_server) {
             if (diffServer) {
               if (serverConn != null && serverConn.endGet5Match()) {
-                console.log("Should not be here!");
                 sql = "UPDATE game_server SET in_use=0 WHERE id=?";
                 await newSingle.query(sql, [matchRow[0].server_id]);
               }
@@ -967,9 +956,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
                 await newServer.prepareGet5Match(
                   config.get("server.apiURL") +
                     "/matches/" +
-                    matchRow[0][0].id +
+                    matchRow[0].id +
                     "/config",
-                  matchRow[0][0].api_key
+                  matchRow[0].api_key
                 )
               ) {
                 sql = "UPDATE game_server SET in_use=1 WHERE id=?";
@@ -1127,14 +1116,13 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
  * @param {Object} matchData - The data that contains the match to get the team string and scores.
  */
 async function build_team_dict(team, teamNumber, matchData) {
-  let newSingle = await db.getConnection();
   let sql = "SELECT auth, name FROM team_auth_names WHERE team_id = ?";
-  const playerAuths = await newSingle.query(sql, [team.id]);
+  const playerAuths = await db.query(sql, [team.id]);
   let normalizedAuths = {};
-  for (let i = 0; i < playerAuths[0].length; i++) {
-    const key = playerAuths[0][i].auth;
-    if (playerAuths[0][i].name == "") normalizedAuths[key] = "";
-    else normalizedAuths[key] = playerAuths[0][i].name;
+  for (let i = 0; i < playerAuths.length; i++) {
+    const key = playerAuth[i].auth;
+    if (playerAuths[i].name == "") normalizedAuths[key] = "";
+    else normalizedAuths[key] = playerAuths[i].name;
   }
   let teamData = {
     name: team.name,

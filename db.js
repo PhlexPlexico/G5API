@@ -18,8 +18,8 @@ class Database {
   }
 
   async query(sql, args) {
+    const connection = await this.getConnection();
     try {
-      const connection = await this.getConnection();
       let result;
       await this.withNewTransaction(connection, async () => {
         result = await connection.query(sql, args);
@@ -27,7 +27,10 @@ class Database {
       return result[0];
     } catch (error) {
       console.log("SQL ERROR SQL ERROR SQL ERROR SQL ERROR SQL ERROR\n" + error);
+      connection.destroy();
       throw error;
+    } finally {
+      connection.release();
     }
   }
 
@@ -79,7 +82,7 @@ class Database {
       });
     } catch (err) {
       console.log("Failed to import users. Error: " + err);
-    } 
+    }
   }
 }
 

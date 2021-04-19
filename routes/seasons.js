@@ -84,19 +84,17 @@ const Utils = require("../utility/utils");
  */
 router.get("/", async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let sql =
       "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
       "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\": \"',sc.cvar_value,'\"')),'}') as cvars " +
       "FROM season s LEFT OUTER JOIN season_cvar sc " +
       "ON s.id = sc.season_id " +
       "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
-    let seasons = await newSingle.query(sql);
-    if (seasons[0].length === 0) {
+    let seasons = await db.query(sql);
+    if (seasons.length === 0) {
       res.status(404).json({ message: "No seasons found." });
       return;
     }
-    seasons = seasons[0];
     for (let row in seasons) {
       if (seasons[row].cvars == null) delete seasons[row].cvars;
       else seasons[row].cvars = JSON.parse(seasons[row].cvars);
@@ -138,7 +136,6 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let sql =
       "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
       "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
@@ -146,12 +143,11 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
       "ON s.id = sc.season_id " +
       "WHERE s.user_id = ? " +
       "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
-    let seasons = await newSingle.query(sql, [req.user.id]);
-    if (seasons[0].length === 0) {
+    let seasons = await db.query(sql, [req.user.id]);
+    if (seasons.length === 0) {
       res.status(404).json({ message: "No seasons found." });
       return;
     }
-    seasons = seasons[0];
     for (let row in seasons) {
       if (seasons[row].cvars == null) delete seasons[row].cvars;
       else seasons[row].cvars = JSON.parse(seasons[row].cvars);
@@ -196,7 +192,6 @@ router.get(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     let sql;
-    let newSingle = await db.getConnection();
     let seasons;
     try {
       // Check if super admin, if they are use this query.
@@ -209,7 +204,7 @@ router.get(
           "WHERE s.end_date >= CURDATE() " +
           "OR s.end_date IS NULL " +
           "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
-        seasons = await newSingle.query(sql, [req.user.id]);
+        seasons = await db.query(sql, [req.user.id]);
       } else {
         sql =
           "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
@@ -220,13 +215,12 @@ router.get(
           "AND s.end_date >= CURDATE() " +
           "OR s.end_date IS NULL " +
           "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
-        seasons = await newSingle.query(sql, [req.user.id]);
+        seasons = await db.query(sql, [req.user.id]);
       }
       if (seasons.length === 0) {
         res.status(404).json({ message: "No seasons found." });
         return;
       }
-      seasons = seasons[0];
       for (let row in seasons) {
         if (seasons[row].cvars == null) delete seasons[row].cvars;
         else seasons[row].cvars = JSON.parse(seasons[row].cvars);
@@ -266,19 +260,17 @@ router.get(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let newSingle = await db.getConnection();
       let sql =
         "SELECT CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
         "FROM season_cvar sc " +
         "WHERE sc.season_id = ? ";
-      let cvar = await newSingle.query(sql, [req.params.season_id]);
-      if (cvar[0][0].cvars == null) {
+      let cvar = await db.query(sql, [req.params.season_id]);
+      if (cvar[0].cvars == null) {
         res.status(404).json({
           message: "No cvars found for season id " + req.params.season_id + ".",
         });
         return;
       }
-      cvar = cvar[0];
       for (let row in cvar) {
         if (cvar[row].cvars == null) delete cvar[row].cvars;
         else cvar[row].cvars = JSON.parse(cvar[row].cvars);
@@ -325,20 +317,17 @@ router.get(
  */
 router.get("/:season_id", async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let seasonID = req.params.season_id;
     let sql =
       "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, team2_score, team1_series_score, team2_series_score, team1_string, team2_string, cancelled, forfeit, start_time, end_time, max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, season_id, is_pug FROM `match` where season_id = ?";
     let seasonSql = "SELECT * FROM season WHERE id = ?";
-    let seasons = await newSingle.query(seasonSql, seasonID);
-    let matches = await newSingle.query(sql, seasonID);
-    if (seasons[0].length === 0) {
+    let seasons = await db.query(seasonSql, seasonID);
+    let matches = await db.query(sql, seasonID);
+    if (seasons.length === 0) {
       res.status(404).json({ message: "Season not found." });
       return;
     }
-    seasons = seasons[0];
-    matches = matches[0];
-    const season = JSON.parse(JSON.stringify(seasons[0]));
+    const season = JSON.parse(JSON.stringify(seasons));
     res.json({ matches, season });
   } catch (err) {
     console.error(err);
@@ -452,15 +441,15 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let newSingle = await db.getConnection();
   let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
   if (req.body[0].season_id == null) {
-    res.status(404).json({ message: "No season found." });
+    res.status(400).json({ message: "No season ID provided." });
     return;
   }
-  const seasonRow = await newSingle.query(seasonUserId, req.body[0].season_id);
-  if (seasonRow[0].length === 0) {
+  const seasonRow = await db.query(seasonUserId, req.body[0].season_id);
+  if (seasonRow.length === 0) {
     res.status(404).json({ message: "No season found." });
     return;
   } else if (
-    seasonRow[0][0].user_id != req.user.id &&
+    seasonRow[0].user_id != req.user.id &&
     !Utils.superAdminCheck(req.user)
   ) {
     res
@@ -548,12 +537,12 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
 router.delete("/", async (req, res, next) => {
   let newSingle = await db.getConnection();
   let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
-  const seasonRow = await newSingle.query(seasonUserId, req.body[0].season_id);
-  if (seasonRow[0][0] == null) {
+  const seasonRow = await db.query(seasonUserId, req.body[0].season_id);
+  if (seasonRow[0] == null) {
     res.status(404).json({ message: "No season found." });
     return;
   } else if (
-    seasonRow[0][0].user_id != req.user.id &&
+    seasonRow[0].user_id != req.user.id &&
     !Utils.superAdminCheck(req.user)
   ) {
     res
@@ -569,6 +558,7 @@ router.delete("/", async (req, res, next) => {
         res.json({ message: "Season deleted successfully!" });
       });
     } catch (err) {
+      console.error(err);
       res.status(500).json({ message: err.toString() });
     }
   }

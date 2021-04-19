@@ -99,14 +99,12 @@ const Utils = require("../utility/utils");
  */
 router.get("/", async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let sql = "SELECT * FROM map_stats";
-    let mapstats = await newSingle.query(sql);
-    if (mapstats[0].length === 0) {
+    let mapstats = await db.query(sql);
+    if (mapstats.length === 0) {
       res.status(404).json({ message: "No stats found." });
       return;
     }
-    mapstats = mapstats[0];
     res.json({ mapstats });
   } catch (err) {
     console.error(err);
@@ -149,15 +147,13 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/:match_id", async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let matchID = req.params.match_id;
     let sql = "SELECT * FROM map_stats where match_id = ?";
-    let mapstats = await newSingle.query(sql, matchID);
-    if (mapstats[0].length === 0) {
+    let mapstats = await db.query(sql, matchID);
+    if (mapstats.length === 0) {
       res.status(404).json({ message: "No stats found." });
       return;
     }
-    mapstats = mapstats[0];
     res.json({ mapstats });
   } catch (err) {
     console.error(err);
@@ -204,16 +200,15 @@ router.get("/:match_id", async (req, res, next) => {
  */
 router.get("/:match_id/:map_number", async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let matchID = req.params.match_id;
     let mapID = req.params.map_number;
     let sql = "SELECT * FROM map_stats where match_id = ? AND map_number = ?";
-    const mapstats = await newSingle.query(sql, [matchID, mapID]);
-    if (mapstats[0].length === 0) {
+    const mapstats = await db.query(sql, [matchID, mapID]);
+    if (mapstats.length === 0) {
       res.status(404).json({ message: "No stats found." });
       return;
     }
-    const mapstat = JSON.parse(JSON.stringify(mapstats[0][0]));
+    const mapstat = JSON.parse(JSON.stringify(mapstats[0]));
     res.json({ mapstat });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
@@ -335,9 +330,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     }
     let newSingle = await db.getConnection();
     let currentMatchInfo = "SELECT match_id FROM map_stats WHERE id = ?";
-    const matchRow = await newSingle.query(currentMatchInfo, req.body[0].map_stats_id);
+    const matchRow = await db.query(currentMatchInfo, req.body[0].map_stats_id);
     let errMessage = await Utils.getUserMatchAccess(
-      matchRow[0][0].match_id,
+      matchRow[0].match_id,
       req.user,
       false
     );
@@ -373,7 +368,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
     }
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -425,9 +420,9 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
     }
     let newSingle = await db.getConnection();
     let currentMatchInfo = "SELECT match_id FROM map_stats WHERE id = ?";
-    const matchRow = await newSingle.query(currentMatchInfo, req.body[0].map_stats_id);
+    const matchRow = await db.query(currentMatchInfo, req.body[0].map_stats_id);
     let errMessage = await Utils.getUserMatchAccess(
-      matchRow[0][0].match_id,
+      matchRow[0].match_id,
       req.user,
       false
     );
@@ -448,7 +443,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
     }
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err });
   }
 });

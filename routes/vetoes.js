@@ -74,14 +74,12 @@ const Utils = require("../utility/utils");
  */
 router.get("/", async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let sql = "SELECT * FROM veto";
-    let vetoes = await newSingle.query(sql);
-    if (vetoes[0].length === 0) {
+    const vetoes = await db.query(sql);
+    if (vetoes.length === 0) {
       res.status(404).json({ message: "No vetoes found." });
       return;
     }
-    vetoes = vetoes[0];
     res.json({ vetoes });
   } catch (err) {
     console.error(err);
@@ -124,15 +122,13 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/:match_id", async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let matchId = req.params.match_id;
     let sql = "SELECT * FROM veto where match_id = ?";
-    let vetoes = await newSingle.query(sql, matchId);
-    if (vetoes[0].length === 0) {
+    const vetoes = await db.query(sql, matchId);
+    if (vetoes.length === 0) {
       res.status(404).json({ message: "No vetoes found." });
       return;
     }
-    vetoes = vetoes[0];
     res.json({ vetoes });
   } catch (err) {
     console.error(err);
@@ -220,7 +216,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       console.error(err);
       res.status(500).json({ message: err.toString() });
     }
-  }
+  } 
 });
 
 /**
