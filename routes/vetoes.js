@@ -74,14 +74,17 @@ const Utils = require("../utility/utils");
  */
 router.get("/", async (req, res, next) => {
   try {
+    let newSingle = await db.getConnection();
     let sql = "SELECT * FROM veto";
-    const vetoes = await db.query(sql);
-    if (vetoes.length === 0) {
+    let vetoes = await newSingle.query(sql);
+    if (vetoes[0].length === 0) {
       res.status(404).json({ message: "No vetoes found." });
       return;
     }
+    vetoes = vetoes[0];
     res.json({ vetoes });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -121,15 +124,18 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/:match_id", async (req, res, next) => {
   try {
-    matchId = req.params.match_id;
+    let newSingle = await db.getConnection();
+    let matchId = req.params.match_id;
     let sql = "SELECT * FROM veto where match_id = ?";
-    const vetoes = await db.query(sql, matchId);
-    if (vetoes.length === 0) {
+    let vetoes = await newSingle.query(sql, matchId);
+    if (vetoes[0].length === 0) {
       res.status(404).json({ message: "No vetoes found." });
       return;
     }
+    vetoes = vetoes[0];
     res.json({ vetoes });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -178,19 +184,14 @@ router.get("/:match_id", async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
   let newSingle = await db.getConnection();
-  const matchRow = await db.query(matchUserId, req.body[0].match_id);
-  if (matchRow.length === 0) {
-    res.status(404).json({ message: "No match found." });
-    return;
-  } else if (
-    matchRow[0].user_id != req.user.id &&
-    !Utils.superAdminCheck(req.user)
-  ) {
-    res
-      .status(403)
-      .json({ message: "User is not authorized to perform action." });
+  let errMessage = await Utils.getUserMatchAccessNoFinalize(
+    req.body[0].match_id,
+    req.user,
+    false
+  );
+  if (errMessage != null) {
+    res.status(errMessage.status).json({ message: errMessage.message });
     return;
   } else {
     try {
@@ -216,6 +217,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         });
       });
     } catch (err) {
+      console.error(err);
       res.status(500).json({ message: err.toString() });
     }
   }
@@ -258,20 +260,15 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
   let vetoId;
   let newSingle = await db.getConnection();
-  const matchRow = await db.query(matchUserId, req.body[0].match_id);
-  if (matchRow.length === 0) {
-    res.status(404).json({ message: "No match found." });
-    return;
-  } else if (
-    matchRow[0].user_id != req.user.id &&
-    !Utils.superAdminCheck(req.user)
-  ) {
-    res
-      .status(403)
-      .json({ message: "User is not authorized to perform action." });
+  let errMessage = await Utils.getUserMatchAccessNoFinalize(
+    req.body[0].match_id,
+    req.user,
+    false
+  );
+  if (errMessage != null) {
+    res.status(errMessage.status).json({ message: errMessage.message });
     return;
   } else {
     vetoId = req.body[0].veto_id;
@@ -295,6 +292,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         res.json({ message: "Veto updated successfully!" });
       });
     } catch (err) {
+      console.error(err);
       res.status(500).json({ message: err.toString() });
     }
   }
@@ -340,19 +338,14 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
   let newSingle = await db.getConnection();
-  const matchRow = await db.query(matchUserId, req.body[0].match_id);
-  if (matchRow.length === 0) {
-    res.status(404).json({ message: "No match found." });
-    return;
-  } else if (
-    matchRow[0].user_id != req.user.id &&
-    !Utils.superAdminCheck(req.user)
-  ) {
-    res
-      .status(403)
-      .json({ message: "User is not authorized to perform action." });
+  let errMessage = await Utils.getUserMatchAccessNoFinalize(
+    req.body[0].match_id,
+    req.user,
+    false
+  );
+  if (errMessage != null) {
+    res.status(errMessage.status).json({ message: errMessage.message });
     return;
   } else {
     try {
@@ -369,7 +362,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
         return;
       });
     } catch (err) {
-      console.log(err);
+      console.error(err);
       res.statuss(500).json({ message: err });
     }
   }

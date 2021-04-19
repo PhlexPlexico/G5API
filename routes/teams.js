@@ -598,7 +598,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
       "DELETE FROM team_auth_names WHERE auth = ? AND team_id = ?";
     let steamAuth = req.body[0].steam_id;
     try {
-      await db.query(deleteSql, [steamAuth, teamID]);
+      await newSingle.query(deleteSql, [steamAuth, teamID]);
       res.json({ message: "Team member deleted successfully!" });
     } catch (err) {
       res.status(500).json({ message: err.toString() });

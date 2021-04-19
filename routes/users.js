@@ -87,11 +87,14 @@ const randString = require("randomstring");
  */
 router.get("/", async (req, res) => {
   try {
+    let newSingle = await db.getConnection();
     let sql =
       "SELECT id, name, steam_id, small_image, medium_image, large_image FROM user";
-    const users = await db.query(sql);
+    let users = await newSingle.query(sql);
+    users = users[0];
     res.json({ users });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -126,6 +129,7 @@ router.get("/", async (req, res) => {
  */
 router.get("/:user_id", async (req, res, next) => {
   try {
+    let newSingle = await db.getConnection();
     let userOrSteamID = req.params.user_id;
     let sql;
     if (
@@ -138,9 +142,9 @@ router.get("/:user_id", async (req, res, next) => {
         "SELECT id, name, steam_id, small_image, medium_image, large_image, admin, super_admin FROM user where id = ? OR steam_id = ?";
     }
 
-    let user = await db.query(sql, [userOrSteamID, userOrSteamID]);
-    if (user[0] != null) {
-      user = JSON.parse(JSON.stringify(user[0]));
+    let user = await newSingle.query(sql, [userOrSteamID, userOrSteamID]);
+    if (user[0][0] != null) {
+      user = JSON.parse(JSON.stringify(user[0][0]));
       if (user.api_key != null) {
         user.api_key = await Utils.decrypt(user.api_key);
       }
@@ -149,6 +153,7 @@ router.get("/:user_id", async (req, res, next) => {
       res.status(404).json({ message: "User does not exist in the system." });
     }
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -219,7 +224,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(403).json({ message: "You are not authorized to do this." });
     }
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -261,15 +266,15 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   let newSingle = await db.getConnection();
   try {
-    let userToBeUpdated = await db.query(
+    let userToBeUpdated = await newSingle.query(
       "SELECT id, name, admin, super_admin FROM user WHERE id = ? OR steam_id = ?",
       [req.body[0].steam_id, req.body[0].steam_id]
     );
     let isAdmin =
-      req.body[0].admin === null ? userToBeUpdated[0].admin : req.body[0].admin;
+      req.body[0].admin === null ? userToBeUpdated[0][0].admin : req.body[0].admin;
     let isSuperAdmin =
       req.body[0].super_admin === null
-        ? userToBeUpdated[0].super_admin
+        ? userToBeUpdated[0][0].super_admin
         : req.body[0].super_admin;
     let displayName =
       req.body[0].name === null ? getCurUsername[0].name : req.body[0].name;
@@ -285,7 +290,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         : null;
     if (apiKey != null) apiKey = await Utils.encrypt(apiKey);
     let steamId = req.body[0].steam_id;
-    let userId = userToBeUpdated[0].id;
+    let userId = userToBeUpdated[0][0].id;
     let updateUser = {};
     if (Utils.adminCheck(req.user)) {
       updateUser = {
@@ -323,7 +328,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     }
     res.status(200).json({ message: "User successfully updated!" });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -358,13 +363,15 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.get("/:user_id/steam", async (req, res, next) => {
   try {
+    let newSingle = await db.getConnection();
     let userOrSteamID = req.params.user_id;
     let sql = "SELECT steam_id FROM user where id = ? OR steam_id = ?";
-    const allUsers = await db.query(sql, [userOrSteamID, userOrSteamID]);
+    const allUsers = await newSingle.query(sql, [userOrSteamID, userOrSteamID]);
     res.json({
-      url: "https://steamcommunity.com/profiles/" + allUsers[0].steam_id,
+      url: "https://steamcommunity.com/profiles/" + allUsers[0][0].steam_id,
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -400,6 +407,7 @@ router.get("/:user_id/steam", async (req, res, next) => {
 
 router.get("/:user_id/recent", async (req, res, next) => {
   try {
+    let newSingle = await db.getConnection();
     let userOrSteamID = req.params.user_id;
     let sql =
       "SELECT DISTINCT rec_matches.id, " +
@@ -414,9 +422,11 @@ router.get("/:user_id/recent", async (req, res, next) => {
       "WHERE (rec_matches.cancelled = 0 OR rec_matches.cancelled IS NULL) " +
       "AND (us.id=? OR us.steam_id=?) " +
       "ORDER BY rec_matches.id DESC LIMIT 5";
-    const matches = await db.query(sql, [userOrSteamID, userOrSteamID]);
+    let matches = await newSingle.query(sql, [userOrSteamID, userOrSteamID]);
+    matches = matches[0];
     res.json({ matches });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
