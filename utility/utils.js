@@ -274,9 +274,6 @@ class Utils {
    static async getUserMatchAccess(matchid, user, onlyAdmin = false) {
     try {
       let retMessage = null;
-      retMessage = await this.checkIfMatchExists(matchid);
-      if(retMessage != null)
-        return retMessage;
 
       retMessage = await this.getUserMatchAccessNoFinalize(matchid, user, onlyAdmin);
       if(retMessage != null)
