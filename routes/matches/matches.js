@@ -1120,7 +1120,7 @@ async function build_team_dict(team, teamNumber, matchData) {
   const playerAuths = await db.query(sql, [team.id]);
   let normalizedAuths = {};
   for (let i = 0; i < playerAuths.length; i++) {
-    const key = playerAuth[i].auth;
+    const key = playerAuths[i].auth;
     if (playerAuths[i].name == "") normalizedAuths[key] = "";
     else normalizedAuths[key] = playerAuths[i].name;
   }
