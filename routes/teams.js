@@ -723,7 +723,6 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
     let statusString = "";
     let otherName = "";
     const curMatch = await db.query(matchSql, [matchId]);
-    console.log(curMatch.length);
     if (curMatch.length < 1) {
       res.status(404).json({ result: "Team did not participate in match." });
       return;
