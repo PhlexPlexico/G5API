@@ -214,11 +214,11 @@ router.get("/unique", async (req, res, next) => {
     let newSingle = await db.getConnection();
     let sql = "SELECT COUNT(DISTINCT steam_id) as cnt FROM player_stats";
     const playercount = await newSingle.query(sql);
-    if (playercount[0].cnt === 0) {
+    if (playercount[0][0].cnt === 0) {
       res.status(404).json({ message: "No stats found." });
       return;
     }
-    res.json({ count: playercount[0].cnt });
+    res.json({ count: playercount[0][0].cnt });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.toString() });
