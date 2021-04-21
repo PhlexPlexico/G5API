@@ -327,7 +327,7 @@ router.get("/:season_id", async (req, res, next) => {
       res.status(404).json({ message: "Season not found." });
       return;
     }
-    const season = JSON.parse(JSON.stringify(seasons));
+    const season = JSON.parse(JSON.stringify(seasons[0]));
     res.json({ matches, season });
   } catch (err) {
     console.error(err);
