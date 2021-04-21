@@ -397,7 +397,7 @@ router.get("/:match_id", async (req, res, next) => {
     let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
     let sql;
     const matchRow = await db.query(matchUserId, req.params.match_id);
-    if (matchRow[0].length === 0) {
+    if (matchRow.length === 0) {
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
@@ -472,7 +472,7 @@ router.get("/limit/:limiter", async (req, res, next) => {
         "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
         "season_id, is_pug FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?";
     }
-    let matches = await db.query(sql, lim);
+    const matches = await db.query(sql, lim);
     res.json({ matches });
   } catch (err) {
     console.error(err);
