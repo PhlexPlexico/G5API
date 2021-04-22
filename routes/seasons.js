@@ -212,8 +212,8 @@ router.get(
           "FROM season s LEFT OUTER JOIN season_cvar sc " +
           "ON s.id = sc.season_id " +
           "WHERE s.user_id = ? " +
-          "AND s.end_date >= CURDATE() " +
-          "OR s.end_date IS NULL " +
+          "AND (s.end_date >= CURDATE() " +
+          "OR s.end_date IS NULL) " +
           "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
         seasons = await db.query(sql, [req.user.id]);
       }
