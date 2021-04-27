@@ -467,7 +467,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           end_date: req.body[0].end_date,
         };
         // Remove any values that may not be updated.
-        updateStmt = await db.buildUpdateStatement(updateStmt);
+        // Change this as we are allowed null values within this update.
+        // updateStmt = await db.buildUpdateStatement(updateStmt);
         if (Object.keys(updateStmt).length === 0) {
           res
             .status(412)
