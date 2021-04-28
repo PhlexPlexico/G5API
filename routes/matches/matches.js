@@ -550,7 +550,7 @@ router.get("/:match_id/config", async (req, res, next) => {
           ? matchInfo[0].min_spectators_to_ready
           : 0,
     };
-    if (matchInfo.max_maps === 2) {
+    if (matchInfo[0].max_maps === 2) {
       matchJSON.bo2_series = true;
     } else {
       matchJSON.maps_to_win = parseInt(matchInfo[0].max_maps / 2 + 1);
