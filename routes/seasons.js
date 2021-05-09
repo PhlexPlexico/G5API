@@ -96,10 +96,8 @@ router.get("/", async (req, res, next) => {
       return;
     }
     for (let row in seasons) {
-      if (cvar[row].cvars == null) delete cvar[row].cvars;
-      else {
-        cvar[row].cvars = JSON.parse(cvar[row].cvars.replace('"', '\"'));
-      }
+      if (seasons[row].cvars == null) delete seasons[row].cvars;
+      else seasons[row].cvars = JSON.parse(seasons[row].cvars);
     }
     res.json({ seasons });
   } catch (err) {
@@ -151,10 +149,8 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
       return;
     }
     for (let row in seasons) {
-      if (cvar[row].cvars == null) delete cvar[row].cvars;
-      else {
-        cvar[row].cvars = JSON.parse(cvar[row].cvars.replace('"', '\"'));
-      }
+      if (seasons[row].cvars == null) delete seasons[row].cvars;
+      else seasons[row].cvars = JSON.parse(seasons[row].cvars);
     }
     res.json({ seasons });
   } catch (err) {
@@ -226,10 +222,8 @@ router.get(
         return;
       }
       for (let row in seasons) {
-        if (cvar[row].cvars == null) delete cvar[row].cvars;
-        else {
-          cvar[row].cvars = JSON.parse(cvar[row].cvars.replace('"', '\"'));
-        }
+        if (seasons[row].cvars == null) delete seasons[row].cvars;
+        else seasons[row].cvars = JSON.parse(seasons[row].cvars);
       }
       res.json({ seasons });
     } catch (err) {
@@ -278,12 +272,8 @@ router.get(
         return;
       }
       for (let row in cvar) {
-        let cleanQuotes = cvar[row].cvars.replace('"', '\"')
-        console.log(cleanQuotes);
         if (cvar[row].cvars == null) delete cvar[row].cvars;
-        else {
-          cvar[row].cvars = JSON.parse(cleanQuotes);
-        }
+        else cvar[row].cvars = JSON.parse(cvar[row].cvars);
       }
       res.json(cvar[0]);
     } catch (err) {
@@ -393,7 +383,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         for (let key in defaultCvar) {
           insertSet = {
             season_id: insertSeason[0].insertId,
-            cvar_name: key,
+            cvar_name: key.replace('"', '\"'),
             cvar_value: defaultCvar[key],
           };
           await newSingle.query(sql, [insertSet]);
@@ -496,7 +486,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           for (let key in defaultCvar) {
             insertSet = {
               season_id: req.body[0].season_id,
-              cvar_name: key,
+              cvar_name: key.replace('"', '\"'),
               cvar_value: defaultCvar[key],
             };
             await newSingle.query(sql, [insertSet]);
