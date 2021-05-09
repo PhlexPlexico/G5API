@@ -278,9 +278,11 @@ router.get(
         return;
       }
       for (let row in cvar) {
+        let cleanQuotes = cvar[row].cvars.replace('"', '\"')
+        console.log(cleanQuotes);
         if (cvar[row].cvars == null) delete cvar[row].cvars;
         else {
-          cvar[row].cvars = JSON.parse(cvar[row].cvars.replace('"', '\"'));
+          cvar[row].cvars = JSON.parse(cleanQuotes);
         }
       }
       res.json(cvar[0]);
