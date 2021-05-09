@@ -96,8 +96,10 @@ router.get("/", async (req, res, next) => {
       return;
     }
     for (let row in seasons) {
-      if (seasons[row].cvars == null) delete seasons[row].cvars;
-      else seasons[row].cvars = JSON.parse(seasons[row].cvars);
+      if (cvar[row].cvars == null) delete cvar[row].cvars;
+      else {
+        cvar[row].cvars = JSON.parse(cvar[row].cvars.replace('"', '\"'));
+      }
     }
     res.json({ seasons });
   } catch (err) {
@@ -149,8 +151,10 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
       return;
     }
     for (let row in seasons) {
-      if (seasons[row].cvars == null) delete seasons[row].cvars;
-      else seasons[row].cvars = JSON.parse(seasons[row].cvars);
+      if (cvar[row].cvars == null) delete cvar[row].cvars;
+      else {
+        cvar[row].cvars = JSON.parse(cvar[row].cvars.replace('"', '\"'));
+      }
     }
     res.json({ seasons });
   } catch (err) {
@@ -222,8 +226,10 @@ router.get(
         return;
       }
       for (let row in seasons) {
-        if (seasons[row].cvars == null) delete seasons[row].cvars;
-        else seasons[row].cvars = JSON.parse(seasons[row].cvars);
+        if (cvar[row].cvars == null) delete cvar[row].cvars;
+        else {
+          cvar[row].cvars = JSON.parse(cvar[row].cvars.replace('"', '\"'));
+        }
       }
       res.json({ seasons });
     } catch (err) {
@@ -273,7 +279,9 @@ router.get(
       }
       for (let row in cvar) {
         if (cvar[row].cvars == null) delete cvar[row].cvars;
-        else cvar[row].cvars = JSON.parse(cvar[row].cvars);
+        else {
+          cvar[row].cvars = JSON.parse(cvar[row].cvars.replace('"', '\"'));
+        }
       }
       res.json(cvar[0]);
     } catch (err) {

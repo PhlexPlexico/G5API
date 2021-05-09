@@ -570,6 +570,7 @@ router.get("/:match_id/config", async (req, res, next) => {
     );
     sql = "SELECT * FROM match_cvar WHERE match_id = ?";
     matchCvars = await db.query(sql, matchID);
+    //TODO: Possibly breaking JSON with quotes only?
     matchCvars.forEach((row) => {
       matchJSON.cvars[row.cvar_name] = row.cvar_value;
     });
