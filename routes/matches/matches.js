@@ -709,8 +709,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         for (let key in cvarInsertSet) {
           await newSingle.query(cvarSql, [
             insertMatch[0].insertId,
-            key,
-            cvarInsertSet[key],
+            key.replace(/"/g, '\\"'),
+            typeof cvarInsertSet[key] === 'string' ? cvarInsertSet[key].replace(/"/g, '\\"') : cvarInsertSet[key]
           ]);
         }
       }
