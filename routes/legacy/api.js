@@ -548,6 +548,110 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
 /**
  * @swagger
  *
+ * /match/:match_id/vetoSideUpdate:
+ *   post:
+ *     description: Route serving to update the side selection from vetoes into the database.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              key:
+ *                type: integer
+ *                description: The API key given from the game server to compare.
+ *              teamString:
+ *                type: string
+ *                description: The team string consisting of either team1, team2, or nothing.
+ *              map:
+ *                type: string
+ *                description: The map the team has picked or banned.
+ *              match_id:
+ *                type: integer
+ *                description: The given match ID from the path.
+ *              side:
+ *                type: string
+ *                description: Which side the team has chosen.
+ *
+ *     tags:
+ *       - legacy
+ *     responses:
+ *       200:
+ *         description: Success.
+ *         content:
+ *             text/plain:
+ *                schema:
+ *                  type: string
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) => {
+  try {
+    // Give from API call.
+    let matchID = req.params.match_id == null ? null : req.params.match_id;
+    let teamString = req.body.teamString == null ? null : req.body.teamString;
+    let mapBan = req.body.map == null ? null : req.body.map;
+    let sideChosen =
+      req.body.side == null ? null : req.body.side;
+    // Data manipulation inside function.
+    let insertStmt = {};
+    let insertSql;
+    let teamID;
+    let vetoID;
+    let teamNameString;
+    let matchFinalized = true;
+    // Database calls.
+    let sql = "SELECT * FROM `match` WHERE id = ?";
+    const matchValues = await db.query(sql, matchID);
+    let newSingle = await db.getConnection();
+    if (
+      matchValues[0].end_time == null &&
+      (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
+    )
+      matchFinalized = false;
+
+    // Throw error if wrong key or finished match.
+    await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
+
+    if (teamString === "team1") teamID = matchValues[0].team1_id;
+    else if (teamString === "team2") teamID = matchValues[0].team2_id;
+
+    sql = "SELECT name FROM team WHERE ID = ?";
+    const teamName = await db.query(sql, [teamID]);
+    if (teamName[0] == null) teamNameString = "Default";
+    else teamNameString = teamName[0].name;
+
+    // Retrieve veto id with team name and map veto.
+    sql = "SELECT id FROM veto WHERE match_id = ? AND team_name = ? AND map = ?";
+    const vetoInfo = await db.query(sql, [matchID, team_name, map]);
+    vetoID = vetoInfo[0].id;
+
+    // Insert into veto_side now.
+    await db.withNewTransaction(newSingle, async () => {
+      insertStmt = {
+        match_id: matchID,
+        veto_id: vetoID,
+        team_name: teamNameString,
+        map: mapBan,
+        side: sideChosen,
+      };
+      // Remove any values that may not be updated.
+      insertStmt = await db.buildUpdateStatement(insertStmt);
+      insertSql = "INSERT INTO veto_side SET ?";
+      await newSingle.query(insertSql, [insertStmt]);
+    });
+    res.status(200).send({ message: "Success" });
+  } catch (err) {
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
  *  /:match_id/map/:map_number/demo:
  *   post:
  *     description: Route serving to update the demo link per map.
