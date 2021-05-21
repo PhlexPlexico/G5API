@@ -229,6 +229,25 @@ class ServerRcon {
     }
   }
 
+  /** Removes a user from the match.
+   * @function
+   * @param {String} steamId - Formatted Steam64 ID.
+   * @returns Returns the response from the server.
+   */
+  async removeUser(steamId) {
+    try {
+      if (process.env.NODE_ENV === "test") {
+        return false;
+      }
+      let loadMatchResponse;
+      loadMatchResponse = await this.execute("get5_removeplayer " + steamId);
+      return loadMatchResponse;
+    } catch (err) {
+      console.error("RCON error on removeUser: " + err.toString());
+      throw err;
+    }
+  }
+
   /** Retrieves a list of backups on the game server.
    * @function
    * @returns Returns the response from the server.
