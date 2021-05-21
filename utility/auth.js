@@ -84,7 +84,7 @@ async function returnStrategy(identifier, profile, done) {
         sql = "SELECT * FROM user WHERE steam_id = ?";
         curUser = await singleConn.query(sql, [profile.id]);
         defaultMaps.push(['de_inferno', 'Inferno', curUser[0][0].id]);
-        defaultMaps.push(['de_train', 'Train', curUser[0][0].id]);
+        defaultMaps.push(['de_ancient', 'Ancient', curUser[0][0].id]);
         defaultMaps.push(['de_mirage', 'Mirage', curUser[0][0].id]);
         defaultMaps.push(['de_nuke', 'Nuke', curUser[0][0].id]);
         defaultMaps.push(['de_overpass', 'Overpass', curUser[0][0].id]);
@@ -110,7 +110,7 @@ async function returnStrategy(identifier, profile, done) {
         if (checkMaps[0].length < 1) {
           let defaultMaps = [];
           defaultMaps.push(['de_inferno', 'Inferno', curUser[0][0].id]);
-          defaultMaps.push(['de_train', 'Train', curUser[0][0].id]);
+          defaultMaps.push(['de_ancient', 'Ancient', curUser[0][0].id]);
           defaultMaps.push(['de_mirage', 'Mirage', curUser[0][0].id]);
           defaultMaps.push(['de_nuke', 'Nuke', curUser[0][0].id]);
           defaultMaps.push(['de_overpass', 'Overpass', curUser[0][0].id]);
