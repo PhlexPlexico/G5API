@@ -93,7 +93,7 @@ class Utils {
       let decryptedText = aes.utils.utf8.fromBytes(decryptedBytes);
       return decryptedText;
     } catch (err) {
-      console.log(err);
+      console.error(err);
       // fail silently.
       return null;
     }
@@ -120,7 +120,7 @@ class Utils {
       encryptedHex = hexIV + encryptedHex;
       return encryptedHex;
     } catch (err) {
-      console.log(err);
+      console.error(err);
       throw err;
     }
   }
@@ -260,6 +260,110 @@ class Utils {
     let summaryInfo = await SteamAPI.getUserSummary(auth64);
     return summaryInfo.avatar.medium;
   }
+
+  /** Checks whether or not a user has access to edit a match. Also checks if a match is currently being played.
+   * @function
+   * @memberof module:utils
+   * @inner
+   * @name getUserMatchAccess
+   * @param {String} matchid - The ID of a match
+   * @param {user} user - the users session object.
+   * @param {boolean} [onlyAdmin = false] - Set to true to only check admin status and not super admin status.
+   * @returns An object containing the HTTP error, followed by a message.
+   */
+   static async getUserMatchAccess(matchid, user, onlyAdmin = false) {
+    try {
+      let retMessage = null;
+
+      retMessage = await this.getUserMatchAccessNoFinalize(matchid, user, onlyAdmin);
+      if(retMessage != null)
+        return retMessage;
+
+      let newSingle = await db.getConnection();
+
+      await db.withNewTransaction(newSingle, async () => {
+        let currentMatchInfo = "SELECT cancelled, forfeit, end_time FROM `match` WHERE id = ?";
+        const matchRow = await newSingle.query(currentMatchInfo, matchid);
+        if (
+          matchRow[0][0].cancelled == 1 ||
+          matchRow[0][0].forfeit == 1 ||
+          matchRow[0][0].end_time != null
+        ) {
+          retMessage = {status: 422, message: "Match is already finished."};
+        }
+      });
+      return retMessage;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  /** Checks whether or not a match exists, ignoring finalized matches.
+   * @function
+   * @memberof module:utils
+   * @inner
+   * @name getUserMatchAccessNoFinalize
+   * @param {String} matchid - The ID of a match
+   * @param {user} user - the users session object.
+   * @param {boolean} [onlyAdmin = false] - Set to true to only check admin status and not super admin status.
+   * @returns An object containing the HTTP error, followed by a message.
+   */
+   static async getUserMatchAccessNoFinalize(matchid, user, onlyAdmin = false) {
+    try {
+      let adminCheck = onlyAdmin ? this.adminCheck(user) : this.superAdminCheck(user);
+      let retMessage = null;
+      retMessage = await this.checkIfMatchExists(matchid);
+
+      if(retMessage != null)
+        return retMessage;
+
+      let newSingle = await db.getConnection();
+
+      await db.withNewTransaction(newSingle, async () => {
+        let currentMatchInfo = "SELECT user_id FROM `match` WHERE id = ?";
+        const matchRow = await newSingle.query(currentMatchInfo, matchid);
+        if (
+          matchRow[0][0].user_id != user.id &&
+          !adminCheck
+        ) {
+          retMessage = {status: 403, message: "User is not authorized to perform action."};
+        }
+      });
+      return retMessage;
+    } catch (err) {
+      throw err;
+    }
+    
+  }
+
+  /** Checks whether or not a match exists.
+   * @function
+   * @memberof module:utils
+   * @inner
+   * @name checkIfMatchExists
+   * @param {String} matchid - The ID of a match
+   * @returns An object containing the HTTP error, followed by a message.
+   */
+  static async checkIfMatchExists(matchid) {
+    try {
+      if (matchid == null) {
+        return {status: 400, message: "Match ID Not Provided"};
+      }
+      let newSingle = await db.getConnection();
+      
+      await db.withNewTransaction(newSingle, async () => {
+        let currentMatchInfo = "SELECT id FROM `match` WHERE id = ?";
+        const matchRow = await newSingle.query(currentMatchInfo, matchid);
+        if (matchRow[0].length === 0) {
+          return {status: 404, message: "No match found."};
+        }
+      });
+    } catch (err) {
+      throw err;
+    }
+    return null;
+  }
+
 }
 
 module.exports = Utils;

@@ -79,7 +79,7 @@ class Database {
       });
     } catch (err) {
       console.log("Failed to import users. Error: " + err);
-    } 
+    }
   }
 }
 

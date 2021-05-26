@@ -92,6 +92,7 @@ router.get("/", async (req, res) => {
     const users = await db.query(sql);
     res.json({ users });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -142,13 +143,14 @@ router.get("/:user_id", async (req, res, next) => {
     if (user[0] != null) {
       user = JSON.parse(JSON.stringify(user[0]));
       if (user.api_key != null) {
-        user.api_key = await Utils.decrypt(user.api_key);
+        user.api_key = Utils.decrypt(user.api_key);
       }
       res.json({ user });
     } else {
       res.status(404).json({ message: "User does not exist in the system." });
     }
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -219,7 +221,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(403).json({ message: "You are not authorized to do this." });
     }
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -283,7 +285,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
             capitalization: "uppercase",
           })
         : null;
-    if (apiKey != null) apiKey = await Utils.encrypt(apiKey);
+    if (apiKey != null) apiKey = Utils.encrypt(apiKey);
     let steamId = req.body[0].steam_id;
     let userId = userToBeUpdated[0].id;
     let updateUser = {};
@@ -323,7 +325,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     }
     res.status(200).json({ message: "User successfully updated!" });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -365,6 +367,7 @@ router.get("/:user_id/steam", async (req, res, next) => {
       url: "https://steamcommunity.com/profiles/" + allUsers[0].steam_id,
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -417,6 +420,7 @@ router.get("/:user_id/recent", async (req, res, next) => {
     const matches = await db.query(sql, [userOrSteamID, userOrSteamID]);
     res.json({ matches });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });

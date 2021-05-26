@@ -107,7 +107,7 @@ const options = {
     openapi: "3.0.0", // Specification (optional, defaults to swagger: '2.0')
     info: {
       title: "G5API", // Title (required)
-      version: "0.1.0", // Version (required)
+      version: "1.3.0", // Version (required)
     },
   },
   // Path to the API docs

@@ -76,16 +76,12 @@ const Utils = require("../utility/utils");
  */
 router.get("/", async (req, res) => {
   try {
-    let newSingle = await db.getConnection();
-    let maplist;
     let sql =
       "SELECT * FROM map_list";
-    await db.withNewTransaction(newSingle, async () => {
-      maplist = await newSingle.query(sql);
-    });
-    maplist = maplist[0]
+    const maplist = await db.query(sql);
     res.json({ maplist });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -120,19 +116,15 @@ router.get("/", async (req, res) => {
  */
 router.get("/:user_id", async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
-    let maplist;
     let sql =
       "SELECT * FROM map_list WHERE user_id = ?";
-    await db.withNewTransaction(newSingle, async () => {
-      maplist = await newSingle.query(sql, [req.params.user_id]);
-    });
-    maplist = maplist[0]
+    const maplist = await db.query(sql, [req.params.user_id]);
     if (maplist[0] != null)
       res.json({ maplist });
     else
       res.status(404).json({message: "Maplist does not exist in the system for given user."});
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -167,19 +159,15 @@ router.get("/:user_id", async (req, res, next) => {
  */
 router.get("/:user_id/enabled", async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
-    let maplist;
     let sql =
       "SELECT * FROM map_list WHERE user_id = ? AND enabled = true";
-    await db.withNewTransaction(newSingle, async () => {
-      maplist = await newSingle.query(sql, [req.params.user_id]);
-    });
-    maplist = maplist[0]
+    const maplist = await db.query(sql, [req.params.user_id]);
     if (maplist[0] != null)
       res.json({ maplist });
     else
       res.status(404).json({message: "Maplist does not exist in the system for given user."});
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -213,8 +201,8 @@ router.get("/:user_id/enabled", async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let newSingle = await db.getConnection();
   try {
+    let newSingle = await db.getConnection();
     await db.withNewTransaction(newSingle, async () => {
       let userID = req.user.id;
       let enabled = req.body[0].enabled == null
@@ -237,7 +225,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     });
 
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -301,7 +289,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     });
 
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -339,12 +327,12 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let newSingle = await db.getConnection();
   if (req.body[0].id == null) {
     res.status(412).json({message: "No map ID was provided to delete."});
     return;
   }
   try {
+    let newSingle = await db.getConnection();
     await db.withNewTransaction(newSingle, async () => {
       let userID = req.user.id;
       let mapListId = req.body[0].id;
@@ -355,7 +343,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       res.json({ message: "Map deleted successfully." });
     });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });

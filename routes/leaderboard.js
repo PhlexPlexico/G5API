@@ -79,6 +79,7 @@ router.get("/", async (req, res) => {
     let leaderboard = await getTeamLeaderboard();
     res.json({ leaderboard });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -108,7 +109,7 @@ router.get("/players", async (req, res) => {
     let leaderboard = await getPlayerLeaderboard();
     res.json({ leaderboard });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err });
   }
 });
@@ -138,7 +139,7 @@ router.get("/players/pug", async (req, res) => {
     let leaderboard = await getPlayerLeaderboard(null, true);
     res.json({ leaderboard });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err });
   }
 });
@@ -174,7 +175,7 @@ router.get("/players/:season_id", async (req, res) => {
     let leaderboard = await getPlayerLeaderboard(seasonId);
     res.json({ leaderboard });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err });
   }
 });
@@ -210,7 +211,7 @@ router.get("/:season_id", async (req, res) => {
     let leaderboard = await getTeamLeaderboard(seasonId);
     res.json({ leaderboard });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err });
   }
 });

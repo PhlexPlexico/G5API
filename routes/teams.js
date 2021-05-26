@@ -102,23 +102,20 @@ const randString = require("randomstring");
  *         $ref: '#/components/responses/Error'
  */
 router.get("/", async (req, res) => {
-  let sql =
-    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
-    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
-    "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": \"', ta.captain, '\"}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
-    "FROM team t LEFT OUTER JOIN team_auth_names ta " +
-    "ON t.id = ta.team_id " +
-    "GROUP BY t.id";
   try {
-    let teams = await db.query(sql);
-    // let teamAuths = await db.query(authNameSql, teamID);
-    // Oddly enough, if a team doesn't exist, it still returns null!
+    let sql =
+      "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+      "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
+      "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": \"', ta.captain, '\"}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
+      "FROM team t LEFT OUTER JOIN team_auth_names ta " +
+      "ON t.id = ta.team_id " +
+      "GROUP BY t.id";
+    const teams = await db.query(sql);
     // Check this and return a 404 if we don't exist.
-    if (teams.length < 1) {
+    if (teams[0] == null) {
       res.status(404).json({ message: "No teams found in the system." });
       return;
     }
-    
     for (let row in teams) {
       if (teams[row].auth_name != null) {
         teams[row].auth_name = JSON.parse(teams[row].auth_name);
@@ -127,7 +124,7 @@ router.get("/", async (req, res) => {
     }
     res.json({ teams });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -161,20 +158,18 @@ router.get("/", async (req, res) => {
  *         $ref: '#/components/responses/Error'
  */
 router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
-  let sql =
-    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
-    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
-    "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": ', ta.captain, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
-    "FROM team t LEFT OUTER JOIN team_auth_names ta " +
-    "ON t.id = ta.team_id " +
-    "WHERE t.user_id = ? " +
-    "GROUP BY t.id";
   try {
-    let teams = await db.query(sql, req.user.id);
-    // let teamAuths = await db.query(authNameSql, teamID);
-    // Oddly enough, if a team doesn't exist, it still returns null!
+    let sql =
+      "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+      "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
+      "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": ', ta.captain, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
+      "FROM team t LEFT OUTER JOIN team_auth_names ta " +
+      "ON t.id = ta.team_id " +
+      "WHERE t.user_id = ? " +
+      "GROUP BY t.id";
+    const teams = await db.query(sql, req.user.id);
     // Check this and return a 404 if we don't exist.
-    if (teams.length == 0) {
+    if (teams[0] == null) {
       res.status(404).json({ message: "No teams found for " + req.user.name });
       return;
     }
@@ -186,6 +181,7 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
     }
     res.json({ teams });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -221,25 +217,25 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
  *         $ref: '#/components/responses/Error'
  */
 router.get("/:team_id", async (req, res) => {
-  teamID = req.params.team_id;
-  let sql =
-    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
-    "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
-    "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": ', ta.captain, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
-    "FROM team t LEFT OUTER JOIN team_auth_names ta " +
-    "ON t.id = ta.team_id " +
-    "WHERE t.id = ? " +
-    "GROUP BY t.id";
   try {
+    let teamID = req.params.team_id;
+    let sql =
+      "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+      "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
+      "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": ', ta.captain, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
+      "FROM team t LEFT OUTER JOIN team_auth_names ta " +
+      "ON t.id = ta.team_id " +
+      "WHERE t.id = ? " +
+      "GROUP BY t.id";
     let team = await db.query(sql, teamID);
     // Oddly enough, if a team doesn't exist, it still returns null!
     // Check this and return a 404 if we don't exist.
-    if (team.length == 0) {
+    if (team[0] == null) {
       res.status(404).json({ message: "No team found for id " + teamID });
       return;
     }
-    // If we're an empty set, try just getting the team basic info.
 
+    // If we're an empty set, try just getting the team basic info.
     if (team[0].auth_name != null) {
       team[0].auth_name = JSON.parse(team[0].auth_name);
       team[0].auth_name = await getTeamImages(team[0].auth_name);
@@ -247,6 +243,7 @@ router.get("/:team_id", async (req, res) => {
     team = JSON.parse(JSON.stringify(team[0]));
     res.json({ team });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -282,21 +279,22 @@ router.get("/:team_id", async (req, res) => {
  *         $ref: '#/components/responses/Error'
  */
 router.get("/:team_id/basic", async (req, res) => {
-  teamID = req.params.team_id;
-  let sql =
-    "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, '' as auth_name " +
-    "FROM team t WHERE t.id = ?";
   try {
+    let teamID = req.params.team_id;
+    let sql =
+      "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, '' as auth_name " +
+      "FROM team t WHERE t.id = ?";
     let team = await db.query(sql, teamID);
     // Oddly enough, if a team doesn't exist, it still returns null!
     // Check this and return a 404 if we don't exist.
-    if (team.length == 0) {
+    if (team[0] == null) {
       res.status(404).json({ message: "No team found for id " + teamID });
       return;
     }
     team = JSON.parse(JSON.stringify(team[0]));
     res.json({ team });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -351,9 +349,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
       "public/img/logos/" + logoName + ".png",
       base64Data,
       "base64",
-      function (err) {
-        if(err)
-          console.log(err);
+      err => {
+        if (err) console.error(err);
       }
     );
   }
@@ -398,6 +395,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
       res.json({ message: "Team successfully inserted.", id: teamID });
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -487,9 +485,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
       "public/img/logos/" + logoName + ".png",
       base64Data,
       "base64",
-      function (err) {
-        if(err)
-          console.log(err);
+      err => {
+        if (err) console.error(err);
       }
     );
     updateTeam.logo = logoName;
@@ -530,7 +527,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
       res.json({ message: "Team successfully updated" });
     });
   } catch (err) {
-    console.log(err.toString());
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -593,20 +590,25 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
       "DELETE FROM team_auth_names WHERE auth = ? AND team_id = ?";
     let steamAuth = req.body[0].steam_id;
     try {
-      await db.query(deleteSql, [steamAuth, teamID]);
+      await newSingle.query(deleteSql, [steamAuth, teamID]);
       res.json({ message: "Team member deleted successfully!" });
     } catch (err) {
       res.status(500).json({ message: err.toString() });
+    } finally {
+      newSingle.release();
     }
   } else {
     try {
       // Remove file if exists.
       if (checkUser[0].logo) {
-        require("fs").unlink("public/img/logos/" + checkUser[0].logo+".png", (err) => {
-          if (err) {
-            console.log(err);
+        require("fs").unlink(
+          "public/img/logos/" + checkUser[0].logo + ".png",
+          err => {
+            if (err) {
+              console.error(err);
+            }
           }
-        });
+        );
       }
       await db.withNewTransaction(newSingle, async () => {
         let deleteTeamAuthSql = "DELETE FROM team_auth_names WHERE team_id = ?";
@@ -615,6 +617,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
         await newSingle.query(deleteTeamsql, teamID);
       });
     } catch (err) {
+      console.error(err);
       res.status(500).json({ message: err.toString() });
       return;
     }
@@ -653,7 +656,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
  */
 router.get("/:team_id/recent", async (req, res) => {
   try {
-    teamId = req.params.team_id;
+    let teamId = req.params.team_id;
     let sql =
       "SELECT rec_matches.id, " +
       "rec_matches.user_id, " +
@@ -666,20 +669,14 @@ router.get("/:team_id/recent", async (req, res) => {
       "(rec_matches.team1_id = ? OR rec_matches.team2_id = ?) " +
       "AND rec_matches.cancelled = 0 " +
       "ORDER BY rec_matches.id DESC LIMIT 5";
-    const matches = await db.query(sql, [teamId, teamId, teamId]);
+    let matches = await db.query(sql, [teamId, teamId, teamId]);
     res.json({ matches });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
 
-/** GET - Route serving to get a teams recent matches.
- * @name router.get('/:team_id/result/:match_id')
- * @function
- * @memberof module:routes/teams
- * @param {number} req.params.teamid - The team ID you wish to examine for results.
- * @param {number} req.params.matchid - The match ID you wish to examine for results.
- */
 /**
  * @swagger
  *
@@ -718,36 +715,32 @@ router.get("/:team_id/recent", async (req, res) => {
  */
 router.get("/:team_id/result/:match_id", async (req, res) => {
   try {
-    let otherTeam = null;
     let myScore = 0;
     let otherTeamScore = 0;
     let matchId = req.params.match_id;
     let teamId = req.params.team_id;
     let matchSql = "SELECT * FROM `match` WHERE id = ?";
-    let teamSql = "SELECT * FROM team WHERE id = ?";
     let statusString = "";
     let otherName = "";
     const curMatch = await db.query(matchSql, [matchId]);
-    if (curMatch.length === 0) {
+    if (curMatch.length < 1) {
       res.status(404).json({ result: "Team did not participate in match." });
       return;
     }
     if (curMatch[0].team1_id == teamId) {
-      otherTeam = await db.query(teamSql, [curMatch[0].team2_id]);
       myScore = curMatch[0].team1_score;
       otherTeamScore = curMatch[0].team2_score;
       otherName =
         curMatch[0].team2_string == null
-        ? "Team Removed From Match"
-        : curMatch[0].team2_string;
+          ? "Team Removed From Match"
+          : curMatch[0].team2_string;
     } else {
-      otherTeam = await db.query(teamSql, [curMatch[0].team1_id]);
       myScore = curMatch[0].team2_score;
       otherTeamScore = curMatch[0].team1_score;
       otherName =
         curMatch[0].team1_string == null
-        ? "Team Removed From Match"
-        : curMatch[0].team1_string;
+          ? "Team Removed From Match"
+          : curMatch[0].team1_string;
     }
     // If match is a bo1, just get the map score.
     if (curMatch[0].max_maps == 1) {
@@ -786,6 +779,7 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
         "Tied, " + myScore + ":" + otherTeamScore + " vs " + otherName;
     res.json({ result: statusString });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });

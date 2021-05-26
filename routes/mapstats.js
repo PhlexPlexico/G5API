@@ -99,15 +99,15 @@ const Utils = require("../utility/utils");
  */
 router.get("/", async (req, res, next) => {
   try {
-    // Check if admin, if they are use this query.
     let sql = "SELECT * FROM map_stats";
-    const mapstats = await db.query(sql);
+    let mapstats = await db.query(sql);
     if (mapstats.length === 0) {
       res.status(404).json({ message: "No stats found." });
       return;
     }
     res.json({ mapstats });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -149,13 +149,14 @@ router.get("/:match_id", async (req, res, next) => {
   try {
     let matchID = req.params.match_id;
     let sql = "SELECT * FROM map_stats where match_id = ?";
-    const mapstats = await db.query(sql, matchID);
+    let mapstats = await db.query(sql, matchID);
     if (mapstats.length === 0) {
       res.status(404).json({ message: "No stats found." });
       return;
     }
     res.json({ mapstats });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -251,34 +252,17 @@ router.get("/:match_id/:map_number", async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let newSingle = await db.getConnection();
   try {
-    if (req.body[0].match_id == null) {
-      res.status(400).json({ message: "Match ID Not Provided" });
-      return;
-    }
-    let currentMatchInfo =
-      "SELECT user_id, cancelled, forfeit, end_time FROM `match` WHERE id = ?";
-    const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
-    if (matchRow.length === 0) {
-      res.status(404).json({ message: "No match found." });
-      return;
-    } else if (
-      matchRow[0].user_id != req.user.id &&
-      !Utils.superAdminCheck(req.user)
-    ) {
-      res
-        .status(403)
-        .json({ message: "User is not authorized to perform action." });
-      return;
-    } else if (
-      matchRow[0].cancelled == 1 ||
-      matchRow[0].forfeit == 1 ||
-      matchRow[0].end_time != null
-    ) {
-      res.status(422).json({ message: "Match is already finished." });
+    let errMessage = await Utils.getUserMatchAccess(
+      req.body[0].match_id,
+      req.user,
+      false
+    );
+    if (errMessage != null) {
+      res.status(errMessage.status).json({ message: errMessage.message });
       return;
     } else {
+      let newSingle = await db.getConnection();
       await db.withNewTransaction(newSingle, async () => {
         let mapStatSet = {
           match_id: req.body[0].match_id,
@@ -295,6 +279,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
     }
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -338,32 +323,21 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let newSingle = await db.getConnection();
   try {
     if (req.body[0].map_stats_id == null) {
       res.status(412).json({ message: "Map stat ID Not Provided" });
       return;
     }
-    let currentMatchInfo =
-      "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time FROM `match` mtch, map_stats mstat WHERE mstat.id = ? AND mstat.match_id = mtch.id";
+    let newSingle = await db.getConnection();
+    let currentMatchInfo = "SELECT match_id FROM map_stats WHERE id = ?";
     const matchRow = await db.query(currentMatchInfo, req.body[0].map_stats_id);
-    if (matchRow.length === 0) {
-      res.status(404).json({ message: "No match found." });
-      return;
-    } else if (
-      matchRow[0].user_id != req.user.id &&
-      !Utils.superAdminCheck(req.user)
-    ) {
-      res
-        .status(403)
-        .json({ message: "User is not authorized to perform action." });
-      return;
-    } else if (
-      matchRow[0].cancelled == 1 ||
-      matchRow[0].forfeit == 1 ||
-      matchRow[0].mtch_end_time != null
-    ) {
-      res.status(422).json({ message: "Match is already finished." });
+    let errMessage = await Utils.getUserMatchAccess(
+      matchRow[0].match_id,
+      req.user,
+      false
+    );
+    if (errMessage != null) {
+      res.status(errMessage.status).json({ message: errMessage.message });
       return;
     } else {
       await db.withNewTransaction(newSingle, async () => {
@@ -394,7 +368,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
     }
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -439,32 +413,21 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let newSingle = await db.getConnection();
   try {
     if (req.body[0].map_stats_id == null) {
       res.status(412).json({ message: "Map Stats ID Not Provided" });
       return;
     }
-    let currentMatchInfo =
-      "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time FROM `match` mtch, map_stats mstat WHERE mstat.id = ? AND mstat.match_id = mtch.id";
+    let newSingle = await db.getConnection();
+    let currentMatchInfo = "SELECT match_id FROM map_stats WHERE id = ?";
     const matchRow = await db.query(currentMatchInfo, req.body[0].map_stats_id);
-    if (matchRow.length === 0) {
-      res.status(404).json({ message: "No match found." });
-      return;
-    } else if (
-      matchRow[0].user_id != req.user.id &&
-      !Utils.superAdminCheck(req.user)
-    ) {
-      res
-        .status(403)
-        .json({ message: "User is not authorized to perform action." });
-      return;
-    } else if (
-      matchRow[0].cancelled == 1 ||
-      matchRow[0].forfeit == 1 ||
-      matchRow[0].mtch_end_time != null
-    ) {
-      res.status(422).json({ message: "Match is already finished." });
+    let errMessage = await Utils.getUserMatchAccess(
+      matchRow[0].match_id,
+      req.user,
+      false
+    );
+    if (errMessage != null) {
+      res.status(errMessage.status).json({ message: errMessage.message });
       return;
     } else {
       await db.withNewTransaction(newSingle, async () => {
@@ -480,7 +443,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
     }
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: err });
   }
 });

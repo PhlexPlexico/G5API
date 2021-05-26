@@ -169,7 +169,6 @@ const Utils = require("../utility/utils");
  */
 router.get("/", async (req, res, next) => {
   try {
-    // Check if admin, if they are use this query.
     let sql = "SELECT * FROM player_stats";
     const playerStats = await db.query(sql);
     if (playerStats.length === 0) {
@@ -178,6 +177,7 @@ router.get("/", async (req, res, next) => {
     }
     res.json({ playerStats });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -209,7 +209,6 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/unique", async (req, res, next) => {
   try {
-    //
     let sql = "SELECT COUNT(DISTINCT steam_id) as cnt FROM player_stats";
     const playercount = await db.query(sql);
     if (playercount[0].cnt === 0) {
@@ -218,6 +217,7 @@ router.get("/unique", async (req, res, next) => {
     }
     res.json({ count: playercount[0].cnt });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -257,8 +257,7 @@ router.get("/unique", async (req, res, next) => {
  */
 router.get("/:steam_id", async (req, res, next) => {
   try {
-    //
-    steamID = req.params.steam_id;
+    let steamID = req.params.steam_id;
     let sql = "SELECT * FROM player_stats where steam_id = ?";
     const playerstats = await db.query(sql, steamID);
     if (playerstats.length === 0) {
@@ -267,6 +266,7 @@ router.get("/:steam_id", async (req, res, next) => {
     }
     res.json({ playerstats });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -306,8 +306,7 @@ router.get("/:steam_id", async (req, res, next) => {
  */
 router.get("/:steam_id/pug", async (req, res, next) => {
   try {
-    //
-    steamID = req.params.steam_id;
+    let steamID = req.params.steam_id;
     let sql = `SELECT steam_id, name, sum(kills) as kills,
           sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
           sum(k2) as k2, sum(k3) as k3,
@@ -378,6 +377,7 @@ router.get("/:steam_id/pug", async (req, res, next) => {
     };
     res.json({ pugstats });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -417,8 +417,7 @@ router.get("/:steam_id/pug", async (req, res, next) => {
  */
 router.get("/:steam_id/official", async (req, res, next) => {
   try {
-    //
-    steamID = req.params.steam_id;
+    let steamID = req.params.steam_id;
     let sql = `SELECT steam_id, name, sum(kills) as kills,
            sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
            sum(k2) as k2, sum(k3) as k3,
@@ -489,6 +488,7 @@ router.get("/:steam_id/official", async (req, res, next) => {
     };
     res.json({ pugstats });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -537,6 +537,7 @@ router.get("/match/:match_id", async (req, res, next) => {
     }
     res.json({ playerstats });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -802,6 +803,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
     }
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
@@ -888,6 +890,7 @@ router.delete("/", async (req, res, next) => {
       return;
     }
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.toString() });
   }
 });
