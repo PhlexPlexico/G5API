@@ -71,6 +71,7 @@ docker container run --name g5api \
 -e DATABASE="" \
 -e SQLHOST="" \
 -e SQLPORT="" \
+-e ADMINS="" \
 -e SUPERADMINS="" \
 -e REDISPASSWORD="" \
 yourname\g5api:latest
