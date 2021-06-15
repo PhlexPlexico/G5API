@@ -52,17 +52,31 @@ Spins up a development server (by default, please use the `NODE_ENV` variable to
 ### Docker Build Instructions:
 This guide assumes you have a MariaDB or MySQL compatible server running. You can deploy one in docker following the [MariaDB guide](https://hub.docker.com/_/mariadb/).
 
-First, you will need to set a password in ```config\redis.conf```.
+Build your docker image.
+Run the command ```docker build -t yourname\g5api:latest .```
+Once this has finished, you can run the container using 
+```
+docker container run --name g5api \
+-p 3301:3301 \
+-v redisVol:/RedisFiles \
+-e PORT="3301" \
+-e HOSTNAME="" \
+-e DBKEY="" \
+-e STEAMAPIKEY="" \
+-e SHAREDSECRET="" \
+-e CLIENTHOME="" \
+-e APIURL="" \
+-e SQLUSER="" \
+-e SQLPASSWORD="" \
+-e DATABASE="" \
+-e SQLHOST="" \
+-e SQLPORT="" \
+-e SUPERADMINS="" \
+-e REDISPASSWORD="" \
+yourname\g5api:latest
+```
 
-Next, rename ```config\production.json.template to config\production.json```.
-
-Fill this file out according to the [configuration](https://github.com/PhlexPlexico/G5API/wiki/Configuration) page. 
-For redisHost, set ```"localhost"```, redisPort ```6379```, redisTTL ```86400```, and redisPass to the password set in ```config\redis.config```.
-
-Now, you can build your docker image.
-Run the command ```docker build -t yourname\g5api:latest .``` 
-Once this has finished, you can run the container using ```docker container run --name g5api -p 3301:3301 -v redisVol:/RedisFiles yourname\g5api:latest```
-
+For more details on these variables, follow along with production.json.template located in /config
 ### Docs: 
 ```yarn doc```
 
