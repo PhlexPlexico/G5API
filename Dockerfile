@@ -9,7 +9,8 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
 	curl \
 	apt-transport-https \
 	lsb-release \
-	gnupg
+	gnupg \
+	git
 
 # add yarn repo
 RUN curl https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
@@ -23,19 +24,23 @@ RUN nvm install 13.8.0
 # install yarn
 RUN apt-get update && apt-get install --no-install-recommends -y \
   yarn
-  
-# copy git files and customized config files to folder Get5API
-RUN mkdir /Get5API && mkdir /RedisFiles
-COPY ./ /Get5API/
-COPY ./config/redis.conf /etc/redis/redis.conf
-COPY ./config/production.json /Get5API/config/production.json
 
-# move into Get5API folder
+# clone and move into Get5API folder
+RUN mkdir /Get5API
+RUN mkdir /etc/redis
 WORKDIR /Get5API
+RUN git clone https://github.com/PhlexPlexico/G5API.git
+WORKDIR /Get5API/G5API
 
-# build application
-RUN yarn install --production
-RUN yarn migrate-create-prod && yarn migrate-prod-upgrade && yarn
+# copy production and redis into place
+RUN cp /Get5API/G5API/config/production.json.template /Get5API/G5API/config/production.json
+RUN cp /Get5API/G5API/config/redis.conf /etc/redis/redis.conf
 
-# run application
-CMD redis-server /etc/redis/redis.conf --daemonize yes --appendonly yes && NODE_ENV=production yarn start
+# set config with env variables, build, and run application
+CMD sh /Get5API/G5API/config/setEnv.sh && \
+	yarn install --production && \
+	yarn migrate-create-prod && \
+	yarn migrate-prod-upgrade && \
+	yarn && \
+	redis-server /etc/redis/redis.conf --daemonize yes --appendonly yes && \
+	NODE_ENV=production yarn start
