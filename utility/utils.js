@@ -269,13 +269,14 @@ class Utils {
    * @param {String} matchid - The ID of a match
    * @param {user} user - the users session object.
    * @param {boolean} [onlyAdmin = false] - Set to true to only check admin status and not super admin status.
+   * @param {boolean} [serverCheck = false] - Optional parameter to check if a user owns a server, for elevated calls.
    * @returns An object containing the HTTP error, followed by a message.
    */
-   static async getUserMatchAccess(matchid, user, onlyAdmin = false) {
+   static async getUserMatchAccess(matchid, user, onlyAdmin = false, serverCheck = false) {
     try {
       let retMessage = null;
 
-      retMessage = await this.getUserMatchAccessNoFinalize(matchid, user, onlyAdmin);
+      retMessage = await this.getUserMatchAccessNoFinalize(matchid, user, onlyAdmin, serverCheck);
       if(retMessage != null)
         return retMessage;
 
@@ -306,9 +307,10 @@ class Utils {
    * @param {String} matchid - The ID of a match
    * @param {user} user - the users session object.
    * @param {boolean} [onlyAdmin = false] - Set to true to only check admin status and not super admin status.
+   * @param {boolean} [serverCheck = false] - Optional parameter to check if a user owns a server, for elevated calls.
    * @returns An object containing the HTTP error, followed by a message.
    */
-   static async getUserMatchAccessNoFinalize(matchid, user, onlyAdmin = false) {
+   static async getUserMatchAccessNoFinalize(matchid, user, onlyAdmin = false, serverCheck = false) {
     try {
       let adminCheck = onlyAdmin ? this.adminCheck(user) : this.superAdminCheck(user);
       let retMessage = null;
@@ -320,13 +322,23 @@ class Utils {
       let newSingle = await db.getConnection();
 
       await db.withNewTransaction(newSingle, async () => {
-        let currentMatchInfo = "SELECT user_id FROM `match` WHERE id = ?";
+        let currentMatchInfo = "SELECT user_id, server_id FROM `match` WHERE id = ?";
+        let currentServerInfo = "SELECT user_id FROM game_server WHERE id = ?"
         const matchRow = await newSingle.query(currentMatchInfo, matchid);
+        const serverRow = await newSingle.query(currentServerInfo, matchRow[0][0].server_id);
         if (
           matchRow[0][0].user_id != user.id &&
           !adminCheck
         ) {
           retMessage = {status: 403, message: "User is not authorized to perform action."};
+        }
+        if (serverCheck) {
+          if (
+            !this.superAdminCheck(user) && 
+            serverRow[0][0].user_id != user.id
+          ) {
+            retMessage = {status: 403, message: "User is not authorized to perform action."};
+          }
         }
       });
       return retMessage;

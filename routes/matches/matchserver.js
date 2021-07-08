@@ -342,6 +342,7 @@ router.put(
       let errMessage = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user,
+        true,
         true
       );
       if (errMessage != null) {
