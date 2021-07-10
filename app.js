@@ -18,6 +18,7 @@ const serversRouter = require("./routes/servers");
 const teamsRouter = require("./routes/teams");
 const usersRouter = require("./routes/users");
 const vetoesRouter = require("./routes/vetoes");
+const vetosidesRouter = require("./routes/vetosides");
 const mapListRouter = require("./routes/maps");
 //End Route Files
 
@@ -123,6 +124,7 @@ const options = {
     "./routes/teams.js",
     "./routes/users.js",
     "./routes/vetoes.js",
+    "./routes/vetosides.js",
   ],
 };
 const swaggerSpec = swaggerJSDoc(options);
@@ -137,6 +139,7 @@ app.use("/users", usersRouter);
 app.use("/teams", teamsRouter);
 app.use("/servers", serversRouter);
 app.use("/vetoes", vetoesRouter);
+app.use("/vetosides", vetosidesRouter);
 app.use("/matches", matchesRouter, matchServerRouter);
 app.use("/mapstats", mapstatsRouter);
 app.use("/playerstats", playerstatsRouter);
