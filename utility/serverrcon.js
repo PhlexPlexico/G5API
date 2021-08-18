@@ -94,7 +94,7 @@ class ServerRcon {
   /**
    * 
    * Checks if the server is up to date via a steam API call.
-   * @function 
+   * @returns True if up to date, false otherwise.
    */
   async isServerUpToDate() {
     try {
@@ -105,10 +105,10 @@ class ServerRcon {
       let serverResponse = await this.execute("version");
       let serverVersion = serverResponse.match(/(?<=version ).*(?= \[)/);
       // Call steam API to check if the version is the latest.
-      let response = await fetch(`https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001/?appid=730&version=${serverVersion}&format=json`);
+      let response = await fetch("https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001/?appid=730&version=" + serverVersion + "&format=json");
       let data = await response.json();
       if (!data.response.up_to_date) {
-        console.log(`Server is not up to date! Current version: ${serverVersion}, Latest version: ${data.response.required_version}`);
+        console.log("Server is not up to date! Current version: " + serverVersion + " - Latest version: " + data.response.required_version);
         return false;
       }
       else {

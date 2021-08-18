@@ -348,7 +348,7 @@ router.get(
         } else if (!serverUpToDate) {
           res.status(412).json({
             message:
-              "Server is not up to date. Please upgrade.",
+              "Server is not up to date - please update your game server instance.",
           });
         } else {
           res.json({ message: "Server is alive and up to date." });
