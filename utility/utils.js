@@ -130,14 +130,13 @@ class Utils {
    * @inner */
   static async ensureAuthenticated(req, res, next) {
     if (
-      req.body[0] != null &&
-      req.body[0].user_api != null &&
-      req.body[0].user_id
+      req.get("user-id") &&
+      req.get("user-api")
     ) {
       // Check the user based on API.
-      let apiKey = req.body[0].user_api;
-      let userId = req.body[0].user_id;
-      let sqlQuery = "SELECT * FROM user WHERE id = ?";
+      const apiKey = req.get("user-api");
+      const userId = req.get("user-id");
+      const sqlQuery = "SELECT * FROM user WHERE id = ?";
       const ourUser = await db.query(sqlQuery, userId);
       if (ourUser.length > 0) {
         let uncDb = await Utils.decrypt(ourUser[0].api_key);
