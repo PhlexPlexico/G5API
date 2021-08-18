@@ -339,13 +339,19 @@ router.get(
           serverInfo[0].rcon_password
         );
         let serverUp = await ourServer.isServerAlive();
+        let serverUpToDate = await ourServer.isServerUpToDate();
         if (!serverUp) {
           res.status(408).json({
             message:
               "Server did not respond in 2500 ms. Please check if server is online and password is correct.",
           });
+        } else if (!serverUpToDate) {
+          res.status(412).json({
+            message:
+              "Server is not up to date - please update your game server instance.",
+          });
         } else {
-          res.json({ message: "Server is alive and online." });
+          res.json({ message: "Server is alive and up to date." });
         }
       }
     } catch (err) {
