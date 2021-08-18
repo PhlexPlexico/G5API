@@ -1,5 +1,6 @@
 const util = require("./utils");
 const Rcon = require("rcon");
+const fetch = require("node-fetch");
 
 /**
  * Creates a new server object to run various tasks.
@@ -84,6 +85,35 @@ class ServerRcon {
       }
       let get5Status = await this.execute("status");
       return get5Status != "";
+    } catch (err) {
+      console.error("Error on game server: " + err.toString());
+      return false;
+    }
+  }
+
+  /**
+   * 
+   * Checks if the server is up to date via a steam API call.
+   * @function 
+   */
+  async isServerUpToDate() {
+    try {
+      if (process.env.NODE_ENV === "test") {
+        return false;
+      }
+      // Get server version.
+      let serverResponse = await this.execute("version");
+      let serverVersion = serverResponse.match(/(?<=version ).*(?= \[)/);
+      // Call steam API to check if the version is the latest.
+      let response = await fetch(`https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001/?appid=730&version=${serverVersion}&format=json`);
+      let data = await response.json();
+      if (!data.response.up_to_date) {
+        console.log(`Server is not up to date! Current version: ${serverVersion}, Latest version: ${data.response.required_version}`);
+        return false;
+      }
+      else {
+        return true
+      }
     } catch (err) {
       console.error("Error on game server: " + err.toString());
       return false;
