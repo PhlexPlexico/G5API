@@ -129,14 +129,10 @@ class Utils {
    * @memberof module:utils
    * @inner */
   static async ensureAuthenticated(req, res, next) {
-    if (
-      req.body[0] != null &&
-      req.body[0].user_api != null &&
-      req.body[0].user_id
-    ) {
-      // Check the user based on API.
-      let apiKey = req.body[0].user_api;
-      let userId = req.body[0].user_id;
+    // Check the user based on API.
+    const apiKey = req.get("user-api") || req.body[0]?.user_api;
+    const userId = req.get("user-id") || req.body[0]?.user_id;
+    if (apiKey && userId) {
       let sqlQuery = "SELECT * FROM user WHERE id = ?";
       const ourUser = await db.query(sqlQuery, userId);
       if (ourUser.length > 0) {
@@ -345,7 +341,6 @@ class Utils {
     } catch (err) {
       throw err;
     }
-    
   }
 
   /** Checks whether or not a match exists.
@@ -375,7 +370,6 @@ class Utils {
     }
     return null;
   }
-
 }
 
 module.exports = Utils;
