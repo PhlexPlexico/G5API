@@ -90,7 +90,7 @@ const Utils = require("../utility/utils");
  *       500:
  *         $ref: '#/components/responses/Error'
  */
-router.get("/", async (req, res, next) => {
+router.get("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if admin or super admin, adjust by providing rcon password or not.
     let sql = "";
@@ -145,7 +145,7 @@ router.get("/", async (req, res, next) => {
  *       500:
  *         $ref: '#/components/responses/Error'
  */
-router.get("/available", async (req, res, next) => {
+router.get("/available", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if admin or super admin, adjust by providing rcon password or not.
     let sql = "";
@@ -328,9 +328,9 @@ router.get(
         serverInfo[0].user_id != userId &&
         !Utils.superAdminCheck(req.user)
       ) {
-        res
-          .status(403)
-          .json({ message: "User is not authorized to perform action." });
+        res.status(403).json({
+          message: "User is not authorized to perform action.",
+        });
         return;
       } else {
         let ourServer = new GameServer(
@@ -489,9 +489,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       checkUser[0].user_id != userId &&
       !Utils.superAdminCheck(req.user)
     ) {
-      res
-        .status(403)
-        .json({ message: "User is not authorized to perform action." });
+      res.status(403).json({
+        message: "User is not authorized to perform action.",
+      });
       return;
     } else {
       let serverId = req.body[0].server_id;
@@ -511,7 +511,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       // Remove any unwanted nulls.
       updateStmt = await db.buildUpdateStatement(updateStmt);
       if (Object.keys(updateStmt).length === 0) {
-        res.status(412).json({ message: "No update data has been provided." });
+        res.status(412).json({
+          message: "No update data has been provided.",
+        });
         return;
       }
       let sql = "UPDATE game_server SET ? WHERE id = ?";
@@ -599,9 +601,9 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       checkUser[0].user_id != req.user.id &&
       !Utils.superAdminCheck(req.user)
     ) {
-      res
-        .status(403)
-        .json({ message: "User is not authorized to perform action." });
+      res.status(403).json({
+        message: "User is not authorized to perform action.",
+      });
       return;
     } else if (checkUser[0].in_use == 1) {
       res.status(403).json({
