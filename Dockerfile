@@ -19,7 +19,7 @@ RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources
 # install nvm and node 13.8.0
 SHELL ["/bin/bash", "--login", "-c"]
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
-RUN nvm install 13.8.0
+RUN nvm install 14.17.5
 
 # install yarn
 RUN apt-get update && apt-get install --no-install-recommends -y \
@@ -43,4 +43,4 @@ CMD sh /Get5API/G5API/config/setEnv.sh && \
 	yarn migrate-prod-upgrade && \
 	yarn && \
 	redis-server /etc/redis/redis.conf --daemonize yes --appendonly yes && \
-	NODE_ENV=production yarn start
+	yarn startprod
