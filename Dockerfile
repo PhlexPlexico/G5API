@@ -6,11 +6,11 @@ EXPOSE 3301
 
 # update and install initial packages
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
-	curl \
-	apt-transport-https \
-	lsb-release \
-	gnupg \
-	git
+    curl \
+    apt-transport-https \
+    lsb-release \
+    gnupg \
+    git
 
 # add yarn repo
 RUN curl https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
@@ -38,9 +38,10 @@ RUN cp /Get5API/G5API/config/redis.conf /etc/redis/redis.conf
 
 # set config with env variables, build, and run application
 CMD sh /Get5API/G5API/config/setEnv.sh && \
-	yarn install --production && \
-	yarn migrate-create-prod && \
-	yarn migrate-prod-upgrade && \
-	yarn && \
-	redis-server /etc/redis/redis.conf --daemonize yes --appendonly yes && \
-	yarn startprod
+    yarn install --production && \
+    yarn migrate-create-prod && \
+    yarn migrate-prod-upgrade && \
+    yarn && \
+    redis-server /etc/redis/redis.conf --daemonize yes --appendonly yes && \
+    yarn startprod && \
+    yarn pm2 logs
