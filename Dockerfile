@@ -24,7 +24,7 @@ RUN nvm install 14.17.5
 # install yarn
 # RUN apt-get update && apt-get install --no-install-recommends -y \
 #  yarn
-npm install --global yarn
+RUN npm install --global yarn
 
 # clone and move into Get5API folder
 RUN mkdir /Get5API
