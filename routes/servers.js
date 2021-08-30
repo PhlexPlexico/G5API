@@ -120,6 +120,46 @@ router.get("/", Utils.ensureAuthenticated, async (req, res, next) => {
 /**
  * @swagger
  *
+ * /servers/publiccount:
+ *   get:
+ *     description: Get a count of all public servers available.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - servers
+ *     responses:
+ *       200:
+ *         description: An integrer representing the amount of publically usable servers.
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: object
+ *                properties:
+ *                  type: array
+ *                  servers:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/ServerData'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.get("/publiccount", async (req, res, next) => {
+  try {
+    let sql = 
+      "SELECT COUNT(*) as cnt FROM game_server gs WHERE gs.public_server=1";
+    let servers = await db.query(sql);
+    res.json({ "servers": servers[0].cnt });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
  * /servers/available:
  *   get:
  *     description: Get all available servers depending on access level.
