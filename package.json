@@ -79,6 +79,7 @@
     "jszip": "^3.7.0",
     "morgan": "^1.9.1",
     "mysql2": "^2.2.5",
+    "node-fetch": "^2.6.1",
     "passport": "^0.4.0",
     "passport-steam": "^1.0.14",
     "pm2": "^4.5.1",
@@ -87,13 +88,12 @@
     "redis": "^3.1.1",
     "steamapi": "^2.0.7",
     "swagger-jsdoc": "^4.0.0",
-    "swagger-ui-express": "^4.1.4",
-    "node-fetch": "^2.6.1"
+    "swagger-ui-express": "^4.1.4"
   },
   "devDependencies": {
-    "nodemon": "^1.19.4",
     "jest": "^25.1.0",
     "jsdoc": "^3.6.7",
+    "nodemon": "^1.19.4",
     "redis-mock": "^0.49.0",
     "supertest": "^4.0.2"
   }
