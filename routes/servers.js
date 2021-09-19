@@ -189,17 +189,22 @@ router.get("/available", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     // Check if admin or super admin, adjust by providing rcon password or not.
     let sql = "";
+    let servers;
     if (Utils.superAdminCheck(req.user)) {
       sql =
         "SELECT gs.id, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, usr.id as user_id, gs.flag, gs.gotv_port FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.in_use=0";
     } else if (Utils.adminCheck(req.user)) {
       sql =
         "SELECT gs.id, gs.display_name, gs.ip_string, gs.port, gs.public_server, usr.name, usr.id as user_id, gs.flag, gs.gotv_port FROM game_server gs, user usr WHERE usr.id = gs.user_id AND gs.in_use=0";
+    } else if (req.user) {
+      sql =
+        "SELECT gs.id, gs.display_name, gs.ip_string, gs.port, gs.public_server, usr.name, usr.id as user_id, gs.flag, gs.gotv_port FROM game_server gs, user usr WHERE usr.id = gs.user_id AND (gs.public_server=1 OR gs.user_id = ?) AND gs.in_use=0";
     } else {
       sql =
         "SELECT gs.id, gs.display_name, usr.name, usr.id as user_id, gs.flag FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id AND gs.in_use=0";
     }
-    let servers = await db.query(sql);
+    if (req.user) servers = await db.query(sql, [req.user.id]);
+    else servers = await db.query(sql);
     if (Utils.superAdminCheck(req.user)) {
       for (let serverRow of servers) {
         serverRow.rcon_password = Utils.decrypt(serverRow.rcon_password);
