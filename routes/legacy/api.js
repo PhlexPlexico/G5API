@@ -176,7 +176,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
 
     if (winner === "team1") teamIdWinner = matchValues[0].team1_id;
     else if (winner === "team2") teamIdWinner = matchValues[0].team2_id;
-    else if (winner === "none") {
+    else if (winner === "none" && (matchValues[0].max_maps != 2)) {
       teamIdWinner = null;
       cancelled = 1;
       forfeit = 0;
