@@ -366,9 +366,7 @@ router.get("/:season_id", async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let newSingle = await db.getConnection();
   try {
-    await db.withNewTransaction(newSingle, async () => {
       let defaultCvar = req.body[0].season_cvar;
       let insertSet = {
         user_id: req.user.id,
@@ -377,23 +375,22 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         end_date: req.body[0].end_date,
       };
       let sql = "INSERT INTO season SET ?";
-      let insertSeason = await newSingle.query(sql, [insertSet]);
+      let insertSeason = await db.query(sql, [insertSet]);
       if (defaultCvar != null) {
         sql = "INSERT INTO season_cvar SET ?";
         for (let key in defaultCvar) {
           insertSet = {
-            season_id: insertSeason[0].insertId,
+            season_id: insertSeason.insertId,
             cvar_name: key.replace(/"/g, '\\"'),
             cvar_value: typeof defaultCvar[key] === 'string' ? defaultCvar[key].replace(/"/g, '\\"') : defaultCvar[key]
           };
-          await newSingle.query(sql, [insertSet]);
+          await db.query(sql, [insertSet]);
         }
       }
       res.json({
         message: "Season inserted successfully!",
-        id: insertSeason[0].insertId,
+        id: insertSeason.insertId,
       });
-    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.toString() });
@@ -438,7 +435,6 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let newSingle = await db.getConnection();
   let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
   if (req.body[0].season_id == null) {
     res.status(400).json({ message: "No season ID provided." });
@@ -458,42 +454,40 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   } else {
     try {
-      await db.withNewTransaction(newSingle, async () => {
-        let defaultCvar = req.body[0].season_cvar;
-        let updateStmt = {
-          user_id: req.body[0].user_id,
-          name: req.body[0].name,
-          start_date: req.body[0].start_date,
-          end_date: req.body[0].end_date,
-        };
-        // Remove any values that may not be updated.
-        // Change this as we are allowed null values within this update.
-        updateStmt = await db.buildUpdateStatement(updateStmt);
-        // Force getting the end date.
-        updateStmt.end_date = req.body[0].end_date;
-        if (Object.keys(updateStmt).length === 0) {
-          res
-            .status(412)
-            .json({ message: "No update data has been provided." });
-          return;
+      let defaultCvar = req.body[0].season_cvar;
+      let updateStmt = {
+        user_id: req.body[0].user_id,
+        name: req.body[0].name,
+        start_date: req.body[0].start_date,
+        end_date: req.body[0].end_date,
+      };
+      // Remove any values that may not be updated.
+      // Change this as we are allowed null values within this update.
+      updateStmt = await db.buildUpdateStatement(updateStmt);
+      // Force getting the end date.
+      updateStmt.end_date = req.body[0].end_date;
+      if (Object.keys(updateStmt).length === 0) {
+        res
+          .status(412)
+          .json({ message: "No update data has been provided." });
+        return;
+      }
+      let sql = "UPDATE season SET ? WHERE id = ?";
+      await db.query(sql, [updateStmt, req.body[0].season_id]);
+      if (defaultCvar != null) {
+        sql = "DELETE FROM season_cvar WHERE season_id = ?";
+        await db.query(sql, [req.body[0].season_id]);
+        sql = "INSERT INTO season_cvar SET ?";
+        for (let key in defaultCvar) {
+          insertSet = {
+            season_id: req.body[0].season_id,
+            cvar_name: key.replace(/"/g, '\\"'),
+            cvar_value: typeof defaultCvar[key] === 'string' ? defaultCvar[key].replace(/"/g, '\\"') : defaultCvar[key],
+          };
+          await db.query(sql, [insertSet]);
         }
-        let sql = "UPDATE season SET ? WHERE id = ?";
-        await newSingle.query(sql, [updateStmt, req.body[0].season_id]);
-        if (defaultCvar != null) {
-          sql = "DELETE FROM season_cvar WHERE season_id = ?";
-          await newSingle.query(sql, [req.body[0].season_id]);
-          sql = "INSERT INTO season_cvar SET ?";
-          for (let key in defaultCvar) {
-            insertSet = {
-              season_id: req.body[0].season_id,
-              cvar_name: key.replace(/"/g, '\\"'),
-              cvar_value: typeof defaultCvar[key] === 'string' ? defaultCvar[key].replace(/"/g, '\\"') : defaultCvar[key],
-            };
-            await newSingle.query(sql, [insertSet]);
-          }
-        }
-        res.json({ message: "Season updated successfully!" });
-      });
+      }
+      res.json({ message: "Season updated successfully!" });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: err.toString() });
@@ -538,7 +532,6 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.delete("/", async (req, res, next) => {
-  let newSingle = await db.getConnection();
   let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
   const seasonRow = await db.query(seasonUserId, req.body[0].season_id);
   if (seasonRow[0] == null) {
@@ -554,12 +547,10 @@ router.delete("/", async (req, res, next) => {
     return;
   } else {
     try {
-      await db.withNewTransaction(newSingle, async () => {
-        let deleteSql = "DELETE FROM season WHERE id = ?";
-        let seasonId = req.body[0].season_id;
-        await newSingle.query(deleteSql, [seasonId]);
-        res.json({ message: "Season deleted successfully!" });
-      });
+      let deleteSql = "DELETE FROM season WHERE id = ?";
+      let seasonId = req.body[0].season_id;
+      await db.query(deleteSql, [seasonId]);
+      res.json({ message: "Season deleted successfully!" });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: err.toString() });

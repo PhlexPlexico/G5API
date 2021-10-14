@@ -438,7 +438,6 @@ router.get(
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let insertServer;
     let userId = req.user.id;
     let ipString = req.body[0].ip_string;
@@ -450,18 +449,16 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let gotvPort = req.body[0].gotv_port;
     let sql =
       "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server, flag, gotv_port) VALUES (?,?,?,?,?,?,?,?)";
-    await db.withNewTransaction(newSingle, async () => {
-      insertServer = await newSingle.query(sql, [
-        userId,
-        ipString,
-        port,
-        rconPass,
-        displayName,
-        publicServer,
-        flagCode,
-        gotvPort,
-      ]);
-    });
+    insertServer = await db.query(sql, [
+      userId,
+      ipString,
+      port,
+      rconPass,
+      displayName,
+      publicServer,
+      flagCode,
+      gotvPort,
+    ]);
     let ourServer = new GameServer(
       req.body[0].ip_string,
       req.body[0].port,
@@ -476,7 +473,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     } else {
       res.json({
         message: "Game server inserted successfully!",
-        id: insertServer[0].insertId,
+        id: insertServer.insertId,
       });
     }
   } catch (err) {
@@ -523,7 +520,6 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let userCheckSql = "SELECT user_id FROM game_server WHERE id = ?";
     let userId = req.user.id;
     const checkUser = await db.query(userCheckSql, [req.body[0].server_id]);
@@ -564,10 +560,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       let sql = "UPDATE game_server SET ? WHERE id = ?";
       let updatedServer;
       let serveInfo;
-      await db.withNewTransaction(newSingle, async () => {
-        updatedServer = await newSingle.query(sql, [updateStmt, serverId]);
-      });
-      if (updatedServer[0].affectedRows > 0) {
+      updatedServer = await db.query(sql, [updateStmt, serverId]);
+      if (updatedServer.affectedRows > 0) {
         // Get all server info
         sql =
           "SELECT ip_string, port, rcon_password FROM game_server WHERE id = ?";
@@ -636,7 +630,6 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
     let userCheckSql = "SELECT user_id, in_use FROM game_server WHERE id = ?";
     const checkUser = await db.query(userCheckSql, [req.body[0].server_id]);
     if (checkUser[0] == null) {
@@ -659,16 +652,14 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       let serverId = req.body[0].server_id;
       let sql = "";
       let delRows = null;
-      await db.withNewTransaction(newSingle, async () => {
-        if (Utils.superAdminCheck(req.user)) {
-          sql = "DELETE FROM game_server WHERE id = ?";
-          delRows = await newSingle.query(sql, [serverId]);
-        } else {
-          sql = "DELETE FROM game_server WHERE id = ? AND user_id = ?";
-          delRows = await newSingle.query(sql, [serverId, userId]);
-        }
-      });
-      if (delRows[0].affectedRows > 0)
+      if (Utils.superAdminCheck(req.user)) {
+        sql = "DELETE FROM game_server WHERE id = ?";
+        delRows = await db.query(sql, [serverId]);
+      } else {
+        sql = "DELETE FROM game_server WHERE id = ? AND user_id = ?";
+        delRows = await db.query(sql, [serverId, userId]);
+      }
+      if (delRows.affectedRows > 0)
         res.json({ message: "Game server deleted successfully!" });
       else {
         throw "Error! Unable to delete record.";

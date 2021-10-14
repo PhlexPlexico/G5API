@@ -45,7 +45,6 @@ async function returnStrategy(identifier, profile, done) {
   process.nextTick(async () => {
     profile.identifier = identifier;
     try {
-      let singleConn = await db.getConnection();
       let defaultMaps = [];
       let isAdmin = 0;
       let isSuperAdmin = 0;
@@ -58,8 +57,8 @@ async function returnStrategy(identifier, profile, done) {
       } else if (adminList.indexOf(profile.id.toString()) >= 0) {
         isAdmin = 1;
       }
-      let curUser = await singleConn.query(sql, [profile.id]);
-      if (curUser[0].length < 1) {
+      let curUser = await db.query(sql, profile.id);
+      if (curUser.length < 1) {
         //Generate API key in user session to allow posting/getting/etc with
         //an account that's not in a session.
         let apiKey = randString.generate({
@@ -78,22 +77,18 @@ async function returnStrategy(identifier, profile, done) {
           large_image: profile.photos[2].value,
           api_key: await Utils.encrypt(apiKey),
         };
-        await db.withNewTransaction(singleConn, async () => {
-          curUser = await singleConn.query(sql, [newUser]);
-        });
+        curUser = await db.query(sql, [newUser]);
         sql = "SELECT * FROM user WHERE steam_id = ?";
-        curUser = await singleConn.query(sql, [profile.id]);
-        defaultMaps.push(['de_inferno', 'Inferno', curUser[0][0].id]);
-        defaultMaps.push(['de_ancient', 'Ancient', curUser[0][0].id]);
-        defaultMaps.push(['de_mirage', 'Mirage', curUser[0][0].id]);
-        defaultMaps.push(['de_nuke', 'Nuke', curUser[0][0].id]);
-        defaultMaps.push(['de_overpass', 'Overpass', curUser[0][0].id]);
-        defaultMaps.push(['de_dust2', 'Dust II', curUser[0][0].id]);
-        defaultMaps.push(['de_vertigo', 'Vertigo', curUser[0][0].id]);
+        curUser = await db.query(sql, [profile.id]);
+        defaultMaps.push(['de_inferno', 'Inferno', curUser[0].id]);
+        defaultMaps.push(['de_ancient', 'Ancient', curUser[0].id]);
+        defaultMaps.push(['de_mirage', 'Mirage', curUser[0].id]);
+        defaultMaps.push(['de_nuke', 'Nuke', curUser[0].id]);
+        defaultMaps.push(['de_overpass', 'Overpass', curUser[0].id]);
+        defaultMaps.push(['de_dust2', 'Dust II', curUser[0].id]);
+        defaultMaps.push(['de_vertigo', 'Vertigo', curUser[0].id]);
         sql = "INSERT INTO map_list (map_name, map_display_name, user_id) VALUES ?";
-        await db.withNewTransaction(singleConn, async () => {
-          await singleConn.query(sql, [defaultMaps]);
-        });
+        await db.query(sql, [defaultMaps]);
       } else {
         let updateUser = {
           small_image: profile.photos[0].value,
@@ -101,25 +96,21 @@ async function returnStrategy(identifier, profile, done) {
           large_image: profile.photos[2].value,
         };
         sql = "UPDATE user SET ? WHERE steam_id=?";
-        await db.withNewTransaction(singleConn, async () => {
-          await singleConn.query(sql, [updateUser, profile.id]);
-        });
+        await db.query(sql, [updateUser, profile.id]);
         // Insert default maps.
         sql = "SELECT * FROM map_list WHERE user_id = ?";
-        let checkMaps = await singleConn.query(sql, [curUser[0][0].id]);
-        if (checkMaps[0].length < 1) {
+        let checkMaps = await db.query(sql, [curUser[0].id]);
+        if (checkMaps.length < 1) {
           let defaultMaps = [];
-          defaultMaps.push(['de_inferno', 'Inferno', curUser[0][0].id]);
-          defaultMaps.push(['de_ancient', 'Ancient', curUser[0][0].id]);
-          defaultMaps.push(['de_mirage', 'Mirage', curUser[0][0].id]);
-          defaultMaps.push(['de_nuke', 'Nuke', curUser[0][0].id]);
-          defaultMaps.push(['de_overpass', 'Overpass', curUser[0][0].id]);
-          defaultMaps.push(['de_dust2', 'Dust II', curUser[0][0].id]);
-          defaultMaps.push(['de_vertigo', 'Vertigo', curUser[0][0].id]);
+          defaultMaps.push(['de_inferno', 'Inferno', curUser[0].id]);
+          defaultMaps.push(['de_ancient', 'Ancient', curUser[0].id]);
+          defaultMaps.push(['de_mirage', 'Mirage', curUser[0].id]);
+          defaultMaps.push(['de_nuke', 'Nuke', curUser[0].id]);
+          defaultMaps.push(['de_overpass', 'Overpass', curUser[0].id]);
+          defaultMaps.push(['de_dust2', 'Dust II', curUser[0].id]);
+          defaultMaps.push(['de_vertigo', 'Vertigo', curUser[0].id]);
           sql = "INSERT INTO map_list (map_name, map_display_name, user_id) VALUES ?";
-          await db.withNewTransaction(singleConn, async () => {
-            await singleConn.query(sql, [defaultMaps]);
-          });
+          await db.query(sql, defaultMaps);
         }
       }
       return done(null, {
@@ -127,11 +118,11 @@ async function returnStrategy(identifier, profile, done) {
         name: profile.displayName,
         super_admin: isSuperAdmin,
         admin: isAdmin,
-        id: curUser[0][0].id,
+        id: curUser[0].id,
         small_image: profile.photos[0].value,
         medium_image: profile.photos[1].value,
         large_image: profile.photos[2].value,
-        api_key: await Utils.decrypt(curUser[0][0].api_key),
+        api_key: Utils.decrypt(curUser[0].api_key),
       });
     } catch (err) {
       console.log(
