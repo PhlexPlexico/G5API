@@ -184,39 +184,36 @@ router.get("/:user_id", async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let newSingle = await db.getConnection();
   try {
     if (Utils.adminCheck(req.user)) {
-      await db.withNewTransaction(newSingle, async () => {
-        let steamId = req.body[0].steam_id;
-        let steamName = req.body[0].name;
-        let isAdmin = req.body[0].admin;
-        let isSuperAdmin = req.body[0].super_admin;
-        let smallImage = req.body[0].small_image;
-        let mediumImage = req.body[0].medium_image;
-        let largeImage = req.body[0].large_image;
-        let apiKey = randString.generate({
-          length: 64,
-          capitalization: "uppercase",
-        });
-        let userId = null;
-        apiKey = await Utils.encrypt(apiKey);
-        // Check if user is allowed to create?
-        let sql =
-          "INSERT INTO user (steam_id, name, admin, super_admin, small_image, medium_image, large_image, api_key) VALUES (?,?,?,?,?,?,?,?)";
-        let newUser = await newSingle.query(sql, [
-          steamId,
-          steamName,
-          isAdmin,
-          isSuperAdmin,
-          smallImage,
-          mediumImage,
-          largeImage,
-          apiKey,
-        ]);
-        userId = newUser[0].insertId;
-        res.json({ message: "User created successfully.", id: userId });
+      let steamId = req.body[0].steam_id;
+      let steamName = req.body[0].name;
+      let isAdmin = req.body[0].admin;
+      let isSuperAdmin = req.body[0].super_admin;
+      let smallImage = req.body[0].small_image;
+      let mediumImage = req.body[0].medium_image;
+      let largeImage = req.body[0].large_image;
+      let apiKey = randString.generate({
+        length: 64,
+        capitalization: "uppercase",
       });
+      let userId = null;
+      apiKey = Utils.encrypt(apiKey);
+      // Check if user is allowed to create?
+      let sql =
+        "INSERT INTO user (steam_id, name, admin, super_admin, small_image, medium_image, large_image, api_key) VALUES (?,?,?,?,?,?,?,?)";
+      let newUser = await db.query(sql, [
+        steamId,
+        steamName,
+        isAdmin,
+        isSuperAdmin,
+        smallImage,
+        mediumImage,
+        largeImage,
+        apiKey,
+      ]);
+      userId = newUser.insertId;
+      res.json({ message: "User created successfully.", id: userId });
     } else {
       res.status(403).json({ message: "You are not authorized to do this." });
     }
@@ -261,7 +258,6 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let newSingle = await db.getConnection();
   try {
     let userToBeUpdated = await db.query(
       "SELECT id, name, admin, super_admin FROM user WHERE id = ? OR steam_id = ?",
@@ -306,15 +302,13 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     } else {
       res.status(403).json({ message: "You are not authorized to do this." });
     }
-    await db.withNewTransaction(newSingle, async () => {
-      updateUser = await db.buildUpdateStatement(updateUser);
-      if (Object.keys(updateUser).length === 0) {
-        res.status(412).json({ message: "No update data has been provided." });
-        return;
-      }
-      let sql = "UPDATE user SET ? WHERE steam_id = ?";
-      await newSingle.query(sql, [updateUser, steamId]);
-    });
+    updateUser = await db.buildUpdateStatement(updateUser);
+    if (!Object.keys(updateUser)) {
+      res.status(412).json({ message: "No update data has been provided." });
+      return;
+    }
+    let sql = "UPDATE user SET ? WHERE steam_id = ?";
+    await db.query(sql, [updateUser, steamId]);
     // If we're updating ourselves we need to update their session. Force a reload of session.
     if (req.user.steam_id == req.body[0].steam_id) {
       req.user.super_admin = isSuperAdmin;

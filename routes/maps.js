@@ -202,27 +202,24 @@ router.get("/:user_id/enabled", async (req, res, next) => {
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let newSingle = await db.getConnection();
-    await db.withNewTransaction(newSingle, async () => {
-      let userID = req.user.id;
-      let enabled = req.body[0].enabled == null
-        ? true
-        : req.body[0].enabled;
-      let newMapID;
-      let insertSet = {
-        user_id: userID,
-        map_name: req.body[0].map_name,
-        map_display_name: req.body[0].map_display_name,
-        enabled: enabled
-      }
-      insertSet = await db.buildUpdateStatement(insertSet);
-      // Check if user is allowed to create?
-      let sql =
-        "INSERT INTO map_list SET ?";
-      let newMap = await newSingle.query(sql, [insertSet]);
-      newMapID = newMap[0].insertId;
-      res.json({ message: "MapList created successfully.", id: newMapID });
-    });
+    let userID = req.user.id;
+    let enabled = req.body[0].enabled == null
+      ? true
+      : req.body[0].enabled;
+    let newMapID;
+    let insertSet = {
+      user_id: userID,
+      map_name: req.body[0].map_name,
+      map_display_name: req.body[0].map_display_name,
+      enabled: enabled
+    }
+    insertSet = await db.buildUpdateStatement(insertSet);
+    // Check if user is allowed to create?
+    let sql =
+      "INSERT INTO map_list SET ?";
+    let newMap = await db.query(sql, [insertSet]);
+    newMapID = newMap.insertId;
+    res.json({ message: "MapList created successfully.", id: newMapID });
 
   } catch (err) {
     console.error(err);
@@ -263,30 +260,27 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let newSingle = await db.getConnection();
   if (req.body[0].id == null) {
     res.status(412).json({message: "No map ID was provided to update."});
     return;
   }
   try {
-    await db.withNewTransaction(newSingle, async () => {
-      let userID = req.user.id;
-      let mapListId = req.body[0].id;
-      let enabled = req.body[0].enabled == null
-        ? true
-        : req.body[0].enabled;
-      let insertSet = {
-        map_name: req.body[0].map_name,
-        map_display_name: req.body[0].map_display_name,
-        enabled: enabled
-      }
-      insertSet = await db.buildUpdateStatement(insertSet);
-      // Check if user is allowed to create?
-      let sql =
-        "UPDATE map_list SET ? WHERE id = ? AND user_id = ?";
-      await newSingle.query(sql, [insertSet, mapListId, userID]);
-      res.json({ message: "Map updated successfully." });
-    });
+    let userID = req.user.id;
+    let mapListId = req.body[0].id;
+    let enabled = req.body[0].enabled == null
+      ? true
+      : req.body[0].enabled;
+    let insertSet = {
+      map_name: req.body[0].map_name,
+      map_display_name: req.body[0].map_display_name,
+      enabled: enabled
+    }
+    insertSet = await db.buildUpdateStatement(insertSet);
+    // Check if user is allowed to create?
+    let sql =
+      "UPDATE map_list SET ? WHERE id = ? AND user_id = ?";
+    await db.query(sql, [insertSet, mapListId, userID]);
+    res.json({ message: "Map updated successfully." });
 
   } catch (err) {
     console.error(err);
@@ -332,16 +326,13 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   }
   try {
-    let newSingle = await db.getConnection();
-    await db.withNewTransaction(newSingle, async () => {
-      let userID = req.user.id;
-      let mapListId = req.body[0].id;
-      // Check if user is allowed to create?
-      let sql =
-        "DELETE FROM map_list WHERE id = ? AND user_id = ?";
-      await newSingle.query(sql, [mapListId, userID]);
-      res.json({ message: "Map deleted successfully." });
-    });
+    let userID = req.user.id;
+    let mapListId = req.body[0].id;
+    // Check if user is allowed to create?
+    let sql =
+      "DELETE FROM map_list WHERE id = ? AND user_id = ?";
+    await db.query(sql, [mapListId, userID]);
+    res.json({ message: "Map deleted successfully." });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.toString() });

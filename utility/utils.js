@@ -276,19 +276,16 @@ class Utils {
       if(retMessage != null)
         return retMessage;
 
-      let newSingle = await db.getConnection();
 
-      await db.withNewTransaction(newSingle, async () => {
-        let currentMatchInfo = "SELECT cancelled, forfeit, end_time FROM `match` WHERE id = ?";
-        const matchRow = await newSingle.query(currentMatchInfo, matchid);
-        if (
-          matchRow[0][0].cancelled == 1 ||
-          matchRow[0][0].forfeit == 1 ||
-          matchRow[0][0].end_time != null
-        ) {
-          retMessage = {status: 422, message: "Match is already finished."};
-        }
-      });
+      let currentMatchInfo = "SELECT cancelled, forfeit, end_time FROM `match` WHERE id = ?";
+      const matchRow = await db.query(currentMatchInfo, matchid);
+      if (
+        matchRow[0].cancelled == 1 ||
+        matchRow[0].forfeit == 1 ||
+        matchRow[0].end_time != null
+      ) {
+        retMessage = {status: 422, message: "Match is already finished."};
+      }
       return retMessage;
     } catch (err) {
       throw err;
@@ -315,28 +312,25 @@ class Utils {
       if(retMessage != null)
         return retMessage;
 
-      let newSingle = await db.getConnection();
 
-      await db.withNewTransaction(newSingle, async () => {
-        let currentMatchInfo = "SELECT user_id, server_id FROM `match` WHERE id = ?";
-        let currentServerInfo = "SELECT user_id FROM game_server WHERE id = ?"
-        const matchRow = await newSingle.query(currentMatchInfo, matchid);
-        const serverRow = await newSingle.query(currentServerInfo, matchRow[0][0].server_id);
+      let currentMatchInfo = "SELECT user_id, server_id FROM `match` WHERE id = ?";
+      let currentServerInfo = "SELECT user_id FROM game_server WHERE id = ?"
+      const matchRow = await db.query(currentMatchInfo, matchid);
+      const serverRow = await db.query(currentServerInfo, matchRow[0].server_id);
+      if (
+        matchRow[0].user_id != user.id &&
+        !adminCheck
+      ) {
+        retMessage = {status: 403, message: "User is not authorized to perform action."};
+      }
+      if (serverCheck) {
         if (
-          matchRow[0][0].user_id != user.id &&
-          !adminCheck
+          !this.superAdminCheck(user) && 
+          serverRow[0].user_id != user.id
         ) {
           retMessage = {status: 403, message: "User is not authorized to perform action."};
         }
-        if (serverCheck) {
-          if (
-            !this.superAdminCheck(user) && 
-            serverRow[0][0].user_id != user.id
-          ) {
-            retMessage = {status: 403, message: "User is not authorized to perform action."};
-          }
-        }
-      });
+      }
       return retMessage;
     } catch (err) {
       throw err;
@@ -356,15 +350,12 @@ class Utils {
       if (matchid == null) {
         return {status: 400, message: "Match ID Not Provided"};
       }
-      let newSingle = await db.getConnection();
       
-      await db.withNewTransaction(newSingle, async () => {
-        let currentMatchInfo = "SELECT id FROM `match` WHERE id = ?";
-        const matchRow = await newSingle.query(currentMatchInfo, matchid);
-        if (matchRow[0].length === 0) {
-          return {status: 404, message: "No match found."};
-        }
-      });
+      let currentMatchInfo = "SELECT id FROM `match` WHERE id = ?";
+      const matchRow = await db.query(currentMatchInfo, matchid);
+      if (!matchRow.length) {
+        return {status: 404, message: "No match found."};
+      }
     } catch (err) {
       throw err;
     }
