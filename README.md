@@ -74,6 +74,7 @@ docker container run --name g5api \
 -e ADMINS="" \
 -e SUPERADMINS="" \
 -e REDISPASSWORD="" \
+-e UPLOADDEMOS="" \
 yourname\g5api:latest
 ```
 

@@ -16,3 +16,4 @@ sed -i "s|\"steam_ids\": \"admins,go,here\"|\"steam_ids\": \"$ADMINS\"|g" /Get5A
 sed -i "s|\"steam_ids\": \"super_admins,go,here\"|\"steam_ids\": \"$SUPERADMINS\"|g" /Get5API/G5API/config/production.json
 sed -i "s|requirepass MySecurePassword|requirepass $REDISPASSWORD|g" /etc/redis/redis.conf
 sed -i "s|\"redisPass\": \"super_secure\"|\"redisPass\": \"$REDISPASSWORD\"|g" /Get5API/G5API/config/production.json
+sed -i "s|\"uploadDemos\": false|\"uploadDemos\": $UPLOADDEMOS|g" /Get5API/G5API/config/production.json
