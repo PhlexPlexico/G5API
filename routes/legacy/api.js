@@ -626,7 +626,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
 
     // Retrieve veto id with team name and map veto.
     sql = "SELECT id FROM veto WHERE match_id = ? AND team_name = ? AND map = ?";
-    const vetoInfo = await db.query(sql, [matchID, teamNameString, map]);
+    const vetoInfo = await db.query(sql, [matchID, teamNameString, mapBan]);
     vetoID = vetoInfo[0].id;
 
     // Insert into veto_side now.
