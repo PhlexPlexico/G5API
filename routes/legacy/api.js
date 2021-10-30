@@ -322,8 +322,8 @@ router.post(
         const mapStats = await db.query(sql, [matchID, mapNumber]);
         if (mapStats.length > 0) {
           updateStmt = {
-            mapnumber: mapNumber,
-            mapname: mapName,
+            map_number: mapNumber,
+            map_name: mapName,
           };
           updateSql =
             "UPDATE map_stats SET ? WHERE match_id = ? AND map_number = ?";
