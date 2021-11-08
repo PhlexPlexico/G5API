@@ -599,9 +599,11 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     // Data manipulation inside function.
     let insertStmt = {};
     let insertSql;
-    let teamID;
+    let teamBanID;
+    let teamPickID;
     let vetoID;
-    let teamNameString;
+    let teamPickMapNameString;
+    let teamPickSideNameString;
     let matchFinalized = true;
     // Database calls.
     let sql = "SELECT * FROM `match` WHERE id = ?";
@@ -617,17 +619,27 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
 
     // Swap these as we are looking at the team who picked, not banned right now.
-    if (teamString === "team1") teamID = matchValues[0].team2_id;
-    else if (teamString === "team2") teamID = matchValues[0].team1_id;
+    if (teamString === "team1") {
+      teamPickID = matchValues[0].team1_id; 
+      teamBanID = matchValues[0].team2_id; 
+    }
+    else if (teamString === "team2") {
+      teamBanID = matchValues[0].team1_id;
+      teamPickID = matchValues[0].team2_id; 
+    }
     
     sql = "SELECT name FROM team WHERE ID = ?";
-    const teamName = await db.query(sql, [teamID]);
-    if (teamName[0] == null) teamNameString = "Default";
-    else teamNameString = teamName[0].name;
+    const teamPickMapName = await db.query(sql, [teamBanID]);
+    if (teamPickMapName[0] == null) teamPickMapNameString = "Default";
+    else teamPickMapNameString = teamPickMapName[0].name;
+
+    const teamPickSideName = await db.query(sql, [teamPickID]);
+    if (teamPickSideName[0] == null) teamPickSideNameString = "Default";
+    else teamPickSideNameString = teamPickSideName[0].name;
 
     // Retrieve veto id with team name and map veto.
     sql = "SELECT id FROM veto WHERE match_id = ? AND team_name = ? AND map = ?";
-    const vetoInfo = await db.query(sql, [matchID, teamNameString, mapBan]);
+    const vetoInfo = await db.query(sql, [matchID, teamPickMapNameString, mapBan]);
     vetoID = vetoInfo[0].id;
 
     // Insert into veto_side now.
@@ -635,7 +647,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
       insertStmt = {
         match_id: matchID,
         veto_id: vetoID,
-        team_name: teamNameString,
+        team_name: teamPickSideNameString,
         map: mapBan,
         side: sideChosen,
       };
