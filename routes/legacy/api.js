@@ -616,9 +616,10 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     // Throw error if wrong key or finished match.
     await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
 
-    if (teamString === "team1") teamID = matchValues[0].team1_id;
-    else if (teamString === "team2") teamID = matchValues[0].team2_id;
-
+    // Swap these as we are looking at the team who picked, not banned right now.
+    if (teamString === "team1") teamID = matchValues[0].team2_id;
+    else if (teamString === "team2") teamID = matchValues[0].team1_id;
+    
     sql = "SELECT name FROM team WHERE ID = ?";
     const teamName = await db.query(sql, [teamID]);
     if (teamName[0] == null) teamNameString = "Default";
