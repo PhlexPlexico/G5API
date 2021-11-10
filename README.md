@@ -78,6 +78,16 @@ docker container run --name g5api \
 yourname\g5api:latest
 ```
 
+### Docker Compose Instructions
+This guide will get you to setup a running instance for a reverse proxy (Caddy), G5API, and G5V running all at once.  
+Provided in this repository is a `docker-compose.yml` file. Much like the above Docker run commands, all those fields are required in the docker file, as well as a few additional parameters.  
+- `CADDY_URL` is the URL that you wish to host everything.
+- `CADDY_REVERSE_PROXY_PORT` is the port that the API is serving to. By default, this is set to 3301.
+- `CADDY_API_ENDPOINT` is the end point that you wish to route from. By default, this is `api`.
+- And then your mysql information is required in that file as well. 
+
+Once those are all filled in, you need to run two more commands. The first being the network bridge, which is done via `docker network create -d bridge get5` and the redis volume which is created by calling `docker volume create redisVol`. After this, you can simply run `docker-compose up -d`.This will spin up a production instance of Get5Vue, as well as Get5API, and a reverse proxy to link everything together!
+
 For more details on these variables, follow along with production.json.template located in /config
 ### Docs: 
 ```yarn doc```
