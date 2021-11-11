@@ -1,0 +1,81 @@
+version: '2.1'
+
+networks:
+  get5:
+    external: true
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy-reverse-proxy
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    volumes: 
+      - ./Caddyfile:/etc/caddy/Caddyfile
+    networks:
+      - get5
+    environment:
+      - CADDY_URL=
+      - CADDY_API_ENDPOINT=api
+      - CADDY_REVERSE_PROXY_PORT=3301
+  
+  get5db:
+    image: mariadb
+    container_name: get5db
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=
+      - MYSQL_DATABASE=get5
+      - MYSQL_USER=get5
+      - MYSQL_PASSWORD=
+    ports:
+      - 3306:3306
+    networks:
+      - get5
+
+  g5api:
+    image: phlex/g5api:latest
+    depends_on:
+      - get5db
+    container_name: G5API
+    volumes: 
+      - redisVol:/RedisFiles
+    expose:
+      - 3301
+    environment:
+      - PORT=3301
+      - HOSTNAME=
+      - DBKEY= 
+      - STEAMAPIKEY=
+      - SHAREDSECRET=
+      - CLIENTHOME=
+      - APIURL=
+      - SQLUSER=get5
+      - SQLPASSWORD=
+      - SQLPORT=3306
+      - DATABASE=get5
+      - SQLHOST=get5db
+      - ADMINS=
+      - SUPERADMINS=
+      - REDISPASSWORD=
+      - UPLOADDEMOS=true
+    restart: unless-stopped
+    networks:
+      - get5
+
+  g5v:
+    image: phlex/g5v:latest
+    depends_on: 
+      - g5api
+      - caddy
+    container_name: G5V-Front-End
+    restart: always
+    networks:
+      - get5
+
+volumes:
+  redisVol:
+    external: false
+  
