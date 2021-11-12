@@ -36,7 +36,7 @@ services:
       - get5
 
   g5api:
-    image: phlex/g5api:latest
+    image: ghcr.io/phlexplexico/g5api:latest
     depends_on:
       - get5db
     container_name: G5API
@@ -66,7 +66,7 @@ services:
       - get5
 
   g5v:
-    image: phlex/g5v:latest
+    image: ghcr.io/phlexplexico/g5v:latest
     depends_on: 
       - g5api
       - caddy
