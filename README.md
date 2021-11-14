@@ -86,7 +86,7 @@ Provided in this repository is a `docker-compose.yml` file. Much like the above 
 - `CADDY_API_ENDPOINT` is the end point that you wish to route from. By default, this is `api`.
 - And then your mysql information is required in that file as well. 
 
-Once those are all filled in, you need to run two more commands. The first being the network bridge, which is done via `docker network create -d bridge get5` and the redis volume which is created by calling `docker volume create redisVol`. After this, you can simply run `docker-compose up -d`.This will spin up a production instance of Get5Vue, as well as Get5API, and a reverse proxy to link everything together!
+Once those are all filled in, you need to run two more commands. The first being the network bridge, which is done via `docker network create -d bridge get5`. After this, you can simply run `docker-compose up -d`.This will spin up a production instance of Get5Vue, as well as Get5API, and a reverse proxy to link everything together!
 
 For more details on these variables, follow along with production.json.template located in /config
 ### Docs: 
