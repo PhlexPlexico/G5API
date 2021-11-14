@@ -10,8 +10,8 @@ services:
     container_name: caddy-reverse-proxy
     restart: unless-stopped
     ports:
-      - 80:80
-      - 443:443
+      - "80:80"
+      - "443:443"
     volumes: 
       - ./Caddyfile:/etc/caddy/Caddyfile
     networks:
@@ -31,7 +31,7 @@ services:
       - MYSQL_USER=get5
       - MYSQL_PASSWORD=
     ports:
-      - 3306:3306
+      - "3306:3306"
     networks:
       - get5
 
@@ -47,7 +47,7 @@ services:
     environment:
       - PORT=3301
       - HOSTNAME=
-      - DBKEY= 
+      - DBKEY=
       - STEAMAPIKEY=
       - SHAREDSECRET=
       - CLIENTHOME=
