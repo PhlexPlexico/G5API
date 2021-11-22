@@ -131,13 +131,13 @@ class Utils {
   static async ensureAuthenticated(req, res, next) {
     // Check the user based on API.
     const apiKey = req.get("user-api") || req.body[0]?.user_api;
-    const userId = req.get("user-id") || req.body[0]?.user_id;
-    if (apiKey && userId) {
+    //const userId = req.get("user-id") || req.body[0]?.user_id;
+    if (apiKey /*&& userId*/) {
       let sqlQuery = "SELECT * FROM user WHERE id = ?";
-      const ourUser = await db.query(sqlQuery, userId);
+      const ourUser = await db.query(sqlQuery, apiKey.split(":")[0]);
       if (ourUser.length > 0) {
         let uncDb = await Utils.decrypt(ourUser[0].api_key);
-        if (uncDb == apiKey) {
+        if (uncDb == apiKey.split(":")[1]) {
           let curUser = {
             steam_id: ourUser[0].steam_id,
             name: ourUser[0].name,

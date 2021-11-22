@@ -143,7 +143,7 @@ router.get("/:user_id", async (req, res, next) => {
     if (user[0] != null) {
       user = JSON.parse(JSON.stringify(user[0]));
       if (user.api_key != null) {
-        user.api_key = Utils.decrypt(user.api_key);
+        user.api_key = user?.id + ":" + Utils.decrypt(user.api_key);
       }
       res.json({ user });
     } else {
