@@ -131,7 +131,7 @@ async function returnStrategy(identifier, profile, done) {
         small_image: profile.photos[0].value,
         medium_image: profile.photos[1].value,
         large_image: profile.photos[2].value,
-        api_key: await Utils.decrypt(curUser[0][0].api_key),
+        api_key: curUser[0][0].id + ":" + Utils.decrypt(curUser[0][0].api_key),
       });
     } catch (err) {
       console.log(
