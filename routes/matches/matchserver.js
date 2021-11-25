@@ -97,7 +97,7 @@ router.get(
           end_time: new Date().toISOString().slice(0, 19).replace("T", " "),
           winner: teamIdWinner,
         };
-        if (mapStat.length == 0) {
+        if (!mapStat.length) {
           mapStatSql = "INSERT map_stats SET ?";
         } else {
           mapStatSql =
@@ -105,7 +105,7 @@ router.get(
         }
         let matchSql = "UPDATE `match` SET ? WHERE id=?";
         let serverUpdateSql = "UPDATE game_server SET in_use=0 WHERE id=?";
-        if (mapStat.length == 0) await db.query(mapStatSql, [newStatStmt]);
+        if (!mapStat.length) await db.query(mapStatSql, [newStatStmt]);
         else
           await db.query(mapStatSql, [
             newStatStmt,
@@ -117,8 +117,26 @@ router.get(
         ]);
         await db.query(serverUpdateSql, [matchRow[0].server_id]);
         if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
+          let teamAuthSql =
+          "SELECT GROUP_CONCAT(CONCAT('\"', ta.auth, '\"')) as auth_name FROM team_auth_names ta WHERE team_id = ?";
+          let pugTeamNameSql = "SELECT name FROM team WHERE id = ?";
+          let playerStatUpdateSql = "UPDATE player_stats SET team_name = ? WHERE match_id = ? AND steam_id IN (?)";
           let pugSql =
             "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
+          const teamNameOne = await db.query(pugTeamNameSql, [matchRow[0].team1_id]);
+          const teamOneAuths = await db.query(teamAuthSql, [matchRow[0].team1_id]);
+          const teamNameTwo = await db.query(pugTeamNameSql, [matchRow[0].team2_id]);
+          const teamTwoAuths = await db.query(teamAuthSql, [matchRow[0].team2_id]);
+          await db.query(playerStatUpdateSql, [
+            teamNameOne[0].name,
+            req.params.match_id,
+            teamOneAuths[0].auth_name
+          ]);
+          await db.query(playerStatUpdateSql, [
+            teamNameTwo[0].name,
+            req.params.match_id,
+            teamTwoAuths[0].auth_name
+          ]);
           await db.query(pugSql, [
             matchRow[0].team1_id,
             matchRow[0].team2_id,
@@ -224,7 +242,7 @@ router.get(
           winner: null,
           cancelled: 1,
         };
-        if (mapStat.length == 0) {
+        if (!mapStat.length) {
           mapStatSql = "INSERT map_stats SET ?";
         } else {
           mapStatSql =
@@ -232,7 +250,7 @@ router.get(
         }
         let matchSql = "UPDATE `match` SET ? WHERE id=?";
         let serverUpdateSql = "UPDATE game_server SET in_use=0 WHERE id=?";
-        if (mapStat.length == 0)
+        if (!mapStat.length)
           await db.query(mapStatSql, [newStatStmt]);
         else
           await db.query(mapStatSql, [
@@ -245,8 +263,26 @@ router.get(
         ]);
         await db.query(serverUpdateSql, [matchRow[0].server_id]);
         if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
+          let teamAuthSql =
+          "SELECT GROUP_CONCAT(CONCAT('\"', ta.auth, '\"')) as auth_name FROM team_auth_names ta WHERE team_id = ?";
+          let pugTeamNameSql = "SELECT name FROM team WHERE id = ?";
+          let playerStatUpdateSql = "UPDATE player_stats SET team_name = ? WHERE match_id = ? AND steam_id IN (?)";
           let pugSql =
             "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
+          const teamNameOne = await db.query(pugTeamNameSql, [matchRow[0].team1_id]);
+          const teamOneAuths = await db.query(teamAuthSql, [matchRow[0].team1_id]);
+          const teamNameTwo = await db.query(pugTeamNameSql, [matchRow[0].team2_id]);
+          const teamTwoAuths = await db.query(teamAuthSql, [matchRow[0].team2_id]);
+          await db.query(playerStatUpdateSql, [
+            teamNameOne[0].name,
+            req.params.match_id,
+            teamOneAuths[0].auth_name
+          ]);
+          await db.query(playerStatUpdateSql, [
+            teamNameTwo[0].name,
+            req.params.match_id,
+            teamTwoAuths[0].auth_name
+          ]);
           await db.query(pugSql, [
             matchRow[0].team1_id,
             matchRow[0].team2_id,

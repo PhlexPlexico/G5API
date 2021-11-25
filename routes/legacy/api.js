@@ -884,6 +884,7 @@ router.post(
       let mapEndTime = new Date().toISOString().slice(0, 19).replace("T", " ");
       let matchFinalized = true;
       let teamIdWinner;
+      let teamIdLoser;
       // Database calls.
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
@@ -906,9 +907,11 @@ router.post(
       if (winner == "team1") {
         teamIdWinner = matchValues[0].team1_id;
         team1Score = matchValues[0].team1_score + 1;
+        teamIdLoser = matchValues[0].team2_id;
       } else if (winner == "team2") {
         teamIdWinner = matchValues[0].team2_id;
         team2Score = matchValues[0].team2_score + 1;
+        teamIdLoser = matchValues[0].team1_id;
       }
       updateStmt = {
         end_time: mapEndTime,
@@ -929,16 +932,34 @@ router.post(
       await db.query(updateSql, [updateStmt, matchID]);
 
       if (matchValues[0].is_pug != null && matchValues[0].is_pug == 1) {
+        // Team Name is also stored in player_stats only if pug to link data afterwards.
         // teamIdWinner is updated in the player stats.
         let teamAuthSql =
           "SELECT GROUP_CONCAT(CONCAT('\"', ta.auth, '\"')) as auth_name FROM team_auth_names ta WHERE team_id = ?";
-        const teamAuths = await db.query(teamAuthSql, [teamIdWinner]);
+        let teamNameSql = "SELECT name FROM team WHERE id = ?";
+        const winningTeamName = await db.query(teamNameSql, [teamIdWinner]);
+        const winningTeamAuths = await db.query(teamAuthSql, [teamIdWinner]);
+        const losingTeamName = await db.query(teamNameSql, [teamIdLoser]);
+        const losingTeamAuths = await db.query(teamAuthSql, [teamIdLoser]);
         updateSql =
           "UPDATE player_stats SET winner = 1 WHERE match_id = ? AND map_id = ? AND steam_id IN (?)";
         await db.query(updateSql, [
           matchID,
           mapNum,
-          teamAuths[0].auth_name,
+          winningTeamAuths[0].auth_name,
+        ]);
+        updateSql = "UPDATE player_stats SET team_name = ? WHERE match_id = ? AND map_id = ? AND steam_id IN (?)";
+        await db.query(updateSql, [
+          winningTeamName[0].name,
+          matchID,
+          mapNum,
+          winningTeamAuths[0].auth_name,
+        ]);
+        await db.query(updateSql, [
+          losingTeamName[0].name,
+          matchID,
+          mapNum,
+          losingTeamAuths[0].auth_name,
         ]);
       }
       res.status(200).send({ message: "Success" });
