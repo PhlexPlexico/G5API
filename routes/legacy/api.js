@@ -153,7 +153,6 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     let teamIdWinner = null;
     let end_time = new Date().toISOString().slice(0, 19).replace("T", " ");
     let matchFinalized = true;
-    let newSingle = await db.getConnection();
     // Database calls.
     let sql = "SELECT * FROM `match` WHERE id = ?";
     const matchValues = await db.query(sql, matchID);
@@ -176,6 +175,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
 
     if (winner === "team1") teamIdWinner = matchValues[0].team1_id;
     else if (winner === "team2") teamIdWinner = matchValues[0].team2_id;
+    // Check to see if we're in a BO2 situation.
     else if (winner === "none" && (matchValues[0].max_maps != 2)) {
       teamIdWinner = null;
       cancelled = 1;
@@ -194,42 +194,40 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
       }
     }
 
-    await db.withNewTransaction(newSingle, async () => {
-      let updateStmt = {
-        winner: teamIdWinner,
-        forfeit: forfeit,
-        team1_score: team1Score,
-        team2_score: team2Score,
-        start_time:
-          matchValues[0].start_time ||
-          new Date().toISOString().slice(0, 19).replace("T", " "),
-        end_time: end_time,
-        cancelled: cancelled
-      };
-      updateStmt = await db.buildUpdateStatement(updateStmt);
-      let updateSql = "UPDATE `match` SET ? WHERE id = ?";
-      await newSingle.query(updateSql, [updateStmt, matchID]);
-      // Set the server to not be in use.
-      await newSingle.query("UPDATE game_server SET in_use = 0 WHERE id = ?", [
-        matchValues[0].server_id,
-      ]);
+    let updateStmt = {
+      winner: teamIdWinner,
+      forfeit: forfeit,
+      team1_score: team1Score,
+      team2_score: team2Score,
+      start_time:
+        matchValues[0].start_time ||
+        new Date().toISOString().slice(0, 19).replace("T", " "),
+      end_time: end_time,
+      cancelled: cancelled
+    };
+    updateStmt = await db.buildUpdateStatement(updateStmt);
+    let updateSql = "UPDATE `match` SET ? WHERE id = ?";
+    await db.query(updateSql, [updateStmt, matchID]);
+    // Set the server to not be in use.
+    await db.query("UPDATE game_server SET in_use = 0 WHERE id = ?", [
+      matchValues[0].server_id,
+    ]);
 
-      // Check if we are pugging.
-      if (matchValues[0].is_pug != null && matchValues[0].is_pug == 1) {
-        // Now we delete the team that was playing, to make sure we free up that database.
-        let deleteSql =
-          "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
-        await newSingle.query(deleteSql, [
-          matchValues[0].team1_id,
-          matchValues[0].team2_id,
-        ]);
-        deleteSql = "DELETE FROM team WHERE id = ? OR id = ?";
-        await newSingle.query(deleteSql, [
-          matchValues[0].team1_id,
-          matchValues[0].team2_id,
-        ]);
-      }
-    });
+    // Check if we are pugging.
+    if (matchValues[0].is_pug != null && matchValues[0].is_pug == 1) {
+      // Now we delete the team that was playing, to make sure we free up that database.
+      let deleteSql =
+        "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
+      await db.query(deleteSql, [
+        matchValues[0].team1_id,
+        matchValues[0].team2_id,
+      ]);
+      deleteSql = "DELETE FROM team WHERE id = ? OR id = ?";
+      await db.query(deleteSql, [
+        matchValues[0].team1_id,
+        matchValues[0].team2_id,
+      ]);
+    }
     res.status(200).send({ message: "Success" });
   } catch (err) {
     console.log(err);
@@ -294,7 +292,6 @@ router.post(
       let updateSql;
       let insertSql;
       let matchFinalized = true;
-      let newSingle = await db.getConnection();
       // Database calls.
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
@@ -308,41 +305,39 @@ router.post(
       await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
 
       // Begin transaction
-      await db.withNewTransaction(newSingle, async () => {
-        if (matchValues[0].start_time == null) {
-          // Update match stats to have a start time.
-          updateStmt = {
-            start_time: startTime,
-          };
-          updateSql = "UPDATE `match` SET ? WHERE id = ?";
-          await newSingle.query(updateSql, [updateStmt, matchID]);
-        }
-        // Get or create mapstats.
-        sql = "SELECT * FROM map_stats WHERE match_id = ? AND map_number = ?";
-        const mapStats = await db.query(sql, [matchID, mapNumber]);
-        if (mapStats.length > 0) {
-          updateStmt = {
-            map_number: mapNumber,
-            map_name: mapName,
-          };
-          updateSql =
-            "UPDATE map_stats SET ? WHERE match_id = ? AND map_number = ?";
-          // Remove any values that may not be updated.
-          updateStmt = await db.buildUpdateStatement(updateStmt);
-          await newSingle.query(updateSql, [updateStmt, matchID, mapNumber]);
-        } else {
-          insertStmt = {
-            match_id: matchID,
-            map_number: mapNumber,
-            map_name: mapName,
-            start_time: startTime,
-            team1_score: 0,
-            team2_score: 0,
-          };
-          insertSql = "INSERT INTO map_stats SET ?";
-          await newSingle.query(insertSql, [insertStmt]);
-        }
-      });
+      if (matchValues[0].start_time == null) {
+        // Update match stats to have a start time.
+        updateStmt = {
+          start_time: startTime,
+        };
+        updateSql = "UPDATE `match` SET ? WHERE id = ?";
+        await db.query(updateSql, [updateStmt, matchID]);
+      }
+      // Get or create mapstats.
+      sql = "SELECT * FROM map_stats WHERE match_id = ? AND map_number = ?";
+      const mapStats = await db.query(sql, [matchID, mapNumber]);
+      if (mapStats.length > 0) {
+        updateStmt = {
+          map_number: mapNumber,
+          map_name: mapName,
+        };
+        updateSql =
+          "UPDATE map_stats SET ? WHERE match_id = ? AND map_number = ?";
+        // Remove any values that may not be updated.
+        updateStmt = await db.buildUpdateStatement(updateStmt);
+        await db.query(updateSql, [updateStmt, matchID, mapNumber]);
+      } else {
+        insertStmt = {
+          match_id: matchID,
+          map_number: mapNumber,
+          map_name: mapName,
+          start_time: startTime,
+          team1_score: 0,
+          team2_score: 0,
+        };
+        insertSql = "INSERT INTO map_stats SET ?";
+        await db.query(insertSql, [insertStmt]);
+      }
       res.status(200).send({ message: "Success" });
     } catch (err) {
       console.log(err);
@@ -412,7 +407,6 @@ router.post(
       // Database calls.
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
-      let newSingle = await db.getConnection();
 
       if (
         matchValues[0].end_time == null &&
@@ -434,9 +428,7 @@ router.post(
           };
           updateSql =
             "UPDATE map_stats SET ? WHERE match_id = ? AND map_number = ?";
-          await db.withNewTransaction(newSingle, async () => {
-            await newSingle.query(updateSql, [updateStmt, matchID, mapNumber]);
-          });
+          await db.query(updateSql, [updateStmt, matchID, mapNumber]);
           res.status(200).send({ message: "Success" });
         } else {
           res.status(404).send({ message: "Failed to find map stats object" });
@@ -509,7 +501,6 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     // Database calls.
     let sql = "SELECT * FROM `match` WHERE id = ?";
     const matchValues = await db.query(sql, matchID);
-    let newSingle = await db.getConnection();
     if (
       matchValues[0].end_time == null &&
       (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
@@ -527,18 +518,16 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     if (teamName[0] == null) teamNameString = "Decider";
     else teamNameString = teamName[0].name;
     // Insert into veto now.
-    await db.withNewTransaction(newSingle, async () => {
-      insertStmt = {
-        match_id: matchID,
-        team_name: teamNameString,
-        map: mapBan,
-        pick_or_veto: pickOrBan,
-      };
-      // Remove any values that may not be updated.
-      insertStmt = await db.buildUpdateStatement(insertStmt);
-      insertSql = "INSERT INTO veto SET ?";
-      await newSingle.query(insertSql, [insertStmt]);
-    });
+    insertStmt = {
+      match_id: matchID,
+      team_name: teamNameString,
+      map: mapBan,
+      pick_or_veto: pickOrBan,
+    };
+    // Remove any values that may not be updated.
+    insertStmt = await db.buildUpdateStatement(insertStmt);
+    insertSql = "INSERT INTO veto SET ?";
+    await db.query(insertSql, [insertStmt]);
     res.status(200).send({ message: "Success" });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
@@ -608,7 +597,6 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     // Database calls.
     let sql = "SELECT * FROM `match` WHERE id = ?";
     const matchValues = await db.query(sql, matchID);
-    let newSingle = await db.getConnection();
     if (
       matchValues[0].end_time == null &&
       (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
@@ -643,19 +631,17 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     vetoID = vetoInfo[0].id;
 
     // Insert into veto_side now.
-    await db.withNewTransaction(newSingle, async () => {
-      insertStmt = {
-        match_id: matchID,
-        veto_id: vetoID,
-        team_name: teamPickSideNameString,
-        map: mapBan,
-        side: sideChosen,
-      };
-      // Remove any values that may not be updated.
-      insertStmt = await db.buildUpdateStatement(insertStmt);
-      insertSql = "INSERT INTO veto_side SET ?";
-      await newSingle.query(insertSql, [insertStmt]);
-    });
+    insertStmt = {
+      match_id: matchID,
+      veto_id: vetoID,
+      team_name: teamPickSideNameString,
+      map: mapBan,
+      side: sideChosen,
+    };
+    // Remove any values that may not be updated.
+    insertStmt = await db.buildUpdateStatement(insertStmt);
+    insertSql = "INSERT INTO veto_side SET ?";
+    await db.query(insertSql, [insertStmt]);
     res.status(200).send({ message: "Success" });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
@@ -719,7 +705,6 @@ router.post(
       // Database calls.
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
-      let newSingle = await db.getConnection();
       // Throw error if wrong key. Match finish doesn't matter.
       await check_api_key(matchValues[0].api_key, req.body.key, false);
 
@@ -740,9 +725,7 @@ router.post(
       updateStmt = await db.buildUpdateStatement(updateStmt);
 
       updateSql = "UPDATE map_stats SET ? WHERE id = ?";
-      await db.withNewTransaction(newSingle, async () => {
-        await newSingle.query(updateSql, [updateStmt, mapStatValues[0].id]);
-      });
+      await db.query(updateSql, [updateStmt, mapStatValues[0].id]);
       res.status(200).send({ message: "Success" });
     } catch (err) {
       res.status(500).json({ message: err.toString() });
@@ -901,10 +884,10 @@ router.post(
       let mapEndTime = new Date().toISOString().slice(0, 19).replace("T", " ");
       let matchFinalized = true;
       let teamIdWinner;
+      let teamIdLoser;
       // Database calls.
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
-      let newSingle = await db.getConnection();
 
       if (
         matchValues[0].end_time == null &&
@@ -924,9 +907,11 @@ router.post(
       if (winner == "team1") {
         teamIdWinner = matchValues[0].team1_id;
         team1Score = matchValues[0].team1_score + 1;
+        teamIdLoser = matchValues[0].team2_id;
       } else if (winner == "team2") {
         teamIdWinner = matchValues[0].team2_id;
         team2Score = matchValues[0].team2_score + 1;
+        teamIdLoser = matchValues[0].team1_id;
       }
       updateStmt = {
         end_time: mapEndTime,
@@ -934,33 +919,49 @@ router.post(
       };
       // Remove any values that may not be updated.
       updateStmt = await db.buildUpdateStatement(updateStmt);
-      await db.withNewTransaction(newSingle, async () => {
-        updateSql = "UPDATE map_stats SET ? WHERE id = ?";
-        await newSingle.query(updateSql, [updateStmt, mapStatValues[0].id]);
-        // Update match now.
-        updateStmt = {
-          team1_score: team1Score,
-          team2_score: team2Score,
-        };
-        // Remove any values that may not be updated.
-        updateStmt = await db.buildUpdateStatement(updateStmt);
-        updateSql = "UPDATE `match` SET ? WHERE ID = ?";
-        await newSingle.query(updateSql, [updateStmt, matchID]);
+      updateSql = "UPDATE map_stats SET ? WHERE id = ?";
+      await db.query(updateSql, [updateStmt, mapStatValues[0].id]);
+      // Update match now.
+      updateStmt = {
+        team1_score: team1Score,
+        team2_score: team2Score,
+      };
+      // Remove any values that may not be updated.
+      updateStmt = await db.buildUpdateStatement(updateStmt);
+      updateSql = "UPDATE `match` SET ? WHERE ID = ?";
+      await db.query(updateSql, [updateStmt, matchID]);
 
-        if (matchValues[0].is_pug != null && matchValues[0].is_pug == 1) {
-          // teamIdWinner is updated in the player stats.
-          let teamAuthSql =
-            "SELECT GROUP_CONCAT(CONCAT('\"', ta.auth, '\"')) as auth_name FROM team_auth_names ta WHERE team_id = ?";
-          const teamAuths = await newSingle.query(teamAuthSql, [teamIdWinner]);
-          updateSql =
-            "UPDATE player_stats SET winner = 1 WHERE match_id = ? AND map_id = ? AND steam_id IN (?)";
-          await newSingle.query(updateSql, [
-            matchID,
-            mapNum,
-            teamAuths[0][0].auth_name,
-          ]);
-        }
-      });
+      if (matchValues[0].is_pug != null && matchValues[0].is_pug == 1) {
+        // Team Name is also stored in player_stats only if pug to link data afterwards.
+        // teamIdWinner is updated in the player stats.
+        let teamAuthSql =
+          "SELECT GROUP_CONCAT(CONCAT('\"', ta.auth, '\"')) as auth_name FROM team_auth_names ta WHERE team_id = ?";
+        let teamNameSql = "SELECT name FROM team WHERE id = ?";
+        const winningTeamName = await db.query(teamNameSql, [teamIdWinner]);
+        const winningTeamAuths = await db.query(teamAuthSql, [teamIdWinner]);
+        const losingTeamName = await db.query(teamNameSql, [teamIdLoser]);
+        const losingTeamAuths = await db.query(teamAuthSql, [teamIdLoser]);
+        updateSql =
+          "UPDATE player_stats SET winner = 1 WHERE match_id = ? AND map_id = ? AND steam_id IN (?)";
+        await db.query(updateSql, [
+          matchID,
+          mapNum,
+          winningTeamAuths[0].auth_name,
+        ]);
+        updateSql = "UPDATE player_stats SET team_name = ? WHERE match_id = ? AND map_id = ? AND steam_id IN (?)";
+        await db.query(updateSql, [
+          winningTeamName[0].name,
+          matchID,
+          mapNum,
+          winningTeamAuths[0].auth_name,
+        ]);
+        await db.query(updateSql, [
+          losingTeamName[0].name,
+          matchID,
+          mapNum,
+          losingTeamAuths[0].auth_name,
+        ]);
+      }
       res.status(200).send({ message: "Success" });
     } catch (err) {
       console.log(err);
@@ -1103,7 +1104,6 @@ router.post(
       // Database calls.
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
-      let newSingle = await db.getConnection();
       if (
         matchValues[0].end_time == null &&
         (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
@@ -1175,18 +1175,16 @@ router.post(
       // Remove any values that may not be updated.
       updateStmt = await db.buildUpdateStatement(updateStmt);
 
-      await db.withNewTransaction(newSingle, async () => {
-        if (playerStatValues.length < 1) {
-          updateSql = "INSERT INTO player_stats SET ?";
-          await newSingle.query(updateSql, [updateStmt]);
-        } else {
-          updateSql = "UPDATE player_stats SET ? WHERE id = ?";
-          await newSingle.query(updateSql, [
-            updateStmt,
-            playerStatValues[0].id,
-          ]);
-        }
-      });
+      if (playerStatValues.length < 1) {
+        updateSql = "INSERT INTO player_stats SET ?";
+        await db.query(updateSql, [updateStmt]);
+      } else {
+        updateSql = "UPDATE player_stats SET ? WHERE id = ?";
+        await db.query(updateSql, [
+          updateStmt,
+          playerStatValues[0].id,
+        ]);
+      }
       res.status(200).send({ message: "Success" });
     } catch (err) {
       res.status(500).json({ message: err.toString() });

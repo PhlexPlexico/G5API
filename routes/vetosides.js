@@ -76,7 +76,7 @@
    try {
      let sql = "SELECT * FROM veto_side";
      const vetoes = await db.query(sql);
-     if (vetoes.length === 0) {
+     if (!vetoes.length) {
        res.status(404).json({ message: "No vetoe side data found." });
        return;
      }
@@ -124,7 +124,7 @@
      matchId = req.params.match_id;
      let sql = "SELECT * FROM veto_side where match_id = ?";
      const vetoes = await db.query(sql, matchId);
-     if (vetoes.length === 0) {
+     if (!vetoes.length) {
        res.status(404).json({ message: "No vetoe side data found." });
        return;
      }
@@ -178,7 +178,6 @@
   *         $ref: '#/components/responses/Error'
   */
   router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
-    let newSingle = await db.getConnection();
     let errMessage = await Utils.getUserMatchAccessNoFinalize(
       req.body[0].match_id,
       req.user);
@@ -187,30 +186,28 @@
       return;
     } else {
       try {
-        await db.withNewTransaction(newSingle, async () => {
-          // Get the veto ID.
-          let sql = "SELECT id FROM veto WHERE match_id = ? AND team_name = ? AND map = ?";
-          const vetoID = await newSingle.query(sql, [req.body[0].match_id, req.body[0].team_name, req.body[0].map_name]);
-          let insertStmt = {
-            match_id: req.body[0].match_id,
-            veto_id: vetoID[0][0].id,
-            map: req.body[0].map_name,
-            team_name: req.body[0].team_name,
-            side: req.body[0].side,
-          };
-          insertStmt = await db.buildUpdateStatement(insertStmt);
-          if (Object.keys(insertStmt).length === 0) {
-            res
-              .status(412)
-              .json({ message: "No insert data has been provided." });
-            return;
-          }
-          sql = "INSERT INTO veto_side SET ?";
-          const vetoId = await newSingle.query(sql, [insertStmt]);
-          res.json({
-            message: "Veto side selection inserted successfully!",
-            id: vetoId[0].insertId,
-          });
+        // Get the veto ID.
+        let sql = "SELECT id FROM veto WHERE match_id = ? AND team_name = ? AND map = ?";
+        const vetoID = await db.query(sql, [req.body[0].match_id, req.body[0].team_name, req.body[0].map_name]);
+        let insertStmt = {
+          match_id: req.body[0].match_id,
+          veto_id: vetoID[0].id,
+          map: req.body[0].map_name,
+          team_name: req.body[0].team_name,
+          side: req.body[0].side,
+        };
+        insertStmt = await db.buildUpdateStatement(insertStmt);
+        if (!Object.keys(insertStmt)) {
+          res
+            .status(412)
+            .json({ message: "No insert data has been provided." });
+          return;
+        }
+        sql = "INSERT INTO veto_side SET ?";
+        const vetoSideId = await db.query(sql, [insertStmt]);
+        res.json({
+          message: "Veto side selection inserted successfully!",
+          id: vetoSideId.insertId,
         });
       } catch (err) {
         console.error(err);
@@ -257,7 +254,6 @@
   */
   router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let vetoId;
-    let newSingle = await db.getConnection();
     let errMessage = await Utils.getUserMatchAccessNoFinalize(
       req.body[0].match_id,
       req.user);
@@ -267,24 +263,22 @@
     } else {
       vetoId = req.body[0].veto_id;
       try {
-        await db.withNewTransaction(newSingle, async () => {
-          let updateStmt = {
-            match_id: req.body[0].match_id,
-            map: req.body[0].map_name,
-            team_name: req.body[0].team_name,
-            side: req.body[0].side,
-          };
-          updateStmt = await db.buildUpdateStatement(updateStmt);
-          if (Object.keys(updateStmt).length === 0) {
-            res
-              .status(412)
-              .json({ message: "No update data has been provided." });
-            return;
-          }
-          let sql = "UPDATE veto_side SET ? WHERE id = ?";
-          await newSingle.query(sql, [updateStmt, vetoId]);
-          res.json({ message: "Veto updated successfully!" });
-        });
+        let updateStmt = {
+          match_id: req.body[0].match_id,
+          map: req.body[0].map_name,
+          team_name: req.body[0].team_name,
+          side: req.body[0].side,
+        };
+        updateStmt = await db.buildUpdateStatement(updateStmt);
+        if (!Object.keys(updateStmt)) {
+          res
+            .status(412)
+            .json({ message: "No update data has been provided." });
+          return;
+        }
+        let sql = "UPDATE veto_side SET ? WHERE id = ?";
+        await db.query(sql, [updateStmt, vetoId]);
+        res.json({ message: "Veto updated successfully!" });
       } catch (err) {
         console.error(err);
         res.status(500).json({ message: err.toString() });
@@ -332,7 +326,6 @@
   *         $ref: '#/components/responses/Error'
   */
   router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
-    let newSingle = await db.getConnection();
     let errMessage = await Utils.getUserMatchAccessNoFinalize(
       req.body[0].match_id,
       req.user);
@@ -341,21 +334,19 @@
       return;
     } else {
       try {
-        await db.withNewTransaction(newSingle, async () => {
-          let matchId = req.body[0].match_id;
-          let sql = "DELETE FROM veto_side WHERE match_id = ?";
-          const delRows = await newSingle.query(sql, [matchId]);
-          if (delRows[0].affectedRows > 0)
-            res.json({ message: "Vetoe side data deleted successfully!" });
-          else
-            res
-              .status(412)
-              .json({ message: "Veto side data were not found, nothing to delete." });
-          return;
-        });
+        let matchId = req.body[0].match_id;
+        let sql = "DELETE FROM veto_side WHERE match_id = ?";
+        const delRows = await db.query(sql, [matchId]);
+        if (delRows.affectedRows > 0)
+          res.json({ message: "Vetoe side data deleted successfully!" });
+        else
+          res
+            .status(412)
+            .json({ message: "Veto side data were not found, nothing to delete." });
+        return;
       } catch (err) {
         console.error(err);
-        res.statuss(500).json({ message: err });
+        res.status(500).json({ message: err });
       }
     }
   });

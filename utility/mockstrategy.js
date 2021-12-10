@@ -2,7 +2,7 @@ const passport = require("passport-strategy");
 const util = require("util"); // The reply from Github OAuth2
 const user = require("./mockProfile");
 function Strategy(name, strategyCallback) {
-  if (!name || name.length === 0) {
+  if (!name || !name.length) {
     throw new TypeError("DevStrategy requires a Strategy name");
   }
   passport.Strategy.call(this);
