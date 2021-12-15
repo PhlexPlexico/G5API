@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - workflow-patch
 jobs:
   push:
     name: "Create build and push to GHCR"
