@@ -1,4 +1,4 @@
-FROM redis:latest
+FROM redis:6-buster
 USER root 
 
 # api port
@@ -12,6 +12,8 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     lsb-release \
     gnupg \
     git
+
+RUN update-ca-certificates
 
 # add yarn repo
 RUN curl https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
