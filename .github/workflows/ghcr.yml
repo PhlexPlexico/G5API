@@ -17,6 +17,9 @@ jobs:
         uses: docker/setup-buildx-action@v1
         with:
           install: true
+          config-inline: |
+            [worker.oci]
+              max-parallelism = 1
       - id: string
         uses: ASzc/change-string-case-action@v2
         with:
