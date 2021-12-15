@@ -1,4 +1,4 @@
-FROM redis:6-buster
+FROM redis:latest
 USER root 
 
 # api port

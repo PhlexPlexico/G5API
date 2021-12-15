@@ -49,6 +49,8 @@ jobs:
           platforms: all
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
+        with:
+          buildkitd-flags: --debug
       - id: string
         uses: ASzc/change-string-case-action@v2
         with:
