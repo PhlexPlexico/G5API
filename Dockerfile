@@ -6,6 +6,7 @@ EXPOSE 3301
 
 # update and install initial packages
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    ca-certificates \
     curl \
     apt-transport-https \
     lsb-release \
