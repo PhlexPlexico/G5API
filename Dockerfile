@@ -13,7 +13,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     git
 
 # add yarn repo
-RUN curl https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+RUN curl -k https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
 RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
 
 # install nvm and node 13.8.0
