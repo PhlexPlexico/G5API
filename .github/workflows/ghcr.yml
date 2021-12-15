@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: dbhi/qus/action@main
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - id: string
