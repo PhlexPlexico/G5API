@@ -18,7 +18,7 @@ RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources
 
 # install nvm and node 13.8.0
 SHELL ["/bin/bash", "--login", "-c"]
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
+RUN curl -o- -k https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
 RUN nvm install 16.5.0
 
 # install yarn
