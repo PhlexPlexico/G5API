@@ -28,10 +28,13 @@ If applicable, add screenshots to help explain your problem.
  - Browser [e.g. chrome, safari]
  - Version [e.g. 22]
 
-**Server info
+**Server info**
  - OS: [e.g. Ubuntu, CentOS, Windows]
  - Version (16.04, 8.1.1911, 10]
  - NodeJS version (e.g. 13.13.0)
+
+**Docker Information**
+If you are running through docker, please provide as much information as you can with your docker files. Please make sure to scrub your data and remove any keys such as the DB keys, Steam API key, or MySQL passwords.
 
 **Additional context**
 Add any other context about the problem here.
