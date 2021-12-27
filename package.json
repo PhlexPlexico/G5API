@@ -82,18 +82,18 @@
     "node-fetch": "^2.6.1",
     "passport": "^0.4.0",
     "passport-steam": "^1.0.14",
-    "pm2": "^4.5.1",
+    "pm2": "^5.1.2",
     "randomstring": "^1.1.5",
     "rcon": "^1.0.3",
     "redis": "^3.1.1",
     "steamapi": "^2.0.7",
     "swagger-jsdoc": "^4.0.0",
-    "swagger-ui-express": "^4.1.4"
+    "swagger-ui-express": "^4.3.0"
   },
   "devDependencies": {
-    "jest": "^25.1.0",
+    "jest": "^26.0.0",
     "jsdoc": "^3.6.7",
-    "nodemon": "^1.19.4",
+    "nodemon": "^2.0.15",
     "redis-mock": "^0.49.0",
     "supertest": "^4.0.2"
   }
