@@ -79,7 +79,7 @@
     "jszip": "^3.7.0",
     "morgan": "^1.9.1",
     "mysql2": "^2.2.5",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^3.1.1",
     "passport": "^0.4.0",
     "passport-steam": "^1.0.14",
     "pm2": "^5.1.2",
