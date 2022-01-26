@@ -3,13 +3,13 @@
  * resourcePath: /maps
  * description: Express API router for map lists.
  */
-const express = require("express");
+import { Router } from "express";
 
-const router = express.Router();
+const router = Router();
 
-const db = require("../db");
+import db from "../db.js";
 
-const Utils = require("../utility/utils");
+import Utils from "../utility/utils.js";
 
 /* Swagger shared definitions */
 
@@ -339,4 +339,4 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-module.exports = router;
+export default router;

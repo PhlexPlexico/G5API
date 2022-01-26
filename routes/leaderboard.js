@@ -9,13 +9,13 @@
  * resourcePath: /leaderboard
  * description: Leaderboard calls from the database.
  */
- const express = require("express");
+ import { Router } from "express";
 
- const router = express.Router();
+ const router = Router();
  
- const db = require("../db");
+ import db from "../db.js";
  
- const Utils = require("../utility/utils");
+ import Utils from "../utility/utils.js";
  
  /**
   * @swagger
@@ -488,5 +488,5 @@
    }
    return allPlayers;
  };
- module.exports = router;
+ export default router;
  

@@ -1,9 +1,9 @@
-var express = require("express");
-var router = express.Router();
+import { Router } from "express";
+var router = Router();
 
 /** Utility class for various methods used throughout.
  * @const */
-const Utils = require("../utility/utils");
+import Utils from "../utility/utils.js";
 
 /* GET home page. */
 router.get("/", Utils.ensureAuthenticated, function (req, res, next) {
@@ -19,4 +19,4 @@ router.get("/isloggedin", function (req, res, next) {
   }
 });
 
-module.exports = router;
+export default router;

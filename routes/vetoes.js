@@ -3,13 +3,13 @@
  * resourcePath: /vetoes
  * description: Express API router for vetoes in get5.
  */
-const express = require("express");
+import { Router } from "express";
 
-const router = express.Router();
+const router = Router();
 
-const db = require("../db");
+import db from "../db.js";
 
-const Utils = require("../utility/utils");
+import Utils from "../utility/utils.js";
 
 /**
  * @swagger
@@ -355,4 +355,4 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-module.exports = router;
+export default router;

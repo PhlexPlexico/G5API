@@ -3,19 +3,19 @@
  * @requires express
  * @requires db
  */
-const express = require("express");
+import { Router } from "express";
 
-const router = express.Router();
+const router = Router();
 
-const db = require("../../db");
+import db from "../../db.js";
 
-const randString = require("randomstring");
+import { generate } from "randomstring";
 
-const Utils = require("../../utility/utils");
+import Utils from "../../utility/utils.js";
 
-const GameServer = require("../../utility/serverrcon");
+import GameServer from "../../utility/serverrcon.js";
 
-const config = require("config");
+import config from "config";
 
 /**
  * @swagger
@@ -647,7 +647,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let teamTwoName = await db.query(teamNameSql, [
       req.body[0].team2_id,
     ]);
-    let apiKey = randString.generate({
+    let apiKey = generate({
       length: 24,
       capitalization: "uppercase",
     });
@@ -1135,4 +1135,4 @@ async function build_team_dict(team, teamNumber, matchData) {
   return JSON.stringify(teamData);
 }
 
-module.exports = router;
+export default router;

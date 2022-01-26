@@ -2,7 +2,7 @@
     "apps": [
       {
         "name": "G5API",
-        "script": "./bin/www",
+        "script": "./bin/www.js",
         "instances": 1,
         "exec_mode": "fork",
         "instance_var": "INSTANCE_ID",

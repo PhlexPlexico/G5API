@@ -1,6 +1,6 @@
-const supertest = require('supertest')
-const app = require('../app')
-const request = supertest.agent(app);
+import { agent } from 'supertest';
+import app from '../app.js';
+const request = agent(app);
 let vetoId;
 
 describe('Authenticate User', () => {

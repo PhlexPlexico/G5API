@@ -1,6 +1,6 @@
-const supertest = require('supertest')
-const app = require('../app')
-const request = supertest.agent(app);
+import { agent } from 'supertest';
+import app from '../app.js';
+const request = agent(app);
 describe('Authenticate User', () => {
   it('Should create a user with mock values.', async done => {
     const result = await request.get('/auth/steam/return');

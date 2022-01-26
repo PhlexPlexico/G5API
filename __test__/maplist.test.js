@@ -1,6 +1,6 @@
-const supertest = require('supertest')
-const app = require('../app')
-const request = supertest.agent(app);
+import { agent } from 'supertest';
+import app from '../app.js';
+const request = agent(app);
 let adminCheck = 0;
 describe('Authenticate User', () => {
   it('Should create a user with mock values.', async done => {

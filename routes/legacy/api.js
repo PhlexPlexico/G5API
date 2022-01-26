@@ -3,35 +3,35 @@
  * @requires express
  * @requires db
  */
-let express = require("express");
+import { Router } from "express";
 /** Express module
  * @const
  */
-const router = express.Router();
+const router = Router();
 /** Database module.
  * @const
  */
-const db = require("../../db");
+import db from "../../db.js";
 
 /** Rate limit includes.
  * @const
  */
-const rateLimit = require("express-rate-limit");
+import rateLimit from "express-rate-limit";
 
 /** ZIP files.
  * @const
  */
-const JSZip = require("jszip");
+import JSZip from "jszip";
 
 /** Required to save files.
  * @const
  */
-const fs = require("fs");
+import { writeFile } from "fs";
 
 /** Config to check demo uploads.
  * @const
  */
-const config = require("config");
+import config from "config";
 
 /** Basic Rate limiter.
  * @const
@@ -176,7 +176,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     if (winner === "team1") teamIdWinner = matchValues[0].team1_id;
     else if (winner === "team2") teamIdWinner = matchValues[0].team2_id;
     // Check to see if we're in a BO2 situation.
-    else if (winner === "none" && (matchValues[0].max_maps != 2)) {
+    else if (winner === "none" && (matchValues[0].max_maps != 2) && (team1Score == 0 && team2Score == 0)) {
       teamIdWinner = null;
       cancelled = 1;
       forfeit = 0;
@@ -807,7 +807,7 @@ router.put(
       zip
         .generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
         .then((buf) => {
-          fs.writeFile(
+          writeFile(
             "public/" + mapStatValues[0].demoFile,
             buf,
             "binary",
@@ -1206,4 +1206,4 @@ async function check_api_key(match_api_key, given_api_key, match_finished) {
   return;
 }
 
-module.exports = router;
+export default router;

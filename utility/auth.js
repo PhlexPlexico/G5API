@@ -3,13 +3,14 @@ This is not required to be modified.
 All this does is check if the user exists in the database and
 if they don't will add them with basic user access.
 */
-const config = require("config");
-const SteamStrategy = require("passport-steam").Strategy;
-const passport = require("passport");
-const MockStrategy = require("./mockstrategy").Strategy;
-const db = require("../db");
-const randString = require("randomstring");
-const Utils = require("./utils");
+import config from "config";
+import { Strategy as SteamStrategy } from "passport-steam";
+import passport from 'passport';
+import MockStrategy from "passport-mock-strategy";
+import user from "./mockProfile.js";
+import db from "../db.js";
+import { generate } from "randomstring";
+import Utils from "./utils.js";
 
 passport.serializeUser((user, done) => {
   done(null, user);
@@ -23,7 +24,7 @@ function strategyForEnvironment() {
   let strategy;
   switch (process.env.NODE_ENV) {
     case "test":
-      strategy = new MockStrategy("steam", returnStrategy);
+      strategy = new MockStrategy({name: "steam", _identifier: user, _cb: returnStrategy});
       break;
     default:
       strategy = new SteamStrategy(
@@ -61,7 +62,7 @@ async function returnStrategy(identifier, profile, done) {
       if (curUser.length < 1) {
         //Generate API key in user session to allow posting/getting/etc with
         //an account that's not in a session.
-        let apiKey = randString.generate({
+        let apiKey = generate({
           length: 64,
           capitalization: "uppercase",
         });
@@ -137,4 +138,4 @@ async function returnStrategy(identifier, profile, done) {
 
 passport.use(strategyForEnvironment());
 
-module.exports = passport;
+export default passport;
