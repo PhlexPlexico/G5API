@@ -133,7 +133,7 @@ class Utils {
     // Check the user based on API.
     const apiKey = req.get("user-api") || req.body[0]?.user_api;
     //const userId = req.get("user-id") || req.body[0]?.user_id;
-    if (apiKey /*&& userId*/) {
+    if (apiKey) {
       let sqlQuery = "SELECT * FROM user WHERE id = ?";
       const ourUser = await db.query(sqlQuery, apiKey.split(":")[0]);
       if (ourUser.length > 0) {

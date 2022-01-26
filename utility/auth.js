@@ -24,7 +24,8 @@ function strategyForEnvironment() {
   let strategy;
   switch (process.env.NODE_ENV) {
     case "test":
-      strategy = new MockStrategy({name: "steam", _identifier: user, _cb: returnStrategy});
+      const newUser = new user();
+      strategy = new MockStrategy({name: "steam", user: newUser, passReqToCallback: true}, returnStrategy);
       break;
     default:
       strategy = new SteamStrategy(

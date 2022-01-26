@@ -261,7 +261,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     let userToBeUpdated = await db.query(
       "SELECT id, name, admin, super_admin FROM user WHERE id = ? OR steam_id = ?",
-      [req.body[0].steam_id, req.body[0].steam_id]
+      [req.body[0].id, req.body[0].steam_id]
     );
     let isAdmin =
       req.body[0].admin === null ? userToBeUpdated[0].admin : req.body[0].admin;

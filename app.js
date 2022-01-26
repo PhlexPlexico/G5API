@@ -52,12 +52,14 @@ if(config.get("server.useRedis")){
   const redisClient =
   process.env.NODE_ENV !== "test"
     ? createClient({
+        legacyMode: true,
         password: config.get(process.env.NODE_ENV + ".redisPass"),
       })
     : require("redis-mock").createClient();
   //const redisStore = require("connect-redis")(session);
   
   const redisStore = connectRedis(session);
+  await redisClient.connect();
   redisClient.on("error", (err) => {
     console.log("Redis error: ", err);
   });

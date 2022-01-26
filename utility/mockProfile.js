@@ -1,4 +1,4 @@
-class user {
+export default class user {
   id = "76561198025644194";
   displayName = "Phlex";
   photos = [
@@ -11,11 +11,8 @@ class user {
     {
       value: "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/d6/d6f3cfd2a1f5131863bbca13675412924cccc004_full.jpg",
     }];
-}
-export default {
-  user
+    identifier = 'https://steamcommunity.com/openid/id/76561198025644194'
 };
-
 // export const id = "76561198025644194";
 // export const displayName = "Phlex";
 // export const photos = [
