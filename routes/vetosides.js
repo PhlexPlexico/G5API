@@ -77,7 +77,7 @@
      let sql = "SELECT * FROM veto_side";
      const vetoes = await db.query(sql);
      if (!vetoes.length) {
-       res.status(404).json({ message: "No vetoe side data found." });
+       res.status(404).json({ message: "No veto side data found." });
        return;
      }
      res.json({ vetoes });
@@ -121,11 +121,11 @@
   */
  router.get("/:match_id", async (req, res, next) => {
    try {
-     matchId = req.params.match_id;
+     let matchId = req.params.match_id;
      let sql = "SELECT * FROM veto_side where match_id = ?";
      const vetoes = await db.query(sql, matchId);
      if (!vetoes.length) {
-       res.status(404).json({ message: "No vetoe side data found." });
+       res.status(404).json({ message: "No veto side data found." });
        return;
      }
      res.json({ vetoes });
@@ -338,7 +338,7 @@
         let sql = "DELETE FROM veto_side WHERE match_id = ?";
         const delRows = await db.query(sql, [matchId]);
         if (delRows.affectedRows > 0)
-          res.json({ message: "Vetoe side data deleted successfully!" });
+          res.json({ message: "Veto side data deleted successfully!" });
         else
           res
             .status(412)

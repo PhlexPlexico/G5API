@@ -204,7 +204,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         return;
       }
       let sql = "INSERT INTO veto SET ?";
-      vetoId = await db.query(sql, [insertStmt]);
+      const vetoId = await db.query(sql, [insertStmt]);
       res.json({
         message: "Veto inserted successfully!",
         id: vetoId.insertId,

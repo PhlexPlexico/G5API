@@ -353,7 +353,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
       }
     );
   }
-  newTeam = [
+  let newTeam = [
     {
       user_id: userID,
       name: teamName,

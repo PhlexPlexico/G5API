@@ -5,7 +5,8 @@ const password = "SUPER SECRET DON'T TELL";
 
 describe("Test the game server routes.", () => {
   beforeAll(() => {
-    return request.get("/auth/steam/return");
+    return request.get("/auth/steam/return")
+      .expect(302);
   });
   it("Should return all servers depending on permission of user.", () => {
     return request
@@ -112,7 +113,7 @@ describe("Test the game server routes.", () => {
   });
   it("Should delete the information of the first server.", () => {
     let deleteData = [{ server_id: 1 }];
-    request
+    return request
       .delete("/servers/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")

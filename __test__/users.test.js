@@ -4,8 +4,10 @@ const request = agent(app);
 let adminCheck = 0;
 
 describe("Test the user routes", () => {
-  beforeAll(() => {
-    return request.get('/auth/steam/return');
+  beforeAll(async () => {
+    await request.get('/auth/steam/return')
+      .expect(302);
+      return;
   });
   afterAll(async () => {
     await new Promise(resolve => setTimeout(() => resolve(), 500)); // avoid jest open handle error

@@ -540,7 +540,7 @@ router.get("/:steam_id/official", async (req, res, next) => {
  */
 router.get("/match/:match_id", async (req, res, next) => {
   try {
-    matchID = req.params.match_id;
+    let matchID = req.params.match_id;
     let sql = "SELECT * FROM player_stats where match_id = ?";
     const playerstats = await db.query(sql, matchID);
     if (!playerstats.length) {
@@ -734,7 +734,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     } else if (
       matchRow[0].mtch_api_key != req.body[0].api_key &&
       !Utils.superAdminCheck(req.user)
-    ) {
+    ) {      
       res
         .status(403)
         .json({ message: "User is not authorized to perform action." });

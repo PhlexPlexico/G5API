@@ -353,7 +353,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         return;
       }
       let sql = "UPDATE map_stats SET ? WHERE id = ?";
-      updateMapStats = await db.query(sql, [updatedValues, mapStatId]);
+      const updateMapStats = await db.query(sql, [updatedValues, mapStatId]);
       if (updateMapStats.affectedRows > 0)
         res.json({ message: "Map Stats updated successfully!" });
       else

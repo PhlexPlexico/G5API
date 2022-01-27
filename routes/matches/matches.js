@@ -413,7 +413,7 @@ router.get("/:match_id", async (req, res, next) => {
         "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
         "season_id, is_pug FROM `match` where id = ?";
     }
-    matchID = req.params.match_id;
+    let matchID = req.params.match_id;
     const matches = await db.query(sql, matchID);
     if (!matches.length) {
       res.status(404).json({ message: "No match found." });
