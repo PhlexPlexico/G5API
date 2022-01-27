@@ -2,24 +2,18 @@ import { agent } from "supertest";
 import app from "../app.js";
 const request = agent(app);
 const password = "SUPER SECRET DON'T TELL";
-describe("Authenticate User", () => {
-  it("Should create a user with mock values.", async (done) => {
-    const result = await request.get("/auth/steam/return");
-    expect(result.statusCode).toEqual(302);
-    done();
-  });
-});
 
-describe("Get All Game Servers", () => {
-  it("Should return all servers depending on permission of user.", async (done) => {
-    const result = await request.get("/servers").expect("Content-Type", /json/);
-    expect(result.statusCode).toEqual(200);
-    done();
+describe("Test the game server routes.", () => {
+  beforeAll(() => {
+    return request.get("/auth/steam/return");
   });
-});
-
-describe("Setup New Server", () => {
-  it("Should setup a new server with the given values.", async (done) => {
+  it("Should return all servers depending on permission of user.", () => {
+    return request
+      .get("/servers")
+      .expect("Content-Type", /json/)
+      .expect(200);
+  });
+  it("Should setup a new server with the given values.", () => {
     let newServerData = [
       {
         ip_string: "192.168.0.1",
@@ -29,7 +23,7 @@ describe("Setup New Server", () => {
         public_server: 1,
       },
     ];
-    request
+    return request
       .post("/servers/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
@@ -37,10 +31,9 @@ describe("Setup New Server", () => {
       .expect((result) => {
         expect(result.body.message).toMatch(/successfully/);
       })
-      .expect(200)
-      .end(done);
+      .expect(200);
   });
-  it("Should setup a new server with the given values.", async (done) => {
+  it("Should setup a new server with the given values.", () => {
     let newServerData = [
       {
         ip_string: "192.168.0.1",
@@ -50,7 +43,7 @@ describe("Setup New Server", () => {
         public_server: 1,
       },
     ];
-    request
+    return request
       .post("/servers/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
@@ -58,10 +51,9 @@ describe("Setup New Server", () => {
       .expect(200)
       .expect((result) => {
         expect(result.body.message).toMatch(/successfully/);
-      })
-      .end(done);
+      });
   });
-  it("Should setup a new server so we can play with it later.", async (done) => {
+  it("Should setup a new server so we can play with it later.", () => {
     let newServerData = [
       {
         ip_string: "192.168.0.1",
@@ -71,7 +63,7 @@ describe("Setup New Server", () => {
         public_server: 1,
       },
     ];
-    request
+    return request
       .post("/servers/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
@@ -79,36 +71,28 @@ describe("Setup New Server", () => {
       .expect(200)
       .expect((result) => {
         expect(result.body.message).toMatch(/successfully/);
-      })
-      .end(done);
+      });
   });
-});
-
-describe("Get Server Info", () => {
-  it("Request the information of the inserted server.", async (done) => {
-    const result = await request
+  it("Request the information of the inserted server.", () => {
+    return request
       .get("/servers/1")
-      .expect("Content-Type", /json/);
-    expect(result.statusCode).toEqual(200);
-    // Test to decrypt the password, if it matches then we decrypt/encrypt properly!
-    expect(result.body.server.rcon_password).toBe(password);
-    done();
+      .expect("Content-Type", /json/)
+      .expect(200)
+      // Test to decrypt the password, if it matches then we decrypt/encrypt properly!
+      .expect((result) => {
+        expect(result.body.server.rcon_password).toBe(password);
+      });
   });
-});
-
-describe("Get My Server Info", () => {
-  it("Request the information of all users servers.", async (done) => {
-    const result = await request
+  it("Request the information of all users servers.", () => {
+    return request
       .get("/servers/myservers")
-      .expect("Content-Type", /json/);
-    expect(result.statusCode).toEqual(200);
-    expect(result.body.servers.length).toBeGreaterThanOrEqual(1);
-    done();
+      .expect("Content-Type", /json/)
+      .expect(200)
+      .expect((result) => {
+        expect(result.body.servers.length).toBeGreaterThanOrEqual(1);
+      });
   });
-});
-
-describe("Update Server", () => {
-  it("Should transfer ownership to the second user.", async (done) => {
+  it("Should transfer ownership to the second user.", () => {
     let updatedServerData = [
       {
         display_name: "Phlex's Temp Server #2 EDITED",
@@ -116,7 +100,7 @@ describe("Update Server", () => {
         server_id: 2,
       },
     ];
-    request
+    return request
       .put("/servers/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
@@ -124,13 +108,9 @@ describe("Update Server", () => {
       .expect(200)
       .expect((result) => {
         expect(result.body.message).toMatch(/successfully/);
-      })
-      .end(done);
+      });
   });
-});
-
-describe("Delete Server", () => {
-  it("Should delete the information of the first server.", async (done) => {
+  it("Should delete the information of the first server.", () => {
     let deleteData = [{ server_id: 1 }];
     request
       .delete("/servers/")
@@ -140,22 +120,18 @@ describe("Delete Server", () => {
       .expect((result) => {
         expect(result.body.message).toMatch(/successfully/);
       })
-      .expect(200)
-      .end(done);
+      .expect(200);
   });
-});
-
-describe("Being a bad actor", () => {
-  it("Request the information of the second server, now no longer owned by us.", async (done) => {
-    const result = await request
+  it("Request the information of the second server, now no longer owned by us.", () => {
+    return request
       .get("/servers/2")
-      .expect("Content-Type", /json/);
-    expect(result.statusCode).toEqual(200);
-    expect(result.body.rcon_password).toEqual(undefined);
-    done();
+      .expect("Content-Type", /json/)
+      .expect(200)
+      .expect((result) => {
+        expect(result.body.rcon_password).toEqual(undefined);
+      });
   });
-
-  it("Should try and fail to edit server 2.", async (done) => {
+  it("Should try and fail to edit server 2.", () => {
     let updatedServerData = [
       {
         display_name: "Phlex's Temp Server #2 EDITED BAD ACT0R",
@@ -163,7 +139,7 @@ describe("Being a bad actor", () => {
         server_id: 2,
       },
     ];
-    request
+    return request
       .put("/servers/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
@@ -171,7 +147,6 @@ describe("Being a bad actor", () => {
       .expect(403)
       .expect((result) => {
         expect(result.body.message).toMatch(/not authorized/);
-      })
-      .end(done);
+      });
   });
 });

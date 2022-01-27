@@ -14,7 +14,6 @@ describe("Test the user routes", () => {
     return request
       .get('/users')
       .expect(200);
-    //expect(result.statusCode).toEqual(302);
   });
   it('Should return all users.', () => {
     return request.get('/users')
