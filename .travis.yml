@@ -4,7 +4,7 @@ branches:
     - master
 
 node_js:
-  - 14.15.0
+  - 14.18.1
   
 services:
   - mysql
