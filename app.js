@@ -55,7 +55,7 @@ if(config.get("server.useRedis")){
         legacyMode: true,
         password: config.get(process.env.NODE_ENV + ".redisPass"),
       })
-    : require("redis-mock").createClient();
+    : await import("redis-mock").createClient();
   //const redisStore = require("connect-redis")(session);
   
   const redisStore = connectRedis(session);
