@@ -34,12 +34,11 @@ import session from "express-session";
 import { createClient } from "redis";
 
 
-
 const app = express();
 
 app.use(logger("dev"));
-app.use(express.raw({type: 'application/octet-stream', limit: "2gb"}));
-app.use(express.json({limit: "512kb"}));
+app.use(express.raw({ type: 'application/octet-stream', limit: "2gb" }));
+app.use(express.json({ limit: "512kb" }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use("/demo", express.static("public"));
@@ -47,23 +46,22 @@ app.use("/static/img/logos", express.static("public/img/logos"));
 
 // Security defaults with helmet
 app.use(helmet());
-if(config.get("server.useRedis")){
+if (config.get("server.useRedis")) {
   // Messy but avoids any open file handles.
   const redisClient =
-  process.env.NODE_ENV !== "test"
-    ? createClient({
-        legacyMode: true,
-        password: config.get(process.env.NODE_ENV + ".redisPass"),
-      })
-    : await import("redis-mock").createClient();
+    createClient({
+      legacyMode: true,
+      password: config.get(process.env.NODE_ENV + ".redisPass"),
+    });
+
   //const redisStore = require("connect-redis")(session);
-  
+
   const redisStore = connectRedis(session);
   await redisClient.connect();
   redisClient.on("error", (err) => {
     console.log("Redis error: ", err);
   });
-  
+
   const redisCfg = {
     host: config.get(process.env.NODE_ENV + ".redisHost"),
     port: config.get(process.env.NODE_ENV + ".redisPort"),
@@ -201,7 +199,7 @@ app.use(function (err, req, res, next) {
   res.json({ error: err.message });
 });
 
-if(config.get("server.useRedis")){
+if (config.get("server.useRedis")) {
   process.on("exit", function () {
     redisClient.end();
   });
