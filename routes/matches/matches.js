@@ -461,6 +461,7 @@ router.get("/:match_id", async (req, res, next) => {
 router.get("/limit/:limiter", async (req, res, next) => {
   try {
     let lim = parseInt(req.params.limiter);
+    let sql;
     if (req.user !== undefined && Utils.superAdminCheck(req.user)) {
       sql =
         "SELECT * FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?";
