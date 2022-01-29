@@ -35,12 +35,12 @@ If you wish to roll a production build, please copy ```production.json.template`
 To see initial configuration/installation on your server, please [visit the wiki](https://github.com/PhlexPlexico/G5API/wiki/) to learn more about first-time setup. Node, Redis, and MariaDB/MySQL are all pre-requisites, and the wiki will provide you with information on how to set it up, as well as some useful information about the templated configuration files.
 
 ### Migrate dev database: 
-```yarn migrate-dev-create && yarn migrate-dev-upgrade```
+```yarn migrate-create-dev && yarn migrate-dev-upgrade```
 
 You can specify which database to use in the `development.json` area. *Please note that this will delete and recreate the development table.* Also note that there are some tables that have changed. I've opted to normalizing the spectators and team authentication values, as BLOBS were not playing nicely with Node. My current fork deals with inserting into these tables, so I hope that it will eventually be a smooth transition where you can keep all your data from the old Flask app, if you so choose.
 
 ### Migrate production database:
-```yarn migrate-prod-create && yarn migrate-prod-upgrade```
+```yarn migrate-create-prod && yarn migrate-prod-upgrade```
 
 This will attempt to update a production database by creating any tables that don't exist. It will not drop the database prior to importing new tables. If you are on windows, you will just have to create the database yourself, and then run `yarn migrate-prod-upgrade`.
 
