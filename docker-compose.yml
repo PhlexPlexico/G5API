@@ -1,81 +1,59 @@
-version: '2.1'
-
-networks:
-  get5:
-    external: true
+version: "3.7"
 
 services:
-  caddy:
-    image: caddy:2-alpine
-    container_name: caddy-reverse-proxy
-    restart: unless-stopped
+  redis:
+    image: redis:6
+    container_name: redis
+    restart: always
     ports:
-      - "80:80"
-      - "443:443"
-    volumes: 
-      - ./Caddyfile:/etc/caddy/Caddyfile
-    networks:
-      - get5
-    environment:
-      - CADDY_URL=
-      - CADDY_API_ENDPOINT=api
-      - CADDY_REVERSE_PROXY_PORT=3301
-  
+      - 6379:6379
+
   get5db:
-    image: mariadb
+    image: mysql
     container_name: get5db
     restart: always
     environment:
-      - MYSQL_ROOT_PASSWORD=
+      - MYSQL_ROOT_PASSWORD=testing
       - MYSQL_DATABASE=get5
       - MYSQL_USER=get5
-      - MYSQL_PASSWORD=
+      - MYSQL_PASSWORD=testing
     ports:
-      - "3306:3306"
-    networks:
-      - get5
+      - 3306:3306
 
   g5api:
-    image: ghcr.io/phlexplexico/g5api:latest
+    build: .
     depends_on:
       - get5db
     container_name: G5API
-    volumes: 
-      - redisVol:/RedisFiles
-    expose:
-      - 3301
+    ports:
+      - 3301:3301
     environment:
+      - NODE_ENV=production
       - PORT=3301
-      - HOSTNAME=
+      - HOSTNAME=http://localhost
       - DBKEY=
       - STEAMAPIKEY=
-      - SHAREDSECRET=
-      - CLIENTHOME=
-      - APIURL=
+      - SHAREDSECRET=testing
+      - CLIENTHOME=http://localhost
+      - APIURL=http://localhost:3301
       - SQLUSER=get5
-      - SQLPASSWORD=
+      - SQLPASSWORD=testing
       - SQLPORT=3306
       - DATABASE=get5
       - SQLHOST=get5db
       - ADMINS=
       - SUPERADMINS=
-      - REDISPASSWORD=
-      - UPLOADDEMOS=true
-    restart: unless-stopped
-    networks:
-      - get5
+      - REDISURL=redis://root@redis:6379
+      - REDISTTL=86400
+      - USEREDIS=true
+      - UPLOADDEMOS=false
+    restart: always
 
   g5v:
-    image: ghcr.io/phlexplexico/g5v:latest
-    depends_on: 
+    image: g5v:latest
+    depends_on:
       - g5api
-      - caddy
     container_name: G5V-Front-End
+    ports:
+      - 80:80
     restart: always
-    networks:
-      - get5
-
-volumes:
-  redisVol:
-    external: false
-  

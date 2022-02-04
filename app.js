@@ -1,18 +1,31 @@
-import createError from "http-errors";
-import express from "express";
-import connectRedis from 'connect-redis';
+import config from "config";
+import connectRedis from "connect-redis";
 import cookieParser from "cookie-parser";
-import logger from "morgan";
-import helmet from "helmet";
 import cors from "cors";
+import express from "express";
+// import { initialize, session as _session, authenticate } from
+// "./utility/auth.js";
+import bearerToken from "express-bearer-token";
+import session from "express-session";
+import helmet from "helmet";
+import createError from "http-errors";
+import logger from "morgan";
 import morgan from "morgan";
-//Route Files
+import { createMockPassport } from "passport-mock-strategy";
+import { createClient } from "redis";
+import swaggerJSDoc from "swagger-jsdoc";
+// End Route Files
+
+import { serve, setup } from "swagger-ui-express";
+
+// Route Files
 import indexRouter from "./routes/index.js";
 import leaderboardRouter from "./routes/leaderboard.js";
 import legacyAPICalls from "./routes/legacy/api.js";
+import mapListRouter from "./routes/maps.js";
+import mapstatsRouter from "./routes/mapstats.js";
 import matchesRouter from "./routes/matches/matches.js";
 import matchServerRouter from "./routes/matches/matchserver.js";
-import mapstatsRouter from "./routes/mapstats.js";
 import playerstatsRouter from "./routes/playerstats.js";
 import seasonsRouter from "./routes/seasons.js";
 import serversRouter from "./routes/servers.js";
@@ -20,25 +33,12 @@ import teamsRouter from "./routes/teams.js";
 import usersRouter from "./routes/users.js";
 import vetoesRouter from "./routes/vetoes.js";
 import vetosidesRouter from "./routes/vetosides.js";
-import mapListRouter from "./routes/maps.js";
-//End Route Files
-
-import { serve, setup } from "swagger-ui-express";
-import swaggerJSDoc from "swagger-jsdoc";
-
 import passport from "./utility/auth.js";
-//import { initialize, session as _session, authenticate } from "./utility/auth.js";
-import bearerToken from "express-bearer-token";
-import config from "config";
-import session from "express-session";
-import { createClient } from "redis";
-import { createMockPassport } from "passport-mock-strategy";
-
 
 const app = express();
 
 app.use(logger("dev"));
-app.use(express.raw({ type: 'application/octet-stream', limit: "2gb" }));
+app.use(express.raw({ type: "application/octet-stream", limit: "2gb" }));
 app.use(express.json({ limit: "512kb" }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
@@ -49,23 +49,16 @@ app.use("/static/img/logos", express.static("public/img/logos"));
 app.use(helmet());
 if (config.get("server.useRedis")) {
   // Messy but avoids any open file handles.
-  const redisClient =
-    createClient({
-      legacyMode: true,
-      password: config.get(process.env.NODE_ENV + ".redisPass"),
-    });
+  const redisClient = createClient({
+    // legacyMode: true,
+    url: config.get(process.env.NODE_ENV + ".redisUrl"),
+  });
 
-  //const redisStore = require("connect-redis")(session);
-
-  const redisStore = connectRedis(session);
-  await redisClient.connect();
   redisClient.on("error", (err) => {
     console.log("Redis error: ", err);
   });
 
   const redisCfg = {
-    host: config.get(process.env.NODE_ENV + ".redisHost"),
-    port: config.get(process.env.NODE_ENV + ".redisPort"),
     client: redisClient,
     ttl: config.get(process.env.NODE_ENV + ".redisTTL"),
   };
@@ -97,7 +90,8 @@ app.use(bearerToken());
 // enabling CORS for all requests
 app.use(
   cors({
-    origin: config.get("server.clientHome"), // allow to server to accept request from different origin
+    origin: config.get("server.clientHome"), // allow to server to accept request
+    // from different origin
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true, // allow session cookie from browser to pass through
   })
@@ -153,7 +147,7 @@ app.use("/seasons", seasonsRouter);
 app.use("/match", legacyAPICalls);
 app.use("/leaderboard", leaderboardRouter);
 app.use("/maps", mapListRouter);
-//END ROUTES
+// END ROUTES
 
 // Steam API Calls.
 app.get(
@@ -186,13 +180,14 @@ app.get("/logout", (req, res) => {
 // END Steam API Calls.
 
 // Local Passport Calls
-app.post("/login",
-  passport.authenticate('local-login', {
+app.post(
+  "/login",
+  passport.authenticate("local-login", {
     failWithError: true,
-    failureMessage: true
+    failureMessage: true,
   }),
   (req, res) => {
-    return res.json({message: "Success!"});
+    return res.json({ message: "Success!" });
   },
   (err, req, res, next) => {
     console.log(err);
@@ -201,13 +196,14 @@ app.post("/login",
   }
 );
 
-app.post("/register",
-  passport.authenticate('local-register', {
+app.post(
+  "/register",
+  passport.authenticate("local-register", {
     failWithError: true,
-    failureMessage: true
+    failureMessage: true,
   }),
   (req, res) => {
-    return res.json({message: "Success!"});
+    return res.json({ message: "Success!" });
   },
   (err, req, res, next) => {
     err.message = req.session.messages[req.session.messages.length - 1];
@@ -216,7 +212,6 @@ app.post("/register",
 );
 
 // END Local Passport Calls
-
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
