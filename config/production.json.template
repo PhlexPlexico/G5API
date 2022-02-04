@@ -1,34 +1,32 @@
 {
   "server": {
-    "port": 3301,
-    "hostname": "http://localhost",
-    "dbKey": "Database 16 Byte Key.",
-    "steamAPIKey": "API Key For Steam Calls.",
-    "sharedSecret": "a secure secret for session sigining.",
-    "clientHome": "http://localhost:8080",
-    "useRedis": true,
-    "apiURL": "http://localhost:8080/api/",
-    "uploadDemos": false
+    "port": $PORT,
+    "hostname": "$HOSTNAME",
+    "dbKey": "$DBKEY",
+    "steamAPIKey": "$STEAMAPIKEY",
+    "sharedSecret": "$SHAREDSECRET",
+    "clientHome": "$CLIENTHOME",
+    "useRedis": $USEREDIS,
+    "apiURL": "$APIURL",
+    "uploadDemos": $UPLOADDEMOS
   },
   "production": {
     "driver": "mysql",
-    "user": "get5_user",
-    "password": "",
-    "database": "get5",
+    "user": "$SQLUSER",
+    "password": "$SQLPASSWORD",
+    "database": "$DATABASE",
     "multipleStatements": true,
     "flags": { "ENV": "MYSQL_FLAGS" },
-    "host": "127.0.0.1",
-    "port": 3306,
+    "host": "$SQLHOST",
+    "port": $SQLPORT,
     "connectionLimit": 15,
-    "redisHost": "localhost",
-    "redisPort": 6379,
-    "redisTTL": 86400,
-    "redisPass": "super_secure"
+    "redisUrl": "$REDISURL",
+    "redisTTL": $REDISTTL
   },
   "admins": {
-    "steam_ids": "admins,go,here"
+    "steam_ids": "$ADMINS"
   },
   "super_admins": {
-    "steam_ids": "super_admins,go,here"
+    "steam_ids": "$SUPERADMINS"
   }
 }
