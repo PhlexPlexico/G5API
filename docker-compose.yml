@@ -5,38 +5,56 @@ services:
     image: redis:6
     command: redis-server --requirepass testing
     container_name: redis
+    networks:
+      - get5
     restart: always
-    ports:
-      - 6379:6379
 
   get5db:
     image: mariadb
     container_name: get5db
     restart: always
+    networks:
+      - get5
     environment:
       - MYSQL_ROOT_PASSWORD=testing
       - MYSQL_DATABASE=get5
       - MYSQL_USER=get5
       - MYSQL_PASSWORD=testing
+
+  caddy:
+    image: lucaslorentz/caddy-docker-proxy:ci-alpine
+    container_name: caddy-reverse-proxy
+    restart: unless-stopped
+    networks:
+      - get5
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - 3306:3306
+      - 80:80
+      - 443:443
+    environment:
+      - CADDY_INGRESS_NETWORKS=get5
 
   g5api:
     build: .
     depends_on:
       - get5db
     container_name: G5API
-    ports:
-      - 3301:3301
+    networks:
+      - get5
+    labels:
+      caddy: localhost
+      caddy.handle_path: /api/*
+      caddy.handle_path.0_reverse_proxy: "{{upstreams 3301}}"
     environment:
       - NODE_ENV=production
       - PORT=3301
-      - HOSTNAME=http://localhost
       - DBKEY=
       - STEAMAPIKEY=
+      - HOSTNAME=https://localhost
       - SHAREDSECRET=testing
-      - CLIENTHOME=http://localhost
-      - APIURL=http://localhost:3301
+      - CLIENTHOME=https://localhost
+      - APIURL=https://localhost/api
       - SQLUSER=get5
       - SQLPASSWORD=testing
       - SQLPORT=3306
@@ -55,6 +73,13 @@ services:
     depends_on:
       - g5api
     container_name: G5V-Front-End
-    ports:
-      - 80:80
+    networks:
+      - get5
     restart: always
+    labels:
+      caddy: localhost
+      caddy.reverse_proxy: "{{upstreams}}"
+
+networks:
+  get5:
+    external: true
