@@ -47,7 +47,7 @@ services:
       - REDISURL=redis://:testing@redis:6379
       - REDISTTL=86400
       - USEREDIS=true
-      - UPLOADDEMOS=false
+      - UPLOADDEMOS=true
     restart: always
 
   g5v:
