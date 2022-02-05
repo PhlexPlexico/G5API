@@ -3,6 +3,7 @@ version: "3.7"
 services:
   redis:
     image: redis:6
+    command: redis-server --requirepass testing
     container_name: redis
     restart: always
     ports:
@@ -43,7 +44,7 @@ services:
       - SQLHOST=get5db
       - ADMINS=
       - SUPERADMINS=
-      - REDISURL=redis://root@redis:6379
+      - REDISURL=redis://:testing@redis:6379
       - REDISTTL=86400
       - USEREDIS=true
       - UPLOADDEMOS=false
