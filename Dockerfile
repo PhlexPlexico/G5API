@@ -14,4 +14,5 @@ COPY . .
 CMD envsubst < /Get5API/config/production.json.template > /Get5API/config/production.json  && \
     yarn migrate-create-prod && \
     yarn migrate-prod-upgrade && \
-    node ./bin/www
+    yarn startprod && \
+    yarn pm2 logs
