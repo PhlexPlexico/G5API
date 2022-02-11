@@ -577,9 +577,14 @@ router.get("/:match_id/config", async (req, res, next) => {
     });
     sql = "SELECT * FROM match_spectator WHERE match_id=?";
     matchSpecs = await db.query(sql, matchID);
+    let newSpecs = {};
     matchSpecs.forEach((row) => {
-      matchJSON.spectators.players.push(row.auth);
+      //matchJSON.spectators.players.push(row.auth);
+      newSpecs[row.auth] = row.spectator_name == null ? "" : row.spectator_name;
+      //matchJSON.spectators.players[row.auth] = row.spectator_name == null ? "" : row.spectator_name;
     });
+    if (Object.keys(newSpecs).length > 0) matchJSON.spectators.players = newSpecs;
+    console.log(newSpecs);
     res.json(matchJSON);
   } catch (err) {
     console.error(err);
@@ -652,11 +657,6 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       length: 24,
       capitalization: "uppercase",
     });
-    let matchSpecAuths = [];
-    if (req.body[0].spectator_auths != null)
-      req.body[0].spectator_auths.forEach(async (auth) => {
-        matchSpecAuths.push(await Utils.getSteamPID(auth));
-      });
     let skipVeto =
       req.body[0].skip_veto == null ? false : req.body[0].skip_veto;
     let insertMatch;
@@ -698,11 +698,24 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";
     insertSet = await db.buildUpdateStatement(insertSet);
     insertMatch = await db.query(sql, [insertSet]);
-    sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
-    for (let key in req.body[0].spectator_auths) {
-      let newAuth = await Utils.getSteamPID(req.body[0].spectator_auths[key]);
-      await db.query(sql, [insertMatch.insertId, newAuth]);
+    if (!Array.isArray(req.body[0].spectator_auths)) {
+      sql = "INSERT match_spectator (match_id, auth, spectator_name) VALUES (?,?,?)";
+      for (let key in req.body[0].spectator_auths) {
+        let newAuth = await Utils.getSteamPID(key);
+        await db.query(sql, [
+          insertMatch.insertId,
+          newAuth,
+          req.body[0].spectator_auths[key].name
+        ]);
+      }
+    } else if (req.body[0].spectator_auths) {
+      sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
+      for (let key in req.body[0].spectator_auths) {
+        let newAuth = await Utils.getSteamPID(req.body[0].spectator_auths[key]);
+        await db.query(sql, [insertMatch.insertId, newAuth]);
+      }
     }
+
     if (req.body[0].match_cvars != null) {
       let cvarInsertSet = req.body[0].match_cvars;
       for (let key in cvarInsertSet) {
@@ -731,9 +744,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         if (
           !(await newServer.prepareGet5Match(
             config.get("server.apiURL") +
-              "/matches/" +
-              insertMatch.insertId +
-              "/config",
+            "/matches/" +
+            insertMatch.insertId +
+            "/config",
             apiKey
           ))
         ) {
@@ -893,12 +906,22 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       }
       let sql = "UPDATE `match` SET ? WHERE id = ?";
       await db.query(sql, [updateStmt, req.body[0].match_id]);
-      sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
-      for (let key in req.body[0].spectator_auths) {
-        let newAuth = await Utils.getSteamPID(
-          req.body[0].spectator_auths[key]
-        );
-        await db.query(sql, [req.body[0].match_id, newAuth]);
+      if (!Array.isArray(req.body[0].spectator_auths)) {
+        sql = "INSERT match_spectator (match_id, auth, spectator_name) VALUES (?,?,?)";
+        for (let key in req.body[0].spectator_auths) {
+          let newAuth = await Utils.getSteamPID(key);
+          await db.query(sql, [
+            insertMatch.insertId,
+            newAuth,
+            req.body[0].spectator_auths[key].name
+          ]);
+        }
+      } else if (req.body[0].spectator_auths) {
+        sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
+        for (let key in req.body[0].spectator_auths) {
+          let newAuth = await Utils.getSteamPID(req.body[0].spectator_auths[key]);
+          await db.query(sql, [insertMatch.insertId, newAuth]);
+        }
       }
       const ourServer = await db.query(ourServerSql, [
         matchRow[0].server_id,
@@ -906,10 +929,10 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       const serverConn =
         matchRow[0].server_id != null
           ? new GameServer(
-              ourServer[0].ip_string,
-              ourServer[0].port,
-              ourServer[0].rcon_password
-            )
+            ourServer[0].ip_string,
+            ourServer[0].port,
+            ourServer[0].rcon_password
+          )
           : null;
       if (
         req.body[0].forfeit == 1 ||
@@ -951,9 +974,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
             if (
               await newServer.prepareGet5Match(
                 config.get("server.apiURL") +
-                  "/matches/" +
-                  matchRow[0].id +
-                  "/config",
+                "/matches/" +
+                matchRow[0].id +
+                "/config",
                 matchRow[0].api_key
               )
             ) {

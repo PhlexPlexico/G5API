@@ -76,7 +76,6 @@ describe("Test the vetosides routes", () => {
   it('Should retrieve all veto sides, even if none.', () => {
     return request.get('/vetosides/3')
     .expect((result) => {
-      console.log(result.body);
       expect(result.body.vetoes.length).toEqual(3);
     })
     .expect(200);
