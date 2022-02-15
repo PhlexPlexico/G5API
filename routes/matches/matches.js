@@ -584,7 +584,6 @@ router.get("/:match_id/config", async (req, res, next) => {
       //matchJSON.spectators.players[row.auth] = row.spectator_name == null ? "" : row.spectator_name;
     });
     if (Object.keys(newSpecs).length > 0) matchJSON.spectators.players = newSpecs;
-    console.log(newSpecs);
     res.json(matchJSON);
   } catch (err) {
     console.error(err);
@@ -698,21 +697,15 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";
     insertSet = await db.buildUpdateStatement(insertSet);
     insertMatch = await db.query(sql, [insertSet]);
-    if (!Array.isArray(req.body[0].spectator_auths)) {
+    if (req.body[0].spectator_auths) {
       sql = "INSERT match_spectator (match_id, auth, spectator_name) VALUES (?,?,?)";
       for (let key in req.body[0].spectator_auths) {
-        let newAuth = await Utils.getSteamPID(key);
+        let newAuth = await Utils.getSteamPID(req.body[0].spectator_auths[key].split(";")[0]);
         await db.query(sql, [
           insertMatch.insertId,
           newAuth,
-          req.body[0].spectator_auths[key].name
+          req.body[0].spectator_auths[key].split(";")[1]
         ]);
-      }
-    } else if (req.body[0].spectator_auths) {
-      sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
-      for (let key in req.body[0].spectator_auths) {
-        let newAuth = await Utils.getSteamPID(req.body[0].spectator_auths[key]);
-        await db.query(sql, [insertMatch.insertId, newAuth]);
       }
     }
 
@@ -906,21 +899,15 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       }
       let sql = "UPDATE `match` SET ? WHERE id = ?";
       await db.query(sql, [updateStmt, req.body[0].match_id]);
-      if (!Array.isArray(req.body[0].spectator_auths)) {
+      if (req.body[0].spectator_auths) {
         sql = "INSERT match_spectator (match_id, auth, spectator_name) VALUES (?,?,?)";
         for (let key in req.body[0].spectator_auths) {
-          let newAuth = await Utils.getSteamPID(key);
+          let newAuth = await Utils.getSteamPID(req.body[0].spectator_auths[key].split(";")[0]);
           await db.query(sql, [
             insertMatch.insertId,
             newAuth,
-            req.body[0].spectator_auths[key].name
+            req.body[0].spectator_auths[key].split(";")[1]
           ]);
-        }
-      } else if (req.body[0].spectator_auths) {
-        sql = "INSERT match_spectator (match_id, auth) VALUES (?,?)";
-        for (let key in req.body[0].spectator_auths) {
-          let newAuth = await Utils.getSteamPID(req.body[0].spectator_auths[key]);
-          await db.query(sql, [insertMatch.insertId, newAuth]);
         }
       }
       const ourServer = await db.query(ourServerSql, [

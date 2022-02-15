@@ -479,7 +479,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         await db.query(sql, [req.body[0].season_id]);
         sql = "INSERT INTO season_cvar SET ?";
         for (let key in defaultCvar) {
-          insertSet = {
+          let insertSet = {
             season_id: req.body[0].season_id,
             cvar_name: key.replace(/"/g, '\\"'),
             cvar_value: typeof defaultCvar[key] === 'string' ? defaultCvar[key].replace(/"/g, '\\"') : defaultCvar[key],
