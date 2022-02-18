@@ -3,7 +3,7 @@
 /**
  * Checking for node_env
  */
-if(!process.env.NODE_ENV) {
+if(!process.env.NODE_ENV || process.env.NODE_ENV == undefined) {
   console.warn("\x1b[31m%s\x1b[0m", "No NODE_ENV set. Please set NODE_ENV or else default is DEVELOPMENT.");
   process.env.NODE_ENV = 'development';
 }
@@ -11,10 +11,10 @@ if(!process.env.NODE_ENV) {
  * Module dependencies.
  */
 
-var app = require('../app');
-var debug = require('debug')('v1:server');
-var http = require('http');
-var config = require('config');
+import app from '../app.js';
+import debug from 'debug';
+import { createServer } from 'http';
+import config from 'config';
 /**
  * Get port from environment and store in Express.
  */
@@ -25,7 +25,7 @@ app.set('port', port);
  * Create HTTP server.
  */
 
-var server = http.createServer(app);
+var server = createServer(app);
 
 /**
  * Listen on provided port, on all network interfaces.

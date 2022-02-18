@@ -9,15 +9,15 @@
  * resourcePath: /teams
  * description: Express API router for teams in get5.
  */
-let express = require("express");
+import { Router } from "express";
 
-const router = express.Router();
+const router = Router();
 
-const db = require("../db");
+import db from "../db.js";
 
-const Utils = require("../utility/utils");
+import Utils from "../utility/utils.js";
 
-const randString = require("randomstring");
+import { generate } from "randomstring";
 
 /**
  * @swagger
@@ -339,7 +339,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
   let teamID = null;
   if (logo) {
     // Generate a 5 character logo "name".
-    logoName = randString.generate({
+    logoName = generate({
       length: 5,
       charset: "alphanumeric",
     });
@@ -353,7 +353,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
       }
     );
   }
-  newTeam = [
+  let newTeam = [
     {
       user_id: userID,
       name: teamName,
@@ -469,7 +469,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
   if (teamLogo) {
     // Overwrite the current file.
     if (checkUser[0].logo == null) {
-      logoName = randString.generate({
+      logoName = generate({
         length: 5,
         charset: "alphanumeric",
       });
@@ -795,4 +795,4 @@ const getTeamImages = async (idList, getImage = true) => {
   return idList;
 };
 
-module.exports = router;
+export default router;

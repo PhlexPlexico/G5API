@@ -3,35 +3,35 @@
  * @requires express
  * @requires db
  */
-let express = require("express");
+import { Router } from "express";
 /** Express module
  * @const
  */
-const router = express.Router();
+const router = Router();
 /** Database module.
  * @const
  */
-const db = require("../../db");
+import db from "../../db.js";
 
 /** Rate limit includes.
  * @const
  */
-const rateLimit = require("express-rate-limit");
+import rateLimit from "express-rate-limit";
 
 /** ZIP files.
  * @const
  */
-const JSZip = require("jszip");
+import JSZip from "jszip";
 
 /** Required to save files.
  * @const
  */
-const fs = require("fs");
+import { writeFile } from "fs";
 
 /** Config to check demo uploads.
  * @const
  */
-const config = require("config");
+import config from "config";
 
 /** Basic Rate limiter.
  * @const
@@ -171,12 +171,12 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     if (matchFinalized == true) {
       res.status(200).send({ message: "Match already finalized" });
       return;
-    } 
+    }
 
     if (winner === "team1") teamIdWinner = matchValues[0].team1_id;
     else if (winner === "team2") teamIdWinner = matchValues[0].team2_id;
     // Check to see if we're in a BO2 situation.
-    else if (winner === "none" && (matchValues[0].max_maps != 2)) {
+    else if (winner === "none" && (matchValues[0].max_maps != 2) && (team1Score == 0 && team2Score == 0)) {
       teamIdWinner = null;
       cancelled = 1;
       forfeit = 0;
@@ -234,6 +234,189 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     res.status(500).json({ message: err.toString() });
   }
 });
+
+/**
+ * @swagger
+ *
+ *  /match/:match_id/pause:
+ *   post:
+ *     description: Updates the database value if a match is paused from in-game.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              key:
+ *                type: integer
+ *                description: The API key given from the game server to compare.
+ *              pause_type:
+ *                type: string
+ *                description: The string for what type of pause has been fired off.
+ *              team_paused:
+ *                type: string
+ *                description: Which team has paused the game.
+ *              match_id:
+ *                type: integer
+ *                description: The given match ID from the path.
+ *
+ *     tags:
+ *       - legacy
+ *     responses:
+ *       200:
+ *         description: Success.
+ *         content:
+ *             text/plain:
+ *                schema:
+ *                  type: string
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.post("/:match_id/pause/", basicRateLimit, async (req, res, next) => {
+  try {
+    // Give from API call.
+    let matchID = req.params.match_id == null ? null : req.params.match_id;
+    let pauseType = req.body.pause_type == null ? null : req.body.pause_type;
+    let teamPaused = req.body.team_paused == null ? 0 : req.body.team_paused;
+
+    let matchFinalized = true;
+    // Database calls.
+    let sql = "SELECT * FROM `match` WHERE id = ?";
+    const matchValues = await db.query(sql, matchID);
+
+    if (
+      matchValues[0].end_time == null &&
+      (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
+    )
+      matchFinalized = false;
+    // Throw error if wrong key or finished match.
+    await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
+
+    sql = "SELECT * FROM match_pause WHERE match_id = ?";
+    const pauseCheck = await db.query(sql, matchID);
+    let teamName;
+    if (teamPaused == "team1") teamName = matchValues[0].team1_string;
+    else if (teamPaused == "team2") teamName = matchValues[0].team2_string;
+    else teamName = "Admin";
+    if (!pauseCheck.length) {
+      sql = "INSERT INTO match_pause SET ?";
+      let insertSet = {
+        match_id: matchID,
+        pause_type: pauseType,
+        team_paused: teamName,
+        paused: true
+      };
+      insertSet = await db.buildUpdateStatement(insertSet);
+      await db.query(sql, [insertSet]);
+    } else {
+      sql = "UPDATE match_pause SET ? WHERE match_id = ?";
+      let updateSet = {
+        pause_type: pauseType,
+        team_paused: teamName,
+        paused: true
+      };
+      updateSet = await db.buildUpdateStatement(updateSet);
+      await db.query(sql, [updateSet, matchID]);
+    }
+    res.status(200).send({ message: "Success" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error on game server.", response: err });
+  }
+}
+);
+
+/**
+ * @swagger
+ *
+ *  /match/:match_id/unpause:
+ *   post:
+ *     description: Updates the database value if a match is unpaused from in-game.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              key:
+ *                type: integer
+ *                description: The API key given from the game server to compare.
+ *              team_unpaused:
+ *                type: string
+ *                description: Which team has unpaused the game.
+ *              match_id:
+ *                type: integer
+ *                description: The given match ID from the path.
+ *
+ *     tags:
+ *       - legacy
+ *     responses:
+ *       200:
+ *         description: Success.
+ *         content:
+ *             text/plain:
+ *                schema:
+ *                  type: string
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.post("/:match_id/unpause/", basicRateLimit, async (req, res, next) => {
+  try {
+    // Give from API call.
+    let matchID = req.params.match_id == null ? null : req.params.match_id;
+    let teamUnpaused = req.body.team_inpaused == null ? 0 : req.body.team_unpaused;
+
+    let matchFinalized = true;
+    // Database calls.
+    let sql = "SELECT * FROM `match` WHERE id = ?";
+    const matchValues = await db.query(sql, matchID);
+
+    if (
+      matchValues[0].end_time == null &&
+      (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
+    )
+      matchFinalized = false;
+    // Throw error if wrong key or finished match.
+    await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
+
+    sql = "SELECT * FROM match_pause WHERE match_id = ?";
+    const pauseCheck = await db.query(sql, matchID);
+    let teamName;
+    if (teamUnpaused == "team1") teamName = matchValues[0].team1_string;
+    else if (teamUnpaused == "team2") teamName = matchValues[0].team2_string;
+    else teamName = "Admin";
+    if (!pauseCheck.length) {
+      sql = "INSERT INTO match_pause SET ?";
+      let insertSet = {
+        match_id: matchID,
+        team_paused: teamName,
+        paused: false
+      };
+      insertSet = await db.buildUpdateStatement(insertSet);
+      await db.query(sql, [insertSet]);
+    } else {
+      sql = "UPDATE match_pause SET ? WHERE match_id = ?";
+      let updateSet = {
+        pause_type: pauseType,
+        team_paused: teamName,
+        paused: false
+      };
+      updateSet = await db.buildUpdateStatement(updateSet);
+      await db.query(sql, [updateSet, matchID]);
+    }
+    res.status(200).send({ message: "Success" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error on game server.", response: err });
+  }
+}
+);
 
 /**
  * @swagger
@@ -577,7 +760,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
  *       500:
  *         $ref: '#/components/responses/Error'
  */
- router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) => {
+router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) => {
   try {
     // Give from API call.
     let matchID = req.params.match_id == null ? null : req.params.match_id;
@@ -608,14 +791,14 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
 
     // Swap these as we are looking at the team who picked, not banned right now.
     if (teamString === "team1") {
-      teamPickID = matchValues[0].team1_id; 
-      teamBanID = matchValues[0].team2_id; 
+      teamPickID = matchValues[0].team1_id;
+      teamBanID = matchValues[0].team2_id;
     }
     else if (teamString === "team2") {
       teamBanID = matchValues[0].team1_id;
-      teamPickID = matchValues[0].team2_id; 
+      teamPickID = matchValues[0].team2_id;
     }
-    
+
     sql = "SELECT name FROM team WHERE ID = ?";
     const teamPickMapName = await db.query(sql, [teamBanID]);
     if (teamPickMapName[0] == null) teamPickMapNameString = "Default";
@@ -799,15 +982,15 @@ router.put(
       }
       let endTimeMs = new Date(mapStatValues[0].end_time);
       let timeDifference = Math.abs(currentDate - endTimeMs);
-      let minuteDifference = Math.floor((timeDifference/1000)/60);
+      let minuteDifference = Math.floor((timeDifference / 1000) / 60);
       if (minuteDifference > 8)
-        res.status(500).json({message: "Demo can no longer be uploaded."});
+        res.status(500).json({ message: "Demo can no longer be uploaded." });
 
       zip.file(mapStatValues[0].demoFile + ".dem", req.body, { binary: true });
       zip
         .generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
         .then((buf) => {
-          fs.writeFile(
+          writeFile(
             "public/" + mapStatValues[0].demoFile,
             buf,
             "binary",
@@ -1076,25 +1259,25 @@ router.post(
         req.body.contribution_score == null
           ? null
           : parseInt(req.body.contribution_score);
-      let playerMvp = 
+      let playerMvp =
         req.body.mvp == null
+          ? null
+          : parseInt(req.body.mvp);
+      let knifeKills =
+        req.body.knife_kills == null
+          ? null
+          : parseInt(req.body.knife_kills);
+      let enemiesFlashed =
+        req.body.enemies_flashed == null
+          ? null
+          : parseInt(req.body.enemies_flashed);
+      let friendlyFlashed =
+        req.body.friendlies_flashed == null
+          ? null
+          : parseInt(req.body.friendlies_flashed);
+      let utilDmg = req.body.util_damage == null
         ? null
-        : parseInt(req.body.mvp);
-      let knifeKills = 
-      req.body.knife_kills == null
-      ? null
-      : parseInt(req.body.knife_kills);
-    let enemiesFlashed = 
-      req.body.enemies_flashed == null
-      ? null
-      : parseInt(req.body.enemies_flashed);
-    let friendlyFlashed = 
-      req.body.friendlies_flashed == null
-      ? null
-      : parseInt(req.body.friendlies_flashed);
-    let utilDmg = req.body.util_damage == null
-      ? null
-      : parseInt(req.body.util_damage);
+        : parseInt(req.body.util_damage);
 
       // Data manipulation inside function.
       let updateStmt = {};
@@ -1206,4 +1389,4 @@ async function check_api_key(match_api_key, given_api_key, match_finished) {
   return;
 }
 
-module.exports = router;
+export default router;

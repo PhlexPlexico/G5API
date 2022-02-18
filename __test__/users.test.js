@@ -1,48 +1,28 @@
-const supertest = require('supertest')
-const app = require('../app')
-const request = supertest.agent(app);
+import { agent } from 'supertest';
+import app from '../app.js';
+const request = agent(app);
 let adminCheck = 0;
-describe('Authenticate User', () => {
-  it('Should create a user with mock values.', async done => {
-    const result = await request.get('/auth/steam/return');
-    expect(result.statusCode).toEqual(302);
-    done();
-  });
-});
 
-describe('Get All Users', () => {
-  it('Should return all users.', async done => {
-    const result = await request.get('/users').
-    expect('Content-Type', /json/);
-    expect(result.statusCode).toEqual(200);
-    done();
+describe("Test the user routes", () => {
+  beforeAll(async () => {
+    await request.get('/auth/steam/return')
+      .expect(302);
+      return;
   });
-});
-
-describe('Get Specific User', () => {
-  it('Should get a user with a given database ID.', async done => {
-    const result = await request.get('/users/1').
-    expect('Content-Type', /json/);
-    expect(result.statusCode).toEqual(200);
-    expect(result.body.user.id).toEqual(1);
-    
-    adminCheck = result.body.user.admin + result.body.user.super_admin;
-    done();
+  afterAll(async () => {
+    await new Promise(resolve => setTimeout(() => resolve(), 500)); // avoid jest open handle error
   });
-});
-
-describe('Get Steam URL', () => {
-  it('Should get a users steam url from database ID or Steam ID.', async done => {
-    const result = await request.get('/users/1/steam').
-    expect('Content-Type', /json/);
-    expect(result.statusCode).toEqual(200);
-    expect(result.body.url).toMatch(/steamcommunity/);
-    done();
+  it("Should get 200 from all users", () => {
+    return request
+      .get('/users')
+      .expect(200);
   });
-});
-
-describe('Setup New User', () => {
-  it('Should setup a new user only if we are an admin or super_admin.', async done => {
+  it('Should return all users.', () => {
+    return request.get('/users')
+      .expect('Content-Type', /json/)
+      .expect(200);
+  });
+  it('Should setup a new user only if we are an admin or super_admin.', () => {
     let newUserData = [{
       id: 1,
       steam_id: 1234,
@@ -50,16 +30,30 @@ describe('Setup New User', () => {
       admin: 0,
       super_admin: 0
     }];
-    request.post('/users').
-    set('Content-Type', 'application/json').
-    set('Accept', 'application/json').
-    send(newUserData).
-    expect(200, done);
+    return request.post('/users').
+      set('Content-Type', 'application/json').
+      set('Accept', 'application/json').
+      send(newUserData).
+      expect(200);
   });
-});
-
-describe('Update User', () => {
-  it('Should update the existing test user to remove admin privileges.', async done => {
+  it('Should get a user with a given database ID.', () => {
+    return request.get('/users/1')
+      .expect('Content-Type', /json/)
+      .expect((res) => {
+        expect(res.body.user.id).toEqual(1);
+      })
+      .expect(200);
+    adminCheck = result.body.user.admin + result.body.user.super_admin;
+  });
+  it('Should get a users steam url from database ID or Steam ID.', () => {
+    return request.get('/users/1/steam')
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.url).toMatch(/steamcommunity/);
+      });
+  });
+  it('Should update the existing test user to remove admin privileges.', () => {
     let updatedUserData = [{
       id: 1,
       steam_id: '76561198025644194',
@@ -67,16 +61,13 @@ describe('Update User', () => {
       admin: 0,
       super_admin: 0
     }];
-    request.put('/users').
-    set('Content-Type', 'application/json').
-    set('Accept', 'application/json').
-    send(updatedUserData).
-    expect(200, done);
+    return request.put('/users')
+    .set('Content-Type', 'application/json')
+    .set('Accept', 'application/json')
+    .send(updatedUserData)
+    .expect(200);
   });
-});
-
-describe('Attempt New User', () => {
-  it('Should attempt to create a user without permission.', async done => {
+  it('Should attempt to create a user without permission.', async () => {
     let newUserData = [{
       id: 1,
       steam_id: 10001,
@@ -84,11 +75,10 @@ describe('Attempt New User', () => {
       admin: 1,
       super_admin: 1
     }];
-    request.post('/users').
-    set('Content-Type', 'application/json').
-    set('Accept', 'application/json').
-    send(newUserData).
-    expect(403, done);
+    return request.post('/users')
+    .set('Content-Type', 'application/json')
+    .set('Accept', 'application/json')
+    .send(newUserData)
+    .expect(403);
   });
 });
-

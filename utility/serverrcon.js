@@ -1,6 +1,6 @@
-const util = require("./utils");
-const Rcon = require("rcon");
-const fetch = require("node-fetch");
+import Utils from "./utils.js";
+import Rcon from "rcon";
+import fetch from "node-fetch";
 
 /**
  * Creates a new server object to run various tasks.
@@ -17,7 +17,7 @@ class ServerRcon {
   constructor(hostName, portNumber, rconPassword) {
     this.host = hostName;
     this.port = portNumber;
-    this.password = util.decrypt(rconPassword);
+    this.password = Utils.decrypt(rconPassword);
   }
 
   async execute(commandString) {
@@ -316,4 +316,4 @@ class ServerRcon {
   }
 }
 
-module.exports = ServerRcon;
+export default ServerRcon;

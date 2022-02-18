@@ -1,43 +1,44 @@
-const createError = require("http-errors");
-const express = require("express");
-const cookieParser = require("cookie-parser");
-const logger = require("morgan");
-const helmet = require("helmet");
-const cors = require("cors");
-const morgan = require("morgan");
+import createError from "http-errors";
+import express from "express";
+import connectRedis from 'connect-redis';
+import cookieParser from "cookie-parser";
+import logger from "morgan";
+import helmet from "helmet";
+import cors from "cors";
+import morgan from "morgan";
 //Route Files
-const indexRouter = require("./routes/index");
-const leaderboardRouter = require("./routes/leaderboard");
-const legacyAPICalls = require("./routes/legacy/api");
-const matchesRouter = require("./routes/matches/matches");
-const matchServerRouter = require("./routes/matches/matchserver");
-const mapstatsRouter = require("./routes/mapstats");
-const playerstatsRouter = require("./routes/playerstats");
-const seasonsRouter = require("./routes/seasons");
-const serversRouter = require("./routes/servers");
-const teamsRouter = require("./routes/teams");
-const usersRouter = require("./routes/users");
-const vetoesRouter = require("./routes/vetoes");
-const vetosidesRouter = require("./routes/vetosides");
-const mapListRouter = require("./routes/maps");
+import indexRouter from "./routes/index.js";
+import leaderboardRouter from "./routes/leaderboard.js";
+import legacyAPICalls from "./routes/legacy/api.js";
+import matchesRouter from "./routes/matches/matches.js";
+import matchServerRouter from "./routes/matches/matchserver.js";
+import mapstatsRouter from "./routes/mapstats.js";
+import playerstatsRouter from "./routes/playerstats.js";
+import seasonsRouter from "./routes/seasons.js";
+import serversRouter from "./routes/servers.js";
+import teamsRouter from "./routes/teams.js";
+import usersRouter from "./routes/users.js";
+import vetoesRouter from "./routes/vetoes.js";
+import vetosidesRouter from "./routes/vetosides.js";
+import mapListRouter from "./routes/maps.js";
 //End Route Files
 
-const swaggerUi = require("swagger-ui-express");
-const swaggerJSDoc = require("swagger-jsdoc");
+import { serve, setup } from "swagger-ui-express";
+import swaggerJSDoc from "swagger-jsdoc";
 
-const passport = require("./utility/auth");
-const bearerToken = require("express-bearer-token");
-const config = require("config");
-const session = require("express-session");
-const redis = require("redis");
-
+import passport from "./utility/auth.js";
+//import { initialize, session as _session, authenticate } from "./utility/auth.js";
+import bearerToken from "express-bearer-token";
+import config from "config";
+import session from "express-session";
+import { createClient } from "redis";
 
 
 const app = express();
 
 app.use(logger("dev"));
-app.use(express.raw({type: 'application/octet-stream', limit: "2gb"}));
-app.use(express.json({limit: "512kb"}));
+app.use(express.raw({ type: 'application/octet-stream', limit: "2gb" }));
+app.use(express.json({ limit: "512kb" }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use("/demo", express.static("public"));
@@ -45,19 +46,22 @@ app.use("/static/img/logos", express.static("public/img/logos"));
 
 // Security defaults with helmet
 app.use(helmet());
-if(config.get("server.useRedis")){
+if (config.get("server.useRedis")) {
   // Messy but avoids any open file handles.
   const redisClient =
-  process.env.NODE_ENV !== "test"
-    ? redis.createClient({
-        password: config.get(process.env.NODE_ENV + ".redisPass"),
-      })
-    : require("redis-mock").createClient();
-  const redisStore = require("connect-redis")(session);
+    createClient({
+      legacyMode: true,
+      password: config.get(process.env.NODE_ENV + ".redisPass"),
+    });
+
+  //const redisStore = require("connect-redis")(session);
+
+  const redisStore = connectRedis(session);
+  await redisClient.connect();
   redisClient.on("error", (err) => {
     console.log("Redis error: ", err);
   });
-  
+
   const redisCfg = {
     host: config.get(process.env.NODE_ENV + ".redisHost"),
     port: config.get(process.env.NODE_ENV + ".redisPort"),
@@ -108,7 +112,7 @@ const options = {
     openapi: "3.0.0", // Specification (optional, defaults to swagger: '2.0')
     info: {
       title: "G5API", // Title (required)
-      version: "1.3.0", // Version (required)
+      version: "1.4.0", // Version (required)
     },
   },
   // Path to the API docs
@@ -129,7 +133,7 @@ const options = {
 };
 const swaggerSpec = swaggerJSDoc(options);
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/api-docs", serve, setup(swaggerSpec));
 
 // END API SETUP
 
@@ -195,9 +199,9 @@ app.use(function (err, req, res, next) {
   res.json({ error: err.message });
 });
 
-if(config.get("server.useRedis")){
+if (config.get("server.useRedis")) {
   process.on("exit", function () {
     redisClient.end();
   });
 }
-module.exports = app;
+export default app;

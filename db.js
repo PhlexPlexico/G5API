@@ -1,6 +1,6 @@
 /*Database driver. This should probably be converted to pools.*/
-const mysql = require('mysql2/promise');
-const config = require('config');
+import { createPool } from 'mysql2/promise';
+import config from 'config';
 
 const dbCfg = {
   host: config.get(process.env.NODE_ENV+".host"),
@@ -10,7 +10,7 @@ const dbCfg = {
   database: config.get(process.env.NODE_ENV+".database"),
   connectionLimit: config.get(process.env.NODE_ENV+".connectionLimit")
 }
-const connPool = mysql.createPool(dbCfg);
+const connPool = createPool(dbCfg);
 
 class Database {
   constructor() {
@@ -50,4 +50,4 @@ class Database {
   }
 }
 
-module.exports = new Database();
+export default new Database();

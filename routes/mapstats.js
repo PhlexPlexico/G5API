@@ -3,13 +3,13 @@
  * resourcePath: /mapstats
  * description: Express API router for mapstats in get5.
  */
-const express = require("express");
+import { Router } from "express";
 
-const router = express.Router();
+const router = Router();
 
-const db = require("../db");
+import db from "../db.js";
 
-const Utils = require("../utility/utils");
+import Utils from "../utility/utils.js";
 
 /**
  * @swagger
@@ -353,7 +353,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         return;
       }
       let sql = "UPDATE map_stats SET ? WHERE id = ?";
-      updateMapStats = await db.query(sql, [updatedValues, mapStatId]);
+      const updateMapStats = await db.query(sql, [updatedValues, mapStatId]);
       if (updateMapStats.affectedRows > 0)
         res.json({ message: "Map Stats updated successfully!" });
       else
@@ -439,4 +439,4 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-module.exports = router;
+export default router;

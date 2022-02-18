@@ -4,16 +4,15 @@
  * description: Express API router for servers in get5.
  */
 
-const express = require("express");
-const { debug_mode } = require("redis");
+import { Router } from "express";
 
-const router = express.Router();
+const router = Router();
 
-const db = require("../db");
+import db from "../db.js";
 
-const GameServer = require("../utility/serverrcon");
+import GameServer from "../utility/serverrcon.js";
 
-const Utils = require("../utility/utils");
+import Utils from "../utility/utils.js";
 
 /**
  * @swagger
@@ -671,4 +670,4 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-module.exports = router;
+export default router;

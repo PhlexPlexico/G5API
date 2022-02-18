@@ -3,15 +3,15 @@
  * resourcePath: /matches
  * description: Express API router for matche server calls in get5.
  */
-const express = require("express");
+import { Router } from "express";
 
-const router = express.Router();
+const router = Router();
 
-const db = require("../../db");
+import db from "../../db.js";
 
-const Utils = require("../../utility/utils");
+import Utils from "../../utility/utils.js";
 
-const GameServer = require("../../utility/serverrcon");
+import GameServer from "../../utility/serverrcon.js";
 
 /**
  * @swagger
@@ -1053,4 +1053,4 @@ router.post(
   }
 );
 
-module.exports = router;
+export default router;

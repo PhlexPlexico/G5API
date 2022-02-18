@@ -5,27 +5,28 @@
 /** AES Module for Encryption/Decryption
  * @const
  */
-const aes = require("aes-js");
+ import pkg from 'aes-js';
+ const { utils, ModeOfOperation } = pkg;
 
 /** Crypto for assigning random  */
-const crypto = require("crypto");
+import { randomBytes } from "crypto";
 
 /** Config to get database key.
  * @const
  */
-const config = require("config");
+import config from "config";
 
 /** Steam API Handler for custom URLs
  * @const
  */
-const SteamURLResolver = require("steamapi");
+import SteamURLResolver from "steamapi";
 const SteamAPI = new SteamURLResolver(config.get("server.steamAPIKey"));
 /** Steam ID Handler for other IDs.
  * @const
  */
-const SteamIDResolver = require("@node-steam/id");
+import { ID } from "@node-steam/id";
 
-const db = require("../db");
+import db from "../db.js";
 
 class Utils {
   /** Function to get an HLTV rating for a user.
@@ -85,12 +86,12 @@ class Utils {
   static decrypt(source) {
     try {
       if (source === null) return;
-      let byteSource = aes.utils.hex.toBytes(source.substring(32));
-      let IV = aes.utils.hex.toBytes(source.substring(0, 32));
-      let key = aes.utils.utf8.toBytes(config.get("server.dbKey"));
-      let aesCbc = new aes.ModeOfOperation.ofb(key, IV);
+      let byteSource = utils.hex.toBytes(source.substring(32));
+      let IV = utils.hex.toBytes(source.substring(0, 32));
+      let key = utils.utf8.toBytes(config.get("server.dbKey"));
+      let aesCbc = new ModeOfOperation.ofb(key, IV);
       let decryptedBytes = aesCbc.decrypt(byteSource);
-      let decryptedText = aes.utils.utf8.fromBytes(decryptedBytes);
+      let decryptedText = utils.utf8.fromBytes(decryptedBytes);
       return decryptedText;
     } catch (err) {
       console.error(err);
@@ -110,13 +111,13 @@ class Utils {
     try {
       if (source === null) return;
 
-      let byteSource = aes.utils.utf8.toBytes(source);
-      let IV = crypto.randomBytes(16);
-      let key = aes.utils.utf8.toBytes(config.get("server.dbKey"));
-      let aesCbc = new aes.ModeOfOperation.ofb(key, IV);
+      let byteSource = utils.utf8.toBytes(source);
+      let IV = randomBytes(16);
+      let key = utils.utf8.toBytes(config.get("server.dbKey"));
+      let aesCbc = new ModeOfOperation.ofb(key, IV);
       let encryptedBytes = aesCbc.encrypt(byteSource);
-      let encryptedHex = aes.utils.hex.fromBytes(encryptedBytes);
-      let hexIV = aes.utils.hex.fromBytes(IV);
+      let encryptedHex = utils.hex.fromBytes(encryptedBytes);
+      let hexIV = utils.hex.fromBytes(IV);
       encryptedHex = hexIV + encryptedHex;
       return encryptedHex;
     } catch (err) {
@@ -132,7 +133,7 @@ class Utils {
     // Check the user based on API.
     const apiKey = req.get("user-api") || req.body[0]?.user_api;
     //const userId = req.get("user-id") || req.body[0]?.user_id;
-    if (apiKey /*&& userId*/) {
+    if (apiKey) {
       let sqlQuery = "SELECT * FROM user WHERE id = ?";
       const ourUser = await db.query(sqlQuery, apiKey.split(":")[0]);
       if (ourUser.length > 0) {
@@ -193,7 +194,7 @@ class Utils {
    */
   static async convertToSteam64(anySteamID) {
     //console.log(anySteamID);
-    const steam64ID = new SteamIDResolver.ID(anySteamID);
+    const steam64ID = new ID(anySteamID);
     if (steam64ID.isValid() && steam64ID.getType() == "INDIVIDUAL")
       return steam64ID.get64();
     else return "";
@@ -363,4 +364,4 @@ class Utils {
   }
 }
 
-module.exports = Utils;
+export default Utils;

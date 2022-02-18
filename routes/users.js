@@ -3,15 +3,15 @@
  * resourcePath: /users
  * description: Express API router for users in get5.
  */
-const express = require("express");
+import { Router } from "express";
 
-const router = express.Router();
+const router = Router();
 
-const db = require("../db");
+import db from "../db.js";
 
-const Utils = require("../utility/utils");
+import Utils from "../utility/utils.js";
 
-const randString = require("randomstring");
+import { generate } from "randomstring";
 
 /* Swagger shared definitions */
 
@@ -193,7 +193,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       let smallImage = req.body[0].small_image;
       let mediumImage = req.body[0].medium_image;
       let largeImage = req.body[0].large_image;
-      let apiKey = randString.generate({
+      let apiKey = generate({
         length: 64,
         capitalization: "uppercase",
       });
@@ -261,7 +261,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     let userToBeUpdated = await db.query(
       "SELECT id, name, admin, super_admin FROM user WHERE id = ? OR steam_id = ?",
-      [req.body[0].steam_id, req.body[0].steam_id]
+      [req.body[0].id, req.body[0].steam_id]
     );
     let isAdmin =
       req.body[0].admin === null ? userToBeUpdated[0].admin : req.body[0].admin;
@@ -276,7 +276,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let largeImage = req.body[0].large_image;
     let apiKey =
       req.body[0].new_api == 1
-        ? randString.generate({
+        ? generate({
             length: 64,
             capitalization: "uppercase",
           })
@@ -419,4 +419,4 @@ router.get("/:user_id/recent", async (req, res, next) => {
   }
 });
 
-module.exports = router;
+export default router;
