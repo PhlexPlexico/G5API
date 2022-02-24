@@ -19,6 +19,8 @@ import Utils from "../utility/utils.js";
 
 import { generate } from "randomstring";
 
+import { writeFile } from "fs";
+
 /**
  * @swagger
  *
@@ -344,7 +346,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
       charset: "alphanumeric",
     });
     let base64Data = logo.replace(/^data:image\/png;base64,/, "");
-    require("fs").writeFile(
+    writeFile(
       "public/img/logos/" + logoName + ".png",
       base64Data,
       "base64",
@@ -477,7 +479,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
       logoName = checkUser[0].logo;
     }
     let base64Data = teamLogo.replace(/^data:image\/png;base64,/, "");
-    require("fs").writeFile(
+    writeFile(
       "public/img/logos/" + logoName + ".png",
       base64Data,
       "base64",
