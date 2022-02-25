@@ -285,13 +285,9 @@ import config from "config";
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  matches:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/MatchData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MatchData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -335,13 +331,9 @@ router.get("/", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  matches:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/MatchData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MatchData'
  *       404:
  *         $ref: '#/components/responses/MatchesNotFound'
  *       500:
@@ -448,13 +440,9 @@ router.get("/:match_id", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  matches:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/MatchData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MatchData'
  *       500:
  *         $ref: '#/components/responses/Error'
  */

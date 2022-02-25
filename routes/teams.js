@@ -87,17 +87,13 @@ import { writeFile } from "fs";
  *       - teams
  *     responses:
  *       200:
- *         description: All matches within the system.
+ *         description: All teams within the system.
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  teams:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/TeamData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/TeamData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -143,17 +139,13 @@ router.get("/", async (req, res) => {
  *       - teams
  *     responses:
  *       200:
- *         description: All matches within the system.
+ *         description: Set of teams from the logged in user within the system.
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  teams:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/TeamData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/TeamData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:

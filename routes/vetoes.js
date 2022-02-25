@@ -60,13 +60,9 @@ import Utils from "../utility/utils.js";
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  vetoes:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/VetoData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/VetoData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -104,17 +100,13 @@ router.get("/", async (req, res, next) => {
  *       - vetoes
  *     responses:
  *       200:
- *         description: All matches within the system.
+ *         description: All vetoes from a given match.
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  vetoes:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/VetoData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/VetoData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -141,7 +133,7 @@ router.get("/:match_id", async (req, res, next) => {
  *
  * /vetoes:
  *   post:
- *     description: Updates an existing server.
+ *     description: Insert a new veto for a match.
  *     produces:
  *       - application/json
  *     requestBody:
@@ -221,7 +213,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *
  * /vetoes:
  *   put:
- *     description: Updates an existing server.
+ *     description: Updates an existing veto.
  *     produces:
  *       - application/json
  *     requestBody:

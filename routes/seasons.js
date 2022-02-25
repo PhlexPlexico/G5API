@@ -70,13 +70,9 @@ import Utils from "../utility/utils.js";
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  seasons:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/SeasonData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/SeasonData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -122,13 +118,9 @@ router.get("/", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  seasons:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/SeasonData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/SeasonData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -175,13 +167,9 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  seasons:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/SeasonData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/SeasonData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -241,6 +229,11 @@ router.get(
  *     description: Get the default CVARs of a given season ID.
  *     produces:
  *       - application/json
+ *     parameters:
+ *       - name: season_id
+ *         required: true
+ *         schema:
+ *          type: integer
  *     tags:
  *       - seasons
  *     responses:
@@ -303,13 +296,9 @@ router.get(
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  matches:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/MatchData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MatchData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:

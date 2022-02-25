@@ -113,7 +113,7 @@ const options = {
     openapi: "3.0.0", // Specification (optional, defaults to swagger: '2.0')
     info: {
       title: "G5API", // Title (required)
-      version: "1.4.0", // Version (required)
+      version: "1.5.0", // Version (required)
     },
   },
   // Path to the API docs
@@ -122,6 +122,7 @@ const options = {
     "./routes/legacy/api.js",
     "./routes/matches/matches.js",
     "./routes/matches/matchserver.js",
+    "./routes/maps.js",
     "./routes/mapstats.js",
     "./routes/playerstats.js",
     "./routes/seasons.js",
@@ -214,24 +215,6 @@ app.post("/register",
   }
 );
 
-app.get("/login", (req, res, next) => {
-  if (req.session.messages)
-    res
-      .status(403)
-      .json(req.session.messages[req.session.messages.length - 1]);
-});
-
-
-app.get("/register", (req, res, next) => {
-  console.log(res.getHeaders());
-  if (req.session.messages)
-    res
-      .status(403)
-      .json(req.session.messages[req.session.messages.length - 1]);
-  else
-    res.status(200);
-    
-});
 // END Local Passport Calls
 
 
