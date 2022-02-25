@@ -65,6 +65,7 @@
   "dependencies": {
     "@node-steam/id": "^1.1.0",
     "aes-js": "^3.1.2",
+    "bcrypt": "^5.0.1",
     "config": "^3.2.3",
     "connect-redis": "^6.0.0",
     "cookie-parser": "~1.4.4",
@@ -83,6 +84,7 @@
     "mysql2": "^2.2.5",
     "node-fetch": "^3.2.0",
     "passport": "^0.5.2",
+    "passport-local": "^1.0.0",
     "passport-steam": "^1.0.17",
     "pm2": "^5.1.2",
     "randomstring": "^1.1.5",

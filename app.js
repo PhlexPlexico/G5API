@@ -32,6 +32,7 @@ import bearerToken from "express-bearer-token";
 import config from "config";
 import session from "express-session";
 import { createClient } from "redis";
+import { createMockPassport } from "passport-mock-strategy";
 
 
 const app = express();
@@ -177,11 +178,62 @@ app.get(
     }
   }
 );
-app.get("/logout", function (req, res) {
+app.get("/logout", (req, res) => {
   req.logout();
   res.redirect("/");
 });
 // END Steam API Calls.
+
+// Local Passport Calls
+app.post("/login",
+  passport.authenticate('local-login', {
+    failWithError: true,
+    failureMessage: true
+  }),
+  (req, res) => {
+    res.redirect(config.get("server.clientHome"));
+  },
+  (err, req, res, next) => {
+    console.log(err);
+    err.message = req.session.messages[req.session.messages.length - 1];
+    return res.json(err);
+  }
+);
+
+app.post("/register",
+  passport.authenticate('local-register', {
+    failWithError: true,
+    failureMessage: true
+  }),
+  (req, res) => {
+    res.redirect(config.get("server.clientHome"));
+  },
+  (err, req, res, next) => {
+    err.message = req.session.messages[req.session.messages.length - 1];
+    return res.json(err);
+  }
+);
+
+app.get("/login", (req, res, next) => {
+  if (req.session.messages)
+    res
+      .status(403)
+      .json(req.session.messages[req.session.messages.length - 1]);
+});
+
+
+app.get("/register", (req, res, next) => {
+  console.log(res.getHeaders());
+  if (req.session.messages)
+    res
+      .status(403)
+      .json(req.session.messages[req.session.messages.length - 1]);
+  else
+    res.status(200);
+    
+});
+// END Local Passport Calls
+
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
