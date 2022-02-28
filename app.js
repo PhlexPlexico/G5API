@@ -193,8 +193,6 @@ app.post("/login",
   }),
   (req, res) => {
     return res.json({message: "Success!"});
-    res.redirect(config.get("server.clientHome"));
-    return;
   },
   (err, req, res, next) => {
     console.log(err);
@@ -210,7 +208,6 @@ app.post("/register",
   }),
   (req, res) => {
     return res.json({message: "Success!"});
-    //res.redirect(config.get("server.clientHome"));
   },
   (err, req, res, next) => {
     err.message = req.session.messages[req.session.messages.length - 1];
