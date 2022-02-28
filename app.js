@@ -32,6 +32,7 @@ import bearerToken from "express-bearer-token";
 import config from "config";
 import session from "express-session";
 import { createClient } from "redis";
+import { createMockPassport } from "passport-mock-strategy";
 
 
 const app = express();
@@ -112,7 +113,7 @@ const options = {
     openapi: "3.0.0", // Specification (optional, defaults to swagger: '2.0')
     info: {
       title: "G5API", // Title (required)
-      version: "1.4.0", // Version (required)
+      version: "1.5.0", // Version (required)
     },
   },
   // Path to the API docs
@@ -121,6 +122,7 @@ const options = {
     "./routes/legacy/api.js",
     "./routes/matches/matches.js",
     "./routes/matches/matchserver.js",
+    "./routes/maps.js",
     "./routes/mapstats.js",
     "./routes/playerstats.js",
     "./routes/seasons.js",
@@ -177,11 +179,44 @@ app.get(
     }
   }
 );
-app.get("/logout", function (req, res) {
+app.get("/logout", (req, res) => {
   req.logout();
   res.redirect("/");
 });
 // END Steam API Calls.
+
+// Local Passport Calls
+app.post("/login",
+  passport.authenticate('local-login', {
+    failWithError: true,
+    failureMessage: true
+  }),
+  (req, res) => {
+    return res.json({message: "Success!"});
+  },
+  (err, req, res, next) => {
+    console.log(err);
+    err.message = req.session.messages[req.session.messages.length - 1];
+    return res.json(err);
+  }
+);
+
+app.post("/register",
+  passport.authenticate('local-register', {
+    failWithError: true,
+    failureMessage: true
+  }),
+  (req, res) => {
+    return res.json({message: "Success!"});
+  },
+  (err, req, res, next) => {
+    err.message = req.session.messages[req.session.messages.length - 1];
+    return res.json(err);
+  }
+);
+
+// END Local Passport Calls
+
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

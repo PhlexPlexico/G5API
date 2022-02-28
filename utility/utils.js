@@ -193,7 +193,6 @@ class Utils {
    * @returns A string representing a 64bit steam ID, or nothing if the profile is not found.
    */
   static async convertToSteam64(anySteamID) {
-    //console.log(anySteamID);
     const steam64ID = new ID(anySteamID);
     if (steam64ID.isValid() && steam64ID.getType() == "INDIVIDUAL")
       return steam64ID.get64();
@@ -241,8 +240,12 @@ class Utils {
    * @returns A username from a given Steam64 ID.
    */
   static async getSteamName(auth64) {
-    let summaryInfo = await SteamAPI.getUserSummary(auth64);
-    return summaryInfo.nickname;
+    try {
+      let summaryInfo = await SteamAPI.getUserSummary(auth64);
+      return summaryInfo.nickname;
+    } catch {
+      return null;
+    }
   }
 
   /** Retrieves a profile image from steam.
@@ -254,8 +257,12 @@ class Utils {
    * @returns A profile image link.
    */
   static async getSteamImage(auth64) {
-    let summaryInfo = await SteamAPI.getUserSummary(auth64);
-    return summaryInfo.avatar.medium;
+    try {
+      let summaryInfo = await SteamAPI.getUserSummary(auth64);
+      return summaryInfo.avatar.medium;
+    } catch { 
+      return null;
+    }
   }
 
   /** Checks whether or not a user has access to edit a match. Also checks if a match is currently being played.

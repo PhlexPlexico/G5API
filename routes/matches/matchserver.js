@@ -19,19 +19,19 @@ import GameServer from "../../utility/serverrcon.js";
  *  /matches/:match_id/forfeit/:winner_id:
  *   get:
  *     description: Forfeits a current match with a given team ID as the winner, if the match is running.
+ *     parameters:
+ *       - in: path
+ *         name: winner_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *       - in: path
+ *         name: match_id
+ *         schema:
+ *           type: integer
+ *         required: true
  *     produces:
  *       - application/json
- *     parameters:
- *       - name: winner_id
- *         description: The winning team of either 1 or 2.
- *         required: true
- *         schema:
- *          type: integer
- *       - name: match_id
- *         description: The current match.
- *         schema:
- *            type:integer
- *
  *     tags:
  *       - matches
  *     responses:
@@ -118,7 +118,7 @@ router.get(
         await db.query(serverUpdateSql, [matchRow[0].server_id]);
         if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
           let teamAuthSql =
-          "SELECT GROUP_CONCAT(CONCAT('\"', ta.auth, '\"')) as auth_name FROM team_auth_names ta WHERE team_id = ?";
+            "SELECT GROUP_CONCAT(CONCAT('\"', ta.auth, '\"')) as auth_name FROM team_auth_names ta WHERE team_id = ?";
           let pugTeamNameSql = "SELECT name FROM team WHERE id = ?";
           let playerStatUpdateSql = "UPDATE player_stats SET team_name = ? WHERE match_id = ? AND steam_id IN (?)";
           let pugSql =
@@ -184,7 +184,7 @@ router.get(
  *       - name: match_id
  *         description: The current matches identification number.
  *         schema:
- *            type:integer
+ *            type: integer
  *
  *     tags:
  *       - matches
@@ -264,7 +264,7 @@ router.get(
         await db.query(serverUpdateSql, [matchRow[0].server_id]);
         if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
           let teamAuthSql =
-          "SELECT GROUP_CONCAT(CONCAT('\"', ta.auth, '\"')) as auth_name FROM team_auth_names ta WHERE team_id = ?";
+            "SELECT GROUP_CONCAT(CONCAT('\"', ta.auth, '\"')) as auth_name FROM team_auth_names ta WHERE team_id = ?";
           let pugTeamNameSql = "SELECT name FROM team WHERE id = ?";
           let playerStatUpdateSql = "UPDATE player_stats SET team_name = ? WHERE match_id = ? AND steam_id IN (?)";
           let pugSql =
@@ -333,7 +333,7 @@ router.get(
  *       - name: match_id
  *         description: The current matches identification number.
  *         schema:
- *            type:integer
+ *            type: integer
  *     requestBody:
  *      required: true
  *      content:
@@ -442,7 +442,7 @@ router.put(
  *       - name: match_id
  *         description: The current matches identification number.
  *         schema:
- *            type:integer
+ *            type: integer
  *
  *     tags:
  *       - matches
@@ -518,7 +518,7 @@ router.get(
  *       - name: match_id
  *         description: The current matches identification number.
  *         schema:
- *            type:integer
+ *            type: integer
  *
  *     tags:
  *       - matches
@@ -595,7 +595,7 @@ router.get(
  *       - name: match_id
  *         description: The current matches identification number.
  *         schema:
- *            type:integer
+ *            type: integer
  *     requestBody:
  *      required: true
  *      content:
@@ -706,7 +706,7 @@ router.put(
  *       - name: match_id
  *         description: The current matches identification number.
  *         schema:
- *            type:integer
+ *            type: integer
  *     requestBody:
  *      required: true
  *      content:
@@ -798,7 +798,7 @@ router.put(
  *       - name: match_id
  *         description: The current matches identification number.
  *         schema:
- *            type:integer
+ *            type: integer
  *     requestBody:
  *      required: true
  *      content:
@@ -890,7 +890,7 @@ router.put(
  *       - name: match_id
  *         description: The current matches identification number.
  *         schema:
- *            type:integer
+ *            type: integer
  *
  *     tags:
  *       - matches
@@ -967,7 +967,7 @@ router.get(
  *       - name: match_id
  *         description: The current matches identification number.
  *         schema:
- *            type:integer
+ *            type: integer
  *     requestBody:
  *      required: true
  *      content:

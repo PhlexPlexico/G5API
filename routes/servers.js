@@ -77,13 +77,9 @@ import Utils from "../utility/utils.js";
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  servers:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/ServerData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ServerData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -132,13 +128,8 @@ router.get("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  servers:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/ServerData'
+ *               type: integer
+ *               description: Count of all public servers.
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -172,13 +163,9 @@ router.get("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  servers:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/ServerData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ServerData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -232,13 +219,9 @@ router.get("/available", Utils.ensureAuthenticated, async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  servers:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/ServerData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ServerData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:

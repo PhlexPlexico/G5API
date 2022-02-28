@@ -85,13 +85,9 @@ import Utils from "../utility/utils.js";
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  mapstats:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/MapStatsData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MapStatsData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -133,13 +129,9 @@ router.get("/", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  mapstats:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/MapStatsData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MapStatsData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -186,13 +178,9 @@ router.get("/:match_id", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  mapstats:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/MapStatsData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MapStatsData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:

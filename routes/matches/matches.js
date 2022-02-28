@@ -161,7 +161,24 @@ import config from "config";
  *           maps_to_win:
  *            type: integer
  *            description: The amount of maps required to win a match.
- *
+ *     MatchPauseObject:
+ *      type: object
+ *      properties:
+ *        id:
+ *          type: integer
+ *          description: The internal database primary key for match pausing.
+ *        match_id:
+ *          type: integer
+ *          description: Foreign key to match table.
+ *        pause_type:
+ *          type: string
+ *          description: The type of pause last called.
+ *        team_paused:
+ *          type: string
+ *          description: The team which last called a pause.
+ *        paused:
+ *          type: boolean
+ *          description: Whether the match is currently paused or not with the given previous values.
  *     TeamObject:
  *      type: object
  *      properties:
@@ -285,13 +302,9 @@ import config from "config";
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  matches:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/MatchData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MatchData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -335,13 +348,9 @@ router.get("/", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  matches:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/MatchData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MatchData'
  *       404:
  *         $ref: '#/components/responses/MatchesNotFound'
  *       500:
@@ -430,6 +439,48 @@ router.get("/:match_id", async (req, res, next) => {
 /**
  * @swagger
  *
+ * /matches/:match_id/paused:
+ *   get:
+ *     description: Get the pause information on a match.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Returns information based on a match if it is paused.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MatchPauseObject'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.get("/:match_id/paused", async (req, res, next) => {
+  try {
+    let sql =
+      "SELECT id, match_id, pause_type, team_paused, paused " +
+      "FROM `match_pause` " +
+      "WHERE match_id = ? ";
+    const matchPauseInfo = await db.query(sql, req.body[0].match_id);
+    if (!matchPauseInfo.length) {
+      res.status(404).json({ message: "No match pause info found." });
+      return;
+    }
+    res.json({ matchPauseInfo });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
  * /matches/limit/:limiter:
  *   get:
  *     description: Returns most recent matches specified by a limit.
@@ -448,13 +499,9 @@ router.get("/:match_id", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  matches:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/MatchData'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MatchData'
  *       500:
  *         $ref: '#/components/responses/Error'
  */

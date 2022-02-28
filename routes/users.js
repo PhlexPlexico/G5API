@@ -5,6 +5,8 @@
  */
 import { Router } from "express";
 
+import { hashSync, compare } from "bcrypt";
+
 const router = Router();
 
 import db from "../db.js";
@@ -50,6 +52,12 @@ import { generate } from "randomstring";
  *         new_api:
  *           type: boolean
  *           description: Whether the user is requesting a new API key.
+ *         password:
+ *           type: string
+ *           description: A new password to reset a user.
+ *         old_password:
+ *           type: string
+ *           description: The old password provided by the user to check validity.
  *     User:
  *       allOf:
  *         - $ref: '#/components/schemas/NewUser'
@@ -75,13 +83,9 @@ import { generate } from "randomstring";
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  users:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/NewUser'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/NewUser'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -260,7 +264,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     let userToBeUpdated = await db.query(
-      "SELECT id, name, admin, super_admin FROM user WHERE id = ? OR steam_id = ?",
+      "SELECT id, name, admin, super_admin, username, password FROM user WHERE id = ? OR steam_id = ?",
       [req.body[0].id, req.body[0].steam_id]
     );
     let isAdmin =
@@ -281,10 +285,13 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
             capitalization: "uppercase",
           })
         : null;
+    let password = req.body[0].password;
+    let oldPassword = req.body[0].old_password;
     if (apiKey != null) apiKey = Utils.encrypt(apiKey);
     let steamId = req.body[0].steam_id;
     let userId = userToBeUpdated[0].id;
     let updateUser = {};
+    // Let admins force update passwords in the event of issues.
     if (Utils.adminCheck(req.user)) {
       updateUser = {
         admin: isAdmin,
@@ -294,13 +301,25 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         medium_image: mediumImage,
         large_image: largeImage,
         api_key: apiKey,
+        password: password
       };
     } else if (req.user.steam_id == steamId || req.user.id == userId) {
+      if (password) {
+        const isOldPassMatching = await compare(oldPassword, getCurUsername[0].password);
+        if (!isOldPassMatching) {
+          res.status(403).json({ message: "Old password does not match." });
+          return;
+        }
+      }
       updateUser = {
         api_key: apiKey,
+        password: getCurUsername[0].username == null 
+          ? null
+          : hashSync(password, 10)
       };
     } else {
       res.status(403).json({ message: "You are not authorized to do this." });
+      return;
     }
     updateUser = await db.buildUpdateStatement(updateUser);
     if (!Object.keys(updateUser)) {
@@ -341,7 +360,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *       - users
  *     responses:
  *       200:
- *         description: Update successfull
+ *         description: Update successful
  *         content:
  *           application/json:
  *             schema:
@@ -387,10 +406,9 @@ router.get("/:user_id/steam", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 url:
- *                   type: string
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MatchData'
  *       500:
  *         $ref: '#/components/responses/Error'
  */

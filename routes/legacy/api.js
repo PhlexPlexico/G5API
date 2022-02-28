@@ -922,12 +922,35 @@ router.post(
  *  /:match_id/map/:map_number/demo/upload/:api_key:
  *   post:
  *     description: Route serving to upload the demo file from the game server.
+ *     parameters:
+ *       - in: path
+ *         name: match_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *       - in: path
+ *         name: map_number
+ *         schema:
+ *           type: integer
+ *         required: true
+ *       - in: path
+ *         name: api_key
+ *         schema:
+ *           type: string
+ *         required: true
  *     produces:
  *       - application/json
  *     requestBody:
  *      required: true
  *      content:
  *        application/octet-stream:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              key:
+ *                demoFile:
+ *                  type: file
+ *                  description: Demo file in octet stream form.
  *
  *     tags:
  *       - legacy

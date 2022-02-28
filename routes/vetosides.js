@@ -47,7 +47,7 @@
  /**
   * @swagger
   *
-  * /vetoside/:
+  * /vetosides/:
   *   get:
   *     description: Get all veto side selection data from the application.
   *     produces:
@@ -56,17 +56,13 @@
   *       - vetosides
   *     responses:
   *       200:
-  *         description: All match vetoes within the system.
+  *         description: All match veto sides within the system.
   *         content:
-  *           application/json:
-  *             schema:
-  *                type: object
-  *                properties:
-  *                  type: array
-  *                  vetoes:
-  *                    type: array
-  *                    items:
-  *                      $ref: '#/components/schemas/VetoSideData'
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/VetoSideData'
   *       404:
   *         $ref: '#/components/responses/NotFound'
   *       500:
@@ -103,17 +99,13 @@
   *       - vetosides
   *     responses:
   *       200:
-  *         description: All matches within the system.
+  *         description: Veto side selection from a given match.
   *         content:
-  *           application/json:
-  *             schema:
-  *                type: object
-  *                properties:
-  *                  type: array
-  *                  vetoes:
-  *                    type: array
-  *                    items:
-  *                      $ref: '#/components/schemas/VetoSideData'
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/VetoSideData'
   *       404:
   *         $ref: '#/components/responses/NotFound'
   *       500:
@@ -289,7 +281,7 @@
  /**
   * @swagger
   *
-  * /vetoside:
+  * /vetosides:
   *   delete:
   *     description: Deletes veto sides associated with a match.
   *     produces:
@@ -306,7 +298,7 @@
   *                description: Match ID
   *                required: true
   *     tags:
-  *       - vetoside
+  *       - vetosides
   *     responses:
   *       200:
   *         description: Veto deleted successfully.

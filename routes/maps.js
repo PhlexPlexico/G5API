@@ -37,7 +37,8 @@ import Utils from "../utility/utils.js";
  *           type: boolean
  *           description: Value representing whether the map is used or not. Defaults to true,
  *         inserted_at:
- *           type: date
+ *           type: string
+ *           format: date-time
  *           description: Timestamp of when a new map was inserted.
  *     Maps:
  *       allOf:
@@ -64,13 +65,9 @@ import Utils from "../utility/utils.js";
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  type: array
- *                  users:
- *                    type: array
- *                    items:
- *                      $ref: '#/components/schemas/NewMaps'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Maps'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -100,17 +97,16 @@ router.get("/", async (req, res) => {
  *         schema:
  *            type: integer
  *     tags:
- *       - users
+ *       - maps
  *     responses:
  *       200:
- *         description: Get a specific user.
+ *         description: Get a maplist of a specific user.
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  user:
- *                      $ref: '#/components/schemas/NewUser'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Maps'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -143,17 +139,16 @@ router.get("/:user_id", async (req, res, next) => {
  *         schema:
  *            type: integer
  *     tags:
- *       - users
+ *       - maps
  *     responses:
  *       200:
- *         description: Get a specific user.
+ *         description: Get enabled maps for a user.
  *         content:
  *           application/json:
  *             schema:
- *                type: object
- *                properties:
- *                  user:
- *                      $ref: '#/components/schemas/NewUser'
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Maps'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
