@@ -149,7 +149,7 @@ passport.use('local-login', new LocalStrategy(async (username, password, done) =
     if (curUser.length) {
       const isValidPassword = await compare(password, curUser[0].password);
       if (isValidPassword) {
-        let user = {
+        return done(null, {
           steam_id: curUser[0].steam_id,
           name: curUser[0].name,
           admin: curUser[0].admin,
@@ -159,9 +159,6 @@ passport.use('local-login', new LocalStrategy(async (username, password, done) =
           medium_image: curUser[0].medium_image,
           large_image: curUser[0].large_image,
           api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key)
-        }
-        return done(null, {
-          user
         });
       } else {
         return done(null, false, {message: "Invalid username or password."});
