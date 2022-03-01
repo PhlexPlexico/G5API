@@ -42,8 +42,8 @@ services:
     container_name: G5API
     volumes: 
       - redisVol:/RedisFiles
-    expose:
-      - 3301
+    ports:
+      - "3301:3301"
     environment:
       - PORT=3301
       - HOSTNAME=
