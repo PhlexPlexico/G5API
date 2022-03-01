@@ -15,7 +15,8 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     make \
     cmake \
     build-essential \
-    python
+    python \
+    g++
 
 # SSL Errors Exist in 6-buster. Let's ignore them for now...
 RUN echo "-k" > ~/.curlrc
