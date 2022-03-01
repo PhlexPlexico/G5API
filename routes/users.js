@@ -304,7 +304,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         medium_image: mediumImage,
         large_image: largeImage,
         api_key: apiKey,
-        password: hashSync(password, 10)
+        password: password ? hashSync(password, 10) : null
       };
     } else if (req.user.steam_id == steamId || req.user.id == userId) {
       if (req.body[0].force_reset) {
@@ -336,15 +336,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     // If we're updating ourselves we need to update their session. Force a reload of session.
     if (req.user.steam_id == req.body[0].steam_id) {
       // Check if the user being updated has admin access to begin with.
-      sql = "SELECT admin, super_admin FROM user WHERE steam_id = ?";
-      const userAdminCheck = await db.query(sql, req.user.steam_id);
-      let tmpUser = {
-        super_admin: userAdminCheck[0].super_admin,
-        admin: userAdminCheck[0].admin
-      }
-      if(Utils.adminCheck(tmpUser)) {
-        req.user.super_admin = userAdminCheck[0].super_admin;
-        req.user.admin = userAdminCheck[0].admin;
+      if(Utils.adminCheck(req.user)) {
+        req.user.super_admin = isSuperAdmin;
+        req.user.admin = isAdmin;
         req.login(req.user, (err) => {
           if (err) return next(new Error("Error updating user profile"));
         });
