@@ -1,6 +1,8 @@
 'use strict';
 
 var dbm;
+var type;
+var seed;
 var async = require('async');
 
 /**
