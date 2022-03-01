@@ -58,6 +58,9 @@ import { generate } from "randomstring";
  *         old_password:
  *           type: string
  *           description: The old password provided by the user to check validity.
+ *         force_reset:
+ *           type: boolean
+ *           description: If a user requires a force reset/remove password, update the password to NULL. 
  *     User:
  *       allOf:
  *         - $ref: '#/components/schemas/NewUser'
@@ -268,13 +271,13 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       [req.body[0].id, req.body[0].steam_id]
     );
     let isAdmin =
-      req.body[0].admin === null ? userToBeUpdated[0].admin : req.body[0].admin;
+      req.body[0].admin == null ? userToBeUpdated[0].admin : req.body[0].admin;
     let isSuperAdmin =
-      req.body[0].super_admin === null
+      req.body[0].super_admin == null
         ? userToBeUpdated[0].super_admin
         : req.body[0].super_admin;
     let displayName =
-      req.body[0].name === null ? getCurUsername[0].name : req.body[0].name;
+      req.body[0].name === null ? userToBeUpdated[0].name : req.body[0].name;
     let smallImage = req.body[0].small_image;
     let mediumImage = req.body[0].medium_image;
     let largeImage = req.body[0].large_image;
@@ -301,11 +304,13 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         medium_image: mediumImage,
         large_image: largeImage,
         api_key: apiKey,
-        password: password
+        password: hashSync(password, 10)
       };
     } else if (req.user.steam_id == steamId || req.user.id == userId) {
-      if (password) {
-        const isOldPassMatching = await compare(oldPassword, getCurUsername[0].password);
+      if (req.body[0].force_reset) {
+        await db.query("UPDATE user SET password = NULL WHERE steam_id = ?", req.user.steam_id);
+      } else if (password && userToBeUpdated[0].password) {
+        const isOldPassMatching = await compare(oldPassword, userToBeUpdated[0].password);
         if (!isOldPassMatching) {
           res.status(403).json({ message: "Old password does not match." });
           return;
@@ -313,7 +318,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       }
       updateUser = {
         api_key: apiKey,
-        password: getCurUsername[0].username == null 
+        password: userToBeUpdated[0].username == null 
           ? null
           : hashSync(password, 10)
       };
@@ -330,11 +335,20 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     await db.query(sql, [updateUser, steamId]);
     // If we're updating ourselves we need to update their session. Force a reload of session.
     if (req.user.steam_id == req.body[0].steam_id) {
-      req.user.super_admin = isSuperAdmin;
-      req.user.admin = isAdmin;
-      req.login(req.user, (err) => {
-        if (err) return next(new Error("Error updating user profile"));
-      });
+      // Check if the user being updated has admin access to begin with.
+      sql = "SELECT admin, super_admin FROM user WHERE steam_id = ?";
+      const userAdminCheck = await db.query(sql, req.user.steam_id);
+      let tmpUser = {
+        super_admin: userAdminCheck[0].super_admin,
+        admin: userAdminCheck[0].admin
+      }
+      if(Utils.adminCheck(tmpUser)) {
+        req.user.super_admin = userAdminCheck[0].super_admin;
+        req.user.admin = userAdminCheck[0].admin;
+        req.login(req.user, (err) => {
+          if (err) return next(new Error("Error updating user profile"));
+        });
+      }
     }
     res.status(200).json({ message: "User successfully updated!" });
   } catch (err) {
