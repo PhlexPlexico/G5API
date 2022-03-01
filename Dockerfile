@@ -11,7 +11,9 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     apt-transport-https \
     lsb-release \
     gnupg \
-    git
+    git \
+    make \
+    cmake
 
 # SSL Errors Exist in 6-buster. Let's ignore them for now...
 RUN echo "-k" > ~/.curlrc
