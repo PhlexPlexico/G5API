@@ -28,5 +28,5 @@ exports.down = function(db, callback) {
 };
 
 exports._meta = {
-  "version": 16
+  "version": 19
 };
