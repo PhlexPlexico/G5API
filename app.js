@@ -50,10 +50,12 @@ app.use(helmet());
 if (config.get("server.useRedis")) {
   // Messy but avoids any open file handles.
   const redisClient = createClient({
-    // legacyMode: true,
+    legacyMode: true,
     url: config.get(process.env.NODE_ENV + ".redisUrl"),
   });
 
+  const redisStore = connectRedis(session);
+  await redisClient.connect();
   redisClient.on("error", (err) => {
     console.log("Redis error: ", err);
   });
