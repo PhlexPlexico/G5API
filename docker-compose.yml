@@ -22,7 +22,7 @@ services:
       - CADDY_REVERSE_PROXY_PORT=3301
   
   get5db:
-    image: mariadb
+    image: yobasystems/alpine-mariadb
     container_name: get5db
     restart: always
     environment:
