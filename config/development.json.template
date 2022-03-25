@@ -23,7 +23,8 @@
     "redisHost": "localhost",
     "redisPort": 6379,
     "redisTTL": 86400,
-    "redisPass": "super_secure"
+    "redisPass": "super_secure",
+    "challongeAPI": "API_KEY"
   },
   "admins": {
     "steam_ids": "admins,go,here"
