@@ -8,7 +8,8 @@
     "clientHome": "http://localhost:8080",
     "useRedis": true,
     "apiURL": "http://localhost:8080/api/",
-    "uploadDemos": false
+    "uploadDemos": false,
+    "challongeAPI": "API_KEY"
   },
   "development": {
     "driver": "mysql",
@@ -23,8 +24,7 @@
     "redisHost": "localhost",
     "redisPort": 6379,
     "redisTTL": 86400,
-    "redisPass": "super_secure",
-    "challongeAPI": "API_KEY"
+    "redisPass": "super_secure"
   },
   "admins": {
     "steam_ids": "admins,go,here"

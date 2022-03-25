@@ -6,6 +6,10 @@
 
 import { Router } from "express";
 
+import config from "config";
+
+import fetch from "node-fetch";
+
 const router = Router();
 
 import db from "../db.js";
@@ -356,30 +360,30 @@ router.get("/:season_id", async (req, res, next) => {
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-      let defaultCvar = req.body[0].season_cvar;
-      let insertSet = {
-        user_id: req.user.id,
-        name: req.body[0].name,
-        start_date: req.body[0].start_date,
-        end_date: req.body[0].end_date,
-      };
-      let sql = "INSERT INTO season SET ?";
-      let insertSeason = await db.query(sql, [insertSet]);
-      if (defaultCvar != null) {
-        sql = "INSERT INTO season_cvar SET ?";
-        for (let key in defaultCvar) {
-          insertSet = {
-            season_id: insertSeason.insertId,
-            cvar_name: key.replace(/"/g, '\\"'),
-            cvar_value: typeof defaultCvar[key] === 'string' ? defaultCvar[key].replace(/"/g, '\\"') : defaultCvar[key]
-          };
-          await db.query(sql, [insertSet]);
-        }
+    let defaultCvar = req.body[0].season_cvar;
+    let insertSet = {
+      user_id: req.user.id,
+      name: req.body[0].name,
+      start_date: req.body[0].start_date,
+      end_date: req.body[0].end_date,
+    };
+    let sql = "INSERT INTO season SET ?";
+    let insertSeason = await db.query(sql, [insertSet]);
+    if (defaultCvar != null) {
+      sql = "INSERT INTO season_cvar SET ?";
+      for (let key in defaultCvar) {
+        insertSet = {
+          season_id: insertSeason.insertId,
+          cvar_name: key.replace(/"/g, '\\"'),
+          cvar_value: typeof defaultCvar[key] === 'string' ? defaultCvar[key].replace(/"/g, '\\"') : defaultCvar[key]
+        };
+        await db.query(sql, [insertSet]);
       }
-      res.json({
-        message: "Season inserted successfully!",
-        id: insertSeason.insertId,
-      });
+    }
+    res.json({
+      message: "Season inserted successfully!",
+      id: insertSeason.insertId,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.toString() });
@@ -544,6 +548,59 @@ router.delete("/", async (req, res, next) => {
       console.error(err);
       res.status(500).json({ message: err.toString() });
     }
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /seasons/challonge:
+ *   post:
+ *     description: Create a new season from a Challonge Tournament.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                tournament_id:
+ *                  type: string
+ *                  description: The tournament ID or URL of the Challonge tournament, as explained in their [API](https://api.challonge.com/v1/documents/tournaments/show).
+ *              
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: New season inserted successsfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
+  try {
+    let challongeAPIKey = config.get("server.challongeAPI");
+    let tournamentId = req.body[0].tournament_id;
+    let challongeResponse = await fetch("https://api.challonge.com/v1/tournaments/"+tournamentId+".json?api_key="+challongeAPIKey);
+    let challongeData = await challongeResponse.json()
+    console.log(challongeData);
+    res.json({
+      message: "You made the right ping!",
+      chal_res: challongeData.tournament.created_at
+      //id: insertSeason.insertId,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.toString() });
   }
 });
 
