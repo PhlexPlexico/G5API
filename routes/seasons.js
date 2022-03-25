@@ -590,9 +590,9 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     let challongeAPIKey = config.get("server.challongeAPI");
     let tournamentId = req.body[0].tournament_id;
-    let challongeResponse = await fetch("https://api.challonge.com/v1/tournaments/"+tournamentId+".json?api_key="+challongeAPIKey);
+    let challongeResponse = await fetch("https://api.challonge.com/v1/tournaments/"+tournamentId+".json?api_key="+challongeAPIKey+"&include_participants=1");
     let challongeData = await challongeResponse.json()
-    console.log(challongeData);
+    console.log(challongeData.tournament.participants[0].participant.display_name);
     res.json({
       message: "You made the right ping!",
       chal_res: challongeData.tournament.created_at
