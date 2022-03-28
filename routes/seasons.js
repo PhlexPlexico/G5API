@@ -571,7 +571,9 @@ router.delete("/", async (req, res, next) => {
  *                tournament_id:
  *                  type: string
  *                  description: The tournament ID or URL of the Challonge tournament, as explained in their [API](https://api.challonge.com/v1/documents/tournaments/show).
- *              
+ *                import_teams:
+ *                  type: boolean
+ *                  description: Whether or not to import the teams that are already in the bracket.
  *     tags:
  *       - seasons
  *     responses:
@@ -588,15 +590,41 @@ router.delete("/", async (req, res, next) => {
  */
 router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let challongeAPIKey = config.get("server.challongeAPI");
+    const userInfo = await db.query("SELECT challonge_api_key FROM user WHERE id = ?", [req.user.id]);
+    let challongeAPIKey = Utils.decrypt(userInfo[0].challonge_api_key);
+    if (!challongeAPIKey) {
+      throw "No challonge API key provided for user.";
+    }
     let tournamentId = req.body[0].tournament_id;
     let challongeResponse = await fetch("https://api.challonge.com/v1/tournaments/"+tournamentId+".json?api_key="+challongeAPIKey+"&include_participants=1");
     let challongeData = await challongeResponse.json()
-    console.log(challongeData.tournament.participants[0].participant.display_name);
+    // Insert the season.
+    let sqlString = "INSERT INTO season SET ?";
+    let seasonData = {
+      user_id: req.user.id,
+      name: challongeData.tournament.name,
+      start_date: new Date(challongeData.tournament.created_at),
+      is_challonge: true,
+      challonge_svg: challongeData.tournament.live_image_url
+    };
+    const insertSeason = await db.query(sqlString, seasonData);
+    // Check if teams were already in the call and add them to the database.
+    if (req.body[0]?.import_teams && challongeData.tournament.participants) {
+      sqlString = "INSERT INTO team (user_id, name, tag) VALUES ?";
+      let teamArray = [];
+      challongeData.tournament.participants.forEach(async team => {
+        teamArray.push([
+          req.user.id,
+          team.participant.username,
+          team.participant.display_name.substring(0,40)
+        ]);
+      });
+      await db.query(sqlString, [teamArray]);
+    }
     res.json({
-      message: "You made the right ping!",
-      chal_res: challongeData.tournament.created_at
-      //id: insertSeason.insertId,
+      message: "Challonge season imported successfully!",
+      chal_res: challongeData.tournament.created_at,
+      id: insertSeason.insertId,
     });
   } catch (err) {
     console.error(err);

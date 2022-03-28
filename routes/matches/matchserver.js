@@ -410,7 +410,6 @@ router.put(
             message: "Command Sent Successfully.",
             response: rconResponse,
           });
-          //TODO: Provide audit tables and insert commands into there?
           return;
         } catch (err) {
           console.error(

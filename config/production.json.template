@@ -8,8 +8,7 @@
     "clientHome": "http://localhost:8080",
     "useRedis": true,
     "apiURL": "http://localhost:8080/api/",
-    "uploadDemos": false,
-    "challongeAPI": "API_KEY"
+    "uploadDemos": false
   },
   "production": {
     "driver": "mysql",

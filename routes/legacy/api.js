@@ -1168,6 +1168,7 @@ router.post(
           losingTeamAuths[0].auth_name,
         ]);
       }
+      //TODO: Get user info from season and get Challonge API key to update the bracket.
       res.status(200).send({ message: "Success" });
     } catch (err) {
       console.log(err);

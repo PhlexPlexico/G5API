@@ -789,4 +789,6 @@ const getTeamImages = async (idList, getImage = true) => {
   return idList;
 };
 
+// TODO: Route for Challonge team imports for a bracket.
+
 export default router;
