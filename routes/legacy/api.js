@@ -99,12 +99,17 @@ const playerStatRateLimit = rateLimit({
   },
 });
 
+/** Fetch for Challonge API integration.
+ * @const
+ */
+import fetch from "node-fetch";
+
 /**
  * @swagger
  *
  * /match/:match_id/finish:
  *   post:
- *     description: Updates an existing server.
+ *     description: Finalizes the match. Called from the G5WS plugin.
  *     produces:
  *       - application/json
  *     requestBody:
