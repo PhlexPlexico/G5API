@@ -19,6 +19,7 @@ exports.up = function(db, callback) {
   async.series([
     db.runSql('ALTER TABLE season ADD COLUMN is_challonge boolean AFTER end_date;'),
     db.runSql('ALTER TABLE season ADD COLUMN challonge_svg VARCHAR(256) AFTER is_challonge;'),
+    db.runSql('ALTER TABLE season ADD COLUMN challonge_url VARCHAR(256) AFTER challonge_svg;'),
     db.addColumn('user', 'challonge_api_key',  { type: 'string', length: 170, unique: true }),
   ], callback());
 };
@@ -27,6 +28,7 @@ exports.down = function(db, callback) {
   async.series([
     db.removeColumn('season', 'is_challonge'),
     db.removeColumn('season', 'challonge_svg'),
+    db.removeColumn('season', 'challonge_url'),
     db.removeColumn('user', 'challonge_api_key'),
   ], callback());
 };
