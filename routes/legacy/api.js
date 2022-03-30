@@ -233,6 +233,19 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
         matchValues[0].team2_id,
       ]);
     }
+    // Check if a match has a season ID.
+    if (matchValues[0].season_id) {
+      sql = "SELECT challonge_url FROM season WHERE id = ?";
+      const seasonInfo = await db.query(sql, [matchValues[0].season_id]);
+      if (seasonInfo[0].challonge_url) {
+        if (matchValues[0].max_maps == 1 && !cancelled) {
+          // Submit the map stats scores instead.
+          sql = "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ?";
+          const mapStats = await db.query(sql, [matchID]);
+          // TODO: Submit the winner and loser IDs from Challonge's keys.
+        }
+      }
+    }
     res.status(200).send({ message: "Success" });
   } catch (err) {
     console.log(err);
@@ -1174,6 +1187,7 @@ router.post(
         ]);
       }
       //TODO: Get user info from season and get Challonge API key to update the bracket.
+
       res.status(200).send({ message: "Success" });
     } catch (err) {
       console.log(err);

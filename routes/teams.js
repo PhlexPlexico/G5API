@@ -768,7 +768,7 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
     res.status(500).json({ message: err.toString() });
   }
 });
-// TODO: Route for Challonge team imports for a bracket.
+
 /**
  * @swagger
  *
@@ -810,7 +810,7 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
     let tournamentId = req.body[0].tournament_id;
     let challongeResponse = await fetch("https://api.challonge.com/v1/tournaments/"+tournamentId+"/participants.json?api_key="+challongeAPIKey);
     let challongeData = await challongeResponse.json(); 
-    let sqlString = "INSERT INTO team (user_id, name, tag) VALUES ?";
+    let sqlString = "INSERT INTO team (user_id, name, tag, challonge_team_id) VALUES ?";
     if (!challongeAPIKey) {
       throw "No challonge API key provided for user.";
     }
@@ -819,7 +819,8 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
         teamArray.push([
           req.user.id,
           team.participant.username,
-          team.participant.display_name.substring(0,40)
+          team.participant.display_name.substring(0,40),
+          team.participant.id
         ]);
       });
       await db.query(sqlString, [teamArray]);

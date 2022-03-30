@@ -605,18 +605,20 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
       name: challongeData.tournament.name,
       start_date: new Date(challongeData.tournament.created_at),
       is_challonge: true,
-      challonge_svg: challongeData.tournament.live_image_url
+      challonge_svg: challongeData.tournament.live_image_url,
+      challonge_url: tournamentId
     };
     const insertSeason = await db.query(sqlString, seasonData);
     // Check if teams were already in the call and add them to the database.
     if (req.body[0]?.import_teams && challongeData.tournament.participants) {
-      sqlString = "INSERT INTO team (user_id, name, tag) VALUES ?";
+      sqlString = "INSERT INTO team (user_id, name, tag, challonge_team_id) VALUES ?";
       let teamArray = [];
       challongeData.tournament.participants.forEach(async team => {
         teamArray.push([
           req.user.id,
           team.participant.username,
-          team.participant.display_name.substring(0,40)
+          team.participant.display_name.substring(0,40),
+          team.participant.id
         ]);
       });
       await db.query(sqlString, [teamArray]);
