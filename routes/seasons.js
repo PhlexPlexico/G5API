@@ -596,7 +596,12 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
       throw "No challonge API key provided for user.";
     }
     let tournamentId = req.body[0].tournament_id;
-    let challongeResponse = await fetch("https://api.challonge.com/v1/tournaments/"+tournamentId+".json?api_key="+challongeAPIKey+"&include_participants=1");
+    let challongeResponse = await fetch(
+      "https://api.challonge.com/v1/tournaments/" +
+      tournamentId +
+      ".json?api_key=" +
+      challongeAPIKey +
+      "&include_participants=1");
     let challongeData = await challongeResponse.json()
     // Insert the season.
     let sqlString = "INSERT INTO season SET ?";
@@ -617,7 +622,7 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
         teamArray.push([
           req.user.id,
           team.participant.username,
-          team.participant.display_name.substring(0,40),
+          team.participant.display_name.substring(0, 40),
           team.participant.id
         ]);
       });

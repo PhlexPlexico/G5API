@@ -235,15 +235,54 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     }
     // Check if a match has a season ID.
     if (matchValues[0].season_id) {
-      sql = "SELECT challonge_url FROM season WHERE id = ?";
+      sql = "SELECT challonge_url, user_id FROM season WHERE id = ?";
       const seasonInfo = await db.query(sql, [matchValues[0].season_id]);
-      if (seasonInfo[0].challonge_url) {
-        if (matchValues[0].max_maps == 1 && !cancelled) {
+      if (seasonInfo[0].challonge_url && !cancelled) {
+        sql = "SELECT challonge_team_id FROM team WHERE id = ?";
+        const team1ChallongeId = await db.query(sql, [matchInfo[0].team1_id]);
+        const team2ChallongeId = await db.query(sql, matchInfo[0].team2_id);
+
+        // Grab API key.
+        sql = "SELECT challonge_api_key FROM user WHERE id = ?";
+        const challongeAPIKey = await db.query(sql, [seasonInfo[0].user_id]);
+        // Get info of the current open match with the two IDs.
+        let challongeResponse = await fetch(
+          "https://api.challonge.com/v1/tournaments/" +
+          seasonInfo[0].challonge_url +
+          "/matches.json?api_key=" + challongeAPIKey +
+          "&state=open&participant_id=" +
+          team1ChallongeId +
+          "&participant_id=" +
+          team2ChallongeId);
+        let challongeData = await challongeResponse.json();
+        if (matchValues[0].max_maps == 1) {
           // Submit the map stats scores instead.
           sql = "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ?";
           const mapStats = await db.query(sql, [matchID]);
-          // TODO: Submit the winner and loser IDs from Challonge's keys.
+          team1Score = mapStats[0].team1_score;
+          team2Score = mapStats[0].team2_score;
         }
+        // Build the PUT body.
+        let putBody = {
+          api_key: challongeAPIKey,
+          match: {
+            scores_csv: `${team1Score}-${team2Score}`,
+            winner_id: winner === "team1" ? team1ChallongeId : team2ChallongeId
+          }
+        };
+        await fetch(
+          "https://api.challonge.com/v1/tournaments/" +
+          seasonInfo[0].challonge_url +
+          "/matches/" +
+          challongeData[0].match.id +
+          ".json", {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(putBody)
+        }
+        );
       }
     }
     res.status(200).send({ message: "Success" });
