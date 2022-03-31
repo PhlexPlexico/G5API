@@ -17,6 +17,8 @@ Game server interaction will still take place under the `/matches/:match_id` dir
 
 The webapi plugin for this can be downloaded from [here](https://github.com/PhlexPlexico/G5WS) to include the use of vetoes being recorded, as well as demoes being uploaded to the API server once the match is complete.
 
+There is also Challonge integration within the API. If a user provides a tournament ID to create a season, it will auto-fill a season start date, empty teams, and will auto-update the brackets at the end of each match if the match exists under the Season/Tournament.
+
 ## What does it NOT do?
 This is simply a back-end to get myself used to JavaScript and Node. You will need a [front end](https://github.com/phlexplexico/g5v) or create something that can make it work! 
 
