@@ -255,34 +255,35 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
           "&participant_id=" +
           team2ChallongeId);
         let challongeData = await challongeResponse.json();
-        if (matchValues[0].max_maps == 1) {
-          // Submit the map stats scores instead.
-          sql = "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ?";
-          const mapStats = await db.query(sql, [matchID]);
-          team1Score = mapStats[0].team1_score;
-          team2Score = mapStats[0].team2_score;
-        }
-        // Build the PUT body.
-        let putBody = {
-          api_key: challongeAPIKey,
-          match: {
-            scores_csv: `${team1Score}-${team2Score}`,
-            winner_id: winner === "team1" ? team1ChallongeId : team2ChallongeId
+        if(challongeData) {
+          if (matchValues[0].max_maps == 1) {
+            // Submit the map stats scores instead.
+            sql = "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ?";
+            const mapStats = await db.query(sql, [matchID]);
+            team1Score = mapStats[0].team1_score;
+            team2Score = mapStats[0].team2_score;
           }
-        };
-        await fetch(
-          "https://api.challonge.com/v1/tournaments/" +
-          seasonInfo[0].challonge_url +
-          "/matches/" +
-          challongeData[0].match.id +
-          ".json", {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(putBody)
+          // Build the PUT body.
+          let putBody = {
+            api_key: challongeAPIKey,
+            match: {
+              scores_csv: `${team1Score}-${team2Score}`,
+              winner_id: winner === "team1" ? team1ChallongeId : team2ChallongeId
+            }
+          };
+          await fetch(
+            "https://api.challonge.com/v1/tournaments/" +
+            seasonInfo[0].challonge_url +
+            "/matches/" +
+            challongeData[0].match.id +
+            ".json", {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(putBody)
+          });
         }
-        );
       }
     }
     res.status(200).send({ message: "Success" });
