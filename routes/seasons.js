@@ -604,6 +604,16 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
       "&include_participants=1");
     let challongeData = await challongeResponse.json()
     if (challongeData) {
+      // Insert the season.
+      let sqlString = "INSERT INTO season SET ?";
+      let seasonData = {
+        user_id: req.user.id,
+        name: challongeData.tournament.name,
+        start_date: new Date(challongeData.tournament.created_at),
+        is_challonge: true,
+        challonge_svg: challongeData.tournament.live_image_url,
+        challonge_url: tournamentId
+      };
       const insertSeason = await db.query(sqlString, seasonData);
       // Check if teams were already in the call and add them to the database.
       if (req.body[0]?.import_teams && challongeData.tournament.participants) {
@@ -619,23 +629,14 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
         });
         await db.query(sqlString, [teamArray]);
       }
+      res.json({
+        message: "Challonge season imported successfully!",
+        chal_res: challongeData.tournament.created_at,
+        id: insertSeason.insertId,
+      });
     }
-    // Insert the season.
-    let sqlString = "INSERT INTO season SET ?";
-    let seasonData = {
-      user_id: req.user.id,
-      name: challongeData.tournament.name,
-      start_date: new Date(challongeData.tournament.created_at),
-      is_challonge: true,
-      challonge_svg: challongeData.tournament.live_image_url,
-      challonge_url: tournamentId
-    };
 
-    res.json({
-      message: "Challonge season imported successfully!",
-      chal_res: challongeData.tournament.created_at,
-      id: insertSeason.insertId,
-    });
+    
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.toString() });
