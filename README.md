@@ -1,10 +1,18 @@
-# G5API - API Backend for Get5
+# G5API - A Tournament Management API Backend for Get5
 _**Status: Under active development.**_
 
-G5API is a replacement for the get5-webpanel. This is the backend only, as it will allow the plugin to interface with a database and Steam OAuth, as well as make various calls to functionality that is seen in the [get5-web](https://github.com/phlexplexico/get5-web).
+G5API is a replacement for the get5-webpanel. This is the backend only, as it will allow the plugin to interface with a database, Steam OAuth, Local Logins, and API Keys, as well as make various calls to functionality that is seen in the [get5-web](https://github.com/phlexplexico/get5-web).
 
 If you would like a supplemental front-end, please see [Get5Vue](https://github.com/phlexplexico/g5v) or use the [docker-compose](https://github.com/PhlexPlexico/G5API/blob/master/docker-compose.yml) located in the repo!
 
+---
+
+Like The Project? Feel free to sponsor it! Click the Sponsor button on the repo to see all the possible ways of supporting this development!  
+![Sponsor me](https://phlexplexi.co/sponsor.png)
+
+If you've donated and would like to have your name listed as a sponsor, please message me on Twitter!
+
+---
 
 ## What does it do?
 G5API is an API that will allow users to create, manage, and control Counter-Strike: Global Offensive matches. Add teams, create matches, and most importantly, track statistics across matches, and create Seasons/Tournaments to track stats within date ranges.  
@@ -19,15 +27,15 @@ The webapi plugin for this can be downloaded from [here](https://github.com/Phle
 
 There is also Challonge integration within the API. If a user provides a tournament ID to create a season, it will auto-fill a season start date, empty teams, and will auto-update the brackets at the end of each match if the match exists under the Season/Tournament.
 
-## What does it NOT do?
+# What does it NOT do?
 This is simply a back-end to get myself used to JavaScript and Node. You will need a [front end](https://github.com/phlexplexico/g5v) or create something that can make it work! 
 
-## Why?
+# Why?
 [Get5-web](https://github.com/phlexplexico/get5-web) is a now out-dated webpanel, with python2.7 being officially EOL. Being built all on Flask, with ORM (SQLAlchemy), and Jinja2, its tech spans more than a few years old. While it works really well for now, it is becoming increasingly harder to deploy to more modern hardware/software (such as Ubuntu 19) to ensure easy setup.
 
 The intent will to be provide similar functionality with the use of NodeJS and Express, and this API will take care of session authentication as well, via the use of [`passport-steam`](https://github.com/liamcurry/passport-steam), and rcon server commands via [`rcon`](https://github.com/pushrax/node-rcon), as well as more normalization in the database.
 
-## Building
+# Building
 In order to build this application, I've opted to use [Yarn](https://yarnpkg.com/lang/en/).
 
 First you will need to copy over the ```development/test/production.json.template``` and update any values that are required. These include server values, and database passwords and connections. For more information, please see [configuration](https://github.com/PhlexPlexico/G5API/wiki/Configuration).
@@ -103,7 +111,7 @@ Steam OAuth will be mocked in order to check if a user is "logged in", and creat
 
 Will *require* `test.json` to exist in projects `config` folder. It will grab the value from `./utility/mockProfile.js` to set it as a `super_admin` temporarily, then remove it after. These tests are mainly meant for CI, and will be the go-to to test if any changes break the application.
 
-## Contribution
+# Contribution
 If you have a knack for APIs and a penchant for JavaScript, I could always use help! Create a fork of this application, make your changes, and submit a PR. I will be using the [Issues](https://github.com/phlexplexico/G5API/issues) page to track what calls still need to be completed. Even though this project is "complete" in a sense of it does what is on the tin, I wouldn't be opposed to new features or suggestions on how to make the API better!
 
 If you so choose to contribute, please make sure you include documentation for the API calls, as it is how I am keeping track of all the functionality. I'm using [JSDoc](https://devdocs.io/jsdoc/) as well as [Swagger](https://swagger.io) to provide documentation. Please read over some of the files to get accustomed to usage.

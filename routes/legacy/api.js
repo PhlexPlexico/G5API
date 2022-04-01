@@ -626,7 +626,16 @@ router.post(
           updateSql =
             "UPDATE map_stats SET ? WHERE match_id = ? AND map_number = ?";
           await db.query(updateSql, [updateStmt, matchID, mapNumber]);
-          // TODO: Check if BO1 or BO3/5/7 and update scores accordingly.
+          if (matchValues[0].max_maps == 1 && matchValues[0].season_id != null) {
+            sql = "SELECT challonge_team_id FROM team WHERE id = ?";
+            const challongeTeam1Id = await db.query(sql, matchValues[0].team1_id);
+            const challongeTeam2Id = await db.query(sql, matchValues[0].team2_id);
+            // Live update the score.
+            await update_challonge_match(matchValues[0].season_id,
+              challongeTeam1Id[0].challonge_team_id,
+              challongeTeam2Id[0].challonge_team_id
+            );
+          }
           res.status(200).send({ message: "Success" });
         } else {
           res.status(404).send({ message: "Failed to find map stats object" });
@@ -1181,9 +1190,18 @@ router.post(
           matchID,
           mapNum,
           losingTeamAuths[0].auth_name,
-        ]);
+        ]); 
       }
-
+      if (matchValues[0].max_maps != 1 && matchValues[0].season_id != null) {
+        sql = "SELECT challonge_team_id FROM team WHERE id = ?";
+        const challongeTeam1Id = await db.query(sql, matchValues[0].team1_id);
+        const challongeTeam2Id = await db.query(sql, matchValues[0].team2_id);
+        // Live update the score.
+        await update_challonge_match(matchValues[0].season_id,
+          challongeTeam1Id[0].challonge_team_id,
+          challongeTeam2Id[0].challonge_team_id
+        );
+      }
       res.status(200).send({ message: "Success" });
     } catch (err) {
       console.log(err);
