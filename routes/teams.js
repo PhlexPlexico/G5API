@@ -801,32 +801,35 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
  *       500:
  *         $ref: '#/components/responses/Error'
  */
- router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
-  
+router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
+
   try {
     let userID = req.user.id;
     const userInfo = await db.query("SELECT challonge_api_key FROM user WHERE id = ?", [userID]);
     let challongeAPIKey = Utils.decrypt(userInfo[0].challonge_api_key);
     let tournamentId = req.body[0].tournament_id;
-    let challongeResponse = await fetch("https://api.challonge.com/v1/tournaments/"+tournamentId+"/participants.json?api_key="+challongeAPIKey);
-    let challongeData = await challongeResponse.json(); 
+    let challongeResponse = await fetch("https://api.challonge.com/v1/tournaments/" + tournamentId + "/participants.json?api_key=" + challongeAPIKey);
+    let challongeData = await challongeResponse.json();
+    if (!challongeData) {
+      throw "No teams found for Tournament " + tournamentId + "."
+    }
     let sqlString = "INSERT INTO team (user_id, name, tag, challonge_team_id) VALUES ?";
     if (!challongeAPIKey) {
       throw "No challonge API key provided for user.";
     }
     let teamArray = [];
-      challongeData.forEach(async team => {
-        teamArray.push([
-          req.user.id,
-          team.participant.username,
-          team.participant.display_name.substring(0,40),
-          team.participant.id
-        ]);
-      });
-      await db.query(sqlString, [teamArray]);
-      res.json({
-        message: "Challonge teams imported successfully!"
-      });
+    challongeData.forEach(async team => {
+      teamArray.push([
+        req.user.id,
+        team.participant.username,
+        team.participant.display_name.substring(0, 40),
+        team.participant.id
+      ]);
+    });
+    await db.query(sqlString, [teamArray]);
+    res.json({
+      message: "Challonge teams imported successfully!"
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.toString() });

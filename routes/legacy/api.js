@@ -233,58 +233,14 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
         matchValues[0].team2_id,
       ]);
     }
-    // Check if a match has a season ID.
-    if (matchValues[0].season_id) {
-      sql = "SELECT challonge_url, user_id FROM season WHERE id = ?";
-      const seasonInfo = await db.query(sql, [matchValues[0].season_id]);
-      if (seasonInfo[0].challonge_url && !cancelled) {
-        sql = "SELECT challonge_team_id FROM team WHERE id = ?";
-        const team1ChallongeId = await db.query(sql, [matchInfo[0].team1_id]);
-        const team2ChallongeId = await db.query(sql, matchInfo[0].team2_id);
-
-        // Grab API key.
-        sql = "SELECT challonge_api_key FROM user WHERE id = ?";
-        const challongeAPIKey = await db.query(sql, [seasonInfo[0].user_id]);
-        // Get info of the current open match with the two IDs.
-        let challongeResponse = await fetch(
-          "https://api.challonge.com/v1/tournaments/" +
-          seasonInfo[0].challonge_url +
-          "/matches.json?api_key=" + challongeAPIKey +
-          "&state=open&participant_id=" +
-          team1ChallongeId +
-          "&participant_id=" +
-          team2ChallongeId);
-        let challongeData = await challongeResponse.json();
-        if(challongeData) {
-          if (matchValues[0].max_maps == 1) {
-            // Submit the map stats scores instead.
-            sql = "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ?";
-            const mapStats = await db.query(sql, [matchID]);
-            team1Score = mapStats[0].team1_score;
-            team2Score = mapStats[0].team2_score;
-          }
-          // Build the PUT body.
-          let putBody = {
-            api_key: challongeAPIKey,
-            match: {
-              scores_csv: `${team1Score}-${team2Score}`,
-              winner_id: winner === "team1" ? team1ChallongeId : team2ChallongeId
-            }
-          };
-          await fetch(
-            "https://api.challonge.com/v1/tournaments/" +
-            seasonInfo[0].challonge_url +
-            "/matches/" +
-            challongeData[0].match.id +
-            ".json", {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(putBody)
-          });
-        }
-      }
+    // Check if a match has a season ID and we're not cancelled.
+    if (matchValues[0].season_id && !cancelled) {
+      await update_challonge_match(
+        matchValues[0].season_id,
+        matchValues[0].team1_id,
+        matchValues[0].team2_id,
+        winner
+      );
     }
     res.status(200).send({ message: "Success" });
   } catch (err) {
@@ -670,6 +626,7 @@ router.post(
           updateSql =
             "UPDATE map_stats SET ? WHERE match_id = ? AND map_number = ?";
           await db.query(updateSql, [updateStmt, matchID, mapNumber]);
+          // TODO: Check if BO1 or BO3/5/7 and update scores accordingly.
           res.status(200).send({ message: "Success" });
         } else {
           res.status(404).send({ message: "Failed to find map stats object" });
@@ -1226,7 +1183,6 @@ router.post(
           losingTeamAuths[0].auth_name,
         ]);
       }
-      //TODO: Get user info from season and get Challonge API key to update the bracket.
 
       res.status(200).send({ message: "Success" });
     } catch (err) {
@@ -1470,6 +1426,73 @@ async function check_api_key(match_api_key, given_api_key, match_finished) {
     throw "Not a correct API Key.";
   if (match_finished == true) throw "Match is already finalized.";
   return;
+}
+
+/*** A PUT call to Challonge to update a match that is currently being played.
+ * @function
+ * @memberof module:legacy/api
+ * @param {number} match_id - The internal ID of the match being played.
+ * @param {number} season_id - The internal ID of the current season of the match being played.
+ * @param {number} team1_id - The internal team ID of the first team.
+ * @param {number} team2_id - The internal team ID of the second team.
+ * @param {string} [winner=null] - The string value representing the winner of the match.
+ */
+async function update_challonge_match(season_id, team1_id, team2_id, winner = null) {
+  // Check if a match has a season ID.
+  sql = "SELECT challonge_url, user_id FROM season WHERE id = ?";
+  const seasonInfo = await db.query(sql, season_id);
+  if (seasonInfo[0].challonge_url) {
+    sql = "SELECT challonge_team_id FROM team WHERE id = ?";
+    const team1ChallongeId = await db.query(sql, team1_id);
+    const team2ChallongeId = await db.query(sql, team2_id);
+
+    // Grab API key.
+    sql = "SELECT challonge_api_key FROM user WHERE id = ?";
+    const challongeAPIKey = await db.query(sql, [seasonInfo[0].user_id]);
+    // Get info of the current open match with the two IDs.
+    let challongeResponse = await fetch(
+      "https://api.challonge.com/v1/tournaments/" +
+      seasonInfo[0].challonge_url +
+      "/matches.json?api_key=" + challongeAPIKey +
+      "&state=open&participant_id=" +
+      team1ChallongeId +
+      "&participant_id=" +
+      team2ChallongeId);
+    let challongeData = await challongeResponse.json();
+    if (challongeData) {
+      if (matchValues[0].max_maps == 1) {
+        // Submit the map stats scores instead.
+        sql = "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ?";
+        const mapStats = await db.query(sql, [matchID]);
+        team1Score = mapStats[0].team1_score;
+        team2Score = mapStats[0].team2_score;
+      }
+      // Build the PUT body.
+      let putBody = {
+        api_key: challongeAPIKey,
+        match: {
+          scores_csv: `${team1Score}-${team2Score}`,
+          winner_id: winner === "team1" ? team1ChallongeId : team2ChallongeId
+        }
+      };
+      // If we're just updating the score, remove this.
+      if (winner === null) {
+        delete putBody.match.winner_id;
+      }
+      await fetch(
+        "https://api.challonge.com/v1/tournaments/" +
+        seasonInfo[0].challonge_url +
+        "/matches/" +
+        challongeData[0].match.id +
+        ".json", {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(putBody)
+      });
+    }
+  }
 }
 
 export default router;
