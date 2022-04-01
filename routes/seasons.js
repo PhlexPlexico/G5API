@@ -622,7 +622,7 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
         challongeData.tournament.participants.forEach(async team => {
           teamArray.push([
             req.user.id,
-            team.participant.username,
+            team.participant.display_name.substring(0, 40),
             team.participant.display_name.substring(0, 40),
             team.participant.id
           ]);
