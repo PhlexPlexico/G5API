@@ -629,14 +629,11 @@ router.post(
             "UPDATE map_stats SET ? WHERE match_id = ? AND map_number = ?";
           await db.query(updateSql, [updateStmt, matchID, mapNumber]);
           if (matchValues[0].max_maps == 1 && matchValues[0].season_id != null) {
-            sql = "SELECT challonge_team_id FROM team WHERE id = ?";
-            const challongeTeam1Id = await db.query(sql, matchValues[0].team1_id);
-            const challongeTeam2Id = await db.query(sql, matchValues[0].team2_id);
             // Live update the score.
             await update_challonge_match(matchID,
               matchValues[0].season_id,
-              challongeTeam1Id[0].challonge_team_id,
-              challongeTeam2Id[0].challonge_team_id,
+              matchValues[0].team1_id,
+              matchValues[0].team2_id,
               matchValues[0].max_maps
             );
           }
