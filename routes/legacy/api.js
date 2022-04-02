@@ -239,6 +239,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
         matchValues[0].season_id,
         matchValues[0].team1_id,
         matchValues[0].team2_id,
+        matchValues[0].max_maps,
         winner
       );
     }
@@ -633,7 +634,8 @@ router.post(
             // Live update the score.
             await update_challonge_match(matchValues[0].season_id,
               challongeTeam1Id[0].challonge_team_id,
-              challongeTeam2Id[0].challonge_team_id
+              challongeTeam2Id[0].challonge_team_id,
+              matchValues[0].max_maps
             );
           }
           res.status(200).send({ message: "Success" });
@@ -1453,9 +1455,10 @@ async function check_api_key(match_api_key, given_api_key, match_finished) {
  * @param {number} season_id - The internal ID of the current season of the match being played.
  * @param {number} team1_id - The internal team ID of the first team.
  * @param {number} team2_id - The internal team ID of the second team.
+ * @param {number} num_maps - The number of maps in the current match.
  * @param {string} [winner=null] - The string value representing the winner of the match.
  */
-async function update_challonge_match(season_id, team1_id, team2_id, winner = null) {
+async function update_challonge_match(season_id, team1_id, team2_id, num_maps, winner = null) {
   // Check if a match has a season ID.
   let sql = "SELECT challonge_url, user_id FROM season WHERE id = ?";
   const seasonInfo = await db.query(sql, season_id);
@@ -1478,7 +1481,7 @@ async function update_challonge_match(season_id, team1_id, team2_id, winner = nu
       team2ChallongeId);
     let challongeData = await challongeResponse.json();
     if (challongeData) {
-      if (matchValues[0].max_maps == 1) {
+      if (num_maps == 1) {
         // Submit the map stats scores instead.
         sql = "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ?";
         const mapStats = await db.query(sql, [matchID]);
