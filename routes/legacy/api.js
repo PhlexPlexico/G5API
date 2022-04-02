@@ -1457,7 +1457,7 @@ async function check_api_key(match_api_key, given_api_key, match_finished) {
  */
 async function update_challonge_match(season_id, team1_id, team2_id, winner = null) {
   // Check if a match has a season ID.
-  sql = "SELECT challonge_url, user_id FROM season WHERE id = ?";
+  let sql = "SELECT challonge_url, user_id FROM season WHERE id = ?";
   const seasonInfo = await db.query(sql, season_id);
   if (seasonInfo[0].challonge_url) {
     sql = "SELECT challonge_team_id FROM team WHERE id = ?";
