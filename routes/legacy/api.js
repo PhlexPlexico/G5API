@@ -103,6 +103,7 @@ const playerStatRateLimit = rateLimit({
  * @const
  */
 import fetch from "node-fetch";
+import Utils from "../../utility/utils.js";
 
 /**
  * @swagger
@@ -1470,11 +1471,12 @@ async function update_challonge_match(match_id, season_id, team1_id, team2_id, n
     // Grab API key.
     sql = "SELECT challonge_api_key FROM user WHERE id = ?";
     const challongeAPIKey = await db.query(sql, [seasonInfo[0].user_id]);
+    let decryptedKey = Utils.decrypt(challongeAPIKey[0].challonge_api_key);
     // Get info of the current open match with the two IDs.
     let challongeResponse = await fetch(
       "https://api.challonge.com/v1/tournaments/" +
       seasonInfo[0].challonge_url +
-      "/matches.json?api_key=" + challongeAPIKey[0].challonge_api_key +
+      "/matches.json?api_key=" + decryptedKey +
       "&state=open&participant_id=" +
       team1ChallongeId[0].challonge_team_id +
       "&participant_id=" +
@@ -1490,7 +1492,7 @@ async function update_challonge_match(match_id, season_id, team1_id, team2_id, n
       }
       // Build the PUT body.
       let putBody = {
-        api_key: challongeAPIKey,
+        api_key: decryptedKey,
         match: {
           scores_csv: `${team1Score}-${team2Score}`,
           winner_id: winner === "team1"
