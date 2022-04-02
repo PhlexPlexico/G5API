@@ -236,6 +236,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     // Check if a match has a season ID and we're not cancelled.
     if (matchValues[0].season_id && !cancelled) {
       await update_challonge_match(
+        matchID,
         matchValues[0].season_id,
         matchValues[0].team1_id,
         matchValues[0].team2_id,
@@ -632,7 +633,8 @@ router.post(
             const challongeTeam1Id = await db.query(sql, matchValues[0].team1_id);
             const challongeTeam2Id = await db.query(sql, matchValues[0].team2_id);
             // Live update the score.
-            await update_challonge_match(matchValues[0].season_id,
+            await update_challonge_match(matchID,
+              matchValues[0].season_id,
               challongeTeam1Id[0].challonge_team_id,
               challongeTeam2Id[0].challonge_team_id,
               matchValues[0].max_maps
@@ -1199,7 +1201,8 @@ router.post(
         const challongeTeam1Id = await db.query(sql, matchValues[0].team1_id);
         const challongeTeam2Id = await db.query(sql, matchValues[0].team2_id);
         // Live update the score.
-        await update_challonge_match(matchValues[0].season_id,
+        await update_challonge_match(matchID,
+          matchValues[0].season_id,
           challongeTeam1Id[0].challonge_team_id,
           challongeTeam2Id[0].challonge_team_id
         );
@@ -1458,7 +1461,7 @@ async function check_api_key(match_api_key, given_api_key, match_finished) {
  * @param {number} num_maps - The number of maps in the current match.
  * @param {string} [winner=null] - The string value representing the winner of the match.
  */
-async function update_challonge_match(season_id, team1_id, team2_id, num_maps, winner = null) {
+async function update_challonge_match(match_id, season_id, team1_id, team2_id, num_maps, winner = null) {
   // Check if a match has a season ID.
   let sql = "SELECT challonge_url, user_id FROM season WHERE id = ?";
   const seasonInfo = await db.query(sql, season_id);
