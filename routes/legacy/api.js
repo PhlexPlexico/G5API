@@ -1197,14 +1197,12 @@ router.post(
         ]); 
       }
       if (matchValues[0].max_maps != 1 && matchValues[0].season_id != null) {
-        sql = "SELECT challonge_team_id FROM team WHERE id = ?";
-        const challongeTeam1Id = await db.query(sql, matchValues[0].team1_id);
-        const challongeTeam2Id = await db.query(sql, matchValues[0].team2_id);
         // Live update the score.
         await update_challonge_match(matchID,
           matchValues[0].season_id,
-          challongeTeam1Id[0].challonge_team_id,
-          challongeTeam2Id[0].challonge_team_id
+          matchValues[0].team1_id,
+          matchValues[0].team2_id,
+          matchValues[0].max_maps
         );
       }
       res.status(200).send({ message: "Success" });
@@ -1464,6 +1462,8 @@ async function check_api_key(match_api_key, given_api_key, match_finished) {
 async function update_challonge_match(match_id, season_id, team1_id, team2_id, num_maps, winner = null) {
   // Check if a match has a season ID.
   let sql = "SELECT challonge_url, user_id FROM season WHERE id = ?";
+  let team1Score;
+  let team2Score;
   const seasonInfo = await db.query(sql, season_id);
   if (seasonInfo[0].challonge_url) {
     sql = "SELECT challonge_team_id FROM team WHERE id = ?";
@@ -1477,17 +1477,17 @@ async function update_challonge_match(match_id, season_id, team1_id, team2_id, n
     let challongeResponse = await fetch(
       "https://api.challonge.com/v1/tournaments/" +
       seasonInfo[0].challonge_url +
-      "/matches.json?api_key=" + challongeAPIKey +
+      "/matches.json?api_key=" + challongeAPIKey[0].challonge_api_key +
       "&state=open&participant_id=" +
-      team1ChallongeId +
+      team1ChallongeId[0].challonge_team_id +
       "&participant_id=" +
-      team2ChallongeId);
+      team2ChallongeId[0].challonge_team_id);
     let challongeData = await challongeResponse.json();
     if (challongeData) {
       if (num_maps == 1) {
         // Submit the map stats scores instead.
         sql = "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ?";
-        const mapStats = await db.query(sql, [matchID]);
+        const mapStats = await db.query(sql, [match_id]);
         team1Score = mapStats[0].team1_score;
         team2Score = mapStats[0].team2_score;
       }
@@ -1496,7 +1496,9 @@ async function update_challonge_match(match_id, season_id, team1_id, team2_id, n
         api_key: challongeAPIKey,
         match: {
           scores_csv: `${team1Score}-${team2Score}`,
-          winner_id: winner === "team1" ? team1ChallongeId : team2ChallongeId
+          winner_id: winner === "team1"
+            ? team1ChallongeId[0].challonge_team_id
+          : team2ChallongeId[0].challonge_team_id
         }
       };
       // If we're just updating the score, remove this.
