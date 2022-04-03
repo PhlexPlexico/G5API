@@ -1486,10 +1486,12 @@ async function update_challonge_match(match_id, season_id, team1_id, team2_id, n
       if (num_maps == 1) {
         // Submit the map stats scores instead.
         sql = "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ?";
-        const mapStats = await db.query(sql, [match_id]);
-        team1Score = mapStats[0].team1_score;
-        team2Score = mapStats[0].team2_score;
+      } else {
+        sql = "SELECT team1_score, team2_score FROM `match` WHERE id = ?";
       }
+      const mapStats = await db.query(sql, [match_id]);
+      team1Score = mapStats[0].team1_score;
+      team2Score = mapStats[0].team2_score;
       // Build the PUT body.
       let putBody = {
         api_key: decryptedKey,
