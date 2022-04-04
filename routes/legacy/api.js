@@ -1459,7 +1459,7 @@ async function check_api_key(match_api_key, given_api_key, match_finished) {
  */
 async function update_challonge_match(match_id, season_id, team1_id, team2_id, num_maps, winner = null) {
   // Check if a match has a season ID.
-  let sql = "SELECT challonge_url, user_id FROM season WHERE id = ?";
+  let sql = "SELECT id, challonge_url, user_id FROM season WHERE id = ?";
   let team1Score;
   let team2Score;
   const seasonInfo = await db.query(sql, season_id);
@@ -1490,8 +1490,14 @@ async function update_challonge_match(match_id, season_id, team1_id, team2_id, n
         sql = "SELECT team1_score, team2_score FROM `match` WHERE id = ?";
       }
       const mapStats = await db.query(sql, [match_id]);
-      team1Score = mapStats[0].team1_score;
-      team2Score = mapStats[0].team2_score;
+      // Admins may just make a match that has teams swapped. This is okay as we can change what we
+      // report to Challonge.
+      team1Score = challongeData[0].match.player1_id == team1ChallongeId[0].challonge_team_id
+        ? mapStats[0].team1_score
+        : mapStats[0].team2_score;
+      team2Score = challongeData[0].match.player2_id == team2ChallongeId[0].challonge_team_id
+        ? mapStats[0].team2_score
+        : mapStats[0].team1_score;
       // Build the PUT body.
       let putBody = {
         api_key: decryptedKey,
@@ -1535,6 +1541,9 @@ async function update_challonge_match(match_id, season_id, team1_id, team2_id, n
             method: 'POST'
           }
         );
+        // If we are the last map, let's close off the season as well.
+        sql = "UPDATE season SET end_date = ? WHERE id = ?";
+        await db.query(sql, [new Date().toISOString().slice(0, 19).replace("T", " "), seasonInfo[0].id]);
       }
     }
   }
