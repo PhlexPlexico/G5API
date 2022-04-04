@@ -1518,6 +1518,24 @@ async function update_challonge_match(match_id, season_id, team1_id, team2_id, n
         },
         body: JSON.stringify(putBody)
       });
+      // Check and see if any matches remain, if not, finalize the tournament.
+      challongeResponse = await fetch(
+        "https://api.challonge.com/v1/tournaments/" +
+        seasonInfo[0].challonge_url +
+        "/matches.json?api_key=" + decryptedKey +
+        "&state=open"
+      );
+      challongeData = await challongeResponse.json();
+      if(!challongeData) {
+        await fetch(
+          "https://api.challonge.com/v1/tournaments/" +
+          seasonInfo[0].challonge_url +
+          "finalize.json?api_key=" + decryptedKey,
+          {
+            method: 'POST'
+          }
+        );
+      }
     }
   }
 }
