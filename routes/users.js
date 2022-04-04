@@ -61,6 +61,9 @@ import { generate } from "randomstring";
  *         force_reset:
  *           type: boolean
  *           description: If a user requires a force reset/remove password, update the password to NULL. 
+ *         challonge_api_key:
+ *           type: string
+ *           description: A [challonge API](https://challonge.com/settings/developer) key
  *     User:
  *       allOf:
  *         - $ref: '#/components/schemas/NewUser'
@@ -152,6 +155,9 @@ router.get("/:user_id", async (req, res, next) => {
       if (user.api_key != null) {
         user.api_key = user?.id + ":" + Utils.decrypt(user.api_key);
       }
+      if (user.challonge_api_key != null) {
+        user.challonge_api_key = Utils.decrypt(user.challonge_api_key);
+      }
       res.json({ user });
     } else {
       res.status(404).json({ message: "User does not exist in the system." });
@@ -200,6 +206,10 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       let smallImage = req.body[0].small_image;
       let mediumImage = req.body[0].medium_image;
       let largeImage = req.body[0].large_image;
+      let challongeApiKey =
+        req.body[0].challonge_api_key == null
+          ? null
+          : Utils.encrypt(req.body[0].challonge_api_key);
       let apiKey = generate({
         length: 64,
         capitalization: "uppercase",
@@ -208,17 +218,20 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       apiKey = Utils.encrypt(apiKey);
       // Check if user is allowed to create?
       let sql =
-        "INSERT INTO user (steam_id, name, admin, super_admin, small_image, medium_image, large_image, api_key) VALUES (?,?,?,?,?,?,?,?)";
-      let newUser = await db.query(sql, [
-        steamId,
-        steamName,
-        isAdmin,
-        isSuperAdmin,
-        smallImage,
-        mediumImage,
-        largeImage,
-        apiKey,
-      ]);
+        "INSERT INTO user SET ?";
+      let userObject = {
+        steam_id: steamId,
+        name: steamName,
+        admin: isAdmin,
+        super_admin: isSuperAdmin,
+        small_image: smallImage,
+        medium_image: mediumImage,
+        large_image: largeImage,
+        api_key: apiKey,
+        challonge_api_key: challongeApiKey
+      };
+      userObject = await db.buildUpdateStatement(userObject);
+      let newUser = await db.query(sql, [userObject]);
       userId = newUser.insertId;
       res.json({ message: "User created successfully.", id: userId });
     } else {
@@ -284,10 +297,14 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let apiKey =
       req.body[0].new_api == 1
         ? generate({
-            length: 64,
-            capitalization: "uppercase",
-          })
+          length: 64,
+          capitalization: "uppercase",
+        })
         : null;
+    let challongeApiKey =
+      req.body[0].challonge_api_key == null
+        ? null
+        : Utils.encrypt(req.body[0].challonge_api_key);
     let password = req.body[0].password;
     let oldPassword = req.body[0].old_password;
     if (apiKey != null) apiKey = Utils.encrypt(apiKey);
@@ -304,7 +321,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         medium_image: mediumImage,
         large_image: largeImage,
         api_key: apiKey,
-        password: password ? hashSync(password, 10) : null
+        password: password ? hashSync(password, 10) : null,
+        challonge_api_key: challongeApiKey
       };
     } else if (req.user.steam_id == steamId || req.user.id == userId) {
       if (req.body[0].force_reset) {
@@ -318,9 +336,10 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       }
       updateUser = {
         api_key: apiKey,
-        password: userToBeUpdated[0].username == null 
+        password: userToBeUpdated[0].username == null
           ? null
-          : hashSync(password, 10)
+          : hashSync(password, 10),
+        challonge_api_key: challongeApiKey
       };
     } else {
       res.status(403).json({ message: "You are not authorized to do this." });
@@ -336,7 +355,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     // If we're updating ourselves we need to update their session. Force a reload of session.
     if (req.user.steam_id == req.body[0].steam_id) {
       // Check if the user being updated has admin access to begin with.
-      if(Utils.adminCheck(req.user)) {
+      if (Utils.adminCheck(req.user)) {
         req.user.super_admin = isSuperAdmin;
         req.user.admin = isAdmin;
         req.login(req.user, (err) => {

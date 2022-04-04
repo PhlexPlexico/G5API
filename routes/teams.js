@@ -21,6 +21,8 @@ import { generate } from "randomstring";
 
 import { writeFile } from "fs";
 
+import fetch from "node-fetch";
+
 /**
  * @swagger
  *
@@ -767,6 +769,73 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ *
+ * /teams/challonge:
+ *   post:
+ *     description: Bulk create blank teams from a Challonge bracket.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                tournament_id:
+ *                  type: string
+ *                  description: The tournament ID or URL of the Challonge tournament, as explained in their [API](https://api.challonge.com/v1/documents/participants/index).
+ *     tags:
+ *       - teams
+ *     responses:
+ *       200:
+ *         description: Teams created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
+
+  try {
+    let userID = req.user.id;
+    const userInfo = await db.query("SELECT challonge_api_key FROM user WHERE id = ?", [userID]);
+    let challongeAPIKey = Utils.decrypt(userInfo[0].challonge_api_key);
+    let tournamentId = req.body[0].tournament_id;
+    let challongeResponse = await fetch("https://api.challonge.com/v1/tournaments/" + tournamentId + "/participants.json?api_key=" + challongeAPIKey);
+    let challongeData = await challongeResponse.json();
+    if (!challongeData) {
+      throw "No teams found for Tournament " + tournamentId + "."
+    }
+    let sqlString = "INSERT INTO team (user_id, name, tag, challonge_team_id) VALUES ?";
+    if (!challongeAPIKey) {
+      throw "No challonge API key provided for user.";
+    }
+    let teamArray = [];
+    challongeData.forEach(async team => {
+      teamArray.push([
+        req.user.id,
+        team.participant.display_name.substring(0, 40),
+        team.participant.display_name.substring(0, 40),
+        team.participant.id
+      ]);
+    });
+    await db.query(sqlString, [teamArray]);
+    res.json({
+      message: "Challonge teams imported successfully!"
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
 /* Helper Functions */
 /** Gets the steam image of each palyer.
  * @function
@@ -788,5 +857,7 @@ const getTeamImages = async (idList, getImage = true) => {
   }
   return idList;
 };
+
+
 
 export default router;

@@ -9,9 +9,6 @@ describe("Test the user routes", () => {
       .expect(302);
       return;
   });
-  afterAll(async () => {
-    await new Promise(resolve => setTimeout(() => resolve(), 500)); // avoid jest open handle error
-  });
   it("Should get 200 from all users", () => {
     return request
       .get('/users')

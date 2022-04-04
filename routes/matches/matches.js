@@ -531,6 +531,61 @@ router.get("/limit/:limiter", async (req, res, next) => {
 /**
  * @swagger
  *
+ * /matches/limit/:firstvalue&:lastvalue:
+ *   get:
+ *     description: Returns a subset of matches between a range.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: firstvalue
+ *         required: true
+ *         schema:
+ *          type: integer
+ *       - name: lastvalue
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MatchData'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.get("/page/:firstvalue&:lastvalue", async (req, res, next) => {
+  try {
+    let firstVal = parseInt(req.params.firstvalue);
+    let secondVal = parseInt(req.params.lastvalue);
+    let sql;
+    if (req.user !== undefined && Utils.superAdminCheck(req.user)) {
+      sql =
+        "SELECT * FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?,?";
+    } else {
+      sql =
+        "SELECT id, user_id, server_id, team1_id, team2_id, winner, " +
+        "team1_score, team2_score, team1_series_score, team2_series_score, " +
+        "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
+        "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
+        "season_id, is_pug FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?,?";
+    }
+    const matches = await db.query(sql, [firstVal, secondVal]);
+    res.json({ matches });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
  * /matches/:match_id:/config:
  *   get:
  *     description: Route serving to get match configs from the database for the plugin.
@@ -618,7 +673,7 @@ router.get("/:match_id/config", async (req, res, next) => {
     );
     sql = "SELECT * FROM match_cvar WHERE match_id = ?";
     matchCvars = await db.query(sql, matchID);
-    //TODO: Possibly breaking JSON with quotes only?
+    //XXX: Possibly breaking JSON with quotes only?
     matchCvars.forEach((row) => {
       matchJSON.cvars[row.cvar_name] = row.cvar_value;
     });

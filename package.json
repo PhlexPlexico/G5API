@@ -1,6 +1,6 @@
 {
   "name": "g5api",
-  "version": "1.5.0.0",
+  "version": "1.6.0.0",
   "private": true,
   "type": "module",
   "licenses": [
@@ -49,18 +49,18 @@
     "migrate-drop-test": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --env test --config config/test.json db:drop get5test",
     "prod": "NODE_ENV=production yarn migrate-create-prod && yarn migrate-prod-upgrade",
     "test": "NODE_ENV=test && yarn test:setup-user && yarn migrate-drop-test && yarn migrate-create-test && yarn migrate-test-upgrade && yarn test:user && yarn test:gameservers && yarn test:teams && yarn test:matches && yarn test:seasons && yarn test:vetoes && yarn test:mapstats && yarn test:playerstats && yarn test:vetosides && yarn test:maplists",
-    "test:gameservers": "yarn test:removeID && NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --forceExit --config ./jest_config/jest.gameservers.config.cjs",
-    "test:mapstats": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --forceExit --config ./jest_config/jest.mapstats.config.cjs",
-    "test:maplists": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --forceExit --config ./jest_config/jest.maplist.config.cjs",
-    "test:matches": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --forceExit --config ./jest_config/jest.matches.config.cjs",
-    "test:playerstats": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --forceExit --config ./jest_config/jest.playerstats.config.cjs",
+    "test:gameservers": "yarn test:removeID && NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.gameservers.config.cjs",
+    "test:mapstats": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.mapstats.config.cjs",
+    "test:maplists": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.maplist.config.cjs",
+    "test:matches": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.matches.config.cjs",
+    "test:playerstats": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.playerstats.config.cjs",
     "test:removeID": "sed -i -e 's.\"steam_ids\": \"[0-9][0-9]*\".\"steam_ids\": \"super_admins,go,here\".g' ./config/test.json",
-    "test:seasons": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --forceExit --config ./jest_config/jest.seasons.config.cjs",
+    "test:seasons": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.seasons.config.cjs",
     "test:setup-user": "export STEAMID=`grep -o -m 1 '[0-9][0-9]*' utility/mockProfile.js` && sed -i -e \"s/\\\"super_admins,go,here\\\"/\\\"$STEAMID\\\"/g\" config/test.json",
-    "test:teams": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --forceExit --config ./jest_config/jest.teams.config.cjs",
-    "test:user": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --forceExit --config ./jest_config/jest.users.config.cjs",
-    "test:vetoes": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --forceExit --config ./jest_config/jest.vetoes.config.cjs",
-    "test:vetosides": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --forceExit --config ./jest_config/jest.vetosides.config.cjs"
+    "test:teams": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.teams.config.cjs",
+    "test:user": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.users.config.cjs",
+    "test:vetoes": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.vetoes.config.cjs",
+    "test:vetosides": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.vetosides.config.cjs"
   },
   "dependencies": {
     "@node-steam/id": "^1.1.0",
@@ -95,7 +95,7 @@
     "swagger-ui-express": "^4.3.0"
   },
   "devDependencies": {
-    "jest": "^27.4.7",
+    "jest": "^27.5",
     "jsdoc": "^3.6.7",
     "nodemon": "^2.0.15",
     "passport-mock-strategy": "^2.0.0",
