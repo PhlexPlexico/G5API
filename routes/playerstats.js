@@ -528,6 +528,58 @@ router.get("/match/:match_id", async (req, res, next) => {
   }
 });
 
+/** @swagger
+ *
+ * /playerstats/:steam_id/recent:
+ *   get:
+ *     description: Get a steam ID's recent matches
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: steam_id
+ *         description: The steam ID of the user
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Last five matches from the steam ID provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MatchData'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+
+ router.get("/:steam_id/recent", async (req, res, next) => {
+  try {
+    let steamId = req.params.steam_id;
+    let sql =
+      "SELECT DISTINCT rec_matches.id, " +
+      "rec_matches.user_id, " +
+      "rec_matches.team1_id, " +
+      "rec_matches.team2_id, " +
+      "rec_matches.team1_string, " +
+      "rec_matches.team2_string " +
+      "FROM `match` rec_matches JOIN player_stats ps " +
+      "ON ps.match_id = rec_matches.id " +
+      "WHERE (rec_matches.cancelled = 0 OR rec_matches.cancelled IS NULL) " +
+      "AND  ps.steam_id=? " +
+      "ORDER BY rec_matches.id DESC LIMIT 5";
+    const matches = await db.query(sql, [steamId]);
+    res.json({ matches });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+
 /**
  * @swagger
  *
