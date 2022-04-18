@@ -197,8 +197,7 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      let loadMatchResponse = await this.execute("sm_pause");
-      if (loadMatchResponse) return false;
+      await this.execute("sm_pause")
       return true;
     } catch (err) {
       console.error("RCON error on pause: " + err.toString());
@@ -215,8 +214,7 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      let loadMatchResponse = await this.execute("sm_unpause");
-      if (loadMatchResponse) return false;
+      await this.execute("sm_unpause");
       return true;
     } catch (err) {
       console.error("RCON error on unpause server: " + err.toString());
