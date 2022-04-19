@@ -324,6 +324,10 @@ class Utils {
       let currentMatchInfo = "SELECT user_id, server_id FROM `match` WHERE id = ?";
       let currentServerInfo = "SELECT user_id FROM game_server WHERE id = ?"
       const matchRow = await db.query(currentMatchInfo, matchid);
+      
+      // If no server exists no need to check for info.
+      if (!matchRow[0].server_id) return retMessage;
+
       const serverRow = await db.query(currentServerInfo, matchRow[0].server_id);
       if (
         matchRow[0].user_id != user.id &&
