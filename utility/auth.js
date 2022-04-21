@@ -164,7 +164,7 @@ passport.use('local-login', new LocalStrategy(async (username, password, done) =
         return done(null, false, {message: "Invalid username or password."});
       }
     } else {
-      return done(null, null);
+      return done(null, false, {message: "Invalid username or password."});
     }
   } catch (e) {
     console.error(e);
