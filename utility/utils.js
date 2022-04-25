@@ -158,7 +158,7 @@ class Utils {
     if (req.isAuthenticated()) {
       return next();
     }
-    res.redirect("auth/steam");
+    res.redirect("/auth/steam");
   }
 
   /** Checks if a user is an admin in the system during their session.

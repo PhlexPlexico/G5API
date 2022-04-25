@@ -334,6 +334,26 @@ class ServerRcon {
       throw err;
     }
   }
+
+  /** Attempts to restore a given backup from the API to a new server.
+   * @function
+   * @param {String} backupName - The filename of the backup on the API.
+   * @returns Returns the response from the server.
+   */
+   async restoreBackupFromURL(backupName) {
+    try {
+      if (process.env.NODE_ENV === "test") {
+        return false;
+      }
+      let loadMatchResponse = await this.execute(
+        "get5_loadbackup_url " + backupName
+      );
+      return loadMatchResponse;
+    } catch (err) {
+      console.error("RCON error on restore backup: " + err.toString());
+      throw err;
+    }
+  }
 }
 
 export default ServerRcon;
