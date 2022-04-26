@@ -319,7 +319,8 @@ router.get("/", async (req, res, next) => {
       "enforce_teams, min_player_ready, season_id, is_pug " +
       "FROM `match` " +
       "WHERE cancelled = 0 " +
-      "OR cancelled IS NULL";
+      "OR cancelled IS NULL " +
+      "ORDER BY id DESC";
     const matches = await db.query(sql);
     if (!matches.length) {
       res.status(404).json({ message: "No matches found." });
@@ -358,7 +359,7 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let sql = "SELECT * FROM `match` WHERE user_id = ?";
+    let sql = "SELECT * FROM `match` WHERE user_id = ? ORDER BY id DESC";
     const matches = await db.query(sql, [req.user.id]);
     if (!matches.length) {
       res.status(404).json({ message: "No matches found." });
@@ -566,14 +567,14 @@ router.get("/limit/:limiter", async (req, res, next) => {
     let sql;
     if (req.user !== undefined && Utils.superAdminCheck(req.user)) {
       sql =
-        "SELECT * FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?,?";
+        "SELECT * FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY id DESC LIMIT ?,?";
     } else {
       sql =
         "SELECT id, user_id, server_id, team1_id, team2_id, winner, " +
         "team1_score, team2_score, team1_series_score, team2_series_score, " +
         "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
         "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?,?";
+        "season_id, is_pug FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY id DESC LIMIT ?,?";
     }
     const matches = await db.query(sql, [firstVal, secondVal]);
     res.json({ matches });
