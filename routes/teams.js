@@ -109,7 +109,8 @@ router.get("/", async (req, res) => {
       "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": \"', ta.captain, '\"}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
       "FROM team t LEFT OUTER JOIN team_auth_names ta " +
       "ON t.id = ta.team_id " +
-      "GROUP BY t.id";
+      "GROUP BY t.id " +
+      "ORDER BY t.id DESC";
     const teams = await db.query(sql);
     // Check this and return a 404 if we don't exist.
     if (teams[0] == null) {
@@ -162,7 +163,8 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
       "FROM team t LEFT OUTER JOIN team_auth_names ta " +
       "ON t.id = ta.team_id " +
       "WHERE t.user_id = ? " +
-      "GROUP BY t.id";
+      "GROUP BY t.id " + 
+      "ORDER BY t.id DESC";
     const teams = await db.query(sql, req.user.id);
     // Check this and return a 404 if we don't exist.
     if (teams[0] == null) {
