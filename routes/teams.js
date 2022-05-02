@@ -19,7 +19,7 @@ import Utils from "../utility/utils.js";
 
 import { generate } from "randomstring";
 
-import { writeFile } from "fs";
+import { writeFile, unlink } from "fs";
 
 import fetch from "node-fetch";
 
@@ -341,15 +341,29 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
       length: 5,
       charset: "alphanumeric",
     });
-    let base64Data = logo.replace(/^data:image\/png;base64,/, "");
-    writeFile(
-      "public/img/logos/" + logoName + ".png",
-      base64Data,
-      "base64",
-      err => {
-        if (err) console.error(err);
-      }
-    );
+    if (logo.includes("data:image/png;base64")) {
+      let base64Data = logo.replace(/^data:image\/png;base64,/, "");
+      writeFile(
+        "public/img/logos/" + logoName + ".png",
+        base64Data,
+        "base64",
+        err => {
+          if (err) console.error(err);
+        }
+      );
+    } else {
+      let base64Data = Buffer.from(logo).toString('base64').replace(/^data:image\/([\w+]+);base64,([\s\S]+)/, "");
+      let baseImg = img(Buffer.from(base64Data, 'base64').toString());
+      writeFile(
+        "public/img/logos/" + logoName + ".svg",
+        baseImg.base64,
+        { encoding: 'base64' }, 
+        err => {
+          if (err) console.error(err);
+        }
+      );
+    }
+    
   }
   let newTeam = [
     {
@@ -474,15 +488,28 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
     } else {
       logoName = checkUser[0].logo;
     }
-    let base64Data = teamLogo.replace(/^data:image\/png;base64,/, "");
-    writeFile(
-      "public/img/logos/" + logoName + ".png",
-      base64Data,
-      "base64",
-      err => {
-        if (err) console.error(err);
-      }
-    );
+    if (teamLogo.includes("data:image/png;base64")) {
+      let base64Data = logo.replace(/^data:image\/png;base64,/, "");
+      writeFile(
+        "public/img/logos/" + logoName + ".png",
+        base64Data,
+        "base64",
+        err => {
+          if (err) console.error(err);
+        }
+      );
+    } else {
+      let base64Data = Buffer.from(teamLogo).toString('base64').replace(/^data:image\/([\w+]+);base64,([\s\S]+)/, "");
+      let baseImg = img(Buffer.from(base64Data, 'base64').toString());
+      writeFile(
+        "public/img/logos/" + logoName + ".svg",
+        baseImg.base64,
+        { encoding: 'base64' }, 
+        err => {
+          if (err) console.error(err);
+        }
+      );
+    }
     updateTeam.logo = logoName;
   }
   updateTeam = await db.buildUpdateStatement(updateTeam);
@@ -590,14 +617,27 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
     try {
       // Remove file if exists.
       if (checkUser[0].logo) {
-        require("fs").unlink(
-          "public/img/logos/" + checkUser[0].logo + ".png",
-          err => {
-            if (err) {
-              console.error(err);
+        try {
+          unlink(
+            "public/img/logos/" + checkUser[0].logo + ".png",
+            err => {
+              if (err) {
+                console.error(err);
+              }
             }
-          }
-        );
+          );
+        } catch (ignored) {}
+        
+        try {
+          unlink(
+            "public/img/logos/" + checkUser[0].logo + ".svg",
+            err => {
+              if (err) {
+                console.error(err);
+              }
+            }
+          );
+        } catch (ignored) {}
       }
       let deleteTeamAuthSql = "DELETE FROM team_auth_names WHERE team_id = ?";
       let deleteTeamsql = "DELETE FROM team WHERE id = ?";
@@ -860,6 +900,30 @@ const getTeamImages = async (idList, getImage = true) => {
   return idList;
 };
 
+/** Covnerts an SVG image to base64 for proper saving.
+ * @function
+ * @memberof module:routes/teams
+ * @param {String} data - The base64 stripped of its header.
+ */
+const img = (data) => {
+  var reg = /^data:image\/([\w+]+);base64,([\s\S]+)/;
+  var match = data.match(reg);
+  var baseType = {
+    jpeg: 'jpg'
+  };
 
+  baseType['svg+xml'] = 'svg'
+
+  if (!match) {
+    throw new Error('image base64 data error');
+  }
+
+  var extname = baseType[match[1]] ? baseType[match[1]] : match[1];
+
+  return {
+    extname: '.' + extname,
+    base64: match[2]
+  };
+}
 
 export default router;
