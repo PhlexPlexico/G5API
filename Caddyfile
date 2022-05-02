@@ -1,6 +1,7 @@
 {$CADDY_URL}
 root * /usr/share/caddy
 route /{$CADDY_API_ENDPOINT}/* {
+        redir /api /api/
 	uri strip_prefix /{$CADDY_API_ENDPOINT}
 	reverse_proxy http://G5API:{$CADDY_REVERSE_PROXY_PORT}
 }
