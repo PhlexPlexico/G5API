@@ -83,6 +83,7 @@ router.get(
         const mapStat = await db.query(mapStatSql, [
           req.params.match_id,
         ]);
+        let mapStatId;
         let newStatStmt = {
           start_time: new Date().toISOString().slice(0, 19).replace("T", " "),
           end_time: new Date().toISOString().slice(0, 19).replace("T", " "),
@@ -105,7 +106,9 @@ router.get(
         }
         let matchSql = "UPDATE `match` SET ? WHERE id=?";
         let serverUpdateSql = "UPDATE game_server SET in_use=0 WHERE id=?";
-        if (!mapStat.length) await db.query(mapStatSql, [newStatStmt]);
+        if (!mapStat.length) {
+          mapStatId = await db.query(mapStatSql, [newStatStmt]);
+        }
         else
           await db.query(mapStatSql, [
             newStatStmt,
@@ -117,35 +120,13 @@ router.get(
         ]);
         await db.query(serverUpdateSql, [matchRow[0].server_id]);
         if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
-          let teamAuthSql =
-            "SELECT GROUP_CONCAT(CONCAT('\"', ta.auth, '\"')) as auth_name FROM team_auth_names ta WHERE team_id = ?";
-          let pugTeamNameSql = "SELECT name FROM team WHERE id = ?";
-          let playerStatUpdateSql = "UPDATE player_stats SET team_name = ? WHERE match_id = ? AND steam_id IN (?)";
-          let pugSql =
-            "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
-          const teamNameOne = await db.query(pugTeamNameSql, [matchRow[0].team1_id]);
-          const teamOneAuths = await db.query(teamAuthSql, [matchRow[0].team1_id]);
-          const teamNameTwo = await db.query(pugTeamNameSql, [matchRow[0].team2_id]);
-          const teamTwoAuths = await db.query(teamAuthSql, [matchRow[0].team2_id]);
-          await db.query(playerStatUpdateSql, [
-            teamNameOne[0].name,
-            req.params.match_id,
-            teamOneAuths[0].auth_name
-          ]);
-          await db.query(playerStatUpdateSql, [
-            teamNameTwo[0].name,
-            req.params.match_id,
-            teamTwoAuths[0].auth_name
-          ]);
-          await db.query(pugSql, [
-            matchRow[0].team1_id,
-            matchRow[0].team2_id,
-          ]);
-          pugSql = "DELETE FROM team WHERE id = ? OR id = ?";
-          await db.query(pugSql, [
-            matchRow[0].team1_id,
-            matchRow[0].team2_id,
-          ]);
+          await Utils.updatePugStats(
+              req.params.match_id,
+              !mapStat.length ? mapStatId : mapStat[0].id,
+              matchRow[0].team1_id,
+              matchRow[0].team2_id,
+              winner == 1 ? matchRow[0].team1_id : matchRow[0].team2_id
+            );
         }
         let getServerSQL =
           "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
@@ -228,6 +209,7 @@ router.get(
         const mapStat = await db.query(mapStatSql, [
           req.params.match_id,
         ]);
+        let mapStatId;
         let newStatStmt = {
           end_time: new Date().toISOString().slice(0, 19).replace("T", " "),
           winner: null,
@@ -250,8 +232,9 @@ router.get(
         }
         let matchSql = "UPDATE `match` SET ? WHERE id=?";
         let serverUpdateSql = "UPDATE game_server SET in_use=0 WHERE id=?";
-        if (!mapStat.length)
-          await db.query(mapStatSql, [newStatStmt]);
+        if (!mapStat.length) {
+          mapStatId = await db.query(mapStatSql, [newStatStmt]);
+        }
         else
           await db.query(mapStatSql, [
             newStatStmt,
@@ -263,35 +246,13 @@ router.get(
         ]);
         await db.query(serverUpdateSql, [matchRow[0].server_id]);
         if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
-          let teamAuthSql =
-            "SELECT GROUP_CONCAT(CONCAT('\"', ta.auth, '\"')) as auth_name FROM team_auth_names ta WHERE team_id = ?";
-          let pugTeamNameSql = "SELECT name FROM team WHERE id = ?";
-          let playerStatUpdateSql = "UPDATE player_stats SET team_name = ? WHERE match_id = ? AND steam_id IN (?)";
-          let pugSql =
-            "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
-          const teamNameOne = await db.query(pugTeamNameSql, [matchRow[0].team1_id]);
-          const teamOneAuths = await db.query(teamAuthSql, [matchRow[0].team1_id]);
-          const teamNameTwo = await db.query(pugTeamNameSql, [matchRow[0].team2_id]);
-          const teamTwoAuths = await db.query(teamAuthSql, [matchRow[0].team2_id]);
-          await db.query(playerStatUpdateSql, [
-            teamNameOne[0].name,
+          await Utils.updatePugStats(
             req.params.match_id,
-            teamOneAuths[0].auth_name
-          ]);
-          await db.query(playerStatUpdateSql, [
-            teamNameTwo[0].name,
-            req.params.match_id,
-            teamTwoAuths[0].auth_name
-          ]);
-          await db.query(pugSql, [
+            !mapStat.length ? mapStatId : mapStat[0].id,
             matchRow[0].team1_id,
             matchRow[0].team2_id,
-          ]);
-          pugSql = "DELETE FROM team WHERE id = ? OR id = ?";
-          await db.query(pugSql, [
-            matchRow[0].team1_id,
-            matchRow[0].team2_id,
-          ]);
+            null
+          );
         }
         // Let the server cancel the match first, or attempt to?
         let getServerSQL =

@@ -221,18 +221,15 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
 
     // Check if we are pugging.
     if (matchValues[0].is_pug != null && matchValues[0].is_pug == 1) {
-      // Now we delete the team that was playing, to make sure we free up that database.
-      let deleteSql =
-        "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
-      await db.query(deleteSql, [
+      let mapStatIdSql = "SELECT id FROM map_stats WHERE match_id = ? ORDER BY map_number desc";
+      const finalMap = await db.query(mapStatIdSql, [matchID]);
+      await Utils.updatePugStats(
+        matchID,
+        finalMap[0].id,
         matchValues[0].team1_id,
         matchValues[0].team2_id,
-      ]);
-      deleteSql = "DELETE FROM team WHERE id = ? OR id = ?";
-      await db.query(deleteSql, [
-        matchValues[0].team1_id,
-        matchValues[0].team2_id,
-      ]);
+        teamIdWinner
+      );
     }
     // Check if a match has a season ID and we're not cancelled.
     if (matchValues[0].season_id && !cancelled) {
@@ -1164,35 +1161,14 @@ router.post(
       await db.query(updateSql, [updateStmt, matchID]);
 
       if (matchValues[0].is_pug != null && matchValues[0].is_pug == 1) {
-        // Team Name is also stored in player_stats only if pug to link data afterwards.
-        // teamIdWinner is updated in the player stats.
-        let teamAuthSql =
-          "SELECT GROUP_CONCAT(CONCAT('\"', ta.auth, '\"')) as auth_name FROM team_auth_names ta WHERE team_id = ?";
-        let teamNameSql = "SELECT name FROM team WHERE id = ?";
-        const winningTeamName = await db.query(teamNameSql, [teamIdWinner]);
-        const winningTeamAuths = await db.query(teamAuthSql, [teamIdWinner]);
-        const losingTeamName = await db.query(teamNameSql, [teamIdLoser]);
-        const losingTeamAuths = await db.query(teamAuthSql, [teamIdLoser]);
-        updateSql =
-          "UPDATE player_stats SET winner = 1 WHERE match_id = ? AND map_id = ? AND steam_id IN (?)";
-        await db.query(updateSql, [
+        await Utils.updatePugStats(
           matchID,
           mapNum,
-          winningTeamAuths[0].auth_name,
-        ]);
-        updateSql = "UPDATE player_stats SET team_name = ? WHERE match_id = ? AND map_id = ? AND steam_id IN (?)";
-        await db.query(updateSql, [
-          winningTeamName[0].name,
-          matchID,
-          mapNum,
-          winningTeamAuths[0].auth_name,
-        ]);
-        await db.query(updateSql, [
-          losingTeamName[0].name,
-          matchID,
-          mapNum,
-          losingTeamAuths[0].auth_name,
-        ]); 
+          matchValues[0].team1_id,
+          matchValues[0].team2_id,
+          teamIdWinner,
+          false
+        );
       }
       if (matchValues[0].max_maps != 1 && matchValues[0].season_id != null) {
         // Live update the score.
