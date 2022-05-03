@@ -122,7 +122,7 @@ router.get(
         if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
           await Utils.updatePugStats(
               req.params.match_id,
-              !mapStat.length ? mapStatId : mapStat[0].id,
+              !mapStat.length ? mapStatId.insertId : mapStat[0].id,
               matchRow[0].team1_id,
               matchRow[0].team2_id,
               winner == 1 ? matchRow[0].team1_id : matchRow[0].team2_id
@@ -248,7 +248,7 @@ router.get(
         if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
           await Utils.updatePugStats(
             req.params.match_id,
-            !mapStat.length ? mapStatId : mapStat[0].id,
+            !mapStat.length ? mapStatId.insertId : mapStat[0].id,
             matchRow[0].team1_id,
             matchRow[0].team2_id,
             null
