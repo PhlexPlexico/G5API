@@ -489,7 +489,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
       logoName = checkUser[0].logo;
     }
     if (teamLogo.includes("data:image/png;base64")) {
-      let base64Data = logo.replace(/^data:image\/png;base64,/, "");
+      let base64Data = teamLogo.replace(/^data:image\/png;base64,/, "");
       writeFile(
         "public/img/logos/" + logoName + ".png",
         base64Data,
@@ -498,7 +498,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
           if (err) console.error(err);
         }
       );
-    } else {
+    } else if (teamLogo.includes("data:image/svg+xml;base64")) {
       let base64Data = Buffer.from(teamLogo).toString('base64').replace(/^data:image\/([\w+]+);base64,([\s\S]+)/, "");
       let baseImg = img(Buffer.from(base64Data, 'base64').toString());
       writeFile(
