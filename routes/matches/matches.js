@@ -313,13 +313,14 @@ import config from "config";
 router.get("/", async (req, res, next) => {
   try {
     let sql =
-      "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, " +
-      "team2_score, team1_series_score, team2_series_score, team1_string, team2_string, " +
-      "cancelled, forfeit, start_time, end_time, max_maps, title, skip_veto, private_match, " +
-      "enforce_teams, min_player_ready, season_id, is_pug " +
-      "FROM `match` " +
+      "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, mtch.team1_score, " +
+      "mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, mtch.team1_string, mtch.team2_string, " +
+      "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, " +
+      "mtch.enforce_teams, mtch.min_player_ready, mtch.season_id, mtch.is_pug, usr.name as owner, mp.team1_score as team1_mapscore, mp.team2_score as team2_mapscore " +
+      "FROM `match` mtch JOIN user usr ON mtch.user_id = usr.id JOIN map_stats mp ON mp.match_id = mtch.id " +
       "WHERE cancelled = 0 " +
       "OR cancelled IS NULL " +
+      "GROUP BY mtch.id " +
       "ORDER BY id DESC";
     const matches = await db.query(sql);
     if (!matches.length) {
@@ -359,7 +360,9 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let sql = "SELECT * FROM `match` WHERE user_id = ? ORDER BY id DESC";
+    let sql = "SELECT mtch.*, usr.name as owner FROM `match` mtch " + 
+              "JOIN user usr ON mtch.user_id = usr.id " +
+              "WHERE user_id = ? ORDER BY id DESC";
     const matches = await db.query(sql, [req.user.id]);
     if (!matches.length) {
       res.status(404).json({ message: "No matches found." });
@@ -371,6 +374,7 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
     res.status(500).json({ message: err.toString() });
   }
 });
+
 
 /**
  * @swagger
