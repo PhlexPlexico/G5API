@@ -104,11 +104,12 @@ import fetch from "node-fetch";
 router.get("/", async (req, res) => {
   try {
     let sql =
-      "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+      "SELECT usr.name as owner, t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
       "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
       "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": \"', ta.captain, '\"}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
       "FROM team t LEFT OUTER JOIN team_auth_names ta " +
-      "ON t.id = ta.team_id " +
+      "ON t.id = ta.team_id JOIN user usr " + 
+      "ON usr.id = t.user_id " +
       "GROUP BY t.id " +
       "ORDER BY t.id DESC";
     const teams = await db.query(sql);
@@ -157,11 +158,12 @@ router.get("/", async (req, res) => {
 router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
   try {
     let sql =
-      "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+      "SELECT usr.name as owner, t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
       "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
       "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": ', ta.captain, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
       "FROM team t LEFT OUTER JOIN team_auth_names ta " +
-      "ON t.id = ta.team_id " +
+      "ON t.id = ta.team_id  JOIN user usr " + 
+      "ON usr.id = t.user_id " +
       "WHERE t.user_id = ? " +
       "GROUP BY t.id " + 
       "ORDER BY t.id DESC";
