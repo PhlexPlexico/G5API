@@ -388,7 +388,7 @@ class Utils {
    */
   static async updatePugStats(match_id, map_id, team1_id, team2_id, winner, deleteTeams = true) {
     let teamAuthSql =
-      "SELECT GROUP_CONCAT(CONCAT('\"', ta.auth, '\"')) as auth_name, GROUP_CONCAT(CONCAT('\"', ta.name, '\"')) as name FROM team_auth_names ta WHERE team_id = ?";
+      "SELECT GROUP_CONCAT(ta.auth) as auth_name, GROUP_CONCAT(CONCAT('\"', ta.name, '\"')) as name FROM team_auth_names ta WHERE team_id = ?";
     let pugTeamNameSql = "SELECT name FROM team WHERE id = ?";
     let playerStatUpdateSql = "UPDATE player_stats SET team_name = ?, winner = ? WHERE match_id = ? AND steam_id IN (?)";
     let pugSql =
@@ -420,7 +420,7 @@ class Utils {
       let teamNameOneList = teamOneAuths[0].name.split(",");
       let teamNameTwoList = teamTwoAuths[0].name.split(",");
       playerStatUpdateSql = "INSERT INTO player_stats SET ?";
-      for ([idx, auth] in teamAuthListOne) {
+      for (let [idx, auth] of teamAuthListOne.entries()) {
         insertObj = {
           match_id: match_id,
           map_id: map_id,
@@ -431,7 +431,7 @@ class Utils {
         };
       }
       await db.query(playerStatUpdateSql, [insertObj]);
-      for ([idx, auth] in teamAuthTwoList) {
+      for (let [idx, auth] of teamAuthTwoList.entries()) {
         insertObj = {
           match_id: match_id,
           map_id: map_id,

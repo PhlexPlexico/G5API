@@ -90,6 +90,7 @@ router.get(
           winner: teamIdWinner,
           team1_score: req.params.winner_id == 1 ? 16 : 0,
           team2_score: req.params.winner_id == 2 ? 16 : 0,
+          match_id: req.params.match_id,
         };
         let matchUpdateStmt = {
           team1_score: req.params.winner_id == 1 ? 1 : 0,
@@ -125,7 +126,7 @@ router.get(
               !mapStat.length ? mapStatId.insertId : mapStat[0].id,
               matchRow[0].team1_id,
               matchRow[0].team2_id,
-              winner == 1 ? matchRow[0].team1_id : matchRow[0].team2_id
+              teamIdWinner == 1 ? matchRow[0].team1_id : matchRow[0].team2_id
             );
         }
         let getServerSQL =

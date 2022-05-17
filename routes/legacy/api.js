@@ -221,11 +221,25 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
 
     // Check if we are pugging.
     if (matchValues[0].is_pug != null && matchValues[0].is_pug == 1) {
-      let mapStatIdSql = "SELECT id FROM map_stats WHERE match_id = ? ORDER BY map_number desc";
-      const finalMap = await db.query(mapStatIdSql, [matchID]);
+      let mapStatIdSql =
+        "SELECT id FROM map_stats WHERE match_id = ? ORDER BY map_number desc";
+      const finalMapStat = await db.query(mapStatIdSql, [matchID]);
+      let newMapStat;
+      if (!finalMapStat.length) {
+        let newMapStatStmt = {
+          start_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+          end_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+          winner: null,
+          team1_score: 0,
+          team2_score: 0,
+          match_id: matchID,
+        };
+        mapStatIdSql = "INSERT map_stats SET ?";
+        newMapStat = await db.query(mapStatIdSql, [newMapStatStmt]);
+      }
       await Utils.updatePugStats(
         matchID,
-        finalMap[0].id,
+        !finalMapStat.length ? newMapStat.insertId : finalMapStat[0].id,
         matchValues[0].team1_id,
         matchValues[0].team2_id,
         teamIdWinner
@@ -1163,7 +1177,7 @@ router.post(
       if (matchValues[0].is_pug != null && matchValues[0].is_pug == 1) {
         await Utils.updatePugStats(
           matchID,
-          mapNum,
+          mapStatValues[0].id,
           matchValues[0].team1_id,
           matchValues[0].team2_id,
           teamIdWinner,
