@@ -399,24 +399,24 @@ class Utils {
     const teamNameTwo = await db.query(pugTeamNameSql, [team2_id]);
     const teamTwoAuths = await db.query(teamAuthSql, [team2_id]);
     const doPlayerStatsExist = await db.query(playerStatCheckExistsSql, [match_id, map_id]);
+    const teamAuthListOne = teamOneAuths[0].auth_name.split(",");
+    const teamAuthTwoList = teamTwoAuths[0].auth_name.split(",");
     // Check to see if player stats already exist.
     if (doPlayerStatsExist[0].cnt && doPlayerStatsExist[0].cnt > 0) {
       await db.query(playerStatUpdateSql, [
         teamNameOne[0].name,
         winner == team1_id ? 1 : 0,
         match_id,
-        teamOneAuths[0].auth_name
+        teamAuthListOne
       ]);
       await db.query(playerStatUpdateSql, [
         teamNameTwo[0].name,
         winner == team2_id ? 1 : 0,
         match_id,
-        teamTwoAuths[0].auth_name
+        teamAuthTwoList
       ]);
     } else {
       let insertObj = {};
-      let teamAuthListOne = teamOneAuths[0].auth_name.split(",");
-      let teamAuthTwoList = teamTwoAuths[0].auth_name.split(",");
       let teamNameOneList = teamOneAuths[0].name.split(",");
       let teamNameTwoList = teamTwoAuths[0].name.split(",");
       playerStatUpdateSql = "INSERT INTO player_stats SET ?";
