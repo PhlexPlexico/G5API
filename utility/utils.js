@@ -390,7 +390,7 @@ class Utils {
     let teamAuthSql =
       "SELECT GROUP_CONCAT(ta.auth) as auth_name, GROUP_CONCAT(CONCAT('\"', ta.name, '\"')) as name FROM team_auth_names ta WHERE team_id = ?";
     let pugTeamNameSql = "SELECT name FROM team WHERE id = ?";
-    let playerStatUpdateSql = "UPDATE player_stats SET team_name = ?, winner = ? WHERE match_id = ? AND steam_id IN (?)";
+    let playerStatUpdateSql = "UPDATE player_stats SET team_name = ?, winner = ? WHERE match_id = ? AND map_id = ? AND steam_id IN (?)";
     let pugSql =
       "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
     let playerStatCheckExistsSql = "SELECT COUNT(*) as cnt FROM player_stats WHERE match_id = ? AND map_id = ?";
@@ -399,24 +399,26 @@ class Utils {
     const teamNameTwo = await db.query(pugTeamNameSql, [team2_id]);
     const teamTwoAuths = await db.query(teamAuthSql, [team2_id]);
     const doPlayerStatsExist = await db.query(playerStatCheckExistsSql, [match_id, map_id]);
+    const teamAuthListOne = teamOneAuths[0].auth_name.split(",");
+    const teamAuthTwoList = teamTwoAuths[0].auth_name.split(",");
     // Check to see if player stats already exist.
     if (doPlayerStatsExist[0].cnt && doPlayerStatsExist[0].cnt > 0) {
       await db.query(playerStatUpdateSql, [
         teamNameOne[0].name,
         winner == team1_id ? 1 : 0,
         match_id,
-        teamOneAuths[0].auth_name
+        map_id,
+        teamAuthListOne
       ]);
       await db.query(playerStatUpdateSql, [
         teamNameTwo[0].name,
         winner == team2_id ? 1 : 0,
         match_id,
-        teamTwoAuths[0].auth_name
+        map_id,
+        teamAuthTwoList
       ]);
     } else {
       let insertObj = {};
-      let teamAuthListOne = teamOneAuths[0].auth_name.split(",");
-      let teamAuthTwoList = teamTwoAuths[0].auth_name.split(",");
       let teamNameOneList = teamOneAuths[0].name.split(",");
       let teamNameTwoList = teamTwoAuths[0].name.split(",");
       playerStatUpdateSql = "INSERT INTO player_stats SET ?";
