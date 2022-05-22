@@ -370,6 +370,12 @@
      JOIN player_stats pstat ON mtch.id = pstat.match_id 
      WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?
      AND is_pug = ?`;
+   if (pug) {
+     winSql = `SELECT COUNT(*) AS wins FROM \`match\` mtch 
+     JOIN player_stats pstat ON mtch.id = pstat.match_id 
+     WHERE pstat.steam_id = ? AND pstat.winner = 1 
+     AND is_pug = ?`;
+   }
    let winSqlSeasons = `SELECT COUNT(*) AS wins FROM \`match\` mtch 
      JOIN player_stats pstat ON mtch.id = pstat.match_id 
      WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?

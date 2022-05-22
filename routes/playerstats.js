@@ -307,24 +307,19 @@ router.get("/:steam_id/pug", async (req, res, next) => {
           sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
           sum(v2) as v2, sum(v3) as v3, sum(v4) as v4,
           sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba,
-          sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps
+          sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps,
+          sum(winner) as wins 
           FROM player_stats where steam_id = ?
           AND match_id IN (
            SELECT  id
            FROM    \`match\`
            WHERE   cancelled=0
            AND     is_pug=1)`;
-    let winSql = `SELECT COUNT(*) AS wins FROM \`match\` mtch 
-          JOIN player_stats pstat ON mtch.id = pstat.match_id 
-          WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?
-          AND is_pug = 1`;
-    let numWins;
     let playerstats = await db.query(sql, steamID);
     if (!playerstats.length) {
       res.status(404).json({ message: "No stats found for player " + steamID });
       return;
     }
-    numWins = await db.query(winSql, [playerstats[0].steam_id]);
     let pugstats = {
       steamId: playerstats[0].steam_id,
       name:
@@ -366,7 +361,7 @@ router.get("/:steam_id/pug", async (req, res, next) => {
         parseFloat(playerstats[0].k4),
         parseFloat(playerstats[0].k5)
       ),
-      wins: numWins[0].wins,
+      wins: playerstats[0].wins,
       total_maps: playerstats[0].totalMaps,
     };
     res.json({ pugstats });

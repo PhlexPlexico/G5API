@@ -5,8 +5,8 @@
 /** AES Module for Encryption/Decryption
  * @const
  */
- import pkg from 'aes-js';
- const { utils, ModeOfOperation } = pkg;
+import pkg from 'aes-js';
+const { utils, ModeOfOperation } = pkg;
 
 /** Crypto for assigning random  */
 import { randomBytes } from "crypto";
@@ -27,6 +27,7 @@ const SteamAPI = new SteamURLResolver(config.get("server.steamAPIKey"));
 import { ID } from "@node-steam/id";
 
 import db from "../db.js";
+import { match } from 'assert';
 
 class Utils {
   /** Function to get an HLTV rating for a user.
@@ -260,7 +261,7 @@ class Utils {
     try {
       let summaryInfo = await SteamAPI.getUserSummary(auth64);
       return summaryInfo.avatar.medium;
-    } catch { 
+    } catch {
       return null;
     }
   }
@@ -276,12 +277,12 @@ class Utils {
    * @param {boolean} [serverCheck = false] - Optional parameter to check if a user owns a server, for elevated calls.
    * @returns An object containing the HTTP error, followed by a message.
    */
-   static async getUserMatchAccess(matchid, user, onlyAdmin = false, serverCheck = false) {
+  static async getUserMatchAccess(matchid, user, onlyAdmin = false, serverCheck = false) {
     try {
       let retMessage = null;
 
       retMessage = await this.getUserMatchAccessNoFinalize(matchid, user, onlyAdmin, serverCheck);
-      if(retMessage != null)
+      if (retMessage != null)
         return retMessage;
 
 
@@ -292,7 +293,7 @@ class Utils {
         matchRow[0].forfeit == 1 ||
         matchRow[0].end_time != null
       ) {
-        retMessage = {status: 422, message: "Match is already finished."};
+        retMessage = { status: 422, message: "Match is already finished." };
       }
       return retMessage;
     } catch (err) {
@@ -311,20 +312,20 @@ class Utils {
    * @param {boolean} [serverCheck = false] - Optional parameter to check if a user owns a server, for elevated calls.
    * @returns An object containing the HTTP error, followed by a message.
    */
-   static async getUserMatchAccessNoFinalize(matchid, user, onlyAdmin = false, serverCheck = false) {
+  static async getUserMatchAccessNoFinalize(matchid, user, onlyAdmin = false, serverCheck = false) {
     try {
       let adminCheck = onlyAdmin ? this.adminCheck(user) : this.superAdminCheck(user);
       let retMessage = null;
       retMessage = await this.checkIfMatchExists(matchid);
 
-      if(retMessage != null)
+      if (retMessage != null)
         return retMessage;
 
 
       let currentMatchInfo = "SELECT user_id, server_id FROM `match` WHERE id = ?";
       let currentServerInfo = "SELECT user_id FROM game_server WHERE id = ?"
       const matchRow = await db.query(currentMatchInfo, matchid);
-      
+
       // If no server exists no need to check for info.
       if (!matchRow[0].server_id) return retMessage;
 
@@ -333,14 +334,14 @@ class Utils {
         matchRow[0].user_id != user.id &&
         !adminCheck
       ) {
-        retMessage = {status: 403, message: "User is not authorized to perform action."};
+        retMessage = { status: 403, message: "User is not authorized to perform action." };
       }
       if (serverCheck) {
         if (
-          !this.superAdminCheck(user) && 
+          !this.superAdminCheck(user) &&
           serverRow[0].user_id != user.id
         ) {
-          retMessage = {status: 403, message: "User is not authorized to perform action."};
+          retMessage = { status: 403, message: "User is not authorized to perform action." };
         }
       }
       return retMessage;
@@ -360,19 +361,105 @@ class Utils {
   static async checkIfMatchExists(matchid) {
     try {
       if (matchid == null) {
-        return {status: 400, message: "Match ID Not Provided"};
+        return { status: 400, message: "Match ID Not Provided" };
       }
-      
+
       let currentMatchInfo = "SELECT id FROM `match` WHERE id = ?";
       const matchRow = await db.query(currentMatchInfo, matchid);
       if (!matchRow.length) {
-        return {status: 404, message: "No match found."};
+        return { status: 404, message: "No match found." };
       }
     } catch (err) {
       throw err;
     }
     return null;
   }
+
+  /** Updates the tables accordingly if match was a PUG.
+   * @function
+   * @memberof module:utils
+   * @inner
+   * @name updatePugStats
+   * @param {Number} matchid The ID of a match.
+   * @param {Number} map_id The ID of a map in a match.
+   * @param {Number} team1_id The internal ID of team 1.
+   * @param {Number} team2_id The internal ID of team 2.
+   * @param {Number} winner The internal ID of the winning team.
+   */
+  static async updatePugStats(match_id, map_id, team1_id, team2_id, winner, deleteTeams = true) {
+    let teamAuthSql =
+      "SELECT GROUP_CONCAT(ta.auth) as auth_name, GROUP_CONCAT(CONCAT('\"', ta.name, '\"')) as name FROM team_auth_names ta WHERE team_id = ?";
+    let pugTeamNameSql = "SELECT name FROM team WHERE id = ?";
+    let playerStatUpdateSql = "UPDATE player_stats SET team_name = ?, winner = ? WHERE match_id = ? AND map_id = ? AND steam_id IN (?)";
+    let pugSql =
+      "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
+    let playerStatCheckExistsSql = "SELECT COUNT(*) as cnt FROM player_stats WHERE match_id = ? AND map_id = ?";
+    const teamNameOne = await db.query(pugTeamNameSql, [team1_id]);
+    const teamOneAuths = await db.query(teamAuthSql, [team1_id]);
+    const teamNameTwo = await db.query(pugTeamNameSql, [team2_id]);
+    const teamTwoAuths = await db.query(teamAuthSql, [team2_id]);
+    const doPlayerStatsExist = await db.query(playerStatCheckExistsSql, [match_id, map_id]);
+    const teamAuthListOne = teamOneAuths[0].auth_name.split(",");
+    const teamAuthTwoList = teamTwoAuths[0].auth_name.split(",");
+    // Check to see if player stats already exist.
+    if (doPlayerStatsExist[0].cnt && doPlayerStatsExist[0].cnt > 0) {
+      await db.query(playerStatUpdateSql, [
+        teamNameOne[0].name,
+        winner == team1_id ? 1 : 0,
+        match_id,
+        map_id,
+        teamAuthListOne
+      ]);
+      await db.query(playerStatUpdateSql, [
+        teamNameTwo[0].name,
+        winner == team2_id ? 1 : 0,
+        match_id,
+        map_id,
+        teamAuthTwoList
+      ]);
+    } else {
+      let insertObj = {};
+      let teamNameOneList = teamOneAuths[0].name.split(",");
+      let teamNameTwoList = teamTwoAuths[0].name.split(",");
+      playerStatUpdateSql = "INSERT INTO player_stats SET ?";
+      for (let [idx, auth] of teamAuthListOne.entries()) {
+        insertObj = {
+          match_id: match_id,
+          map_id: map_id,
+          team_name: teamNameOne[0].name,
+          steam_id: auth,
+          name: teamNameOneList[idx],
+          winner: winner == team1_id ? 1 : 0
+        };
+      }
+      await db.query(playerStatUpdateSql, [insertObj]);
+      for (let [idx, auth] of teamAuthTwoList.entries()) {
+        insertObj = {
+          match_id: match_id,
+          map_id: map_id,
+          team_name: teamNameTwo[0].name,
+          steam_id: auth,
+          name: teamNameTwoList[idx],
+          winner: winner == team2_id ? 1 : 0
+        };
+      }
+      await db.query(playerStatUpdateSql, [insertObj]);
+    }
+    if (deleteTeams) {
+      await db.query(pugSql, [
+        team1_id,
+        team2_id,
+      ]);
+      pugSql = "DELETE FROM team WHERE id = ? OR id = ?";
+      await db.query(pugSql, [
+        team1_id,
+        team2_id,
+      ]);
+    }
+
+    return;
+  }
 }
+
 
 export default Utils;
