@@ -36,7 +36,7 @@ jobs:
           file: Dockerfile
           #TODO: Fix GitHub Actions Building?
           #platforms: linux/arm/v7,linux/amd64
-          platforms: linux/amd64,linux/arm/v7,linux/arm/v8,linux/arm64/v8
+          platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
           push: true
           tags: |
             ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:latest
