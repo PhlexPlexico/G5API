@@ -86,7 +86,7 @@
     "passport": "^0.5.2",
     "passport-local": "^1.0.0",
     "passport-steam": "^1.0.17",
-    "pm2": "^5.1.2",
+    "pm2": "^5.2.0",
     "randomstring": "^1.1.5",
     "rcon": "^1.0.3",
     "redis": "^4.0.2",
