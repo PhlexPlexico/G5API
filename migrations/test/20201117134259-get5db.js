@@ -16,15 +16,11 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.addColumn('match', 'players_per_team',  { type: 'int', defaultValue: 5, notNull: true })
-  ], callback());
+  return db.addColumn('match', 'players_per_team',  { type: 'int', defaultValue: 5, notNull: true });
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    db.removeColumn('match', 'players_per_team')
-  ], callback());
+  return db.removeColumn('match', 'players_per_team');
 };
 
 exports._meta = {

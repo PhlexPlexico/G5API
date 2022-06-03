@@ -16,15 +16,11 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.addColumn('game_server', 'flag',  { type: 'string', length: 4 })
-  ], callback());
+  return db.addColumn('game_server', 'flag',  { type: 'string', length: 4 });
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    db.removeColumn('game_server', 'flag')
-  ], callback());
+  return db.removeColumn('game_server', 'flag');
 };
 
 exports._meta = {

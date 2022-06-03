@@ -16,17 +16,17 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.addColumn('user', 'api_key',  { type: 'string', length: 170, unique: true }),
-    db.addColumn('match', 'is_pug', { type: 'boolean', defaultValue: false })
-  ], callback());
+  return db.addColumn('user', 'api_key',  { type: 'string', length: 170, unique: true })
+  .then(() => {
+    return db.addColumn('match', 'is_pug', { type: 'boolean', defaultValue: false })
+  });
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    db.removeColumn('user', 'api_key'),
-    db.removeColumn('match', 'is_pug')
-  ], callback());
+  return db.removeColumn('user', 'api_key')
+  .then(() => {
+    return db.removeColumn('match', 'is_pug');
+  });
 };
 
 exports._meta = {

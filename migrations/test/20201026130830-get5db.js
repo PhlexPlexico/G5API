@@ -16,15 +16,11 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.addColumn('team_auth_names', 'captain',  { type: 'boolean', defaultValue: false, notNull: true })
-  ], callback());
+  return db.addColumn('team_auth_names', 'captain',  { type: 'boolean', defaultValue: false, notNull: true });
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    db.removeColumn('team_auth_names', 'captain')
-  ], callback());
+  return db.removeColumn('team_auth_names', 'captain');
 };
 
 exports._meta = {

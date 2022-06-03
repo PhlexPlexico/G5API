@@ -16,15 +16,11 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.runSql('ALTER TABLE player_stats ADD COLUMN team_name varchar(64) AFTER mvp;')
-  ], callback());
+  return db.runSql('ALTER TABLE player_stats ADD COLUMN team_name varchar(64) AFTER mvp;');
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    db.removeColumn('player_stats', 'team_name'),
-  ], callback());
+  return db.removeColumn('player_stats', 'team_name');
 };
 
 exports._meta = {

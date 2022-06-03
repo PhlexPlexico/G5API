@@ -16,33 +16,29 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.createTable('season_cvar', {
-      id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11 },
-      season_id: {
-        type: 'int', 
-        foreignKey: {
-          name: 'season_id_season_cvar_fk',
-          table: 'season',
-          rules: {
-            onDelete: 'SET NULL',
-            onUpdate: 'RESTRICT'
-          },
-          mapping: 'id'
+  return db.createTable('season_cvar', {
+    id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11 },
+    season_id: {
+      type: 'int', 
+      foreignKey: {
+        name: 'season_id_season_cvar_fk',
+        table: 'season',
+        rules: {
+          onDelete: 'SET NULL',
+          onUpdate: 'RESTRICT'
         },
-        length: 11,
-        notNull: false 
+        mapping: 'id'
       },
-      cvar_name: { type: 'string', length: 150 },
-      cvar_value: { type: 'string', length: 150 }
-    })
-  ], callback());
+      length: 11,
+      notNull: false 
+    },
+    cvar_name: { type: 'string', length: 150 },
+    cvar_value: { type: 'string', length: 150 }
+  });
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    db.dropTable('season_cvar')
-  ], callback());
+  return db.dropTable('season_cvar');
 };
 
 exports._meta = {

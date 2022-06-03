@@ -16,34 +16,30 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.createTable('match_pause', {
-      id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11 },
-      match_id: {
-        type: 'int', 
-        foreignKey: {
-          name: 'match_id_match_pause_fk',
-          table: 'match',
-          rules: {
-            onDelete: 'CASCADE',
-            onUpdate: 'RESTRICT'
-          },
-          mapping: 'id'
+  return db.createTable('match_pause', {
+    id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11 },
+    match_id: {
+      type: 'int', 
+      foreignKey: {
+        name: 'match_id_match_pause_fk',
+        table: 'match',
+        rules: {
+          onDelete: 'CASCADE',
+          onUpdate: 'RESTRICT'
         },
-        length: 11,
-        notNull: false 
+        mapping: 'id'
       },
-      pause_type: { type: 'string', length: 10 },
-      team_paused: { type: 'string', length: 40 },
-      paused: {type: 'boolean', notNull: false, default: true }
-    })
-  ], callback());
+      length: 11,
+      notNull: false 
+    },
+    pause_type: { type: 'string', length: 10 },
+    team_paused: { type: 'string', length: 40 },
+    paused: {type: 'boolean', notNull: false, default: true }
+  });
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    db.dropTable('match_pause')
-  ], callback());
+  return db.dropTable('match_pause');
 };
 exports._meta = {
   "version": 17

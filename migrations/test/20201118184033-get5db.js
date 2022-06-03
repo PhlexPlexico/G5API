@@ -16,15 +16,11 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.addColumn('player_stats', 'winner',  { type: 'boolean', defaultValue: 0, notNull: true })
-  ], callback());
+  return db.addColumn('player_stats', 'winner',  { type: 'boolean', defaultValue: 0, notNull: true });
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    db.removeColumn('player_stats', 'winner')
-  ], callback());
+  return db.removeColumn('player_stats', 'winner');
 };
 
 exports._meta = {

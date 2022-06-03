@@ -16,15 +16,11 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.runSql('ALTER TABLE match_spectator ADD COLUMN spectator_name varchar(40) AFTER auth;')
-  ], callback());
+    return db.runSql('ALTER TABLE match_spectator ADD COLUMN spectator_name varchar(40) AFTER auth;');
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    db.removeColumn('match_spectator', 'spectator_name'),
-  ], callback());
+    return db.removeColumn('match_spectator', 'spectator_name');
 };
 exports._meta = {
   "version": 16

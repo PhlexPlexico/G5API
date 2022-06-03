@@ -16,17 +16,18 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.addColumn('player_stats', 'kast',  { type: 'int', length: 5 }),
-    db.addColumn('player_stats', 'contribution_score',  { type: 'int', length: 5 })
-  ], callback());
+  return db.addColumn('player_stats', 'kast',  { type: 'int', length: 5 })
+  .then(() => {
+    return db.addColumn('player_stats', 'contribution_score',  { type: 'int', length: 5 });
+  });
+
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    db.removeColumn('player_stats', 'kast'),
-    db.removeColumn('player_stats', 'contribution_score')
-  ], callback());
+  return db.removeColumn('player_stats', 'kast')
+  .then(() => {
+    return db.removeColumn('player_stats', 'contribution_score');
+  });
 };
 
 exports._meta = {

@@ -16,33 +16,29 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.createTable('match_cvar', {
-      id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11 },
-      match_id: {
-        type: 'int', 
-        foreignKey: {
-          name: 'match_id_match_cvar_fk',
-          table: 'match',
-          rules: {
-            onDelete: 'CASCADE',
-            onUpdate: 'RESTRICT'
-          },
-          mapping: 'id'
+  return db.createTable('match_cvar', {
+    id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11 },
+    match_id: {
+      type: 'int', 
+      foreignKey: {
+        name: 'match_id_match_cvar_fk',
+        table: 'match',
+        rules: {
+          onDelete: 'CASCADE',
+          onUpdate: 'RESTRICT'
         },
-        length: 11,
-        notNull: false 
+        mapping: 'id'
       },
-      cvar_name: { type: 'string', length: 150 },
-      cvar_value: { type: 'string', length: 150 }
-    })
-  ], callback());
+      length: 11,
+      notNull: false 
+    },
+    cvar_name: { type: 'string', length: 150 },
+    cvar_value: { type: 'string', length: 150 }
+  });
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    db.dropTable('match_cvar')
-  ], callback());
+  return db.dropTable('match_cvar');
 };
 
 exports._meta = {

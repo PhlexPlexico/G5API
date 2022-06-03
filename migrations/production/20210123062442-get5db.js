@@ -16,15 +16,11 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.addColumn('match', 'min_spectators_to_ready',  { type: 'int', defaultValue: 0 })
-  ], callback());
+  return db.addColumn('match', 'min_spectators_to_ready',  { type: 'int', defaultValue: 0 });
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    db.removeColumn('match', 'min_spectators_to_ready')
-  ], callback());
+  return db.removeColumn('match', 'min_spectators_to_ready');
 };
 
 exports._meta = {

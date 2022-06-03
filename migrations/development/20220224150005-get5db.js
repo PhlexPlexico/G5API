@@ -16,17 +16,13 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.runSql('ALTER TABLE user ADD COLUMN password varchar(170) AFTER api_key;')
-    //db.runSql('ALTER TABLE user ADD COLUMN username varchar(170) UNIQUE AFTER password;')
-  ], callback());
+  return db.runSql('ALTER TABLE user ADD COLUMN password varchar(170) AFTER api_key;')
+    .then(() => {return db.runSql('ALTER TABLE user ADD COLUMN username varchar(170) UNIQUE AFTER password;');});
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    //db.removeColumn('user', 'password'),
-    db.removeColumn('user', 'username')
-  ], callback());
+  return db.removeColumn('user', 'password')
+    .then(() => {return db.removeColumn('user', 'username');});
 };
 exports._meta = {
   "version": 18

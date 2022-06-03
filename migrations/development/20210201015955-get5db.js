@@ -16,35 +16,31 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.createTable('map_list', {
-      id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11 },
-      user_id: {
-        type: 'int', 
-        foreignKey: {
-          name: 'user_id_map_list_fk',
-          table: 'user',
-          rules: {
-            onDelete: 'SET NULL',
-            onUpdate: 'RESTRICT'
-          },
-          mapping: 'id'
+  return db.createTable('map_list', {
+    id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11 },
+    user_id: {
+      type: 'int', 
+      foreignKey: {
+        name: 'user_id_map_list_fk',
+        table: 'user',
+        rules: {
+          onDelete: 'SET NULL',
+          onUpdate: 'RESTRICT'
         },
-        length: 11,
-        notNull: false
+        mapping: 'id'
       },
-      map_name: { type: 'string', length: 32, notNull: true, defaultValue: ''},
-      map_display_name: { type: 'string', length: 32, notNull: true, defaultValue: ''},
-      enabled: { type: 'boolean', defaultValue: true, notNull: true},
-      inserted_at: { type: 'datetime', defaultValue: new String('now()'), notNull: true },
-    })
-  ], callback());
+      length: 11,
+      notNull: false
+    },
+    map_name: { type: 'string', length: 32, notNull: true, defaultValue: ''},
+    map_display_name: { type: 'string', length: 32, notNull: true, defaultValue: ''},
+    enabled: { type: 'boolean', defaultValue: true, notNull: true},
+    inserted_at: { type: 'datetime', defaultValue: new String('now()'), notNull: true },
+  });
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    db.dropTable('map_list')
-  ], callback());
+  return db.dropTable('map_list');
 };
 
 exports._meta = {

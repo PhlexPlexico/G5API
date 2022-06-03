@@ -16,9 +16,9 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db, callback) {
-  async.series([
-    db.addColumn('game_server', 'gotv_port',  { type: 'int', defaultValue: null }),
-    db.createTable('veto_side', {
+  return db.addColumn('game_server', 'gotv_port',  { type: 'int', defaultValue: null })
+  .then(() => {
+    return db.createTable('veto_side', {
       id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11 },
       veto_id: {
         type: 'int', 
@@ -51,15 +51,13 @@ exports.up = function(db, callback) {
       team_name: { type: 'string', length: 64, notNull: true },
       map: { type: 'string', length: 32, notNull: true },
       side: { type: 'string', length: 10, notNull: true },
-    })
-  ], callback());
+    });
+  });
 };
 
 exports.down = function(db, callback) {
-  async.series([
-    db.removeColumn('game_server', 'gotv_port'),
-    db.dropTable('veto_side')
-  ], callback());
+  return db.removeColumn('game_server', 'gotv_port')
+  .then(() => {return db.dropTable('veto_side')});
 };
 
 exports._meta = {
