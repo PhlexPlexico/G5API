@@ -6,8 +6,8 @@ branches:
 node_js:
   - 16.5.0
   
-services:
-  - mysql
+addons:
+  mariadb: '10.3.34'
 
 before_install:
   - mysql -e 'CREATE USER 'get5'@'localhost'; GRANT ALL PRIVILEGES ON *.* TO 'get5'@'localhost'; CREATE DATABASE get5test'
