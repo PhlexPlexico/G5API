@@ -59,28 +59,6 @@ const basicRateLimit = rateLimit({
   },
 });
 
-/** Basic Rate limiter if an API key isn't in the body.
- * @const
- */
- const basicRateLimitNoApiKeyBody = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 60,
-  message: "Too many requests from this IP. Please try again in an hour.",
-  keyGenerator: async (req) => {
-    try {
-      const api_key = await db.query(
-        "SELECT api_key FROM `match` WHERE id = ?",
-        req.params.match_id
-      );
-      if (api_key[0].api_key.localeCompare(req.params.api_key))
-        return api_key[0].api_key;
-      else return req.ip;
-    } catch (err) {
-      return req.ip;
-    }
-  },
-});
-
 /** Map Update Rate Limiter.
  * @const
  */
