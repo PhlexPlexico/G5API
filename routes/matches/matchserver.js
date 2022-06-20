@@ -286,6 +286,109 @@ router.get(
 /**
  * @swagger
  *
+ *  /matches/:match_id/restart:
+ *   get:
+ *     description: Restarts the given match, provided it isn't finished and the user has the ability to do so. The user must either own the match or be an admin.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         description: The current matches identification number.
+ *         schema:
+ *            type: integer
+ *
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match response.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+ router.get(
+  "/:match_id/restart/",
+  Utils.ensureAuthenticated,
+  async (req, res, next) => {
+    try {
+      let errMessage = await Utils.getUserMatchAccess(
+        req.params.match_id,
+        req.user,
+        true
+      );
+      if (errMessage != null) {
+        res.status(errMessage.status).json({ message: errMessage.message });
+        return;
+      } else {
+        let currentMatchInfo =
+          "SELECT server_id, team1_id, team2_id, is_pug, api_key FROM `match` WHERE id = ?";
+        const matchRow = await db.query(
+          currentMatchInfo,
+          req.params.match_id
+        );
+        let mapStatSql =
+          "SELECT id FROM map_stats WHERE match_id=? AND map_number=0";
+        const mapStat = await db.query(mapStatSql, [
+          req.params.match_id,
+        ]);
+        let matchUpdateStmt = {
+          start_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+        };
+        if (mapStat.length) {
+          mapStatSql = "DELETE FROM map_stats WHERE match_id = ?";
+          await db.query(mapStatSql, [req.params.match_id]);
+        }
+        let matchSql = "UPDATE `match` SET ? WHERE id=?";
+        await db.query(matchSql, [
+          matchUpdateStmt,
+          req.params.match_id,
+        ]);
+        // Let the server cancel the match first, or attempt to?
+        let getServerSQL =
+          "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
+        if (matchRow[0].server_id != null) {
+          const serverRow = await db.query(getServerSQL, [
+            matchRow[0].server_id,
+          ]);
+          let serverUpdate = new GameServer(
+            serverRow[0].ip_string,
+            serverRow[0].port,
+            serverRow[0].rcon_password
+          );
+          if (!serverUpdate.endGet5Match()) {
+            console.log(
+              "Error attempting to stop match on game server side. Will continue."
+            );
+          }
+          let decApiKey = Utils.decrypt(matchRow[0].api_key);
+          await serverUpdate.prepareGet5Match(
+            config.get("server.apiURL") +
+            "/matches/" +
+            req.params.match_id +
+            "/config",
+            decApiKey
+          )
+        }
+        res.json({ message: "Match has been restarted successfully." });
+        return;
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Error on game server.", response: err });
+    }
+  }
+);
+
+/**
+ * @swagger
+ *
  *  /matches/:match_id/rcon:
  *   put:
  *     description: Sends out an RCON Command to the server, and returns the response if retrieved. Super admins can only use this, as you can retrieve RCON Passwords using this.
