@@ -334,7 +334,7 @@ router.get(
           req.params.match_id
         );
         let mapStatSql =
-          "SELECT id FROM map_stats WHERE match_id=? AND map_number=0";
+          "SELECT id FROM map_stats WHERE match_id=?";
         const mapStat = await db.query(mapStatSql, [
           req.params.match_id,
         ]);
