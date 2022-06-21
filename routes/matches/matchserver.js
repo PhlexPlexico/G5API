@@ -13,6 +13,8 @@ import Utils from "../../utility/utils.js";
 
 import GameServer from "../../utility/serverrcon.js";
 
+import config from "config";
+
 /**
  * @swagger
  *
@@ -313,7 +315,7 @@ router.get(
  *       403:
  *         $ref: '#/components/responses/Unauthorized'
  */
- router.get(
+router.get(
   "/:match_id/restart/",
   Utils.ensureAuthenticated,
   async (req, res, next) => {
@@ -340,16 +342,13 @@ router.get(
         ]);
         let matchUpdateStmt = {
           start_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+          cancelled: 0,
+          end_time: null
         };
         if (mapStat.length) {
           mapStatSql = "DELETE FROM map_stats WHERE match_id = ?";
           await db.query(mapStatSql, [req.params.match_id]);
         }
-        let matchSql = "UPDATE `match` SET ? WHERE id=?";
-        await db.query(matchSql, [
-          matchUpdateStmt,
-          req.params.match_id,
-        ]);
         // Let the server cancel the match first, or attempt to?
         let getServerSQL =
           "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
@@ -362,19 +361,23 @@ router.get(
             serverRow[0].port,
             serverRow[0].rcon_password
           );
-          if (!serverUpdate.endGet5Match()) {
+          if (!await serverUpdate.endGet5Match()) {
             console.log(
               "Error attempting to stop match on game server side. Will continue."
             );
           }
-          let decApiKey = Utils.decrypt(matchRow[0].api_key);
           await serverUpdate.prepareGet5Match(
             config.get("server.apiURL") +
             "/matches/" +
             req.params.match_id +
             "/config",
-            decApiKey
-          )
+            matchRow[0].api_key
+          );
+          let matchSql = "UPDATE `match` SET ? WHERE id=?";
+          await db.query(matchSql, [
+            matchUpdateStmt,
+            req.params.match_id,
+          ]);
         }
         res.json({ message: "Match has been restarted successfully." });
         return;
