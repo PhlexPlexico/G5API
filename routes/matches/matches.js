@@ -294,6 +294,14 @@ import config from "config";
  *     description: Get all match data from the application.
  *     produces:
  *       - application/json
+ *     parameters:
+ *       - in: query
+ *         name: asc
+ *         description: Whether to have values in descending order. Defaults to true.
+ *         required: false
+ *         schema:
+ *          type: boolean
+ *          default: true
  *     tags:
  *       - matches
  *     responses:
@@ -312,12 +320,13 @@ import config from "config";
  */
 router.get("/", async (req, res, next) => {
   try {
-    let sql =
+    let isAscending = req.query?.asc == null ? false : req.query.asc;
+    let sql = 
       "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, mtch.team1_score, " +
       "mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, mtch.team1_string, mtch.team2_string, " +
       "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, " +
       "mtch.enforce_teams, mtch.min_player_ready, mtch.season_id, mtch.is_pug, usr.name as owner, mp.team1_score as team1_mapscore, mp.team2_score as team2_mapscore " +
-      "FROM `match` mtch JOIN user usr ON mtch.user_id = usr.id JOIN map_stats mp ON mp.match_id = mtch.id " +
+      "FROM `match` mtch JOIN user usr ON mtch.user_id = usr.id LEFT JOIN map_stats mp ON mp.match_id = mtch.id " +
       "WHERE cancelled = 0 " +
       "OR cancelled IS NULL " +
       "GROUP BY mtch.id " +
@@ -327,7 +336,11 @@ router.get("/", async (req, res, next) => {
       res.status(404).json({ message: "No matches found." });
       return;
     }
-    res.json({ matches });
+    if (isAscending) {
+      res.json({ matches: matches.reverse() });
+    } else {
+      res.json({ matches });
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.toString() });
@@ -342,6 +355,14 @@ router.get("/", async (req, res, next) => {
  *     description: Set of matches from the logged in user.
  *     produces:
  *       - application/json
+ *     parameters:
+ *       - in: query
+ *         name: asc
+ *         description: Whether to have values in descending order. Defaults to true.
+ *         required: false
+ *         schema:
+ *          type: boolean
+ *          default: true
  *     tags:
  *       - matches
  *     responses:
@@ -360,6 +381,7 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
+    let isAscending = req.query?.asc == null ? false : req.query.asc;
     let sql = "SELECT mtch.*, usr.name as owner FROM `match` mtch " + 
               "JOIN user usr ON mtch.user_id = usr.id " +
               "WHERE user_id = ? ORDER BY id DESC";
@@ -368,7 +390,12 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(404).json({ message: "No matches found." });
       return;
     }
-    res.json({ matches });
+    if (isAscending) {
+      res.json({ matches: matches.reverse() });
+    } else {
+      res.json({ matches });
+    }
+    
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.toString() });

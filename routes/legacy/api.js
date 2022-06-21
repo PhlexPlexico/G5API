@@ -42,11 +42,15 @@ const basicRateLimit = rateLimit({
   message: "Too many requests from this IP. Please try again in an hour.",
   keyGenerator: async (req) => {
     try {
+      let apiKey =
+        req.body?.key == null
+        ? req.params?.api_key
+        : req.body?.key;
       const api_key = await db.query(
         "SELECT api_key FROM `match` WHERE id = ?",
         req.params.match_id
       );
-      if (api_key[0].api_key.localeCompare(req.body.key))
+      if (api_key[0].api_key.localeCompare(apiKey))
         return api_key[0].api_key;
       else return req.ip;
     } catch (err) {
