@@ -1259,7 +1259,9 @@ async function build_team_dict(team, teamNumber, matchData) {
   let teamData = {
     name: team.name,
     tag: team.tag,
-    flag: team.flag.toUpperCase(),
+    flag: team.flag != null
+      ? team.flag.toUpperCase()
+      : '',
     logo: team.logo,
     matchtext: team.matchtext,
     players: normalizedAuths,
