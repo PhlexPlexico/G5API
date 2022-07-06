@@ -36,7 +36,7 @@ services:
       - CADDY_INGRESS_NETWORKS=get5
 
   g5api:
-    build: ghcr.io/phlexplexico/g5api:latest
+    image: ghcr.io/phlexplexico/g5api:latest
     depends_on:
       - get5db
     container_name: G5API
