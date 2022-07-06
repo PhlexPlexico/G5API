@@ -1,6 +1,6 @@
 FROM node:16-alpine
 
-RUN apk add gettext
+RUN apk add gettext python3 build-base
 
 # clone and move into Get5API folder
 WORKDIR /Get5API

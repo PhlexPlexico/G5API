@@ -3,7 +3,7 @@ version: "3.7"
 services:
   redis:
     image: redis:6
-    command: redis-server --requirepass testing
+    command: redis-server --requirepass super_secure_password_change_me
     container_name: redis
     networks:
       - get5
@@ -16,10 +16,10 @@ services:
     networks:
       - get5
     environment:
-      - MYSQL_ROOT_PASSWORD=testing
+      - MYSQL_ROOT_PASSWORD=
       - MYSQL_DATABASE=get5
       - MYSQL_USER=get5
-      - MYSQL_PASSWORD=testing
+      - MYSQL_PASSWORD=
 
   caddy:
     image: lucaslorentz/caddy-docker-proxy:ci-alpine
@@ -36,7 +36,7 @@ services:
       - CADDY_INGRESS_NETWORKS=get5
 
   g5api:
-    build: .
+    build: ghcr.io/phlexplexico/g5api:latest
     depends_on:
       - get5db
     container_name: G5API
@@ -52,24 +52,24 @@ services:
       - DBKEY=
       - STEAMAPIKEY=
       - HOSTNAME=https://localhost
-      - SHAREDSECRET=testing
+      - SHAREDSECRET=
       - CLIENTHOME=https://localhost
       - APIURL=https://localhost/api
       - SQLUSER=get5
-      - SQLPASSWORD=testing
+      - SQLPASSWORD=
       - SQLPORT=3306
       - DATABASE=get5
       - SQLHOST=get5db
       - ADMINS=
       - SUPERADMINS=
-      - REDISURL=redis://:testing@redis:6379
+      - REDISURL=redis://:super_secure_password_change_me@redis:6379
       - REDISTTL=86400
       - USEREDIS=true
       - UPLOADDEMOS=true
     restart: always
 
   g5v:
-    image: g5v:latest
+    image: ghcr.io/phlexplexico/g5v:latest
     depends_on:
       - g5api
     container_name: G5V-Front-End
