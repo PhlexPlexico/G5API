@@ -90,13 +90,15 @@ yourname\g5api:latest
 
 ### Docker Compose Instructions
 This guide will get you to setup a running instance for a reverse proxy (Caddy), G5API, and G5V running all at once.  
-Provided in this repository is a `docker-compose.yml` file. Much like the above Docker run commands, all those fields are required in the docker file, as well as a few additional parameters.  
-- `CADDY_URL` is the URL that you wish to host everything.
-- `CADDY_REVERSE_PROXY_PORT` is the port that the API is serving to. By default, this is set to 3301.
-- `CADDY_API_ENDPOINT` is the end point that you wish to route from. By default, this is `api`. This should only be swapped if you have a different G5V build you are pointing to.
-- And then your mysql information is required in that file as well. 
+Provided in this repository is a `docker-compose.yml` file. Much like the above Docker run commands, all those fields are required in the docker file, as well as a few additional parameters that need to be adjusted. We'll go through setting up the Caddy reverse proxy, and without.  
+The first thing needed, however, is a network bridge, and this can be done by calling `docker network create -d bridge get5`.
 
-Once those are all filled in, you need to run two more commands. The first being the network bridge, which is done via `docker network create -d bridge get5`. After this, you can simply run `docker-compose up -d`.This will spin up a production instance of Get5Vue, as well as Get5API, and a reverse proxy to link everything together!
+#### With Caddy
+A few changes need to be created in order to get the reverse proxy working either with HTTPS or just HTTP. It is recommeneded you use a DNS (duckdns for example) as it will allow for HTTPS. Inside the [docker-compose](./docker-compose.yml) you will find various references to `localhost`. Please change these values according to whatever your host is. These will exist in lines 46, 54, 56, 57, and 80. Once that is done, and all the other aforementioned information is filled in, you can call `docker-compose up -d` to run the application. After a few minutes of setup, it should be accessible at your host.
+
+#### Without Caddy
+If you already have a webserver setup, and reverse proxies enabled with another tool (such as NGINX), you may remove all the labels associated with `caddy`, and remove the `caddy` image itself. After that, fill in the aforementioned data (the localhost bits included on lines 54, 56, 57) that is required and call `docker-compose up -d` and wait a few minutes for it to launch, and it will be available at your host.
+
 
 For more details on these variables, follow along with production.json.template located in /config
 ### Docs: 
