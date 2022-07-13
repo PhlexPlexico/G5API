@@ -257,6 +257,28 @@ class ServerRcon {
     }
   }
 
+  /** Adds a coach to a given team.
+   * @function
+   * @param {String} teamString - Either team1 or team2.
+   * @param {String} steamId - Formatted Steam64 ID.
+   * @returns Returns the response from the server.
+   */
+     async addCoach(teamString, steamId) {
+      try {
+        if (process.env.NODE_ENV === "test") {
+          return false;
+        }
+        let loadMatchResponse;
+        loadMatchResponse = await this.execute(
+          "get5_addcoach " + steamId + " " + teamString
+        );
+        return loadMatchResponse;
+      } catch (err) {
+        console.error("RCON error on addUser: " + err.toString());
+        throw err;
+      }
+    }
+
   /** Removes a user from the match.
    * @function
    * @param {String} steamId - Formatted Steam64 ID.
