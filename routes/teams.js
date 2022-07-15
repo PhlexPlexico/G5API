@@ -37,6 +37,9 @@ import fetch from "node-fetch";
  *         captain:
  *           type: boolean
  *           description: Boolean value representing if a user is a team captain or not.
+ *         coach:
+ *           type: boolean
+ *           description: Boolean value representing if a user is a coach for the team or not.
  *
  *     TeamData:
  *      type: object
@@ -106,7 +109,7 @@ router.get("/", async (req, res) => {
     let sql =
       "SELECT usr.name as owner, t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
       "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
-      "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": \"', ta.captain, '\"}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
+      "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": ', ta.captain, ', \"coach\": ', ta.coach, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
       "FROM team t LEFT OUTER JOIN team_auth_names ta " +
       "ON t.id = ta.team_id JOIN user usr " + 
       "ON usr.id = t.user_id " +
@@ -160,7 +163,7 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
     let sql =
       "SELECT usr.name as owner, t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
       "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
-      "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": ', ta.captain, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
+      "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": ', ta.captain, ', \"coach\": ', ta.coach, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
       "FROM team t LEFT OUTER JOIN team_auth_names ta " +
       "ON t.id = ta.team_id  JOIN user usr " + 
       "ON usr.id = t.user_id " +
@@ -222,7 +225,7 @@ router.get("/:team_id", async (req, res) => {
     let sql =
       "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
       "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
-      "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": ', ta.captain, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
+      "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": ', ta.captain, ', \"coach\": ', ta.coach, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
       "FROM team t LEFT OUTER JOIN team_auth_names ta " +
       "ON t.id = ta.team_id " +
       "WHERE t.id = ? " +
@@ -393,9 +396,10 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
     ]);
     teamID = insertTeam.insertId;
     sql =
-      "INSERT INTO team_auth_names (team_id, auth, name, captain) VALUES (?, ?, ?, ?)";
+      "INSERT INTO team_auth_names (team_id, auth, name, captain, coach) VALUES (?, ?, ?, ?, ?)";
     for (let key in auths) {
       let isCaptain = auths[key].captain == null ? 0 : auths[key].captain;
+      let isCoach = auths[key].captain == null ? 0 : auths[key].coach;
       let usersSteamId = await Utils.getSteamPID(key);
       await db.query(sql, [
         teamID,
@@ -527,22 +531,25 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
     for (let key in teamAuths) {
       let isCaptain =
         teamAuths[key].captain == null ? 0 : teamAuths[key].captain;
+      let isCoach =
+        teamAuths[key].coach == null ? 0 : teamAuths[key].coach;
       let usersSteamId = await Utils.getSteamPID(key);
       let updateTeamAuth = await db.query(sql, [
         teamAuths[key].name,
         isCaptain,
         usersSteamId,
-        teamID,
+        teamID
       ]);
       if (updateTeamAuth.affectedRows < 1) {
         // Insert a new auth if it doesn't exist. Technically "updating a team".
         let insertSql =
-          "INSERT INTO team_auth_names (team_id, auth, name, captain) VALUES (?, ?, ?, ?)";
+          "INSERT INTO team_auth_names (team_id, auth, name, captain, coach) VALUES (?, ?, ?, ?, ?)";
         await db.query(insertSql, [
           teamID,
           usersSteamId,
           teamAuths[key].name,
           isCaptain,
+          isCoach
         ]);
       }
     }
@@ -683,9 +690,11 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
  *       500:
  *         $ref: '#/components/responses/Error'
  */
-router.get("/:team_id/recent", async (req, res) => {
+router.get("/:team_id/recent/", async (req, res) => {
   try {
     let teamId = req.params.team_id;
+    let recentLimit = 
+      req.query.limit == null ? 5 : Number(req.query.limit);
     let sql =
       "SELECT rec_matches.id, " +
       "rec_matches.user_id, " +
@@ -697,8 +706,8 @@ router.get("/:team_id/recent", async (req, res) => {
       "WHERE t.id = ? AND " +
       "(rec_matches.team1_id = ? OR rec_matches.team2_id = ?) " +
       "AND rec_matches.cancelled = 0 " +
-      "ORDER BY rec_matches.id DESC LIMIT 5";
-    let matches = await db.query(sql, [teamId, teamId, teamId]);
+      "ORDER BY rec_matches.id DESC LIMIT ?";
+    let matches = await db.query(sql, [teamId, teamId, teamId, recentLimit]);
     res.json({ matches });
   } catch (err) {
     console.error(err);

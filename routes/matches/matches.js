@@ -1248,13 +1248,19 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
  * @param {Object} matchData - The data that contains the match to get the team string and scores.
  */
 async function build_team_dict(team, teamNumber, matchData) {
-  let sql = "SELECT auth, name FROM team_auth_names WHERE team_id = ?";
+  let sql = "SELECT auth, name, coach FROM team_auth_names WHERE team_id = ?";
   const playerAuths = await db.query(sql, [team.id]);
   let normalizedAuths = {};
+  let normalizedCoachAuths = {};
   for (let i = 0; i < playerAuths.length; i++) {
     const key = playerAuths[i].auth;
-    if (playerAuths[i].name == "") normalizedAuths[key] = "";
-    else normalizedAuths[key] = playerAuths[i].name;
+    if (playerAuths[i].coach) {
+      if (playerAuths[i].name == "") normalizedCoachAuths[key] = "";
+      else normalizedCoachAuths[key] = playerAuths[i].name;
+    } else {
+      if (playerAuths[i].name == "") normalizedAuths[key] = "";
+      else normalizedAuths[key] = playerAuths[i].name;
+    }
   }
   let teamData = {
     name: team.name,
@@ -1265,6 +1271,9 @@ async function build_team_dict(team, teamNumber, matchData) {
     logo: team.logo,
     matchtext: team.matchtext,
     players: normalizedAuths,
+    coaches: Object.keys(normalizedCoachAuths).length == 0 
+      ? null
+      : normalizedCoachAuths,
     series_score:
       teamNumber === 1
         ? matchData.team1_series_score

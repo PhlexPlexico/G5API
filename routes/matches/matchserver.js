@@ -674,7 +674,7 @@ router.get(
  *                type: string
  *                description: The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
  *              team_id:
- *                type: integer
+ *                type: string
  *                description: Either the first or second team in the match, team1 or team2.
  *              nickname:
  *                type: string
@@ -741,6 +741,111 @@ router.put(
             teamId,
             steamID,
             nickName
+          );
+          res.json({
+            message: "User added successfully.",
+            response: rconResponse,
+          });
+        } catch (err) {
+          res
+            .status(500)
+            .json({ message: "Error on game server.", response: err });
+        } finally {
+          return;
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Error on game server.", response: err });
+    }
+  }
+);
+
+/**
+ * @swagger
+ *
+ *  /matches/:match_id/addcoach:
+ *   put:
+ *     description: Sends an add coach commamd to a given team.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         description: The current matches identification number.
+ *         schema:
+ *            type: integer
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              steam_id:
+ *                type: string
+ *                description: The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
+ *              team_id:
+ *                type: string
+ *                description: Either the first or second team in the match, team1 or team2.
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match response.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.put(
+  "/:match_id/addcoach/",
+  Utils.ensureAuthenticated,
+  async (req, res, next) => {
+    try {
+      let errMessage = await Utils.getUserMatchAccess(
+        req.params.match_id,
+        req.user,
+        true
+      );
+      if (errMessage != null) {
+        res.status(errMessage.status).json({ message: errMessage.message });
+        return;
+      } else {
+        let currentMatchInfo = "SELECT server_id FROM `match` WHERE id = ?";
+        const matchServerId = await db.query(
+          currentMatchInfo,
+          req.params.match_id
+        );
+        let getServerSQL =
+          "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
+        const serverRow = await db.query(getServerSQL, [
+          matchServerId[0].server_id,
+        ]);
+        let serverUpdate = new GameServer(
+          serverRow[0].ip_string,
+          serverRow[0].port,
+          serverRow[0].rcon_password
+        );
+        let steamID = await Utils.getSteamPID(req.body[0].steam_id);
+        let teamId = req.body[0].team_id;
+        if (teamId != "team1" && teamId != "team2") {
+          res
+            .status(400)
+            .json({ message: "Please choose either team1 or team2." });
+          return;
+        }
+        try {
+          let rconResponse = await serverUpdate.addCoach(
+            teamId,
+            steamID
           );
           res.json({
             message: "User added successfully.",
