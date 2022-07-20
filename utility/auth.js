@@ -114,7 +114,7 @@ async function returnStrategy(identifier, profile, done) {
           defaultMaps.push(['de_dust2', 'Dust II', curUser[0].id]);
           defaultMaps.push(['de_vertigo', 'Vertigo', curUser[0].id]);
           sql = "INSERT INTO map_list (map_name, map_display_name, user_id) VALUES ?";
-          await db.query(sql, defaultMaps);
+          await db.query(sql, [defaultMaps]);
         }
       }
       return done(null, {
