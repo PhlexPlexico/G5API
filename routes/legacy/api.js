@@ -435,7 +435,7 @@ router.post("/:match_id/unpause/", basicRateLimit, async (req, res, next) => {
     } else {
       sql = "UPDATE match_pause SET ? WHERE match_id = ?";
       let updateSet = {
-        pause_type: pauseType,
+        pause_type: null,
         team_paused: teamName,
         paused: false
       };

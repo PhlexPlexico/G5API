@@ -340,6 +340,11 @@ router.get(
         const mapStat = await db.query(mapStatSql, [
           req.params.match_id,
         ]);
+        let playerStatSql =
+          "SELECT id FROM player_stats WHERE match_id=?";
+        const playerStats = await db.query(playerStatSql, [
+          req.params.match_id,
+        ]);
         let matchUpdateStmt = {
           start_time: new Date().toISOString().slice(0, 19).replace("T", " "),
           cancelled: 0,
@@ -348,6 +353,10 @@ router.get(
         if (mapStat.length) {
           mapStatSql = "DELETE FROM map_stats WHERE match_id = ?";
           await db.query(mapStatSql, [req.params.match_id]);
+        }
+        if (playerStats.length) {
+          playerStatSql = "DELETE FROM player_stats WHERE match_id = ?";
+          await db.query(playerStats, [req.params.match_id]);
         }
         // Let the server cancel the match first, or attempt to?
         let getServerSQL =
