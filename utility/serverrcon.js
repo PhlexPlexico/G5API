@@ -346,7 +346,7 @@ class ServerRcon {
         return false;
       }
       let loadMatchResponse = await this.execute(
-        "get5_loadbackup_url " + backupName
+        "get5_loadbackup_url \"" + backupName + "\""
       );
       return loadMatchResponse;
     } catch (err) {
