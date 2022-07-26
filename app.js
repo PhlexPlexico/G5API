@@ -43,6 +43,7 @@ app.use(express.json({ limit: "512kb" }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use("/demo", express.static("public"));
+app.use("/backups", express.static("public/backups"));
 app.use("/static/img/logos", express.static("public/img/logos"));
 
 // Security defaults with helmet

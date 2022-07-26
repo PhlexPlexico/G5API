@@ -15,6 +15,8 @@ import GameServer from "../../utility/serverrcon.js";
 
 import config from "config";
 
+import { existsSync, readdir } from "fs";
+
 /**
  * @swagger
  *
@@ -376,7 +378,7 @@ router.get(
             );
           }
           await serverUpdate.prepareGet5Match(
-            config.get("server.apiURL") +
+            config.get("server.apiURL")  +
             "/matches/" +
             req.params.match_id +
             "/config",
@@ -1230,6 +1232,200 @@ router.post(
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Error on game server.", response: err });
+    }
+  }
+);
+
+/**
+ * @swagger
+ *
+ *  /matches/:match_id/backup/remote:
+ *   post:
+ *     description: Runs a backup stored on the API remotely to a specified game server, provided it is available.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         description: The current matches identification number.
+ *         schema:
+ *            type: integer
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              server_id:
+ *                type: integer
+ *                description: The ID of the server that you wish to restore to.
+ *              round_number:
+ *                type: string
+ *                description: The round number you wish to restore to from the backup. Zero-indexed. Express prelive for the initial setup of a match.
+ *              map_number:
+ *                type: integer
+ *                description: The map number you wish to restore to from the backup. Zero-indexed.
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match response.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       412:
+ *         $ref: '#/components/responses/MatchInvalidData'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.post(
+  "/:match_id/backup/remote",
+  Utils.ensureAuthenticated,
+  async (req, res, next) => {
+    try {
+      let errMessage = await Utils.getUserMatchAccess(
+        req.params.match_id,
+        req.user,
+        true
+      );
+      if (errMessage != null) {
+        res.status(errMessage.status).json({ message: errMessage.message });
+        return;
+      } else {
+        let newServerId = req.body[0].server_id;
+        let mapNumber = req.body[0].map_number;
+        let roundNumber = req.body[0].round_number;
+        let currentMatchInfo = "SELECT server_id FROM `match` WHERE id = ?";
+        let newServerInfo =
+          "SELECT id, user_id, ip_string, port, rcon_password, public_server FROM game_server WHERE id = ?";
+        let configString = `get5_backup_match${req.params.match_id}_map${mapNumber}_round${roundNumber}.cfg`;
+        const matchServerId = await db.query(
+          currentMatchInfo,
+          req.params.match_id
+        );
+        const newServerRow = await db.query(newServerInfo, [
+          newServerId
+        ]);
+        // Check to see if new server row matches for access purposes.
+        if (!Utils.adminCheck(req.user)) {
+          if (newServerRow[0].user_id != req.user.id && !newServerRow[0].public_server) {
+            req.status(403).json({ message: "User is not authorized to perform action." });
+            return;
+          }
+        }
+
+        // Check to see if file exists in our public directory.
+        if (!existsSync(`public/backups/${req.params.match_id}/${configString}`)) {
+          res
+            .status(412)
+            .json({ message: "Backup name invalid." });
+          return;
+        }
+        let serverUpdate = new GameServer(
+          newServerRow[0].ip_string,
+          newServerRow[0].port,
+          newServerRow[0].rcon_password
+        );
+        try {
+          if (serverUpdate.isGet5Available()) {
+            let rconResponse = await serverUpdate.restoreBackupFromURL(
+              config.get("server.apiURL") + `/backups/${req.params.match_id}/${configString}`
+            );
+            currentMatchInfo = "UPDATE `match` SET server_id = ? WHERE id = ?";
+            await db.query(currentMatchInfo, [req.params.match_id, newServerId]);
+            currentMatchInfo = "UPDATE game_server SET in_use = 0 WHERE id = ?";
+            await db.query(currentMatchInfo, [matchServerId[0].server_id]);
+            res.json({ message: "Restored backup.", response: rconResponse });
+          } else {
+            res
+              .status(412)
+              .json({ message: "Match is already in progress on chosen server, or get5 is unavailable." });
+            return;
+          }
+        } catch (err) {
+          res
+            .status(500)
+            .json({ message: "Error on game server.", response: err });
+        } finally {
+          return;
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Error on game server.", response: err });
+    }
+  }
+);
+
+/**
+ * @swagger
+ *
+ *  /matches/:match_id/backup/remote:
+ *   get:
+ *     description: Retrieves the name of backups available for a match on the API.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         description: The current matches identification number.
+ *         schema:
+ *            type: integer
+ *
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match response.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       401:
+ *         $ref: '#/components/responses/MatchFinished'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+router.get(
+  "/:match_id/backup/remote",
+  Utils.ensureAuthenticated,
+  async (req, res, next) => {
+    try {
+      let errMessage = await Utils.getUserMatchAccess(
+        req.params.match_id,
+        req.user,
+        true
+      );
+      if (errMessage != null) {
+        res.status(errMessage.status).json({ message: errMessage.message });
+        return;
+      } else {
+        let fileArray = [];
+        readdir(`public/backups/${req.params.match_id}`, function (err, files) {
+          //handling error
+          if (err) {
+            return console.error('Unable to scan directory: ' + err);
+          }
+          //listing all files using forEach
+          files.forEach(function (file) {
+            // Do whatever you want to do with the file
+            fileArray.push(file)
+          });
+          res.json({ message: "Backups retrieved.", response: fileArray });
+        });
+        return;
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "API Error.", response: err });
     }
   }
 );

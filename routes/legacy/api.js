@@ -26,7 +26,7 @@ import JSZip from "jszip";
 /** Required to save files.
  * @const
  */
-import { writeFile } from "fs";
+import { existsSync, mkdirSync, writeFile } from "fs";
 
 /** Config to check demo uploads.
  * @const
@@ -1426,6 +1426,106 @@ router.post(
     }
   }
 );
+
+/**
+ * @swagger
+ *
+ *  /:match_id/map/:map_number/backup/:api_key:
+ *   post:
+ *     description: Route serving to upload the latest round backup to the server.
+ *     parameters:
+ *       - in: path
+ *         name: match_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *       - in: path
+ *         name: map_number
+ *         schema:
+ *           type: integer
+ *         required: true
+ *       - in: path
+ *         name: api_key
+ *         schema:
+ *           type: string
+ *         required: true
+ *       - in: path
+ *         name: round_number
+ *         schema:
+ *           type: integer
+ *         required: true
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/octet-stream:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              key:
+ *                backupFile:
+ *                  type: file
+ *                  description: The latest backup cfg file from the game server.
+ *
+ *     tags:
+ *       - legacy
+ *     responses:
+ *       200:
+ *         description: Success.
+ *         content:
+ *             text/plain:
+ *                schema:
+ *                  type: string
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.put(
+  "/:match_id/map/:map_number/round/:round_number/backup/:api_key",
+  basicRateLimit,
+  async (req, res, next) => {
+    try {
+      let matchID = req.params.match_id;
+      let mapNumber = req.params.map_number;
+      // This is required since we're sending an octet stream.
+      let apiKey = req.params.api_key;
+      let roundNumber = req.params.round_number;
+      // Database calls.
+      let sql = "SELECT * FROM `match` WHERE id = ?";
+      let matchFinalized = true;
+      const matchValues = await db.query(sql, matchID);
+
+      if (
+        matchValues[0].end_time == null &&
+        (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
+      )
+        matchFinalized = false;
+      // Throw error if wrong key. Match finish doesn't matter.
+      await check_api_key(matchValues[0].api_key, apiKey, matchFinalized);
+
+        if(!existsSync(`public/backups/${matchID}/`)) mkdirSync(`public/backups/${matchID}/`);
+
+        writeFile(
+          `public/backups/${matchID}/get5_backup_match${matchID}_map${mapNumber}_round${roundNumber}.cfg`,
+          req.body,
+          function (err) {
+            if (err) {
+              console.log(err);
+              throw err;
+            }
+          }
+        );
+      res.status(200).send({ message: "Success!" });
+    } catch (err) {
+      res.status(500).json({ message: err.toString() });
+    } finally {
+      return;
+    }
+  }
+);
+
 
 /** Reports whether the match is given a correct API key, or if the match has finished.
  * @function
