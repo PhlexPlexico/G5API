@@ -358,7 +358,7 @@ router.get(
         }
         if (playerStats.length) {
           playerStatSql = "DELETE FROM player_stats WHERE match_id = ?";
-          await db.query(playerStats, [req.params.match_id]);
+          await db.query(playerStatSql, [req.params.match_id]);
         }
         // Let the server cancel the match first, or attempt to?
         let getServerSQL =
