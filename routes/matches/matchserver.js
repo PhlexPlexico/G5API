@@ -1407,10 +1407,12 @@ router.get(
         readdir(`public/backups/${req.params.match_id}`, function (err, files) {
           //handling error
           if (err) {
-            return console.error('Unable to scan directory: ' + err);
+            console.error(err);
+            return res.status(404).json({ message: "No backups found.", response: [] });;
           }
           //listing all files using forEach
           files.forEach(function (file) {
+            console.log(file);
             // Do whatever you want to do with the file
             fileArray.push(file)
           });
