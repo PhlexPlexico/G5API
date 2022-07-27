@@ -1259,12 +1259,9 @@ router.post(
  *              server_id:
  *                type: integer
  *                description: The ID of the server that you wish to restore to.
- *              round_number:
+ *              backup_file:
  *                type: string
- *                description: The round number you wish to restore to from the backup. Zero-indexed. Express prelive for the initial setup of a match.
- *              map_number:
- *                type: integer
- *                description: The map number you wish to restore to from the backup. Zero-indexed.
+ *                description: The name of the backup file. This can be retrieved via a GET.
  *     tags:
  *       - matches
  *     responses:
@@ -1300,12 +1297,10 @@ router.post(
         return;
       } else {
         let newServerId = req.body[0].server_id;
-        let mapNumber = req.body[0].map_number;
-        let roundNumber = req.body[0].round_number;
         let currentMatchInfo = "SELECT server_id FROM `match` WHERE id = ?";
         let newServerInfo =
           "SELECT id, user_id, ip_string, port, rcon_password, public_server FROM game_server WHERE id = ?";
-        let configString = `get5_backup_match${req.params.match_id}_map${mapNumber}_round${roundNumber}.cfg`;
+        let configString = req.body[0].backup_file;
         const matchServerId = await db.query(
           currentMatchInfo,
           req.params.match_id
