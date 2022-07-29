@@ -406,6 +406,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
         usersSteamId,
         auths[key].name,
         isCaptain,
+        isCoach
       ]);
     }
     res.json({ message: "Team successfully inserted.", id: teamID });
@@ -527,7 +528,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
   try {
     await db.query(sql, [updateTeam, teamID]);
     sql =
-      "UPDATE team_auth_names SET name = ?, captain = ? WHERE auth = ? AND team_id = ?";
+      "UPDATE team_auth_names SET name = ?, captain = ?, coach = ? WHERE auth = ? AND team_id = ?";
     for (let key in teamAuths) {
       let isCaptain =
         teamAuths[key].captain == null ? 0 : teamAuths[key].captain;
@@ -537,6 +538,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
       let updateTeamAuth = await db.query(sql, [
         teamAuths[key].name,
         isCaptain,
+        isCoach,
         usersSteamId,
         teamID
       ]);
