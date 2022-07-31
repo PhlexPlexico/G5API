@@ -8,7 +8,8 @@
     "clientHome": "http://localhost:8080",
     "useRedis": true,
     "apiURL": "http://localhost:8080/api/",
-    "uploadDemos": false
+    "uploadDemos": false,
+    "localLoginEnabled": true
   },
   "development": {
     "driver": "mysql",

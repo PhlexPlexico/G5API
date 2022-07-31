@@ -144,6 +144,9 @@ passport.use(strategyForEnvironment());
 // Local Strategies
 passport.use('local-login', new LocalStrategy(async (username, password, done) => {
   try {
+    if (!config.get("server.localLoginEnabled")) {
+      return done(null, false, {message: "Sorry, local logins are disabled for this instance."});
+    }
     let sql = "SELECT * FROM user WHERE username = ?";
     const curUser = await db.query(sql, username);
     if (curUser.length) {
@@ -175,6 +178,9 @@ passport.use('local-login', new LocalStrategy(async (username, password, done) =
 passport.use('local-register',
   new LocalStrategy({ passReqToCallback: true }, (async (req, username, password, done) => {
     try {
+      if (!config.get("server.localLoginEnabled")) {
+        return done(null, false, {message: "Sorry, local logins are disabled for this instance."});
+      }
       let sql = "SELECT * FROM user WHERE username = ? OR steam_id = ?";
       let defaultMaps = [];
       let superAdminList = config.get("super_admins.steam_ids").split(",");

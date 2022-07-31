@@ -86,6 +86,7 @@ docker container run --name g5api \
 -e REDISURL="" \
 -e REDISTTL="" \
 -e UPLOADDEMOS="" \
+-e LOCALLOGIN="" \
 yourname\g5api:latest
 ```
 

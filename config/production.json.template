@@ -8,7 +8,8 @@
     "clientHome": "$CLIENTHOME",
     "useRedis": $USEREDIS,
     "apiURL": "$APIURL",
-    "uploadDemos": $UPLOADDEMOS
+    "uploadDemos": $UPLOADDEMOS,
+    "localLoginEnabled": $LOCALLOGINS
   },
   "production": {
     "driver": "mysql",
