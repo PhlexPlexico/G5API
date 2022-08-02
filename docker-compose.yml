@@ -46,6 +46,8 @@ services:
       caddy: localhost
       caddy.handle_path: /api/*
       caddy.handle_path.0_reverse_proxy: "{{upstreams 3301}}"
+    volumes:
+      - ./public:/Get5API/public
     environment:
       - NODE_ENV=production
       - PORT=3301
