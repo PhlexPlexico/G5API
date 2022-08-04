@@ -83,7 +83,7 @@
     "morgan": "^1.9.1",
     "mysql2": "^2.2.5",
     "node-fetch": "^3.2.0",
-    "passport": "^0.5.2",
+    "passport": "^0.6.0",
     "passport-local": "^1.0.0",
     "passport-steam": "^1.0.17",
     "pm2": "^5.2.0",
