@@ -347,6 +347,11 @@ router.get(
         const playerStats = await db.query(playerStatSql, [
           req.params.match_id,
         ]);
+        let vetoSql =
+          "SELECT id FROM veto WHERE match_id=?";
+        const vetoData = await db.query(vetoSql, [
+          req.params.match_id,
+        ]);
         let matchUpdateStmt = {
           start_time: new Date().toISOString().slice(0, 19).replace("T", " "),
           cancelled: 0,
@@ -359,6 +364,10 @@ router.get(
         if (playerStats.length) {
           playerStatSql = "DELETE FROM player_stats WHERE match_id = ?";
           await db.query(playerStatSql, [req.params.match_id]);
+        }
+        if (vetoData.length) {
+          vetoSql = "DELETE FROM veto WHERE match_id = ?";
+          await db.query(vetoSql, [req.params.match_id]);
         }
         // Let the server cancel the match first, or attempt to?
         let getServerSQL =
