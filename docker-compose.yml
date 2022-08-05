@@ -68,7 +68,7 @@ services:
       - REDISTTL=86400
       - USEREDIS=true
       - UPLOADDEMOS=true
-      - LOCALOGINS=false
+      - LOCALLOGINS=false
     restart: always
 
   g5v:
