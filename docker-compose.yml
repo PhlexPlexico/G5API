@@ -20,6 +20,8 @@ services:
       - MYSQL_DATABASE=get5
       - MYSQL_USER=get5
       - MYSQL_PASSWORD=
+      - MYSQL_CHARSET=utf8mb4
+      - MYSQL_COLLATION=utf8mb4_general_ci
 
   caddy:
     image: lucaslorentz/caddy-docker-proxy:ci-alpine
