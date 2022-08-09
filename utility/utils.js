@@ -418,12 +418,12 @@ class Utils {
         teamAuthTwoList
       ]);
     } else {
-      let newPlayers = [];
+      let newPlayerArr = [];
       let teamNameOneList = teamOneAuths[0].name.split(",");
       let teamNameTwoList = teamTwoAuths[0].name.split(",");
       playerStatUpdateSql = "INSERT INTO player_stats (match_id, map_id, team_name, steam_id, name, winner) VALUES ?";
       for (let [idx, auth] of teamAuthListOne.entries()) {
-        newPlayers.push([
+        newPlayerArr.push([
           match_id,
           map_id,
           teamNameOne[0].name,
@@ -433,7 +433,7 @@ class Utils {
         ]);
       }
       for (let [idx, auth] of teamAuthTwoList.entries()) {
-        newPlayers.push([
+        newPlayerArr.push([
           match_id,
           map_id,
           teamNameTwo[0].name,
@@ -442,7 +442,7 @@ class Utils {
           winner == team2_id ? 1 : 0
         ]);
       }
-      await db.query(playerStatUpdateSql, [newPlayers]);
+      await db.query(playerStatUpdateSql, [newPlayerArr]);
     }
     if (deleteTeams) {
       await db.query(pugSql, [
