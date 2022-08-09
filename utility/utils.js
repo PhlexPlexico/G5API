@@ -418,32 +418,31 @@ class Utils {
         teamAuthTwoList
       ]);
     } else {
-      let insertObj = {};
+      let newPlayerArr = [];
       let teamNameOneList = teamOneAuths[0].name.split(",");
       let teamNameTwoList = teamTwoAuths[0].name.split(",");
-      playerStatUpdateSql = "INSERT INTO player_stats SET ?";
+      playerStatUpdateSql = "INSERT INTO player_stats (match_id, map_id, team_name, steam_id, name, winner) VALUES ?";
       for (let [idx, auth] of teamAuthListOne.entries()) {
-        insertObj = {
-          match_id: match_id,
-          map_id: map_id,
-          team_name: teamNameOne[0].name,
-          steam_id: auth,
-          name: teamNameOneList[idx],
-          winner: winner == team1_id ? 1 : 0
-        };
+        newPlayerArr.push([
+          match_id,
+          map_id,
+          teamNameOne[0].name,
+          auth,
+          teamNameOneList[idx],
+          winner == team1_id ? 1 : 0
+        ]);
       }
-      await db.query(playerStatUpdateSql, [insertObj]);
       for (let [idx, auth] of teamAuthTwoList.entries()) {
-        insertObj = {
-          match_id: match_id,
-          map_id: map_id,
-          team_name: teamNameTwo[0].name,
-          steam_id: auth,
-          name: teamNameTwoList[idx],
-          winner: winner == team2_id ? 1 : 0
-        };
+        newPlayerArr.push([
+          match_id,
+          map_id,
+          teamNameTwo[0].name,
+          auth,
+          teamNameTwoList[idx],
+          winner == team2_id ? 1 : 0
+        ]);
       }
-      await db.query(playerStatUpdateSql, [insertObj]);
+      await db.query(playerStatUpdateSql, [newPlayerArr]);
     }
     if (deleteTeams) {
       await db.query(pugSql, [
