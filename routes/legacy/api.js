@@ -961,7 +961,7 @@ router.post(
  * @swagger
  *
  *  /:match_id/map/:map_number/demo/upload/:api_key:
- *   post:
+ *   put:
  *     description: Route serving to upload the demo file from the game server.
  *     parameters:
  *       - in: path
@@ -1047,10 +1047,13 @@ router.put(
       let endTimeMs = new Date(mapStatValues[0].end_time);
       let timeDifference = Math.abs(currentDate - endTimeMs);
       let minuteDifference = Math.floor((timeDifference / 1000) / 60);
-      if (minuteDifference > 8)
+      if (minuteDifference > 8) {
         res.status(500).json({ message: "Demo can no longer be uploaded." });
+        return;
+      }
+        
 
-      zip.file(mapStatValues[0].demoFile + ".dem", req.body, { binary: true });
+      zip.file(mapStatValues[0].demoFile.replace("zip", "") + ".dem", req.body, { binary: true });
       zip
         .generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
         .then((buf) => {

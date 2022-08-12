@@ -98,6 +98,8 @@ async function returnStrategy(identifier, profile, done) {
           small_image: profile.photos[0].value,
           medium_image: profile.photos[1].value,
           large_image: profile.photos[2].value,
+          super_admin: isSuperAdmin,
+          admin: isAdmin
         };
         sql = "UPDATE user SET ? WHERE steam_id=?";
         await db.query(sql, [updateUser, profile.id]);

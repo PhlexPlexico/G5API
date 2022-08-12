@@ -27,7 +27,6 @@ const SteamAPI = new SteamURLResolver(config.get("server.steamAPIKey"));
 import { ID } from "@node-steam/id";
 
 import db from "../db.js";
-import { match } from 'assert';
 
 class Utils {
   /** Function to get an HLTV rating for a user.
@@ -133,12 +132,11 @@ class Utils {
   static async ensureAuthenticated(req, res, next) {
     // Check the user based on API.
     const apiKey = req.get("user-api") || req.body[0]?.user_api;
-    //const userId = req.get("user-id") || req.body[0]?.user_id;
     if (apiKey) {
       let sqlQuery = "SELECT * FROM user WHERE id = ?";
       const ourUser = await db.query(sqlQuery, apiKey.split(":")[0]);
       if (ourUser.length > 0) {
-        let uncDb = await Utils.decrypt(ourUser[0].api_key);
+        let uncDb = Utils.decrypt(ourUser[0].api_key);
         if (uncDb == apiKey.split(":")[1]) {
           let curUser = {
             steam_id: ourUser[0].steam_id,
