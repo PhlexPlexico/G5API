@@ -1053,7 +1053,7 @@ router.put(
       }
         
 
-      zip.file(mapStatValues[0].demoFile.replace("zip", "") + ".dem", req.body, { binary: true });
+      zip.file(mapStatValues[0].demoFile.replace(".zip", "") + ".dem", req.body, { binary: true });
       zip
         .generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
         .then((buf) => {
