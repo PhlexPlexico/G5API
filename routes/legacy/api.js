@@ -1508,7 +1508,7 @@ router.post(
       // Throw error if wrong key. Match finish doesn't matter.
       await check_api_key(matchValues[0].api_key, apiKey, matchFinalized);
 
-        if(!existsSync(`public/backups/${matchID}/`)) mkdirSync(`public/backups/${matchID}/`);
+        if(!existsSync(`public/backups/${matchID}/`)) mkdirSync(`public/backups/${matchID}/`, true);
 
         writeFile(
           `public/backups/${matchID}/get5_backup_match${matchID}_map${mapNumber}_round${roundNumber}.cfg`,
