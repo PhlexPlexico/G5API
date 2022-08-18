@@ -301,70 +301,12 @@ router.get("/:steam_id", async (req, res, next) => {
 router.get("/:steam_id/pug", async (req, res, next) => {
   try {
     let steamID = req.params.steam_id;
-    let sql = `SELECT steam_id, name, sum(kills) as kills,
-          sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
-          sum(k2) as k2, sum(k3) as k3,
-          sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
-          sum(v2) as v2, sum(v3) as v3, sum(v4) as v4,
-          sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba,
-          sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps,
-          sum(winner) as wins 
-          FROM player_stats where steam_id = ?
-          AND match_id IN (
-           SELECT  id
-           FROM    \`match\`
-           WHERE   cancelled=0
-           AND     is_pug=1)`;
-    let playerstats = await db.query(sql, steamID);
-    if (!playerstats.length) {
+    let playerstats = await getPlayerStats(steamID, null, true);
+    if (!playerstats) {
       res.status(404).json({ message: "No stats found for player " + steamID });
       return;
     }
-    let pugstats = {
-      steamId: playerstats[0].steam_id,
-      name:
-        playerstats[0].name == null
-          ? await Utils.getSteamName(playerstats[0].steam_id)
-          : playerstats[0].name.replace('/"/g', '\\"'),
-      kills: parseFloat(playerstats[0].kills),
-      deaths: parseFloat(playerstats[0].deaths),
-      assists: parseFloat(playerstats[0].assists),
-      k1: parseFloat(playerstats[0].k1),
-      k2: parseFloat(playerstats[0].k2),
-      k3: parseFloat(playerstats[0].k3),
-      k4: parseFloat(playerstats[0].k4),
-      k5: parseFloat(playerstats[0].k5),
-      v1: parseFloat(playerstats[0].v1),
-      v2: parseFloat(playerstats[0].v2),
-      v3: parseFloat(playerstats[0].v3),
-      v4: parseFloat(playerstats[0].v4),
-      v5: parseFloat(playerstats[0].v5),
-      trp: parseFloat(playerstats[0].trp),
-      fba: parseFloat(playerstats[0].fba),
-      total_damage: parseFloat(playerstats[0].dmg),
-      hsk: parseFloat(playerstats[0].hsk),
-      hsp:
-        parseFloat(playerstats[0].kills) === 0
-          ? 0
-          : (
-              (parseFloat(playerstats[0].hsk) /
-                parseFloat(playerstats[0].kills)) *
-              100
-            ).toFixed(2),
-      average_rating: Utils.getRating(
-        parseFloat(playerstats[0].kills),
-        parseFloat(playerstats[0].trp),
-        parseFloat(playerstats[0].deaths),
-        parseFloat(playerstats[0].k1),
-        parseFloat(playerstats[0].k2),
-        parseFloat(playerstats[0].k3),
-        parseFloat(playerstats[0].k4),
-        parseFloat(playerstats[0].k5)
-      ),
-      wins: playerstats[0].wins,
-      total_maps: playerstats[0].totalMaps,
-    };
-    res.json({ pugstats });
+    res.json({ playerstats });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.toString() });
@@ -403,75 +345,61 @@ router.get("/:steam_id/pug", async (req, res, next) => {
 router.get("/:steam_id/official", async (req, res, next) => {
   try {
     let steamID = req.params.steam_id;
-    let sql = `SELECT steam_id, name, sum(kills) as kills,
-           sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
-           sum(k2) as k2, sum(k3) as k3,
-           sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
-           sum(v2) as v2, sum(v3) as v3, sum(v4) as v4,
-           sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba,
-           sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps
-           FROM player_stats where steam_id = ?
-           AND match_id IN (
-            SELECT  id
-            FROM    \`match\`
-            WHERE   cancelled=0
-            AND     is_pug=0)`;
-    let winSql = `SELECT COUNT(*) AS wins FROM \`match\` mtch 
-           JOIN player_stats pstat ON mtch.id = pstat.match_id 
-           WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?
-           AND is_pug = 0`;
-    let numWins;
-    let playerstats = await db.query(sql, steamID);
-    if (!playerstats.length) {
+    let playerstats = await getPlayerStats(steamID);
+    if (!playerstats) {
       res.status(404).json({ message: "No stats found for player " + steamID });
       return;
     }
-    numWins = await db.query(winSql, [playerstats[0].steam_id]);
-    let pugstats = {
-      steamId: playerstats[0].steam_id,
-      name:
-        playerstats[0].name == null
-          ? await Utils.getSteamName(playerstats[0].steam_id)
-          : playerstats[0].name.replace('/"/g', '\\"'),
-      kills: parseFloat(playerstats[0].kills),
-      deaths: parseFloat(playerstats[0].deaths),
-      assists: parseFloat(playerstats[0].assists),
-      k1: parseFloat(playerstats[0].k1),
-      k2: parseFloat(playerstats[0].k2),
-      k3: parseFloat(playerstats[0].k3),
-      k4: parseFloat(playerstats[0].k4),
-      k5: parseFloat(playerstats[0].k5),
-      v1: parseFloat(playerstats[0].v1),
-      v2: parseFloat(playerstats[0].v2),
-      v3: parseFloat(playerstats[0].v3),
-      v4: parseFloat(playerstats[0].v4),
-      v5: parseFloat(playerstats[0].v5),
-      trp: parseFloat(playerstats[0].trp),
-      fba: parseFloat(playerstats[0].fba),
-      total_damage: parseFloat(playerstats[0].dmg),
-      hsk: parseFloat(playerstats[0].hsk),
-      hsp:
-        parseFloat(playerstats[0].kills) === 0
-          ? 0
-          : (
-              (parseFloat(playerstats[0].hsk) /
-                parseFloat(playerstats[0].kills)) *
-              100
-            ).toFixed(2),
-      average_rating: Utils.getRating(
-        parseFloat(playerstats[0].kills),
-        parseFloat(playerstats[0].trp),
-        parseFloat(playerstats[0].deaths),
-        parseFloat(playerstats[0].k1),
-        parseFloat(playerstats[0].k2),
-        parseFloat(playerstats[0].k3),
-        parseFloat(playerstats[0].k4),
-        parseFloat(playerstats[0].k5)
-      ),
-      wins: numWins[0].wins,
-      total_maps: playerstats[0].totalMaps,
-    };
-    res.json({ pugstats });
+    res.json({ playerstats });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /playerstats/:steam_id/season/:season_id:
+ *   get:
+ *     description: Player stats from a given Steam ID involved in a speciefic season.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: steam_id
+ *         required: true
+ *         schema:
+ *            type: string
+ *       - name: season_id
+ *         required: true
+ *         schema:
+ *            type: string
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Player stats from a given user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/PlayerStats'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.get("/:steam_id/season/:season_id", async (req, res, next) => {
+  try {
+    let steamID = req.params.steam_id;
+    let seasonId = req.params.season_id;
+    let playerstats = await getPlayerStats(steamID, seasonId);
+    if (!playerstats) {
+      res.status(404).json({ message: "No stats found for player " + steamID });
+      return;
+    }
+    res.json({ playerstats });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.toString() });
@@ -926,5 +854,125 @@ router.delete("/", async (req, res, next) => {
     res.status(500).json({ message: err.toString() });
   }
 });
+
+/** Get player stats standing in a season, pug or official matches.
+* @function
+* @memberof module:routes/playerstats
+* @param {string} [steamId] - Steam64 ID.
+* @param {string} [seasonId=null] - Season ID to filter.
+* @param {boolean} [pug=false] - PUGs to filter.
+*/
+const getPlayerStats = async (steamId, seasonId = null, pug = false) => {
+  let playerStatSql =
+    `SELECT  steam_id, name, sum(kills) as kills,
+    sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
+    sum(k2) as k2, sum(k3) as k3,
+    sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
+    sum(v2) as v2, sum(v3) as v3, sum(v4) as v4,
+    sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba,
+    sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps,
+    sum(knife_kills) as knifekills, sum(friendlies_flashed) as fflash,
+    sum(enemies_flashed) as eflash, sum(util_damage) as utildmg
+    FROM    player_stats
+    WHERE steam_id = ? 
+      AND match_id IN (
+        SELECT  id
+        FROM    \`match\`
+        WHERE   cancelled = 0
+        AND     is_pug = ?
+    )`;
+  let playerStatSqlSeasons =
+    `SELECT  steam_id, name, sum(kills) as kills,
+    sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
+    sum(k2) as k2, sum(k3) as k3,
+    sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
+    sum(v2) as v2, sum(v3) as v3, sum(v4) as v4,
+    sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba,
+    sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps,
+    sum(knife_kills) as knifekills, sum(friendlies_flashed) as fflash,
+    sum(enemies_flashed) as eflash, sum(util_damage) as utildmg
+    FROM    player_stats
+    WHERE steam_id = ? 
+      AND match_id IN (
+        SELECT  id
+        FROM    \`match\`
+        WHERE   cancelled = 0
+        AND season_id = ?
+        AND     is_pug = ?
+    )`;
+  let winSql = `SELECT COUNT(*) AS wins FROM \`match\` mtch 
+    JOIN player_stats pstat ON mtch.id = pstat.match_id 
+    WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?
+    AND is_pug = ?`;
+  if (pug) {
+    winSql = `SELECT COUNT(*) AS wins FROM \`match\` mtch 
+    JOIN player_stats pstat ON mtch.id = pstat.match_id 
+    WHERE pstat.steam_id = ? AND pstat.winner = 1 
+    AND is_pug = ?`;
+  }
+  let winSqlSeasons = `SELECT COUNT(*) AS wins FROM \`match\` mtch 
+    JOIN player_stats pstat ON mtch.id = pstat.match_id 
+    WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?
+    AND mtch.season_id = ? AND is_pug = ?`;
+  let numWins;
+  let playerstats;
+  if (!seasonId) playerstats = await db.query(playerStatSql, [steamId, pug]);
+  else playerstats = await db.query(playerStatSqlSeasons, [steamId, seasonId, pug]);
+
+  if (!playerstats.length) return;
+
+  if (!seasonId) numWins = await db.query(winSql, [steamId, pug]);
+  else
+    numWins = await db.query(winSqlSeasons, [
+      steamId,
+      seasonId,
+      pug,
+    ]);
+
+  return {
+    steamId: playerstats[0].steam_id,
+    name:
+      playerstats[0].name == null
+        ? await Utils.getSteamName(playerstats[0].steam_id)
+        : playerstats[0].name.replace('/"/g', '\\"'),
+    kills: parseFloat(playerstats[0].kills),
+    deaths: parseFloat(playerstats[0].deaths),
+    assists: parseFloat(playerstats[0].assists),
+    k1: parseFloat(playerstats[0].k1),
+    k2: parseFloat(playerstats[0].k2),
+    k3: parseFloat(playerstats[0].k3),
+    k4: parseFloat(playerstats[0].k4),
+    k5: parseFloat(playerstats[0].k5),
+    v1: parseFloat(playerstats[0].v1),
+    v2: parseFloat(playerstats[0].v2),
+    v3: parseFloat(playerstats[0].v3),
+    v4: parseFloat(playerstats[0].v4),
+    v5: parseFloat(playerstats[0].v5),
+    trp: parseFloat(playerstats[0].trp),
+    fba: parseFloat(playerstats[0].fba),
+    total_damage: parseFloat(playerstats[0].dmg),
+    hsk: parseFloat(playerstats[0].hsk),
+    hsp:
+    parseFloat(playerstats[0].kills) === 0
+    ? 0
+    : (
+        (parseFloat(playerstats[0].hsk) /
+          parseFloat(playerstats[0].kills)) *
+        100
+      ).toFixed(2),
+    average_rating: Utils.getRating(
+    parseFloat(playerstats[0].kills),
+    parseFloat(playerstats[0].trp),
+    parseFloat(playerstats[0].deaths),
+    parseFloat(playerstats[0].k1),
+    parseFloat(playerstats[0].k2),
+    parseFloat(playerstats[0].k3),
+    parseFloat(playerstats[0].k4),
+    parseFloat(playerstats[0].k5)
+    ),
+    wins: numWins[0].wins,
+    total_maps: playerstats[0].totalMaps,
+  };
+}
 
 export default router;
