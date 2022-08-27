@@ -3,15 +3,12 @@ import connectRedis from "connect-redis";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
-// import { initialize, session as _session, authenticate } from
-// "./utility/auth.js";
 import bearerToken from "express-bearer-token";
 import session from "express-session";
 import helmet from "helmet";
 import createError from "http-errors";
 import logger from "morgan";
 import morgan from "morgan";
-import { createMockPassport } from "passport-mock-strategy";
 import { createClient } from "redis";
 import swaggerJSDoc from "swagger-jsdoc";
 // End Route Files
@@ -52,7 +49,7 @@ if (config.get("server.useRedis")) {
   // Messy but avoids any open file handles.
   const redisClient = createClient({
     legacyMode: true,
-    url: config.get(process.env.NODE_ENV + ".redisUrl"),
+    url: config.get("server.redisUrl"),
   });
 
   const redisStore = connectRedis(session);
@@ -63,7 +60,7 @@ if (config.get("server.useRedis")) {
 
   const redisCfg = {
     client: redisClient,
-    ttl: config.get(process.env.NODE_ENV + ".redisTTL"),
+    ttl: config.get("server.redisTTL"),
   };
   app.use(
     session({
@@ -110,7 +107,7 @@ const options = {
     openapi: "3.0.0", // Specification (optional, defaults to swagger: '2.0')
     info: {
       title: "G5API", // Title (required)
-      version: "1.5.0", // Version (required)
+      version: "1.7.0", // Version (required)
     },
   },
   // Path to the API docs
