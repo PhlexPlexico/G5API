@@ -451,6 +451,74 @@ router.get("/match/:match_id", async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ *
+ * /playerstats/match/:match_id/stream:
+ *   get:
+ *     description: Player stats from a given match in the system represented by an server sent event.
+ *     produces:
+ *       - text/event-stream
+ *     parameters:
+ *       - name: match_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Player stats from a given match.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/PlayerStats'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.get("/match/:match_id/stream", Utils.ensureAuthenticated, async (req, res, next) => {
+  try {
+    let matchID = req.params.match_id;
+    let sql = "SELECT * FROM player_stats where match_id = ?";
+    let playerstats = await db.query(sql, matchID);
+    if (!playerstats.length) {
+      res.status(404).json({ message: "No stats found for match " + matchID });
+      return;
+    }
+    res.set({
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+      "Content-Type": "text/event-stream"
+    });
+    res.flushHeaders();
+    let newData = setInterval(async () => {
+      playerstats = await db.query(sql, matchID);
+      playerstats = playerstats.map(v => Object.assign({}, v));
+      let playerString = `event: playerstats\ndata: ${JSON.stringify(playerstats)}\n\n`
+      res.write(playerString);
+    }, 1000);
+
+    req.on("close", () => {
+      console.log("Connection closed!");
+      clearInterval(newData);
+      res.end();
+    });
+    req.on("disconnect", () => {
+      console.log("Connection ended!");
+      clearInterval(newData);
+      res.end();
+    });
+    //res.json({ playerstats });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
 /** @swagger
  *
  * /playerstats/:steam_id/recent:
