@@ -15,6 +15,9 @@ import app from '../app.js';
 import debug from 'debug';
 import { createServer } from 'http';
 import config from 'config';
+import { Server } from "socket.io";
+
+
 /**
  * Get port from environment and store in Express.
  */
@@ -27,6 +30,11 @@ app.set('port', port);
 
 var server = createServer(app);
 
+/** 
+ * Create WebSocket Server
+ */
+let io = new Server(server);
+
 /**
  * Listen on provided port, on all network interfaces.
  */
@@ -34,7 +42,7 @@ var server = createServer(app);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
-
+io = io.listen(server);
 /**
  * Normalize a port into a number, string, or false.
  */

@@ -90,6 +90,7 @@
     "randomstring": "^1.2.2",
     "rcon": "^1.1.0",
     "redis": "^4.3.0",
+    "socket.io": "^4.5.1",
     "steamapi": "^2.2.0",
     "swagger-jsdoc": "^6.2.5",
     "swagger-ui-express": "^4.5.0"
