@@ -109,6 +109,9 @@ const playerStatRateLimit = rateLimit({
 import fetch from "node-fetch";
 import Utils from "../../utility/utils.js";
 
+/** A function to check for the API key in the request headers or body.
+ * @const
+ */
 const keyCheck = (request) => {
   if (!request.body.key) {
     return request.get("key"); 
