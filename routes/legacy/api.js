@@ -904,7 +904,7 @@ router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) 
     insertStmt = await db.buildUpdateStatement(insertStmt);
     insertSql = "INSERT INTO veto_side SET ?";
     await db.query(insertSql, [insertStmt]);
-    emitter.emit("vetoUpdate");
+    emitter.emit("vetoSideUpdate");
     res.status(200).send({ message: "Success" });
   } catch (err) {
     res.status(500).json({ message: err.toString() });

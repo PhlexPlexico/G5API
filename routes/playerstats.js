@@ -457,7 +457,7 @@ router.get("/match/:match_id", async (req, res, next) => {
  *
  * /playerstats/match/:match_id/stream:
  *   get:
- *     description: Player stats from a given match in the system represented by an server sent event.
+ *     description: Player stats from a given match in the system represented by a text-stream for real time updates.
  *     produces:
  *       - text/event-stream
  *     parameters:
@@ -500,23 +500,24 @@ router.get("/match/:match_id", async (req, res, next) => {
     playerstats = await db.query(sql, matchID);
     playerstats = playerstats.map(v => Object.assign({}, v));
     let playerString = `event: playerstats\ndata: ${JSON.stringify(playerstats)}\n\n`
-    res.write(playerString);
-
-    emitter.on("playerStatsUpdate", async () => {
+    
+    // Need to name the function in order to remove it!
+    const playerStreamStats = async () => {
       playerstats = await db.query(sql, matchID);
       playerstats = playerstats.map(v => Object.assign({}, v));
-      let playerString = `event: playerstats\ndata: ${JSON.stringify(playerstats)}\n\n`
+      playerString = `event: playerstats\ndata: ${JSON.stringify(playerstats)}\n\n`
       res.write(playerString);
-    });
+    };
 
+    emitter.on("playerStatsUpdate", playerStreamStats);
+
+    res.write(playerString);
     req.on("close", () => {
-      console.log("Connection closed!");
-      emitter.off("playerStatsUpdate");
+      emitter.removeListener("playerStatsUpdate", playerStreamStats);
       res.end();
     });
     req.on("disconnect", () => {
-      console.log("Connection ended!");
-      emitter.off("playerStatsUpdate");
+      emitter.removeListener("playerStatsUpdate", playerStreamStats);
       res.end();
     });
   } catch (err) {
