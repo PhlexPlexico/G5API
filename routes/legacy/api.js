@@ -177,6 +177,9 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     let sql = "SELECT * FROM `match` WHERE id = ?";
     const matchValues = await db.query(sql, matchID);
 
+    // Event Emitter
+    let emitter = app.get("eventEmitter");
+
     // Additional check here to see if we are cancelled through /cancel or not.
     if (
       matchValues[0].end_time == null &&
@@ -270,6 +273,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
         winner
       );
     }
+    emitter.emit("matchUpdate");
     res.status(200).send({ message: "Success" });
   } catch (err) {
     console.log(err);
@@ -337,6 +341,9 @@ router.post("/:match_id/pause/", basicRateLimit, async (req, res, next) => {
     // Throw error if wrong key or finished match.
     await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
+    // Event Emitter
+    let emitter = app.get("eventEmitter");
+
     sql = "SELECT * FROM match_pause WHERE match_id = ?";
     const pauseCheck = await db.query(sql, matchID);
     let teamName;
@@ -363,6 +370,7 @@ router.post("/:match_id/pause/", basicRateLimit, async (req, res, next) => {
       updateSet = await db.buildUpdateStatement(updateSet);
       await db.query(sql, [updateSet, matchID]);
     }
+    emitter.emit("matchUpdate");
     res.status(200).send({ message: "Success" });
   } catch (err) {
     console.error(err);
@@ -427,6 +435,9 @@ router.post("/:match_id/unpause/", basicRateLimit, async (req, res, next) => {
     // Throw error if wrong key or finished match.
     await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
+    // Event Emitter
+    let emitter = app.get("eventEmitter");
+
     sql = "SELECT * FROM match_pause WHERE match_id = ?";
     const pauseCheck = await db.query(sql, matchID);
     let teamName;
@@ -452,6 +463,7 @@ router.post("/:match_id/unpause/", basicRateLimit, async (req, res, next) => {
       updateSet = await db.buildUpdateStatement(updateSet);
       await db.query(sql, [updateSet, matchID]);
     }
+    emitter.emit("matchUpdate");
     res.status(200).send({ message: "Success" });
   } catch (err) {
     console.error(err);
@@ -529,6 +541,9 @@ router.post(
       // Throw error if wrong key or finished match.
       await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
+      // Event Emitter
+      let emitter = app.get("eventEmitter");
+
       // Begin transaction
       if (matchValues[0].start_time == null) {
         // Update match stats to have a start time.
@@ -563,6 +578,7 @@ router.post(
         insertSql = "INSERT INTO map_stats SET ?";
         await db.query(insertSql, [insertStmt]);
       }
+      emitter.emit("mapStatUpdate");
       res.status(200).send({ message: "Success" });
     } catch (err) {
       console.log(err);
@@ -641,6 +657,10 @@ router.post(
 
       // Throw error if wrong key or finished match.
       await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
+
+      // Event Emitter
+      let emitter = app.get("eventEmitter");
+
       // Get or create mapstats.
       sql = "SELECT * FROM map_stats WHERE match_id = ? AND map_number = ?";
 
@@ -663,6 +683,7 @@ router.post(
               matchValues[0].max_maps
             );
           }
+          emitter.emit("mapStatUpdate");
           res.status(200).send({ message: "Success" });
         } else {
           res.status(404).send({ message: "Failed to find map stats object" });
@@ -744,6 +765,9 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     // Throw error if wrong key or finished match.
     await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
+    // Event Emitter
+    let emitter = app.get("eventEmitter");
+    
     if (teamString === "team1") teamID = matchValues[0].team1_id;
     else if (teamString === "team2") teamID = matchValues[0].team2_id;
 
@@ -762,6 +786,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     insertStmt = await db.buildUpdateStatement(insertStmt);
     insertSql = "INSERT INTO veto SET ?";
     await db.query(insertSql, [insertStmt]);
+    emitter.emit("vetoUpdate");
     res.status(200).send({ message: "Success" });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
@@ -840,6 +865,9 @@ router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) 
     // Throw error if wrong key or finished match.
     await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
+    // Event Emitter
+    let emitter = app.get("eventEmitter");
+
     // Swap these as we are looking at the team who picked, not banned right now.
     if (teamString === "team1") {
       teamPickID = matchValues[0].team1_id;
@@ -876,6 +904,7 @@ router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) 
     insertStmt = await db.buildUpdateStatement(insertStmt);
     insertSql = "INSERT INTO veto_side SET ?";
     await db.query(insertSql, [insertStmt]);
+    emitter.emit("vetoUpdate");
     res.status(200).send({ message: "Success" });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
@@ -942,6 +971,9 @@ router.post(
       // Throw error if wrong key. Match finish doesn't matter.
       await check_api_key(matchValues[0].api_key, keyCheck(req), false);
 
+      // Event Emitter
+      let emitter = app.get("eventEmitter");
+
       sql = "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
       const mapStatValues = await db.query(sql, [matchID, mapNum]);
 
@@ -960,6 +992,7 @@ router.post(
 
       updateSql = "UPDATE map_stats SET ? WHERE id = ?";
       await db.query(updateSql, [updateStmt, mapStatValues[0].id]);
+      emitter.emit("demoUpdate");
       res.status(200).send({ message: "Success" });
     } catch (err) {
       res.status(500).json({ message: err.toString() });
@@ -970,7 +1003,7 @@ router.post(
 /**
  * @swagger
  *
- *  /:match_id/map/:map_number/demo/upload/:api_key:
+ *  /:match_id/map/:map_number/demo/upload/:
  *   put:
  *     description: Route serving to upload the demo file from the game server.
  *     parameters:
@@ -984,8 +1017,8 @@ router.post(
  *         schema:
  *           type: integer
  *         required: true
- *       - in: path
- *         name: api_key
+ *       - in: header
+ *         name: key
  *         schema:
  *           type: string
  *         required: true
@@ -1018,7 +1051,7 @@ router.post(
  *         $ref: '#/components/responses/Error'
  */
 router.put(
-  "/:match_id/map/:map_number/demo/upload/:api_key",
+  "/:match_id/map/:map_number/demo/upload/",
   basicRateLimit,
   async (req, res, next) => {
     if (!config.get("server.uploadDemos")) {
@@ -1031,7 +1064,7 @@ router.put(
       let matchID = req.params.match_id;
       let mapNumber = req.params.map_number;
       // This is required since we're sending an octet stream.
-      let apiKey = req.params.api_key;
+      let apiKey = keyCheck(req);
       let zip = new JSZip();
       // Database calls.
       let sql = "SELECT * FROM `match` WHERE id = ?";
@@ -1062,6 +1095,8 @@ router.put(
         return;
       }
         
+      // Event Emitter
+      let emitter = app.get("eventEmitter");
 
       zip.file(mapStatValues[0].demoFile.replace(".zip", "") + ".dem", req.body, { binary: true });
       zip
@@ -1079,6 +1114,7 @@ router.put(
             }
           );
         });
+      emitter.emit("demoUpdate");
       res.status(200).send({ message: "Success!" });
     } catch (err) {
       res.status(500).json({ message: err.toString() });
@@ -1102,7 +1138,7 @@ router.put(
  *            type: object
  *            properties:
  *              key:
- *                type: integer
+ *                type: string
  *                description: The API key given from the game server to compare.
  *              winner:
  *                type: string
@@ -1144,7 +1180,6 @@ router.post(
       let mapEndTime = new Date().toISOString().slice(0, 19).replace("T", " ");
       let matchFinalized = true;
       let teamIdWinner;
-      let teamIdLoser;
       // Database calls.
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
@@ -1157,6 +1192,9 @@ router.post(
       // Throw error if wrong key. Match finish doesn't matter.
       await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
+      // Event Emitter
+      let emitter = app.get("eventEmitter");
+      
       sql = "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
       const mapStatValues = await db.query(sql, [matchID, mapNum]);
 
@@ -1167,11 +1205,9 @@ router.post(
       if (winner == "team1") {
         teamIdWinner = matchValues[0].team1_id;
         team1Score = matchValues[0].team1_score + 1;
-        teamIdLoser = matchValues[0].team2_id;
       } else if (winner == "team2") {
         teamIdWinner = matchValues[0].team2_id;
         team2Score = matchValues[0].team2_score + 1;
-        teamIdLoser = matchValues[0].team1_id;
       }
       updateStmt = {
         end_time: mapEndTime,
@@ -1210,6 +1246,7 @@ router.post(
           matchValues[0].max_maps
         );
       }
+      emitter.emit("mapStatUpdate");
       res.status(200).send({ message: "Success" });
     } catch (err) {
       console.log(err);
@@ -1349,6 +1386,10 @@ router.post(
       let updateSql;
       let matchFinalized = true;
       let playerTeamId;
+
+      // Event Emitter
+      let emitter = app.get("eventEmitter");
+
       // Database calls.
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
@@ -1433,6 +1474,7 @@ router.post(
           playerStatValues[0].id,
         ]);
       }
+      emitter.emit("playerStatsUpdate");
       res.status(200).send({ message: "Success" });
     } catch (err) {
       res.status(500).json({ message: err.toString() });
@@ -1443,7 +1485,7 @@ router.post(
 /**
  * @swagger
  *
- *  /:match_id/map/:map_number/backup/:api_key:
+ *  /:match_id/map/:map_number/backup:
  *   post:
  *     description: Route serving to upload the latest round backup to the server.
  *     parameters:
@@ -1457,8 +1499,8 @@ router.post(
  *         schema:
  *           type: integer
  *         required: true
- *       - in: path
- *         name: api_key
+ *       - in: header
+ *         name: key
  *         schema:
  *           type: string
  *         required: true
@@ -1496,14 +1538,14 @@ router.post(
  *         $ref: '#/components/responses/Error'
  */
  router.put(
-  "/:match_id/map/:map_number/round/:round_number/backup/:api_key",
+  "/:match_id/map/:map_number/round/:round_number/backup",
   basicRateLimit,
   async (req, res, next) => {
     try {
       let matchID = req.params.match_id;
       let mapNumber = req.params.map_number;
       // This is required since we're sending an octet stream.
-      let apiKey = req.params.api_key;
+      let apiKey = keyCheck(req);
       let roundNumber = req.params.round_number;
       // Database calls.
       let sql = "SELECT * FROM `match` WHERE id = ?";
@@ -1640,6 +1682,8 @@ async function update_challonge_match(match_id, season_id, team1_id, team2_id, n
       );
       challongeData = await challongeResponse.json();
       if(!challongeData) {
+        // Event Emitter
+        let emitter = app.get("eventEmitter");
         await fetch(
           "https://api.challonge.com/v1/tournaments/" +
           seasonInfo[0].challonge_url +
@@ -1651,6 +1695,7 @@ async function update_challonge_match(match_id, season_id, team1_id, team2_id, n
         // If we are the last map, let's close off the season as well.
         sql = "UPDATE season SET end_date = ? WHERE id = ?";
         await db.query(sql, [new Date().toISOString().slice(0, 19).replace("T", " "), seasonInfo[0].id]);
+        emitter.emit("seasonUpdate");
       }
     }
   }

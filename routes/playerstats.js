@@ -4,6 +4,7 @@
  * description: Express API for player stats in Get5 matches.
  */
 import { Router } from "express";
+import app from "../app.js";
 
 const router = Router();
 
@@ -480,7 +481,7 @@ router.get("/match/:match_id", async (req, res, next) => {
  *       500:
  *         $ref: '#/components/responses/Error'
  */
- router.get("/match/:match_id/stream", Utils.ensureAuthenticated, async (req, res, next) => {
+ router.get("/match/:match_id/stream", async (req, res, next) => {
   try {
     let matchID = req.params.match_id;
     let sql = "SELECT * FROM player_stats where match_id = ?";
@@ -495,24 +496,29 @@ router.get("/match/:match_id", async (req, res, next) => {
       "Content-Type": "text/event-stream"
     });
     res.flushHeaders();
-    let newData = setInterval(async () => {
+    let emitter = app.get("eventEmitter");
+    playerstats = await db.query(sql, matchID);
+    playerstats = playerstats.map(v => Object.assign({}, v));
+    let playerString = `event: playerstats\ndata: ${JSON.stringify(playerstats)}\n\n`
+    res.write(playerString);
+
+    emitter.on("playerStatsUpdate", async () => {
       playerstats = await db.query(sql, matchID);
       playerstats = playerstats.map(v => Object.assign({}, v));
       let playerString = `event: playerstats\ndata: ${JSON.stringify(playerstats)}\n\n`
       res.write(playerString);
-    }, 1000);
+    });
 
     req.on("close", () => {
       console.log("Connection closed!");
-      clearInterval(newData);
+      emitter.off("playerStatsUpdate");
       res.end();
     });
     req.on("disconnect", () => {
       console.log("Connection ended!");
-      clearInterval(newData);
+      emitter.off("playerStatsUpdate");
       res.end();
     });
-    //res.json({ playerstats });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.toString() });
@@ -644,53 +650,55 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
       return;
     } else {
-        let insertSet = {
-          match_id: req.body[0].match_id,
-          map_id: req.body[0].map_id,
-          team_id: req.body[0].team_id,
-          steam_id: req.body[0].steam_id,
-          name: req.body[0].name,
-          kills: req.body[0].kills,
-          deaths: req.body[0].deaths,
-          roundsplayed: req.body[0].roundsplayed,
-          assists: req.body[0].assists,
-          flashbang_assists: req.body[0].flashbang_assists,
-          teamkills: req.body[0].teamkills,
-          knife_kills: req.body[0].knife_kills,
-          suicides: req.body[0].suicides,
-          headshot_kills: req.body[0].headshot_kills,
-          damage: req.body[0].damage,
-          util_damage: req.body[0].util_damage,
-          enemies_flashed: req.body[0].enemies_flashed,
-          friendlies_flashed: req.body[0].friendlies_flashed,
-          bomb_plants: req.body[0].bomb_plants,
-          bomb_defuses: req.body[0].bomb_defuses,
-          v1: req.body[0].v1,
-          v2: req.body[0].v2,
-          v3: req.body[0].v3,
-          v4: req.body[0].v4,
-          v5: req.body[0].v5,
-          k1: req.body[0].k1,
-          k2: req.body[0].k2,
-          k3: req.body[0].k3,
-          k4: req.body[0].k4,
-          k5: req.body[0].k5,
-          firstdeath_ct: req.body[0].firstdeath_ct,
-          firstdeath_t: req.body[0].firstdeath_t,
-          firstkill_ct: req.body[0].firstkill_ct,
-          firstkill_t: req.body[0].firstkill_t,
-          kast: req.body[0].kast,
-          contribution_score: req.body[0].contribution_score,
-          mvp: req.body[0].mvp
-        };
-        let sql = "INSERT INTO player_stats SET ?";
-        // Remove any values that may not be inserted off the hop.
-        insertSet = await db.buildUpdateStatement(insertSet);
-        let insertPlayStats = await db.query(sql, [insertSet]);
-        res.json({
-          message: "Player Stats inserted successfully!",
-          id: insertPlayStats.insertId,
-        });
+      let emitter = app.get("eventEmitter");
+      let insertSet = {
+        match_id: req.body[0].match_id,
+        map_id: req.body[0].map_id,
+        team_id: req.body[0].team_id,
+        steam_id: req.body[0].steam_id,
+        name: req.body[0].name,
+        kills: req.body[0].kills,
+        deaths: req.body[0].deaths,
+        roundsplayed: req.body[0].roundsplayed,
+        assists: req.body[0].assists,
+        flashbang_assists: req.body[0].flashbang_assists,
+        teamkills: req.body[0].teamkills,
+        knife_kills: req.body[0].knife_kills,
+        suicides: req.body[0].suicides,
+        headshot_kills: req.body[0].headshot_kills,
+        damage: req.body[0].damage,
+        util_damage: req.body[0].util_damage,
+        enemies_flashed: req.body[0].enemies_flashed,
+        friendlies_flashed: req.body[0].friendlies_flashed,
+        bomb_plants: req.body[0].bomb_plants,
+        bomb_defuses: req.body[0].bomb_defuses,
+        v1: req.body[0].v1,
+        v2: req.body[0].v2,
+        v3: req.body[0].v3,
+        v4: req.body[0].v4,
+        v5: req.body[0].v5,
+        k1: req.body[0].k1,
+        k2: req.body[0].k2,
+        k3: req.body[0].k3,
+        k4: req.body[0].k4,
+        k5: req.body[0].k5,
+        firstdeath_ct: req.body[0].firstdeath_ct,
+        firstdeath_t: req.body[0].firstdeath_t,
+        firstkill_ct: req.body[0].firstkill_ct,
+        firstkill_t: req.body[0].firstkill_t,
+        kast: req.body[0].kast,
+        contribution_score: req.body[0].contribution_score,
+        mvp: req.body[0].mvp
+      };
+      let sql = "INSERT INTO player_stats SET ?";
+      // Remove any values that may not be inserted off the hop.
+      insertSet = await db.buildUpdateStatement(insertSet);
+      let insertPlayStats = await db.query(sql, [insertSet]);
+      emitter.emit("playerStatsUpdate");
+      res.json({
+        message: "Player Stats inserted successfully!",
+        id: insertPlayStats.insertId,
+      });
     }
   } catch (err) {
     res.status(500).json({ message: err.toString() });
@@ -811,6 +819,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       }
       let sql =
         "UPDATE player_stats SET ? WHERE map_id = ? AND match_id = ? AND steam_id = ?";
+      let emitter = app.get("eventEmitter");
       const updatedPlayerStats = await db.query(sql, [
         updateStmt,
         req.body[0].map_id,
@@ -819,7 +828,6 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       ]);
       if (updatedPlayerStats.affectedRows > 0) {
         res.json({ message: "Player Stats were updated successfully!" });
-        return;
       } else {
         sql = "INSERT INTO player_stats SET ?";
         // Update values to include match/map/steam_id.
@@ -830,8 +838,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         updateStmt.team_id = req.body[0].team_id;
         await db.query(sql, [updateStmt]);
         res.json({ message: "Player Stats Inserted Successfully!" });
-        return;
       }
+      emitter.emit("playerStatsUpdate");
+      return;
     }
   } catch (err) {
     console.error(err);
@@ -906,6 +915,8 @@ router.delete("/", async (req, res, next) => {
         req.body[0].match_id,
       ]);
       if (delRows.affectedRows > 0) {
+        let emitter = app.get("eventEmitter");
+        emitter.emit("playerStatsUpdate");
         res.json({ message: "Player stats has been deleted successfully." });
         return;
       } else {
