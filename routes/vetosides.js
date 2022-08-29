@@ -171,7 +171,6 @@ router.get("/:match_id/stream", async (req, res, next) => {
       "Content-Type": "text/event-stream"
     });
     res.flushHeaders();
-    const emitter = app.get("eventEmitter");
     vetoes = vetoes.map(v => Object.assign({}, v));
     let vetoEventString = `event: vetosidedata\ndata: ${JSON.stringify(vetoes)}\n\n`
 
@@ -183,16 +182,16 @@ router.get("/:match_id/stream", async (req, res, next) => {
       res.write(vetoEventString);
     };
 
-    emitter.on("vetoSideUpdate", vetoStreamData);
+    GlobalEmitter.on("vetoSideUpdate", vetoStreamData);
 
     res.write(vetoEventString);
 
     req.on("close", () => {
-      emitter.removeListener("vetoSideUpdate", vetoStreamData);
+      GlobalEmitter.removeListener("vetoSideUpdate", vetoStreamData);
       res.end();
     });
     req.on("disconnect", () => {
-      emitter.removeListener("vetoSideUpdate", vetoStreamData);
+      GlobalEmitter.removeListener("vetoSideUpdate", vetoStreamData);
       res.end();
     });
   } catch (err) {
@@ -273,6 +272,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       }
       sql = "INSERT INTO veto_side SET ?";
       const vetoSideId = await db.query(sql, [insertStmt]);
+      GlobalEmitter.emit("vetoSideUpdate");
       res.json({
         message: "Veto side selection inserted successfully!",
         id: vetoSideId.insertId,
@@ -346,6 +346,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       }
       let sql = "UPDATE veto_side SET ? WHERE id = ?";
       await db.query(sql, [updateStmt, vetoId]);
+      GlobalEmitter.emit("vetoSideUpdate");
       res.json({ message: "Veto updated successfully!" });
     } catch (err) {
       console.error(err);
@@ -405,8 +406,10 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       let matchId = req.body[0].match_id;
       let sql = "DELETE FROM veto_side WHERE match_id = ?";
       const delRows = await db.query(sql, [matchId]);
-      if (delRows.affectedRows > 0)
+      if (delRows.affectedRows > 0) {
+        GlobalEmitter.emit("vetoSideUpdate");
         res.json({ message: "Veto side data deleted successfully!" });
+      }
       else
         res
           .status(412)

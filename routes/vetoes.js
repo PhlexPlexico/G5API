@@ -12,6 +12,8 @@ import db from "../db.js";
 
 import Utils from "../utility/utils.js";
 
+import GlobalEmitter from "../utility/emitter.js";
+
 /**
  * @swagger
  *
@@ -175,7 +177,6 @@ router.get("/:match_id/stream", async (req, res, next) => {
     });
     res.flushHeaders();
 
-    const emitter = app.get("eventEmitter");
     vetoes = vetoes[0].map(v => Object.assign({}, v));
     let vetoEventString = `event: vetodata\ndata: ${JSON.stringify(vetoes)}\n\n`
 
@@ -187,16 +188,16 @@ router.get("/:match_id/stream", async (req, res, next) => {
       res.write(vetoEventString);
     };
 
-    emitter.on("vetoUpdate", vetoStreamData);
+    GlobalEmitter.on("vetoUpdate", vetoStreamData);
 
     res.write(vetoEventString);
 
     req.on("close", () => {
-      emitter.removeListener("vetoUpdate", vetoStreamData);
+      GlobalEmitter.removeListener("vetoUpdate", vetoStreamData);
       res.end();
     });
     req.on("disconnect", () => {
-      emitter.removeListener("vetoUpdate", vetoStreamData);
+      GlobalEmitter.removeListener("vetoUpdate", vetoStreamData);
       res.end();
     });
   } catch (err) {
@@ -273,14 +274,12 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         return;
       }
       let sql = "INSERT INTO veto SET ?";
-      // Event Emitter
-      const emitter = app.get("eventEmitter");
       const vetoId = await db.query(sql, [insertStmt]);
       res.json({
         message: "Veto inserted successfully!",
         id: vetoId.insertId,
       });
-      emitter.emit("vetoUpdate");
+      GlobalEmitter.emit("vetoUpdate");
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: err.toString() });
@@ -351,10 +350,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         return;
       }
       let sql = "UPDATE veto SET ? WHERE id = ?";
-      // Event Emitter
-      const emitter = app.get("eventEmitter");
       await db.query(sql, [updateStmt, vetoId]);
-      emitter.emit("vetoUpdate");
+      GlobalEmitter.emit("vetoUpdate");
       res.json({ message: "Veto updated successfully!" });
     } catch (err) {
       console.error(err);
@@ -417,9 +414,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       let sql = "DELETE FROM veto WHERE match_id = ?";
       const delRows = await db.query(sql, [matchId]);
       if (delRows.affectedRows > 0) {
-        // Event Emitter
-        const emitter = app.get("eventEmitter");
-        emitter.emit("vetoUpdate");
+        GlobalEmitter.emit("vetoUpdate");
         res.json({ message: "Vetoes deleted successfully!" });
       }
       else

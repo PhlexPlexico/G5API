@@ -12,6 +12,8 @@ import db from "../db.js";
 
 import Utils from "../utility/utils.js";
 
+import GlobalEmitter from "../utility/emitter.js";
+
 /* Swagger shared definitions */
 /**
  * @swagger
@@ -496,7 +498,6 @@ router.get("/match/:match_id", async (req, res, next) => {
       "Content-Type": "text/event-stream"
     });
     res.flushHeaders();
-    const emitter = app.get("eventEmitter");
     playerstats = playerstats.map(v => Object.assign({}, v));
     let playerString = `event: playerstats\ndata: ${JSON.stringify(playerstats)}\n\n`
     
@@ -508,15 +509,15 @@ router.get("/match/:match_id", async (req, res, next) => {
       res.write(playerString);
     };
 
-    emitter.on("playerStatsUpdate", playerStreamStats);
+    GlobalEmitter.on("playerStatsUpdate", playerStreamStats);
 
     res.write(playerString);
     req.on("close", () => {
-      emitter.removeListener("playerStatsUpdate", playerStreamStats);
+      GlobalEmitter.removeListener("playerStatsUpdate", playerStreamStats);
       res.end();
     });
     req.on("disconnect", () => {
-      emitter.removeListener("playerStatsUpdate", playerStreamStats);
+      GlobalEmitter.removeListener("playerStatsUpdate", playerStreamStats);
       res.end();
     });
   } catch (err) {
@@ -651,7 +652,6 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
       return;
     } else {
-      const emitter = app.get("eventEmitter");
       let insertSet = {
         match_id: req.body[0].match_id,
         map_id: req.body[0].map_id,
@@ -695,7 +695,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       // Remove any values that may not be inserted off the hop.
       insertSet = await db.buildUpdateStatement(insertSet);
       let insertPlayStats = await db.query(sql, [insertSet]);
-      emitter.emit("playerStatsUpdate");
+      GlobalEmitter.emit("playerStatsUpdate");
       res.json({
         message: "Player Stats inserted successfully!",
         id: insertPlayStats.insertId,
@@ -820,7 +820,6 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       }
       let sql =
         "UPDATE player_stats SET ? WHERE map_id = ? AND match_id = ? AND steam_id = ?";
-      const emitter = app.get("eventEmitter");
       const updatedPlayerStats = await db.query(sql, [
         updateStmt,
         req.body[0].map_id,
@@ -840,7 +839,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         await db.query(sql, [updateStmt]);
         res.json({ message: "Player Stats Inserted Successfully!" });
       }
-      emitter.emit("playerStatsUpdate");
+      GlobalEmitter.emit("playerStatsUpdate");
       return;
     }
   } catch (err) {
@@ -916,8 +915,7 @@ router.delete("/", async (req, res, next) => {
         req.body[0].match_id,
       ]);
       if (delRows.affectedRows > 0) {
-        const emitter = app.get("eventEmitter");
-        emitter.emit("playerStatsUpdate");
+        GlobalEmitter.emit("playerStatsUpdate");
         res.json({ message: "Player stats has been deleted successfully." });
         return;
       } else {

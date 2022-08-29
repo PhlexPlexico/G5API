@@ -12,6 +12,8 @@ import db from "../db.js";
 
 import Utils from "../utility/utils.js";
 
+import GlobalEmitter from "../utility/emitter.js";
+
 /**
  * @swagger
  *
@@ -199,7 +201,6 @@ router.get("/:match_id", async (req, res, next) => {
       "Content-Type": "text/event-stream"
     });
     res.flushHeaders();
-    const emitter = app.get("eventEmitter");
     mapstats = mapstats.map(v => Object.assign({}, v));
     let mapStatString = `event: mapstats\ndata: ${JSON.stringify(mapstats)}\n\n`
     
@@ -211,15 +212,15 @@ router.get("/:match_id", async (req, res, next) => {
       res.write(mapStatString);
     };
 
-    emitter.on("mapStatUpdate", mapStatStreamStats);
+    GlobalEmitter.on("mapStatUpdate", mapStatStreamStats);
 
     res.write(mapStatString);
     req.on("close", () => {
-      emitter.removeListener("mapStatUpdate", mapStatStreamStats);
+      GlobalEmitter.removeListener("mapStatUpdate", mapStatStreamStats);
       res.end();
     });
     req.on("disconnect", () => {
-      emitter.removeListener("mapStatUpdate", mapStatStreamStats);
+      GlobalEmitter.removeListener("mapStatUpdate", mapStatStreamStats);
       res.end();
     });
 
@@ -280,7 +281,6 @@ router.get("/:match_id/:map_number/stream", async (req, res, next) => {
       "Content-Type": "text/event-stream"
     });
     res.flushHeaders();
-    const emitter = app.get("eventEmitter");
     mapstats = mapstats.map(v => Object.assign({}, v));
     let mapStatString = `event: mapstats\ndata: ${JSON.stringify(mapstats[0])}\n\n`
     
@@ -292,15 +292,15 @@ router.get("/:match_id/:map_number/stream", async (req, res, next) => {
       res.write(mapStatString);
     };
 
-    emitter.on("mapStatUpdate", mapStatStreamStats);
+    GlobalEmitter.on("mapStatUpdate", mapStatStreamStats);
 
     res.write(mapStatString);
     req.on("close", () => {
-      emitter.removeListener("mapStatUpdate", mapStatStreamStats);
+      GlobalEmitter.removeListener("mapStatUpdate", mapStatStreamStats);
       res.end();
     });
     req.on("disconnect", () => {
-      emitter.removeListener("mapStatUpdate", mapStatStreamStats);
+      GlobalEmitter.removeListener("mapStatUpdate", mapStatStreamStats);
       res.end();
     });
   } catch (err) {
@@ -407,7 +407,6 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(errMessage.status).json({ message: errMessage.message });
       return;
     } else {
-      const emitter = app.get("eventEmitter");
       let mapStatSet = {
         match_id: req.body[0].match_id,
         map_number: req.body[0].map_number,
@@ -416,7 +415,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       };
       let sql = "INSERT INTO map_stats SET ?";
       let insertedStats = await db.query(sql, [mapStatSet]);
-      emitter.emit("mapStatUpdate");
+      GlobalEmitter.emit("mapStatUpdate");
       res.json({
         message: "Map stats inserted successfully!",
         id: insertedStats.insertId,
@@ -483,7 +482,6 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(errMessage.status).json({ message: errMessage.message });
       return;
     } else {
-      const emitter = app.get("eventEmitter");
       let mapStatId = req.body[0].map_stats_id;
       let updatedValues = {
         end_time: req.body[0].end_time,
@@ -503,7 +501,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       let sql = "UPDATE map_stats SET ? WHERE id = ?";
       const updateMapStats = await db.query(sql, [updatedValues, mapStatId]);
       if (updateMapStats.affectedRows > 0) {
-        emitter.emit("mapStatUpdate");
+        GlobalEmitter.emit("mapStatUpdate");
         res.json({ message: "Map Stats updated successfully!" });
       }
       else
@@ -573,12 +571,11 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(errMessage.status).json({ message: errMessage.message });
       return;
     } else {
-      const emitter = app.get("eventEmitter");
       let mapStatsId = req.body[0].map_stats_id;
       let deleteSql = "DELETE FROM map_stats WHERE id = ?";
       const delRows = await db.query(deleteSql, [mapStatsId]);
       if (delRows.affectedRows > 0) {
-        emitter.emit("mapStatUpdate");
+        GlobalEmitter.emit("mapStatUpdate");
         res.json({ message: "Map Stats deleted successfully!" });
       }
         

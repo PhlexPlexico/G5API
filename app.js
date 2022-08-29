@@ -32,10 +32,9 @@ import vetosidesRouter from "./routes/vetosides.js";
 import passport from "./utility/auth.js";
 // End Route Files
 
-import { EventEmitter } from "events";
+
 
 const app = express();
-const globalEmitter = new EventEmitter();
 
 app.use(logger("dev"));
 app.use(express.raw({ type: "application/octet-stream", limit: "2gb" }));
@@ -45,7 +44,6 @@ app.use(cookieParser());
 app.use("/demo", express.static("public"));
 app.use("/backups", express.static("public/backups"));
 app.use("/static/img/logos", express.static("public/img/logos"));
-app.set("eventEmitter", globalEmitter);
 
 // Security defaults with helmet
 app.use(helmet());
