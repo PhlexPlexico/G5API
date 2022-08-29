@@ -175,15 +175,15 @@ router.get("/:match_id/stream", async (req, res, next) => {
     });
     res.flushHeaders();
 
-    let emitter = app.get("eventEmitter");
-    vetoes = vetoes.map(v => Object.assign({}, v));
+    const emitter = app.get("eventEmitter");
+    vetoes = vetoes[0].map(v => Object.assign({}, v));
     let vetoEventString = `event: vetodata\ndata: ${JSON.stringify(vetoes)}\n\n`
 
     // Need to name the function in order to remove it!
     const vetoStreamData = async () => {
       vetoes = await db.query(sql, matchId);
       vetoes = vetoes.map(v => Object.assign({}, v));
-      vetoEventString = `event: vetodata\ndata: ${JSON.stringify(playerstats)}\n\n`
+      vetoEventString = `event: vetodata\ndata: ${JSON.stringify(vetoes)}\n\n`
       res.write(vetoEventString);
     };
 
@@ -200,8 +200,8 @@ router.get("/:match_id/stream", async (req, res, next) => {
       res.end();
     });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`)
+    res.end();
   }
 });
 

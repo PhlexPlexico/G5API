@@ -496,8 +496,7 @@ router.get("/match/:match_id", async (req, res, next) => {
       "Content-Type": "text/event-stream"
     });
     res.flushHeaders();
-    let emitter = app.get("eventEmitter");
-    playerstats = await db.query(sql, matchID);
+    const emitter = app.get("eventEmitter");
     playerstats = playerstats.map(v => Object.assign({}, v));
     let playerString = `event: playerstats\ndata: ${JSON.stringify(playerstats)}\n\n`
     
@@ -521,8 +520,9 @@ router.get("/match/:match_id", async (req, res, next) => {
       res.end();
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.toString() });
+    console.error(err.toString());
+    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`)
+    res.end();
   }
 });
 
@@ -651,7 +651,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
       return;
     } else {
-      let emitter = app.get("eventEmitter");
+      const emitter = app.get("eventEmitter");
       let insertSet = {
         match_id: req.body[0].match_id,
         map_id: req.body[0].map_id,
@@ -820,7 +820,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       }
       let sql =
         "UPDATE player_stats SET ? WHERE map_id = ? AND match_id = ? AND steam_id = ?";
-      let emitter = app.get("eventEmitter");
+      const emitter = app.get("eventEmitter");
       const updatedPlayerStats = await db.query(sql, [
         updateStmt,
         req.body[0].map_id,
@@ -916,7 +916,7 @@ router.delete("/", async (req, res, next) => {
         req.body[0].match_id,
       ]);
       if (delRows.affectedRows > 0) {
-        let emitter = app.get("eventEmitter");
+        const emitter = app.get("eventEmitter");
         emitter.emit("playerStatsUpdate");
         res.json({ message: "Player stats has been deleted successfully." });
         return;

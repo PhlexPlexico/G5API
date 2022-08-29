@@ -178,7 +178,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     const matchValues = await db.query(sql, matchID);
 
     // Event Emitter
-    let emitter = app.get("eventEmitter");
+    const emitter = app.get("eventEmitter");
 
     // Additional check here to see if we are cancelled through /cancel or not.
     if (
@@ -342,7 +342,7 @@ router.post("/:match_id/pause/", basicRateLimit, async (req, res, next) => {
     await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
     // Event Emitter
-    let emitter = app.get("eventEmitter");
+    const emitter = app.get("eventEmitter");
 
     sql = "SELECT * FROM match_pause WHERE match_id = ?";
     const pauseCheck = await db.query(sql, matchID);
@@ -436,7 +436,7 @@ router.post("/:match_id/unpause/", basicRateLimit, async (req, res, next) => {
     await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
     // Event Emitter
-    let emitter = app.get("eventEmitter");
+    const emitter = app.get("eventEmitter");
 
     sql = "SELECT * FROM match_pause WHERE match_id = ?";
     const pauseCheck = await db.query(sql, matchID);
@@ -542,7 +542,7 @@ router.post(
       await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
       // Event Emitter
-      let emitter = app.get("eventEmitter");
+      const emitter = app.get("eventEmitter");
 
       // Begin transaction
       if (matchValues[0].start_time == null) {
@@ -659,7 +659,7 @@ router.post(
       await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
       // Event Emitter
-      let emitter = app.get("eventEmitter");
+      const emitter = app.get("eventEmitter");
 
       // Get or create mapstats.
       sql = "SELECT * FROM map_stats WHERE match_id = ? AND map_number = ?";
@@ -766,7 +766,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
     // Event Emitter
-    let emitter = app.get("eventEmitter");
+    const emitter = app.get("eventEmitter");
     
     if (teamString === "team1") teamID = matchValues[0].team1_id;
     else if (teamString === "team2") teamID = matchValues[0].team2_id;
@@ -866,7 +866,7 @@ router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) 
     await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
     // Event Emitter
-    let emitter = app.get("eventEmitter");
+    const emitter = app.get("eventEmitter");
 
     // Swap these as we are looking at the team who picked, not banned right now.
     if (teamString === "team1") {
@@ -972,7 +972,7 @@ router.post(
       await check_api_key(matchValues[0].api_key, keyCheck(req), false);
 
       // Event Emitter
-      let emitter = app.get("eventEmitter");
+      const emitter = app.get("eventEmitter");
 
       sql = "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
       const mapStatValues = await db.query(sql, [matchID, mapNum]);
@@ -1096,7 +1096,7 @@ router.put(
       }
         
       // Event Emitter
-      let emitter = app.get("eventEmitter");
+      const emitter = app.get("eventEmitter");
 
       zip.file(mapStatValues[0].demoFile.replace(".zip", "") + ".dem", req.body, { binary: true });
       zip
@@ -1193,7 +1193,7 @@ router.post(
       await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
       // Event Emitter
-      let emitter = app.get("eventEmitter");
+      const emitter = app.get("eventEmitter");
       
       sql = "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
       const mapStatValues = await db.query(sql, [matchID, mapNum]);
@@ -1388,7 +1388,7 @@ router.post(
       let playerTeamId;
 
       // Event Emitter
-      let emitter = app.get("eventEmitter");
+      const emitter = app.get("eventEmitter");
 
       // Database calls.
       let sql = "SELECT * FROM `match` WHERE id = ?";
@@ -1683,7 +1683,7 @@ async function update_challonge_match(match_id, season_id, team1_id, team2_id, n
       challongeData = await challongeResponse.json();
       if(!challongeData) {
         // Event Emitter
-        let emitter = app.get("eventEmitter");
+        const emitter = app.get("eventEmitter");
         await fetch(
           "https://api.challonge.com/v1/tournaments/" +
           seasonInfo[0].challonge_url +

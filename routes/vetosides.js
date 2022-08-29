@@ -171,7 +171,7 @@ router.get("/:match_id/stream", async (req, res, next) => {
       "Content-Type": "text/event-stream"
     });
     res.flushHeaders();
-    let emitter = app.get("eventEmitter");
+    const emitter = app.get("eventEmitter");
     vetoes = vetoes.map(v => Object.assign({}, v));
     let vetoEventString = `event: vetosidedata\ndata: ${JSON.stringify(vetoes)}\n\n`
 
@@ -179,7 +179,7 @@ router.get("/:match_id/stream", async (req, res, next) => {
     const vetoStreamData = async () => {
       vetoes = await db.query(sql, matchId);
       vetoes = vetoes.map(v => Object.assign({}, v));
-      vetoEventString = `event: vetosidedata\ndata: ${JSON.stringify(playerstats)}\n\n`
+      vetoEventString = `event: vetosidedata\ndata: ${JSON.stringify(vetoes)}\n\n`
       res.write(vetoEventString);
     };
 
@@ -196,7 +196,9 @@ router.get("/:match_id/stream", async (req, res, next) => {
       res.end();
     });
   } catch (err) {
-    res.status(500).json({ message: err.toString() });
+    console.error(err.toString());
+    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`)
+    res.end();
   }
 });
 
