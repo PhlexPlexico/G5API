@@ -177,7 +177,7 @@ router.get("/:match_id/stream", async (req, res, next) => {
     });
     res.flushHeaders();
 
-    vetoes = vetoes[0].map(v => Object.assign({}, v));
+    vetoes = vetoes.map(v => Object.assign({}, v));
     let vetoEventString = `event: vetodata\ndata: ${JSON.stringify(vetoes)}\n\n`
 
     // Need to name the function in order to remove it!
@@ -201,6 +201,7 @@ router.get("/:match_id/stream", async (req, res, next) => {
       res.end();
     });
   } catch (err) {
+    console.log(err);
     res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`)
     res.end();
   }

@@ -12,6 +12,8 @@ import db from "../db.js";
 
 import Utils from "../utility/utils.js";
 
+import GlobalEmitter from "../utility/emitter.js";
+
 /**
  * @swagger
  *
@@ -181,7 +183,7 @@ router.get("/:match_id/stream", async (req, res, next) => {
       vetoEventString = `event: vetosidedata\ndata: ${JSON.stringify(vetoes)}\n\n`
       res.write(vetoEventString);
     };
-
+    
     GlobalEmitter.on("vetoSideUpdate", vetoStreamData);
 
     res.write(vetoEventString);
