@@ -17,6 +17,8 @@ import GameServer from "../../utility/serverrcon.js";
 
 import config from "config";
 
+import GlobalEmitter from "../../utility/emitter.js";
+
 /**
  * @swagger
  *
@@ -474,6 +476,171 @@ router.get("/:match_id", async (req, res, next) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /matches/:match_id/stream:
+ *   get:
+ *     description: Returns an event stream of a specified matches info.
+ *     produces:
+ *       - text/event-stream
+ *     parameters:
+ *       - name: match_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Match info
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: object
+ *                properties:
+ *                  match:
+ *                    $ref: '#/components/schemas/MatchData'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.get("/:match_id/stream", async (req, res, next) => {
+  try {
+    let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
+    let sql;
+    const matchRow = await db.query(matchUserId, req.params.match_id);
+    if (!matchRow.length) {
+      res.status(404).json({ message: "No match found." });
+      return;
+    } else if (
+      req.user !== undefined &&
+      (matchRow[0].user_id == req.user.id || Utils.superAdminCheck(req.user))
+    ) {
+      sql = "SELECT * FROM `match` where id=?";
+    } else {
+      sql =
+        "SELECT id, user_id, server_id, team1_id, team2_id, winner, " +
+        "team1_score, team2_score, team1_series_score, team2_series_score, " +
+        "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
+        "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
+        "season_id, is_pug FROM `match` where id = ?";
+    }
+
+    let matchID = req.params.match_id;
+    let matches = await db.query(sql, matchID);
+    if (!matches.length) {
+      res.status(404).json({ message: "No match found." });
+      return;
+    }
+    res.set({
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+      "Content-Type": "text/event-stream"
+    });
+    res.flushHeaders();
+    matches = matches.map(v => Object.assign({}, v));
+    let matchString = `event: matches\ndata:${JSON.stringify(matches[0])}\n\n`
+    // Need to name the function in order to remove it!
+    const matchStreamStatus = async () => {
+      matches = await db.query(sql, matchID);
+      matches = matches.map(v => Object.assign({}, v));
+      matches = `event: matches\ndata: ${JSON.stringify(matches[0])}\n\n`
+      res.write(matchString);
+    };
+
+    GlobalEmitter.on("matchUpdate", matchStreamStatus);
+    res.write(matchString);
+
+    req.on("close", () => {
+      GlobalEmitter.removeListener("matchUpdate", matchStreamStatus);
+      res.end();
+    });
+    req.on("disconnect", () => {
+      GlobalEmitter.removeListener("matchUpdate", matchStreamStatus);
+      res.end();
+    });
+
+  } catch (err) {
+    console.error(err.toString());
+    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`)
+    res.end();
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /matches/:match_id/paused/stream:
+ *   get:
+ *     description: Get the pause information on a match streamed as a server sent event.
+ *     produces:
+ *       - text/event-stream
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Returns information based on a match if it is paused.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MatchPauseObject'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.get("/:match_id/paused/stream", async (req, res, next) => {
+  try {
+    let matchId = req.params.match_id;
+    let sql =
+      "SELECT id, match_id, pause_type, team_paused, paused " +
+      "FROM `match_pause` " +
+      "WHERE match_id = ? ";
+    let matchPauseInfo = await db.query(sql, matchId);
+    if (!matchPauseInfo.length) {
+      res.status(404).json({ message: "No match pause info found." });
+      return;
+    }
+    res.set({
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+      "Content-Type": "text/event-stream"
+    });
+    res.flushHeaders();
+
+    matchPauseInfo = matchPauseInfo.map(v => Object.assign({}, v));
+    let matchPauseString = `event: matches\ndata:${JSON.stringify(matchPauseInfo)}`
+    // Need to name the function in order to remove it!
+    const matchPauseStreamStatus = async () => {
+      matchPauseInfo = await db.query(sql, matchId);
+      matchPauseInfo = matchPauseInfo.map(v => Object.assign({}, v));
+      matchPauseInfo = `event: matches\ndata: ${JSON.stringify(matchPauseString)}\n\n`
+      res.write(matchPauseString);
+    };
+
+    GlobalEmitter.on("matchUpdate", matchPauseStreamStatus);
+    res.write(matchPauseString);
+
+    req.on("close", () => {
+      GlobalEmitter.removeListener("matchUpdate", matchPauseStreamStatus);
+      res.end();
+    });
+    req.on("disconnect", () => {
+      GlobalEmitter.removeListener("matchUpdate", matchPauseStreamStatus);
+      res.end();
+    });
+
+  } catch (err) {
+    console.error(err.toString());
+    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`)
+    res.end();
   }
 });
 
