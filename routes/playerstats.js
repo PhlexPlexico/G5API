@@ -4,12 +4,15 @@
  * description: Express API for player stats in Get5 matches.
  */
 import { Router } from "express";
+import app from "../app.js";
 
 const router = Router();
 
 import db from "../db.js";
 
 import Utils from "../utility/utils.js";
+
+import GlobalEmitter from "../utility/emitter.js";
 
 /* Swagger shared definitions */
 /**
@@ -451,6 +454,79 @@ router.get("/match/:match_id", async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ *
+ * /playerstats/match/:match_id/stream:
+ *   get:
+ *     description: Player stats from a given match in the system represented by a text-stream for real time updates.
+ *     produces:
+ *       - text/event-stream
+ *     parameters:
+ *       - name: match_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Player stats from a given match.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/PlayerStats'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.get("/match/:match_id/stream", async (req, res, next) => {
+  try {
+    let matchID = req.params.match_id;
+    let sql = "SELECT * FROM player_stats where match_id = ?";
+    let playerstats = await db.query(sql, matchID);
+    if (!playerstats.length) {
+      res.status(404).json({ message: "No stats found for match " + matchID });
+      return;
+    }
+    res.set({
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+      "Content-Type": "text/event-stream"
+    });
+    res.flushHeaders();
+    playerstats = playerstats.map(v => Object.assign({}, v));
+    let playerString = `event: playerstats\ndata: ${JSON.stringify(playerstats)}\n\n`
+    
+    // Need to name the function in order to remove it!
+    const playerStreamStats = async () => {
+      playerstats = await db.query(sql, matchID);
+      playerstats = playerstats.map(v => Object.assign({}, v));
+      playerString = `event: playerstats\ndata: ${JSON.stringify(playerstats)}\n\n`
+      res.write(playerString);
+    };
+
+    GlobalEmitter.on("playerStatsUpdate", playerStreamStats);
+
+    res.write(playerString);
+    req.on("close", () => {
+      GlobalEmitter.removeListener("playerStatsUpdate", playerStreamStats);
+      res.end();
+    });
+    req.on("disconnect", () => {
+      GlobalEmitter.removeListener("playerStatsUpdate", playerStreamStats);
+      res.end();
+    });
+  } catch (err) {
+    console.error(err.toString());
+    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`)
+    res.end();
+  }
+});
+
 /** @swagger
  *
  * /playerstats/:steam_id/recent:
@@ -576,53 +652,54 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       });
       return;
     } else {
-        let insertSet = {
-          match_id: req.body[0].match_id,
-          map_id: req.body[0].map_id,
-          team_id: req.body[0].team_id,
-          steam_id: req.body[0].steam_id,
-          name: req.body[0].name,
-          kills: req.body[0].kills,
-          deaths: req.body[0].deaths,
-          roundsplayed: req.body[0].roundsplayed,
-          assists: req.body[0].assists,
-          flashbang_assists: req.body[0].flashbang_assists,
-          teamkills: req.body[0].teamkills,
-          knife_kills: req.body[0].knife_kills,
-          suicides: req.body[0].suicides,
-          headshot_kills: req.body[0].headshot_kills,
-          damage: req.body[0].damage,
-          util_damage: req.body[0].util_damage,
-          enemies_flashed: req.body[0].enemies_flashed,
-          friendlies_flashed: req.body[0].friendlies_flashed,
-          bomb_plants: req.body[0].bomb_plants,
-          bomb_defuses: req.body[0].bomb_defuses,
-          v1: req.body[0].v1,
-          v2: req.body[0].v2,
-          v3: req.body[0].v3,
-          v4: req.body[0].v4,
-          v5: req.body[0].v5,
-          k1: req.body[0].k1,
-          k2: req.body[0].k2,
-          k3: req.body[0].k3,
-          k4: req.body[0].k4,
-          k5: req.body[0].k5,
-          firstdeath_ct: req.body[0].firstdeath_ct,
-          firstdeath_t: req.body[0].firstdeath_t,
-          firstkill_ct: req.body[0].firstkill_ct,
-          firstkill_t: req.body[0].firstkill_t,
-          kast: req.body[0].kast,
-          contribution_score: req.body[0].contribution_score,
-          mvp: req.body[0].mvp
-        };
-        let sql = "INSERT INTO player_stats SET ?";
-        // Remove any values that may not be inserted off the hop.
-        insertSet = await db.buildUpdateStatement(insertSet);
-        let insertPlayStats = await db.query(sql, [insertSet]);
-        res.json({
-          message: "Player Stats inserted successfully!",
-          id: insertPlayStats.insertId,
-        });
+      let insertSet = {
+        match_id: req.body[0].match_id,
+        map_id: req.body[0].map_id,
+        team_id: req.body[0].team_id,
+        steam_id: req.body[0].steam_id,
+        name: req.body[0].name,
+        kills: req.body[0].kills,
+        deaths: req.body[0].deaths,
+        roundsplayed: req.body[0].roundsplayed,
+        assists: req.body[0].assists,
+        flashbang_assists: req.body[0].flashbang_assists,
+        teamkills: req.body[0].teamkills,
+        knife_kills: req.body[0].knife_kills,
+        suicides: req.body[0].suicides,
+        headshot_kills: req.body[0].headshot_kills,
+        damage: req.body[0].damage,
+        util_damage: req.body[0].util_damage,
+        enemies_flashed: req.body[0].enemies_flashed,
+        friendlies_flashed: req.body[0].friendlies_flashed,
+        bomb_plants: req.body[0].bomb_plants,
+        bomb_defuses: req.body[0].bomb_defuses,
+        v1: req.body[0].v1,
+        v2: req.body[0].v2,
+        v3: req.body[0].v3,
+        v4: req.body[0].v4,
+        v5: req.body[0].v5,
+        k1: req.body[0].k1,
+        k2: req.body[0].k2,
+        k3: req.body[0].k3,
+        k4: req.body[0].k4,
+        k5: req.body[0].k5,
+        firstdeath_ct: req.body[0].firstdeath_ct,
+        firstdeath_t: req.body[0].firstdeath_t,
+        firstkill_ct: req.body[0].firstkill_ct,
+        firstkill_t: req.body[0].firstkill_t,
+        kast: req.body[0].kast,
+        contribution_score: req.body[0].contribution_score,
+        mvp: req.body[0].mvp
+      };
+      let sql = "INSERT INTO player_stats SET ?";
+      // Remove any values that may not be inserted off the hop.
+      insertSet = await db.buildUpdateStatement(insertSet);
+      let insertPlayStats = await db.query(sql, [insertSet]);
+      GlobalEmitter.emit("playerStatsUpdate");
+      res.json({
+        message: "Player Stats inserted successfully!",
+        id: insertPlayStats.insertId,
+      });
     }
   } catch (err) {
     res.status(500).json({ message: err.toString() });
@@ -751,7 +828,6 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       ]);
       if (updatedPlayerStats.affectedRows > 0) {
         res.json({ message: "Player Stats were updated successfully!" });
-        return;
       } else {
         sql = "INSERT INTO player_stats SET ?";
         // Update values to include match/map/steam_id.
@@ -762,8 +838,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         updateStmt.team_id = req.body[0].team_id;
         await db.query(sql, [updateStmt]);
         res.json({ message: "Player Stats Inserted Successfully!" });
-        return;
       }
+      GlobalEmitter.emit("playerStatsUpdate");
+      return;
     }
   } catch (err) {
     console.error(err);
@@ -838,6 +915,7 @@ router.delete("/", async (req, res, next) => {
         req.body[0].match_id,
       ]);
       if (delRows.affectedRows > 0) {
+        GlobalEmitter.emit("playerStatsUpdate");
         res.json({ message: "Player stats has been deleted successfully." });
         return;
       } else {

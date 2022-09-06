@@ -11,7 +11,6 @@ import logger from "morgan";
 import morgan from "morgan";
 import { createClient } from "redis";
 import swaggerJSDoc from "swagger-jsdoc";
-// End Route Files
 
 import { serve, setup } from "swagger-ui-express";
 
@@ -31,6 +30,9 @@ import usersRouter from "./routes/users.js";
 import vetoesRouter from "./routes/vetoes.js";
 import vetosidesRouter from "./routes/vetosides.js";
 import passport from "./utility/auth.js";
+// End Route Files
+
+
 
 const app = express();
 

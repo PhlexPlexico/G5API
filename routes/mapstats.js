@@ -4,12 +4,15 @@
  * description: Express API router for mapstats in get5.
  */
 import { Router } from "express";
+import app from "../app.js";
 
 const router = Router();
 
 import db from "../db.js";
 
 import Utils from "../utility/utils.js";
+
+import GlobalEmitter from "../utility/emitter.js";
 
 /**
  * @swagger
@@ -156,6 +159,160 @@ router.get("/:match_id", async (req, res, next) => {
 /**
  * @swagger
  *
+ * /mapstats/:match_id/stream:
+ *   get:
+ *     description: Set of map stats from a match provided as an event-stream for real time updates.
+ *     produces:
+ *       - text/event-stream
+ *     parameters:
+ *       - name: match_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - mapstats
+ *     responses:
+ *       200:
+ *         description: Stats for all maps in all matches.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MapStatsData'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.get("/:match_id/stream", async (req, res, next) => {
+  try {
+    let matchID = req.params.match_id;
+    let sql = "SELECT * FROM map_stats where match_id = ?";
+    let mapstats = await db.query(sql, matchID);
+    if (!mapstats.length) {
+      res.status(404).json({ message: "No stats found." });
+      return;
+    }
+    
+    res.set({
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+      "Content-Type": "text/event-stream"
+    });
+    res.flushHeaders();
+    mapstats = mapstats.map(v => Object.assign({}, v));
+    let mapStatString = `event: mapstats\ndata: ${JSON.stringify(mapstats)}\n\n`
+    
+    // Need to name the function in order to remove it!
+    const mapStatStreamStats = async () => {
+      mapstats = await db.query(sql, matchID);
+      mapstats = mapstats.map(v => Object.assign({}, v));
+      mapStatString = `event: mapstats\ndata: ${JSON.stringify(mapstats)}\n\n`
+      res.write(mapStatString);
+    };
+
+    GlobalEmitter.on("mapStatUpdate", mapStatStreamStats);
+
+    res.write(mapStatString);
+    req.on("close", () => {
+      GlobalEmitter.removeListener("mapStatUpdate", mapStatStreamStats);
+      res.end();
+    });
+    req.on("disconnect", () => {
+      GlobalEmitter.removeListener("mapStatUpdate", mapStatStreamStats);
+      res.end();
+    });
+
+  } catch (err) {
+    console.error(err.toString());
+    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`)
+    res.end();
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /mapstats/:match_id/:map_number/stream:
+ *   get:
+ *     description: Map statistics for a given match and map number provided as a text/event-stream for real time data info.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *       - name: map_number
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - mapstats
+ *     responses:
+ *       200:
+ *         description: Stats for a single given map in a match.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MapStatsData'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.get("/:match_id/:map_number/stream", async (req, res, next) => {
+  try {
+    let matchID = req.params.match_id;
+    let mapID = req.params.map_number;
+    let sql = "SELECT * FROM map_stats where match_id = ? AND map_number = ?";
+    let mapstats = await db.query(sql, [matchID, mapID]);
+    if (!mapstats.length) {
+      res.status(404).json({ message: "No stats found." });
+      return;
+    }
+    
+    res.set({
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+      "Content-Type": "text/event-stream"
+    });
+    res.flushHeaders();
+    mapstats = mapstats.map(v => Object.assign({}, v));
+    let mapStatString = `event: mapstats\ndata: ${JSON.stringify(mapstats[0])}\n\n`
+    
+    // Need to name the function in order to remove it!
+    const mapStatStreamStats = async () => {
+      mapstats = await db.query(sql, matchID);
+      mapstats = mapstats.map(v => Object.assign({}, v));
+      mapStatString = `event: mapstats\ndata: ${JSON.stringify(mapstats)}\n\n`
+      res.write(mapStatString);
+    };
+
+    GlobalEmitter.on("mapStatUpdate", mapStatStreamStats);
+
+    res.write(mapStatString);
+    req.on("close", () => {
+      GlobalEmitter.removeListener("mapStatUpdate", mapStatStreamStats);
+      res.end();
+    });
+    req.on("disconnect", () => {
+      GlobalEmitter.removeListener("mapStatUpdate", mapStatStreamStats);
+      res.end();
+    });
+  } catch (err) {
+    console.error(err.toString());
+    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`)
+    res.end();
+  }
+});
+
+/**
+ * @swagger
+ *
  * /mapstats/:match_id/:map_number:
  *   get:
  *     description: Map statistics for a given match and map number.
@@ -186,7 +343,7 @@ router.get("/:match_id", async (req, res, next) => {
  *       500:
  *         $ref: '#/components/responses/Error'
  */
-router.get("/:match_id/:map_number", async (req, res, next) => {
+ router.get("/:match_id/:map_number", async (req, res, next) => {
   try {
     let matchID = req.params.match_id;
     let mapID = req.params.map_number;
@@ -258,6 +415,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       };
       let sql = "INSERT INTO map_stats SET ?";
       let insertedStats = await db.query(sql, [mapStatSet]);
+      GlobalEmitter.emit("mapStatUpdate");
       res.json({
         message: "Map stats inserted successfully!",
         id: insertedStats.insertId,
@@ -342,8 +500,10 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       }
       let sql = "UPDATE map_stats SET ? WHERE id = ?";
       const updateMapStats = await db.query(sql, [updatedValues, mapStatId]);
-      if (updateMapStats.affectedRows > 0)
+      if (updateMapStats.affectedRows > 0) {
+        GlobalEmitter.emit("mapStatUpdate");
         res.json({ message: "Map Stats updated successfully!" });
+      }
       else
         res
           .status(401)
@@ -414,8 +574,11 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       let mapStatsId = req.body[0].map_stats_id;
       let deleteSql = "DELETE FROM map_stats WHERE id = ?";
       const delRows = await db.query(deleteSql, [mapStatsId]);
-      if (delRows.affectedRows > 0)
+      if (delRows.affectedRows > 0) {
+        GlobalEmitter.emit("mapStatUpdate");
         res.json({ message: "Map Stats deleted successfully!" });
+      }
+        
       else
         res
           .status(400)
