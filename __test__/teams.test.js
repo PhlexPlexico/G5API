@@ -96,11 +96,13 @@ describe("Test the team routes", () => {
       auth_name: {
         "76561198025644200": {
           "name": "Not Phlex",
-          "captain": 0
+          "captain": 0,
+          "coach": 0
         },
         "12345": {
           "name": "Actually Phlex",
-          "captain": 0
+          "captain": 0,
+          "coach": 0
         }
       }
     }];

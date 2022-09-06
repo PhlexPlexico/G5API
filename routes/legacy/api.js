@@ -72,7 +72,7 @@ const updateMapRateLimit = rateLimit({
         "SELECT api_key FROM `match` WHERE id = ?",
         req.params.match_id
       );
-      if (api_key[0].api_key.localeCompare(req.body.key))
+      if (api_key[0].api_key.localeCompare(keyCheck(req)))
         return api_key[0].api_key;
       else return req.ip;
     } catch (err) {
@@ -94,7 +94,7 @@ const playerStatRateLimit = rateLimit({
         "SELECT api_key FROM `match` WHERE id = ?",
         req.params.match_id
       );
-      if (api_key[0].api_key.localeCompare(req.body.key))
+      if (api_key[0].api_key.localeCompare(keyCheck(req)))
         return api_key[0].api_key;
       else return req.ip;
     } catch (err) {
@@ -108,6 +108,16 @@ const playerStatRateLimit = rateLimit({
  */
 import fetch from "node-fetch";
 import Utils from "../../utility/utils.js";
+
+/** A function to check for the API key in the request headers or body.
+ * @const
+ */
+const keyCheck = (request) => {
+  if (!request.body.key) {
+    return request.get("key"); 
+  }
+  return request.body.key;
+}
 
 /**
  * @swagger
@@ -176,7 +186,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     // Throw error if wrong.
     // Special edge case for cancelled matches on remote server.
     // DO NOT throw error, just do nothing and report back we're finalized.
-    if (matchValues[0].api_key.localeCompare(req.body.key) !== 0)
+    if (matchValues[0].api_key.localeCompare(keyCheck(req)) !== 0)
       throw "Not a correct API Key.";
     if (matchFinalized == true) {
       res.status(200).send({ message: "Match already finalized" });
@@ -325,7 +335,7 @@ router.post("/:match_id/pause/", basicRateLimit, async (req, res, next) => {
     )
       matchFinalized = false;
     // Throw error if wrong key or finished match.
-    await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
+    await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
     sql = "SELECT * FROM match_pause WHERE match_id = ?";
     const pauseCheck = await db.query(sql, matchID);
@@ -415,7 +425,7 @@ router.post("/:match_id/unpause/", basicRateLimit, async (req, res, next) => {
     )
       matchFinalized = false;
     // Throw error if wrong key or finished match.
-    await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
+    await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
     sql = "SELECT * FROM match_pause WHERE match_id = ?";
     const pauseCheck = await db.query(sql, matchID);
@@ -517,7 +527,7 @@ router.post(
       )
         matchFinalized = false;
       // Throw error if wrong key or finished match.
-      await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
+      await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
       // Begin transaction
       if (matchValues[0].start_time == null) {
@@ -630,7 +640,7 @@ router.post(
         matchFinalized = false;
 
       // Throw error if wrong key or finished match.
-      await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
+      await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
       // Get or create mapstats.
       sql = "SELECT * FROM map_stats WHERE match_id = ? AND map_number = ?";
 
@@ -732,7 +742,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
       matchFinalized = false;
 
     // Throw error if wrong key or finished match.
-    await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
+    await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
     if (teamString === "team1") teamID = matchValues[0].team1_id;
     else if (teamString === "team2") teamID = matchValues[0].team2_id;
@@ -828,7 +838,7 @@ router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) 
       matchFinalized = false;
 
     // Throw error if wrong key or finished match.
-    await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
+    await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
     // Swap these as we are looking at the team who picked, not banned right now.
     if (teamString === "team1") {
@@ -930,7 +940,7 @@ router.post(
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
       // Throw error if wrong key. Match finish doesn't matter.
-      await check_api_key(matchValues[0].api_key, req.body.key, false);
+      await check_api_key(matchValues[0].api_key, keyCheck(req), false);
 
       sql = "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
       const mapStatValues = await db.query(sql, [matchID, mapNum]);
@@ -1145,7 +1155,7 @@ router.post(
       )
         matchFinalized = false;
       // Throw error if wrong key. Match finish doesn't matter.
-      await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
+      await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
       sql = "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
       const mapStatValues = await db.query(sql, [matchID, mapNum]);
@@ -1348,7 +1358,7 @@ router.post(
       )
         matchFinalized = false;
       // Throw error if wrong key. Match finish doesn't matter.
-      await check_api_key(matchValues[0].api_key, req.body.key, matchFinalized);
+      await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
       sql = "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
       const mapStatValues = await db.query(sql, [matchID, mapNum]);

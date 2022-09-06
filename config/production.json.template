@@ -9,7 +9,9 @@
     "useRedis": $USEREDIS,
     "apiURL": "$APIURL",
     "uploadDemos": $UPLOADDEMOS,
-    "localLoginEnabled": $LOCALLOGINS
+    "localLoginEnabled": $LOCALLOGINS,
+    "redisUrl": "$REDISURL",
+    "redisTTL": $REDISTTL
   },
   "production": {
     "driver": "mysql",
@@ -20,9 +22,7 @@
     "flags": { "ENV": "MYSQL_FLAGS" },
     "host": "$SQLHOST",
     "port": $SQLPORT,
-    "connectionLimit": 15,
-    "redisUrl": "$REDISURL",
-    "redisTTL": $REDISTTL
+    "connectionLimit": 15
   },
   "admins": {
     "steam_ids": "$ADMINS"
