@@ -163,6 +163,10 @@ import GlobalEmitter from "../../utility/emitter.js";
  *           maps_to_win:
  *            type: integer
  *            description: The amount of maps required to win a match.
+ *           map_sides:
+ *            type: string
+ *            description: Determines the starting sides for each map. If this array is shorter than num_maps, side_type will determine the side-behavior of the remaining maps. Ignored if skip_veto is false.
+ * 
  *     MatchPauseObject:
  *      type: object
  *      properties:
@@ -463,7 +467,7 @@ router.get("/:match_id", async (req, res, next) => {
         "team1_score, team2_score, team1_series_score, team2_series_score, " +
         "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
         "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug FROM `match` where id = ?";
+        "season_id, is_pug, map_sides FROM `match` where id = ?";
     }
     let matchID = req.params.match_id;
     const matches = await db.query(sql, matchID);
@@ -528,7 +532,7 @@ router.get("/:match_id", async (req, res, next) => {
         "team1_score, team2_score, team1_series_score, team2_series_score, " +
         "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
         "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug FROM `match` where id = ?";
+        "season_id, is_pug, map_sides FROM `match` where id = ?";
     }
 
     let matchID = req.params.match_id;
@@ -726,7 +730,8 @@ router.get("/limit/:limiter", async (req, res, next) => {
         "team1_score, team2_score, team1_series_score, team2_series_score, " +
         "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
         "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?";
+        "season_id, is_pug, map_sides FROM `match` WHERE cancelled = 0 " + 
+        "OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?";
     }
     const matches = await db.query(sql, lim);
     res.json({ matches });
@@ -781,7 +786,8 @@ router.get("/limit/:limiter", async (req, res, next) => {
         "team1_score, team2_score, team1_series_score, team2_series_score, " +
         "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
         "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY id DESC LIMIT ?,?";
+        "season_id, is_pug, map_sides FROM `match` WHERE cancelled = 0 " +
+        "OR cancelled IS NULL ORDER BY id DESC LIMIT ?,?";
     }
     const matches = await db.query(sql, [firstVal, secondVal]);
     res.json({ matches });
@@ -862,6 +868,9 @@ router.get("/:match_id/config", async (req, res, next) => {
           : 0,
     };
     matchJSON.num_maps = parseInt(matchInfo[0].max_maps);
+    if (matchJSON.skip_veto && matchInfo[0].map_sides)
+      matchJSON.map_sides = matchInfo[0].map_sides;
+
     sql = "SELECT * FROM team WHERE id = ?";
     const team1Data = await db.query(sql, [matchInfo[0].team1_id]);
     const team2Data = await db.query(sql, [matchInfo[0].team2_id]);
@@ -992,6 +1001,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         req.body[0].min_spectators_to_ready !== null
           ? req.body[0].min_spectators_to_ready
           : 0,
+      map_sides: req.body[0].map_sides !== null
+          ? req.body[0].map_sides
+          : null
     };
     let sql = "INSERT INTO `match` SET ?";
     let cvarSql =
@@ -1189,6 +1201,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           req.body[0].min_spectators_to_ready !== null
             ? req.body[0].min_spectators_to_ready
             : 0,
+        map_sides: req.body[0].map_sides !== null
+        ? req.body[0].map_sides
+        : null
       };
       // Remove any values that may not be updated.
       updateStmt = await db.buildUpdateStatement(updateStmt);
