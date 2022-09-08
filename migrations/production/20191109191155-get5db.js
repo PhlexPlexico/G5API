@@ -27,7 +27,7 @@ exports.up = async function(db, callback) {
     large_image: { type: 'string', length: 150 }
   }).then(
     () => {
-      db.createTable('game_server', {
+      return db.createTable('game_server', {
         id: { type: 'int', primaryKey: true, autoIncrement: true, length: 11 },
         user_id: {
           type: 'int', 
