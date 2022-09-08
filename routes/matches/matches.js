@@ -869,8 +869,7 @@ router.get("/:match_id/config", async (req, res, next) => {
     };
     matchJSON.num_maps = parseInt(matchInfo[0].max_maps);
     if (matchJSON.skip_veto && matchInfo[0].map_sides)
-      matchJSON.map_sides = matchInfo[0].map_sides;
-
+      matchJSON.map_sides = matchInfo[0].map_sides.split(",");
     sql = "SELECT * FROM team WHERE id = ?";
     const team1Data = await db.query(sql, [matchInfo[0].team1_id]);
     const team2Data = await db.query(sql, [matchInfo[0].team2_id]);
