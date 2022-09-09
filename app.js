@@ -41,7 +41,7 @@ app.use(express.raw({ type: "application/octet-stream", limit: "2gb" }));
 app.use(express.json({ limit: "512kb" }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use("/demo", express.static("public"));
+app.use("/demo", express.static("public/demos"));
 app.use("/backups", express.static("public/backups"));
 app.use("/static/img/logos", express.static("public/img/logos"));
 
