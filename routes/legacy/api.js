@@ -1082,7 +1082,7 @@ router.put(
         .generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
         .then((buf) => {
           writeFile(
-            "public/" + mapStatValues[0].demoFile,
+            "public/demos/" + mapStatValues[0].demoFile,
             buf,
             "binary",
             function (err) {
