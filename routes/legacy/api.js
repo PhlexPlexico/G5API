@@ -281,6 +281,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: err.toString() });
+    console.error(err);
   }
 });
 
@@ -577,6 +578,7 @@ router.post(
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: err.toString() });
+      console.error(err);
     }
   }
 );
@@ -683,6 +685,7 @@ router.post(
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: err.toString() });
+      console.error(err);
     }
   }
 );
@@ -778,6 +781,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     res.status(200).send({ message: "Success" });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
+    console.error(err);
   }
 });
 
@@ -893,6 +897,7 @@ router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) 
     res.status(200).send({ message: "Success" });
   } catch (err) {
     res.status(500).json({ message: err.toString() });
+    console.error(err);
   }
 });
 
@@ -978,6 +983,7 @@ router.post(
       res.status(200).send({ message: "Success" });
     } catch (err) {
       res.status(500).json({ message: err.toString() });
+      console.error(err);
     }
   }
 );
@@ -1097,6 +1103,7 @@ router.put(
       res.status(200).send({ message: "Success!" });
     } catch (err) {
       res.status(500).json({ message: err.toString() });
+      console.error(err);
     }
   }
 );
@@ -1227,6 +1234,7 @@ router.post(
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: err.toString() });
+      console.error(err);
     }
   }
 );
@@ -1451,6 +1459,7 @@ router.post(
       res.status(200).send({ message: "Success" });
     } catch (err) {
       res.status(500).json({ message: err.toString() });
+      console.error(err);
     }
   }
 );
@@ -1548,6 +1557,7 @@ router.post(
       res.status(200).send({ message: "Success!" });
     } catch (err) {
       res.status(500).json({ message: err.toString() });
+      console.error(err);
     } finally {
       return;
     }
