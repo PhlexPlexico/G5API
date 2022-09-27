@@ -488,10 +488,10 @@ router.get("/match/:match_id", async (req, res, next) => {
     let matchID = req.params.match_id;
     let sql = "SELECT * FROM player_stats where match_id = ?";
     let playerstats = await db.query(sql, matchID);
-    if (!playerstats.length) {
-      res.status(404).json({ message: "No stats found for match " + matchID });
-      return;
-    }
+    // if (!playerstats.length) {
+    //   res.status(404).json({ message: "No stats found for match " + matchID });
+    //   return;
+    // }
     res.set({
       "Cache-Control": "no-cache",
       "Connection": "keep-alive",

@@ -537,10 +537,10 @@ router.get("/:match_id", async (req, res, next) => {
 
     let matchID = req.params.match_id;
     let matches = await db.query(sql, matchID);
-    if (!matches.length) {
-      res.status(404).json({ message: "No match found." });
-      return;
-    }
+    // if (!matches.length) {
+    //   res.status(404).json({ message: "No match found." });
+    //   return;
+    // }
     res.set({
       "Cache-Control": "no-cache",
       "Connection": "keep-alive",

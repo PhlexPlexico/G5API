@@ -190,10 +190,10 @@ router.get("/:match_id", async (req, res, next) => {
     let matchID = req.params.match_id;
     let sql = "SELECT * FROM map_stats where match_id = ?";
     let mapstats = await db.query(sql, matchID);
-    if (!mapstats.length) {
-      res.status(404).json({ message: "No stats found." });
-      return;
-    }
+    // if (!mapstats.length) {
+    //   res.status(404).json({ message: "No stats found." });
+    //   return;
+    // }
     
     res.set({
       "Cache-Control": "no-cache",
