@@ -163,10 +163,6 @@ router.get("/:match_id/stream", async (req, res, next) => {
     let matchId = req.params.match_id;
     let sql = "SELECT * FROM veto_side where match_id = ?";
     let vetoes = await db.query(sql, matchId);
-    // if (!vetoes.length) {
-    //   res.status(404).json({ message: "No veto side data found." });
-    //   return;
-    // }
     res.set({
       "Cache-Control": "no-cache",
       "Connection": "keep-alive",

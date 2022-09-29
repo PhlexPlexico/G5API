@@ -537,10 +537,7 @@ router.get("/:match_id", async (req, res, next) => {
 
     let matchID = req.params.match_id;
     let matches = await db.query(sql, matchID);
-    // if (!matches.length) {
-    //   res.status(404).json({ message: "No match found." });
-    //   return;
-    // }
+
     res.set({
       "Cache-Control": "no-cache",
       "Connection": "keep-alive",
@@ -608,10 +605,7 @@ router.get("/:match_id", async (req, res, next) => {
       "FROM `match_pause` " +
       "WHERE match_id = ? ";
     let matchPauseInfo = await db.query(sql, matchId);
-    if (!matchPauseInfo.length) {
-      res.status(404).json({ message: "No match pause info found." });
-      return;
-    }
+
     res.set({
       "Cache-Control": "no-cache",
       "Connection": "keep-alive",

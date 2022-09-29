@@ -520,6 +520,7 @@ router.post(
       let mapNumber =
         req.params.map_number == null ? null : req.params.map_number;
       let mapName = req.body.mapname == null ? null : req.body.mapname;
+      let versionNumber = req.body.version_number == null ? null : req.body.version_number;
       // Data manipulation inside function.
       let startTime = new Date().toISOString().slice(0, 19).replace("T", " ");
       let updateStmt = {};
@@ -548,6 +549,15 @@ router.post(
         updateSql = "UPDATE `match` SET ? WHERE id = ?";
         await db.query(updateSql, [updateStmt, matchID]);
       }
+
+      if (versionNumber && matchValues[0].plugin_version == "unknown") {
+        updateStmt = {
+          plugin_version: versionNumber
+        };
+        updateSql = "UPDATE `match` SET ? WHERE id = ?";
+        await db.query(updateSql, [updateStmt, matchID]);
+      }
+
       // Get or create mapstats.
       sql = "SELECT * FROM map_stats WHERE match_id = ? AND map_number = ?";
       const mapStats = await db.query(sql, [matchID, mapNumber]);
@@ -1542,18 +1552,18 @@ router.post(
       // Throw error if wrong key. Match finish doesn't matter.
       await check_api_key(matchValues[0].api_key, apiKey, matchFinalized);
 
-        if(!existsSync(`public/backups/${matchID}/`)) mkdirSync(`public/backups/${matchID}/`, true);
+      if(!existsSync(`public/backups/${matchID}/`)) mkdirSync(`public/backups/${matchID}/`, true);
 
-        writeFile(
-          `public/backups/${matchID}/get5_backup_match${matchID}_map${mapNumber}_round${roundNumber}.cfg`,
-          req.body,
-          function (err) {
-            if (err) {
-              console.log(err);
-              throw err;
-            }
+      writeFile(
+        `public/backups/${matchID}/get5_backup_match${matchID}_map${mapNumber}_round${roundNumber}.cfg`,
+        req.body,
+        function (err) {
+          if (err) {
+            console.log(err);
+            throw err;
           }
-        );
+        }
+      );
       res.status(200).send({ message: "Success!" });
     } catch (err) {
       res.status(500).json({ message: err.toString() });

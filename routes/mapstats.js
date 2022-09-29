@@ -190,10 +190,6 @@ router.get("/:match_id", async (req, res, next) => {
     let matchID = req.params.match_id;
     let sql = "SELECT * FROM map_stats where match_id = ?";
     let mapstats = await db.query(sql, matchID);
-    // if (!mapstats.length) {
-    //   res.status(404).json({ message: "No stats found." });
-    //   return;
-    // }
     
     res.set({
       "Cache-Control": "no-cache",
@@ -270,14 +266,9 @@ router.get("/:match_id/:map_number/stream", async (req, res, next) => {
     let mapID = req.params.map_number;
     let sql = "SELECT * FROM map_stats where match_id = ? AND map_number = ?";
     let mapstats = await db.query(sql, [matchID, mapID]);
-    if (!mapstats.length) {
-      res.status(404).json({ message: "No stats found." });
-      return;
-    }
     
     res.set({
       "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
       "Content-Type": "text/event-stream"
     });
     res.flushHeaders();
