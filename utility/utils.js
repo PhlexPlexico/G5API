@@ -386,7 +386,7 @@ class Utils {
    */
   static async updatePugStats(match_id, map_id, team1_id, team2_id, winner, deleteTeams = true) {
     let teamAuthSql =
-      "SELECT GROUP_CONCAT(ta.auth) as auth_name, GROUP_CONCAT(CONCAT(ta.name) as name FROM team_auth_names ta WHERE team_id = ?";
+      "SELECT GROUP_CONCAT(ta.auth) as auth_name, GROUP_CONCAT(CONCAT(ta.name)) as name FROM team_auth_names ta WHERE team_id = ?";
     let pugTeamNameSql = "SELECT name FROM team WHERE id = ?";
     let playerStatUpdateSql = "UPDATE player_stats SET team_name = ?, winner = ? WHERE match_id = ? AND map_id = ? AND steam_id IN (?)";
     let pugSql =
