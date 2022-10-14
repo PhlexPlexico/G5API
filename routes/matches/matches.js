@@ -541,7 +541,8 @@ router.get("/:match_id", async (req, res, next) => {
     res.set({
       "Cache-Control": "no-cache",
       "Connection": "keep-alive",
-      "Content-Type": "text/event-stream"
+      "Content-Type": "text/event-stream",
+      "X-Accel-Buffering": "no"
     });
     res.flushHeaders();
     matches = matches.map(v => Object.assign({}, v));
@@ -609,7 +610,8 @@ router.get("/:match_id", async (req, res, next) => {
     res.set({
       "Cache-Control": "no-cache",
       "Connection": "keep-alive",
-      "Content-Type": "text/event-stream"
+      "Content-Type": "text/event-stream",
+      "X-Accel-Buffering": "no"
     });
     res.flushHeaders();
 

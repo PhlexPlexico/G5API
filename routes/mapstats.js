@@ -194,7 +194,8 @@ router.get("/:match_id", async (req, res, next) => {
     res.set({
       "Cache-Control": "no-cache",
       "Connection": "keep-alive",
-      "Content-Type": "text/event-stream"
+      "Content-Type": "text/event-stream",
+      "X-Accel-Buffering": "no"
     });
     res.flushHeaders();
     mapstats = mapstats.map(v => Object.assign({}, v));
