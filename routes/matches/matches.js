@@ -332,12 +332,10 @@ router.get("/", async (req, res, next) => {
       "mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, " +
       "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, " +
       "mtch.enforce_teams, mtch.min_player_ready, mtch.season_id, mtch.is_pug, usr.name as owner, mp.team1_score as team1_mapscore, mp.team2_score as team2_mapscore, " +
-      "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+      "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, mtch.team1_string, mtch.team2_string " +
       "FROM `match` mtch " + 
       "JOIN user usr ON mtch.user_id = usr.id " + 
       "LEFT JOIN map_stats mp ON mp.match_id = mtch.id " +
-      "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
-      "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
       "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
       "WHERE mtch.cancelled = 0 " +
       "OR mtch.cancelled IS NULL " +
@@ -402,12 +400,10 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
       "mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, " +
       "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, " +
       "mtch.enforce_teams, mtch.min_player_ready, mtch.season_id, mtch.is_pug, usr.name as owner, mp.team1_score as team1_mapscore, mp.team2_score as team2_mapscore, " +
-      "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+      "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, mtch.team1_string, mtch.team2_string " +
       "FROM `match` mtch " +
       "JOIN user usr ON mtch.user_id = usr.id " +
       "LEFT JOIN map_stats mp ON mp.match_id = mtch.id " +
-      "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
-      "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
       "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
       "WHERE mtch.user_id = ? " +
       "OR mtch.cancelled IS NULL " +
@@ -480,10 +476,8 @@ router.get("/:match_id", async (req, res, next) => {
         "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, " +
         "mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, mtch.enforce_teams, mtch.min_player_ready, " +
         "mtch.season_id, mtch.is_pug, mtch.map_sides, " +
-        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, mtch.team1_string, mtch.team2_string " +
         "FROM `match` mtch " +
-        "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
-        "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
         "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
         "where mtch.id = ?";
     } else {
@@ -493,10 +487,8 @@ router.get("/:match_id", async (req, res, next) => {
         "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, " +
         "mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, mtch.enforce_teams, mtch.min_player_ready, " +
         "mtch.season_id, mtch.is_pug, mtch.map_sides, " +
-        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, mtch.team1_string, mtch.team2_string " +
         "FROM `match` mtch " +
-        "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
-        "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
         "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
         "where mtch.id = ?";
     }
@@ -563,10 +555,8 @@ router.get("/:match_id", async (req, res, next) => {
         "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, " +
         "mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, mtch.enforce_teams, mtch.min_player_ready, " +
         "mtch.season_id, mtch.is_pug, mtch.map_sides," +
-        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, mtch.team1_string, mtch.team2_string " +
         "FROM `match` mtch " +
-        "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
-        "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
         "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
         "where mtch.id = ?";
     } else {
@@ -576,10 +566,8 @@ router.get("/:match_id", async (req, res, next) => {
         "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, " +
         "mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, mtch.enforce_teams, mtch.min_player_ready, " +
         "mtch.season_id, mtch.is_pug, mtch.map_sides," +
-        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, mtch.team1_string, mtch.team2_string " +
         "FROM `match` mtch " +
-        "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
-        "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
         "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
         "where mtch.id = ?";
     }
@@ -776,10 +764,8 @@ router.get("/limit/:limiter", async (req, res, next) => {
         "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, " +
         "mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, mtch.enforce_teams, mtch.min_player_ready, " +
         "mtch.season_id, mtch.is_pug, mtch.map_sides, " + 
-        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, mtch.team1_string, mtch.team2_string " +
         "FROM `match` mtch " +
-        "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
-        "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
         "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
         "WHERE mtch.cancelled = 0 OR mtch.cancelled IS NULL ORDER BY mtch.end_time DESC LIMIT ?";
     }

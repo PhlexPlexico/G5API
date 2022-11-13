@@ -485,6 +485,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
     public_team: publicTeam,
     id: teamID,
   };
+
   if (teamLogo) {
     // Overwrite the current file.
     if (checkUser[0].logo == null) {
@@ -525,8 +526,16 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
     return;
   }
   let sql = "UPDATE team SET ? WHERE id=?";
+  
+  //UpdateMatchTeamName
+  let updateMatchTeam1Name = "UPDATE `match` mtch JOIN team t ON mtch.team1_id = t.id SET mtch.team1_string = t.name";
+  let updateMatchTeam2Name = "UPDATE `match` mtch JOIN team t ON mtch.team2_id = t.id SET mtch.team2_string = t.name";
+ 
   try {
     await db.query(sql, [updateTeam, teamID]);
+    //UpdateMatchTeamName
+    await db.query(updateMatchTeam1Name);
+    await db.query(updateMatchTeam2Name);
     sql =
       "UPDATE team_auth_names SET name = ?, captain = ?, coach = ? WHERE auth = ? AND team_id = ?";
     for (let key in teamAuths) {
@@ -541,7 +550,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
         isCoach,
         usersSteamId,
         teamID
-      ]);
+      ]);      
+     
       if (updateTeamAuth.affectedRows < 1) {
         // Insert a new auth if it doesn't exist. Technically "updating a team".
         let insertSql =
@@ -554,7 +564,15 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
           isCoach
         ]);
       }
+
+      
+    
+      
+     
     }
+
+
+   
     res.json({ message: "Team successfully updated" });
   } catch (err) {
     console.error(err);
