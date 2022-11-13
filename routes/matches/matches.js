@@ -342,7 +342,8 @@ router.get("/", async (req, res, next) => {
       "WHERE mtch.cancelled = 0 " +
       "OR mtch.cancelled IS NULL " +
       "GROUP BY mtch.id " +
-      "ORDER BY id DESC";
+      "ORDER BY mtch.id DESC";
+
     const matches = await db.query(sql);
     if (!matches.length) {
       res.status(404).json({ message: "No matches found." });
@@ -487,11 +488,17 @@ router.get("/:match_id", async (req, res, next) => {
         "where mtch.id = ?";
     } else {
       sql =
-        "SELECT id, user_id, server_id, team1_id, team2_id, winner, " +
-        "team1_score, team2_score, team1_series_score, team2_series_score, " +
-        "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
-        "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug, map_sides FROM `match` where id = ?";
+        "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, " +
+        "mtch.team1_score, mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, " +
+        "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, " +
+        "mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, mtch.enforce_teams, mtch.min_player_ready, " +
+        "mtch.season_id, mtch.is_pug, mtch.map_sides, " +
+        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+        "FROM `match` mtch " +
+        "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
+        "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
+        "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
+        "where mtch.id = ?";
     }
     let matchID = req.params.match_id;
     const matches = await db.query(sql, matchID);
@@ -579,14 +586,12 @@ router.get("/:match_id", async (req, res, next) => {
 
     let matchID = req.params.match_id;
     let matches = await db.query(sql, matchID);
-    if (!matches.length) {
-      res.status(404).json({ message: "No match found." });
-      return;
-    }
+
     res.set({
       "Cache-Control": "no-cache",
       "Connection": "keep-alive",
-      "Content-Type": "text/event-stream"
+      "Content-Type": "text/event-stream",
+      "X-Accel-Buffering": "no"
     });
     res.flushHeaders();
     matches = matches.map(v => Object.assign({}, v));
@@ -650,14 +655,12 @@ router.get("/:match_id", async (req, res, next) => {
       "FROM `match_pause` " +
       "WHERE match_id = ? ";
     let matchPauseInfo = await db.query(sql, matchId);
-    if (!matchPauseInfo.length) {
-      res.status(404).json({ message: "No match pause info found." });
-      return;
-    }
+
     res.set({
       "Cache-Control": "no-cache",
       "Connection": "keep-alive",
-      "Content-Type": "text/event-stream"
+      "Content-Type": "text/event-stream",
+      "X-Accel-Buffering": "no"
     });
     res.flushHeaders();
 
@@ -829,12 +832,12 @@ router.get("/limit/:limiter", async (req, res, next) => {
         "SELECT mtch.* FROM `match` mtch WHERE mtch.cancelled = 0 OR mtch.cancelled IS NULL ORDER BY mtch.id DESC LIMIT ?,?";
     } else {
       sql =
-        "SELECT id, user_id, server_id, team1_id, team2_id, winner, " +
-        "team1_score, team2_score, team1_series_score, team2_series_score, " +
-        "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
-        "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug, map_sides FROM `match` WHERE cancelled = 0 " +
-        "OR cancelled IS NULL ORDER BY id DESC LIMIT ?,?";
+        "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, " +
+        "mtch.team1_score, mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, " +
+        "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, " +
+        "mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, mtch.enforce_teams, mtch.min_player_ready, " +
+        "mtch.season_id, mtch.is_pug, mtch.map_sides FROM `match` mtch WHERE mtch.cancelled = 0 " +
+        "OR mtch.cancelled IS NULL ORDER BY mtch.id DESC LIMIT ?,?";
     }
     const matches = await db.query(sql, [firstVal, secondVal]);
     res.json({ matches });
