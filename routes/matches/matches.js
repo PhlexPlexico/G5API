@@ -329,14 +329,21 @@ router.get("/", async (req, res, next) => {
     let isAscending = req.query?.asc == null ? false : req.query.asc;
     let sql = 
       "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, mtch.team1_score, " +
-      "mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, mtch.team1_string, mtch.team2_string, " +
+      "mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, " +
       "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, " +
-      "mtch.enforce_teams, mtch.min_player_ready, mtch.season_id, mtch.is_pug, usr.name as owner, mp.team1_score as team1_mapscore, mp.team2_score as team2_mapscore " +
-      "FROM `match` mtch JOIN user usr ON mtch.user_id = usr.id LEFT JOIN map_stats mp ON mp.match_id = mtch.id " +
-      "WHERE cancelled = 0 " +
-      "OR cancelled IS NULL " +
+      "mtch.enforce_teams, mtch.min_player_ready, mtch.season_id, mtch.is_pug, usr.name as owner, mp.team1_score as team1_mapscore, mp.team2_score as team2_mapscore, " +
+      "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+      "FROM `match` mtch " + 
+      "JOIN user usr ON mtch.user_id = usr.id " + 
+      "LEFT JOIN map_stats mp ON mp.match_id = mtch.id " +
+      "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
+      "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
+      "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
+      "WHERE mtch.cancelled = 0 " +
+      "OR mtch.cancelled IS NULL " +
       "GROUP BY mtch.id " +
-      "ORDER BY id DESC";
+      "ORDER BY mtch.id DESC";
+
     const matches = await db.query(sql);
     if (!matches.length) {
       res.status(404).json({ message: "No matches found." });
@@ -392,14 +399,20 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
               "JOIN user usr ON mtch.user_id = usr.id " +
               "WHERE user_id = ? ORDER BY id DESC";*/
       let sql = "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, mtch.team1_score, " +
-      "mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, mtch.team1_string, mtch.team2_string, " +
+      "mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, " +
       "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, " +
-      "mtch.enforce_teams, mtch.min_player_ready, mtch.season_id, mtch.is_pug, usr.name as owner, mp.team1_score as team1_mapscore, mp.team2_score as team2_mapscore " +
-      "FROM `match` mtch JOIN user usr ON mtch.user_id = usr.id LEFT JOIN map_stats mp ON mp.match_id = mtch.id " +
+      "mtch.enforce_teams, mtch.min_player_ready, mtch.season_id, mtch.is_pug, usr.name as owner, mp.team1_score as team1_mapscore, mp.team2_score as team2_mapscore, " +
+      "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+      "FROM `match` mtch " +
+      "JOIN user usr ON mtch.user_id = usr.id " +
+      "LEFT JOIN map_stats mp ON mp.match_id = mtch.id " +
+      "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
+      "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
+      "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
       "WHERE mtch.user_id = ? " +
-      "OR cancelled IS NULL " +
+      "OR mtch.cancelled IS NULL " +
       "GROUP BY mtch.id " +
-      "ORDER BY id DESC";
+      "ORDER BY mtch.id DESC";
     const matches = await db.query(sql, [req.user.id]);
     if (!matches.length) {
       res.status(404).json({ message: "No matches found." });
@@ -450,7 +463,7 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.get("/:match_id", async (req, res, next) => {
   try {
-    let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
+    let matchUserId = "SELECT mtch.user_id FROM `match` mtch WHERE mtch.id = ?";
     let sql;
     const matchRow = await db.query(matchUserId, req.params.match_id);
     if (!matchRow.length) {
@@ -460,14 +473,32 @@ router.get("/:match_id", async (req, res, next) => {
       req.user !== undefined &&
       (matchRow[0].user_id == req.user.id || Utils.superAdminCheck(req.user))
     ) {
-      sql = "SELECT * FROM `match` where id=?";
+      //sql = "SELECT * FROM `match` where id=?";
+      sql =
+        "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, " +
+        "mtch.team1_score, mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, " +
+        "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, " +
+        "mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, mtch.enforce_teams, mtch.min_player_ready, " +
+        "mtch.season_id, mtch.is_pug, mtch.map_sides, " +
+        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+        "FROM `match` mtch " +
+        "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
+        "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
+        "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
+        "where mtch.id = ?";
     } else {
       sql =
-        "SELECT id, user_id, server_id, team1_id, team2_id, winner, " +
-        "team1_score, team2_score, team1_series_score, team2_series_score, " +
-        "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
-        "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug, map_sides FROM `match` where id = ?";
+        "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, " +
+        "mtch.team1_score, mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, " +
+        "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, " +
+        "mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, mtch.enforce_teams, mtch.min_player_ready, " +
+        "mtch.season_id, mtch.is_pug, mtch.map_sides, " +
+        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+        "FROM `match` mtch " +
+        "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
+        "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
+        "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
+        "where mtch.id = ?";
     }
     let matchID = req.params.match_id;
     const matches = await db.query(sql, matchID);
@@ -515,7 +546,7 @@ router.get("/:match_id", async (req, res, next) => {
  */
  router.get("/:match_id/stream", async (req, res, next) => {
   try {
-    let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
+    let matchUserId = "SELECT mtch.user_id FROM `match` mtch WHERE mtch.id = ?";
     let sql;
     const matchRow = await db.query(matchUserId, req.params.match_id);
     if (!matchRow.length) {
@@ -525,14 +556,32 @@ router.get("/:match_id", async (req, res, next) => {
       req.user !== undefined &&
       (matchRow[0].user_id == req.user.id || Utils.superAdminCheck(req.user))
     ) {
-      sql = "SELECT * FROM `match` where id=?";
+      //sql = "SELECT * FROM `match` mtch where id=?";
+      sql =
+        "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, " +
+        "mtch.team1_score, mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, " +
+        "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, " +
+        "mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, mtch.enforce_teams, mtch.min_player_ready, " +
+        "mtch.season_id, mtch.is_pug, mtch.map_sides," +
+        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+        "FROM `match` mtch " +
+        "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
+        "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
+        "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
+        "where mtch.id = ?";
     } else {
       sql =
-        "SELECT id, user_id, server_id, team1_id, team2_id, winner, " +
-        "team1_score, team2_score, team1_series_score, team2_series_score, " +
-        "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
-        "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug, map_sides FROM `match` where id = ?";
+        "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, " +
+        "mtch.team1_score, mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, " +
+        "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, " +
+        "mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, mtch.enforce_teams, mtch.min_player_ready, " +
+        "mtch.season_id, mtch.is_pug, mtch.map_sides," +
+        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+        "FROM `match` mtch " +
+        "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
+        "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
+        "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
+        "where mtch.id = ?";
     }
 
     let matchID = req.params.match_id;
@@ -719,15 +768,20 @@ router.get("/limit/:limiter", async (req, res, next) => {
     let sql;
     if (req.user !== undefined && Utils.superAdminCheck(req.user)) {
       sql =
-        "SELECT * FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?";
+        "SELECT mtch.* FROM `match` mtch WHERE mtch.cancelled = 0 OR mtch.cancelled IS NULL ORDER BY mtch.end_time DESC LIMIT ?";
     } else {
       sql =
-        "SELECT id, user_id, server_id, team1_id, team2_id, winner, " +
-        "team1_score, team2_score, team1_series_score, team2_series_score, " +
-        "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
-        "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug, map_sides FROM `match` WHERE cancelled = 0 " + 
-        "OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?";
+        "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, " +
+        "mtch.team1_score, mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, " +
+        "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, " +
+        "mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, mtch.enforce_teams, mtch.min_player_ready, " +
+        "mtch.season_id, mtch.is_pug, mtch.map_sides, " + 
+        "gs.ip_string, gs.port, gs.gotv_port, gs.display_name, team1.name as team1_string, team2.name as team2_string " +
+        "FROM `match` mtch " +
+        "LEFT JOIN team team1 ON team1.id = mtch.team1_id " +
+        "LEFT JOIN team team2 ON team2.id = mtch.team2_id " +
+        "LEFT JOIN game_server gs ON gs.id = mtch.server_id " +
+        "WHERE mtch.cancelled = 0 OR mtch.cancelled IS NULL ORDER BY mtch.end_time DESC LIMIT ?";
     }
     const matches = await db.query(sql, lim);
     res.json({ matches });
@@ -775,15 +829,15 @@ router.get("/limit/:limiter", async (req, res, next) => {
     let sql;
     if (req.user !== undefined && Utils.superAdminCheck(req.user)) {
       sql =
-        "SELECT * FROM `match` WHERE cancelled = 0 OR cancelled IS NULL ORDER BY id DESC LIMIT ?,?";
+        "SELECT mtch.* FROM `match` mtch WHERE mtch.cancelled = 0 OR mtch.cancelled IS NULL ORDER BY mtch.id DESC LIMIT ?,?";
     } else {
       sql =
-        "SELECT id, user_id, server_id, team1_id, team2_id, winner, " +
-        "team1_score, team2_score, team1_series_score, team2_series_score, " +
-        "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
-        "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug, map_sides FROM `match` WHERE cancelled = 0 " +
-        "OR cancelled IS NULL ORDER BY id DESC LIMIT ?,?";
+        "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, " +
+        "mtch.team1_score, mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, " +
+        "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, " +
+        "mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, mtch.enforce_teams, mtch.min_player_ready, " +
+        "mtch.season_id, mtch.is_pug, mtch.map_sides FROM `match` mtch WHERE mtch.cancelled = 0 " +
+        "OR mtch.cancelled IS NULL ORDER BY mtch.id DESC LIMIT ?,?";
     }
     const matches = await db.query(sql, [firstVal, secondVal]);
     res.json({ matches });
@@ -822,7 +876,7 @@ router.get("/limit/:limiter", async (req, res, next) => {
  */
 router.get("/:match_id/config", async (req, res, next) => {
   try {
-    let sql = "SELECT * FROM `match` WHERE id = ?";
+    let sql = "SELECT mtch.* FROM `match` mtch WHERE mtch.id = ?";
     let matchID = req.params.match_id;
     let matchCvars;
     let matchSpecs;
