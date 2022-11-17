@@ -44,7 +44,7 @@ import GlobalEmitter from "../../utility/emitter.js";
  */
 const basicRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 60,
+  max: 180,
   message: "Too many requests from this IP. Please try again in an hour.",
   keyGenerator: async (req) => {
     try {
