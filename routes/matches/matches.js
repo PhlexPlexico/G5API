@@ -1425,7 +1425,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
  * @param {Object} matchData - The data that contains the match to get the team string and scores.
  */
 async function build_team_dict(team, teamNumber, matchData) {
-  let sql = "SELECT auth, name, coach FROM team_auth_names WHERE team_id = ?";
+  let sql = "SELECT auth, name, coach FROM team_auth_names WHERE team_id = ? ORDER BY captain DESC";
   const playerAuths = await db.query(sql, [team.id]);
   let normalizedAuths = {};
   let normalizedCoachAuths = {};
