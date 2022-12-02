@@ -22,7 +22,7 @@ import mapListRouter from "./routes/maps.js";
 import mapstatsRouter from "./routes/mapstats.js";
 import matchesRouter from "./routes/matches/matches.js";
 import matchServerRouter from "./routes/matches/matchserver.js";
-import playerstatsRouter from "./routes/playerstats.js";
+import playerstatsRouter from "./routes/playerstats/playerstats.js";
 import seasonsRouter from "./routes/seasons.js";
 import serversRouter from "./routes/servers.js";
 import teamsRouter from "./routes/teams.js";

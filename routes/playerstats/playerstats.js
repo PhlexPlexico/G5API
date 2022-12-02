@@ -4,15 +4,15 @@
  * description: Express API for player stats in Get5 matches.
  */
 import { Router } from "express";
-import app from "../app.js";
+import app from "../../app.js";
 
 const router = Router();
 
-import db from "../db.js";
+import db from "../../db.js";
 
-import Utils from "../utility/utils.js";
+import Utils from "../../utility/utils.js";
 
-import GlobalEmitter from "../utility/emitter.js";
+import GlobalEmitter from "../../utility/emitter.js";
 
 /* Swagger shared definitions */
 /**
