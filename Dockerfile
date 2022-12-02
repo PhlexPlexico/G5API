@@ -5,7 +5,7 @@ RUN apk add gettext python3 build-base
 EXPOSE 3301
 # clone and move into Get5API folder
 WORKDIR /Get5API
-COPY package*.json .
+COPY package*.json ./
 COPY yarn.lock .
 RUN yarn
 
