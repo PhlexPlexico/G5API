@@ -4,7 +4,6 @@
  * description: Express API for player stats in Get5 matches.
  */
 import { Router } from "express";
-import app from "../../app.js";
 
 const router = Router();
 
@@ -305,7 +304,7 @@ router.get("/:steam_id/pug", async (req, res, next) => {
   try {
     let steamID = req.params.steam_id;
     let playerstats = await getPlayerStats(steamID, null, true);
-    if (!playerstats) {
+    if (!playerstats.length) {
       res.status(404).json({ message: "No stats found for player " + steamID });
       return;
     }
@@ -349,7 +348,7 @@ router.get("/:steam_id/official", async (req, res, next) => {
   try {
     let steamID = req.params.steam_id;
     let playerstats = await getPlayerStats(steamID);
-    if (!playerstats) {
+    if (!playerstats.length) {
       res.status(404).json({ message: "No stats found for player " + steamID });
       return;
     }
@@ -398,7 +397,7 @@ router.get("/:steam_id/official", async (req, res, next) => {
     let steamID = req.params.steam_id;
     let seasonId = req.params.season_id;
     let playerstats = await getPlayerStats(steamID, seasonId);
-    if (!playerstats) {
+    if (!playerstats.length) {
       res.status(404).json({ message: "No stats found for player " + steamID });
       return;
     }

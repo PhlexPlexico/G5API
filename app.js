@@ -23,6 +23,7 @@ import mapstatsRouter from "./routes/mapstats.js";
 import matchesRouter from "./routes/matches/matches.js";
 import matchServerRouter from "./routes/matches/matchserver.js";
 import playerstatsRouter from "./routes/playerstats/playerstats.js";
+import playerstatsextraRouter from "./routes/playerstats/extrastats.js";
 import seasonsRouter from "./routes/seasons.js";
 import serversRouter from "./routes/servers.js";
 import teamsRouter from "./routes/teams.js";
@@ -123,13 +124,14 @@ const options = {
     "./routes/matches/matchserver.js",
     "./routes/maps.js",
     "./routes/mapstats.js",
-    "./routes/playerstats.js",
+    "./routes/playerstats/playerstats.js",
     "./routes/seasons.js",
     "./routes/servers.js",
     "./routes/teams.js",
     "./routes/users.js",
     "./routes/vetoes.js",
     "./routes/vetosides.js",
+    "./routes/playerstats/extrastats.js"
   ],
 };
 const swaggerSpec = swaggerJSDoc(options);
@@ -148,6 +150,7 @@ app.use("/vetosides", vetosidesRouter);
 app.use("/matches", matchesRouter, matchServerRouter);
 app.use("/mapstats", mapstatsRouter);
 app.use("/playerstats", playerstatsRouter);
+app.use("/playerstatsextra", playerstatsextraRouter);
 app.use("/seasons", seasonsRouter);
 app.use("/match", legacyAPICalls);
 app.use("/leaderboard", leaderboardRouter);
