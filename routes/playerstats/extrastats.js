@@ -4,7 +4,6 @@
  * description: Express API for player additional stats in Get5 matches.
  */
  import { Router } from "express";
- import app from "../../app.js";
  
  const router = Router();
  
@@ -341,6 +340,395 @@
     res.status(500).json({ message: err.toString() });
   }
 });
+
+/**
+ * @swagger
+ *
+ * /playerstatsextras/match/:match_id/stream:
+ *   get:
+ *     description: Extra player stats from a given match in the system represented by a text-stream for real time updates.
+ *     produces:
+ *       - text/event-stream
+ *     parameters:
+ *       - name: match_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Player stats from a given match.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/PlayerStatsExtra'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.get("/match/:match_id/stream", async (req, res, next) => {
+  try {
+    let matchID = req.params.match_id;
+    let sql = "SELECT * FROM player_stat_extras where match_id = ?";
+    let playerstats = await db.query(sql, matchID);
+
+    res.set({
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+      "Content-Type": "text/event-stream",
+      "X-Accel-Buffering": "no"
+    });
+    res.flushHeaders();
+    playerstats = playerstats.map(v => Object.assign({}, v));
+    let playerString = `event: playerstatextras\ndata: ${JSON.stringify(playerstats)}\n\n`
+    
+    // Need to name the function in order to remove it!
+    const playerStreamStats = async () => {
+      playerstats = await db.query(sql, matchID);
+      playerstats = playerstats.map(v => Object.assign({}, v));
+      playerString = `event: playerstatextras\ndata: ${JSON.stringify(playerstats)}\n\n`
+      res.write(playerString);
+    };
+
+    GlobalEmitter.on("playerStatsExtraUpdate", playerStreamStats);
+
+    res.write(playerString);
+    req.on("close", () => {
+      GlobalEmitter.removeListener("playerStatsExtraUpdate", playerStreamStats);
+      res.end();
+    });
+    req.on("disconnect", () => {
+      GlobalEmitter.removeListener("playerStatsExtraUpdate", playerStreamStats);
+      res.end();
+    });
+  } catch (err) {
+    console.error(err.toString());
+    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`)
+    res.end();
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /playerstatsextras:
+ *   post:
+ *     description: Create extra player stats in a match/map.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/PlayerStatsExtra'
+ *            api_key:
+ *              type: string
+ *              description: API key of the match being updated.
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Player Stats created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       412:
+ *         $ref: '#/components/responses/NoPlayerStatData'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
+  try {
+    if (
+      req.body[0].match_id == null ||
+      req.body[0].map_id == null ||
+      req.body[0].team_id == null ||
+      req.body[0].steam_id == null ||
+      req.body[0].name == null ||
+      req.body[0].api_key == null
+    ) {
+      res.status(412).json({ message: "Required Data Not Provided" });
+      return;
+    }
+    let currentMatchInfo =
+      "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time, mtch.api_key as mtch_api_key FROM `match` mtch WHERE mtch.id=?";
+    const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
+    if (!matchRow.length) {
+      res.status(404).json({ message: "No match found." });
+      return;
+    } else if (
+      matchRow[0].mtch_api_key != req.body[0].api_key &&
+      !Utils.superAdminCheck(req.user)
+    ) {
+      res
+        .status(403)
+        .json({ message: "User is not authorized to perform action." });
+      return;
+    } else if (
+      matchRow[0].cancelled == 1 ||
+      matchRow[0].forfeit == 1 ||
+      matchRow[0].mtch_end_time != null
+    ) {
+      res.status(403).json({
+        message:
+          "Match is already finished. Cannot insert into historical matches.",
+      });
+      return;
+    } else {
+      let insertSet = {
+        player_stat_id: req.body[0].player_stat_id,
+        map_id: req.body[0].map_id,
+        match_id: req.body[0].match_id,
+        team_id: req.body[0].team_id,
+        round_number: req.body[0].round_number,
+        round_time: req.body[0].round_time,
+        player_attacker_id: req.body[0].player_attacker_id,
+        weapon: req.body[0].weapon,
+        bomb: req.body[0].bomb,
+        deaths: req.body[0].deaths,
+        headshot: req.body[0].headshot,
+        thru_smoke: req.body[0].thru_smoke,
+        attacker_blind: req.body[0].attacker_blind,
+        no_scope: req.body[0].no_scope,
+        suicide: req.body[0].suicide,
+        friendly_fire: req.body[0].friendly_fire,
+        player_assister_id: req.body[0].player_assister_id,
+        assist_friendly_fire: req.body[0].assist_friendly_fire,
+        flash_assist: req.body[0].flash_assist
+      };
+      let sql = "INSERT INTO player_stat_extras SET ?";
+      // Remove any values that may not be inserted off the hop.
+      insertSet = await db.buildUpdateStatement(insertSet);
+      let insertPlayStats = await db.query(sql, [insertSet]);
+      GlobalEmitter.emit("playerStatsExtraUpdate");
+      res.json({
+        message: "Extra Player Stats inserted successfully!",
+        id: insertPlayStats.insertId,
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /playerstatsextras:
+ *   put:
+ *     description: Update additional player stats in a match/map.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/PlayerStatsExtra'
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Update successful.
+ *         content:
+ *           application/json:
+ *             type: object
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       403:
+ *        $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *        $ref: '#/components/responses/NotFound'
+ *       412:
+ *         $ref: '#/components/responses/NoPlayerStatData'
+ *       500:
+ *        $ref: '#/components/responses/Error'
+ */
+ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
+  try {
+    if (
+      req.body[0].match_id == null ||
+      req.body[0].map_id == null ||
+      req.body[0].team_id == null ||
+      req.body[0].steam_id == null ||
+      req.body[0].api_key == null
+    ) {
+      res.status(412).json({ message: "Required Data Not Provided" });
+      return;
+    }
+    let currentMatchInfo =
+      "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time, mtch.api_key as mtch_api_key FROM `match` mtch, map_stats mstat WHERE mtch.id=? AND mstat.match_id=mtch.id";
+    const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
+    if (!matchRow.length) {
+      res.status(404).json({ message: "No match found." });
+      return;
+    } else if (
+      matchRow[0].mtch_api_key != req.body[0].api_key &&
+      !Utils.superAdminCheck(req.user)
+    ) {      
+      res
+        .status(403)
+        .json({ message: "User is not authorized to perform action." });
+      return;
+    } else if (
+      matchRow[0].cancelled == 1 ||
+      matchRow[0].forfeit == 1 ||
+      matchRow[0].mtch_end_time != null
+    ) {
+      res.status(401).json({
+        message: "Match is already finished. Cannot update historical matches.",
+      });
+      return;
+    } else {
+      let updateStmt = {
+        round_number: req.body[0].round_number,
+        round_time: req.body[0].round_time,
+        player_attacker_id: req.body[0].player_attacker_id,
+        weapon: req.body[0].weapon,
+        bomb: req.body[0].bomb,
+        deaths: req.body[0].deaths,
+        headshot: req.body[0].headshot,
+        thru_smoke: req.body[0].thru_smoke,
+        attacker_blind: req.body[0].attacker_blind,
+        no_scope: req.body[0].no_scope,
+        suicide: req.body[0].suicide,
+        friendly_fire: req.body[0].friendly_fire,
+        player_assister_id: req.body[0].player_assister_id,
+        assist_friendly_fire: req.body[0].assist_friendly_fire,
+        flash_assist: req.body[0].flash_assist
+      };
+      // Remove any values that may not be updated.
+      updateStmt = await db.buildUpdateStatement(updateStmt);
+      if (!Object.keys(updateStmt)) {
+        res
+          .status(412)
+          .json({ message: "No update data has been provided." });
+        return;
+      }
+      let sql =
+        "UPDATE player_stat_extras SET ? WHERE map_id = ? AND match_id = ? AND player_stat_id = ?";
+      const updatedPlayerStats = await db.query(sql, [
+        updateStmt,
+        req.body[0].map_id,
+        req.body[0].match_id,
+        req.body[0].player_stat_id,
+      ]);
+      if (updatedPlayerStats.affectedRows > 0) {
+        res.json({ message: "Extra Player Stats were updated successfully!" });
+      } else {
+        sql = "INSERT INTO player_stats SET ?";
+        // Update values to include match/map/steam_id.
+        updateStmt.player_stat_id = req.body[0].player_stat_id;
+        updateStmt.map_id = req.body[0].map_id;
+        updateStmt.match_id = req.body[0].match_id;
+        updateStmt.team_id = req.body[0].team_id;
+        await db.query(sql, [updateStmt]);
+        res.json({ message: "Extra Player Stats Inserted Successfully!" });
+      }
+      GlobalEmitter.emit("playerStatsExtraUpdate");
+      return;
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /playerstatsextras:
+ *   delete:
+ *     description: Delete all additional player stats object from a match.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              match_id:
+ *                type: integer
+ *     tags:
+ *       - playerstats
+ *     responses:
+ *       200:
+ *         description: Player stat deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       412:
+ *         $ref: '#/components/responses/NoPlayerStatData'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.delete("/", async (req, res, next) => {
+  try {
+    if (req.body[0].match_id == null) {
+      res.status(412).json({ message: "Required Data Not Provided" });
+      return;
+    }
+    let currentMatchInfo =
+      "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time, mtch.api_key as mtch_api_key FROM `match` mtch, map_stats mstat WHERE mtch.id=?";
+    const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
+    if (!matchRow.length) {
+      res.status(404).json({ message: "No player stats data found." });
+      return;
+    } else if (
+      matchRow[0].user_id != req.user.id &&
+      !Utils.superAdminCheck(req.user)
+    ) {
+      res
+        .status(403)
+        .json({ message: "User is not authorized to perform action." });
+      return;
+    } else if (
+      matchRow[0].cancelled == 1 ||
+      matchRow[0].forfeit == 1 ||
+      matchRow[0].mtch_end_time != null
+    ) {
+      let deleteSql = "DELETE FROM player_stat_extras; WHERE match_id = ?";
+      const delRows = await db.query(deleteSql, [
+        req.body[0].match_id,
+      ]);
+      if (delRows.affectedRows > 0) {
+        GlobalEmitter.emit("playerStatsExtraUpdate");
+        res.json({ message: "Player stats has been deleted successfully." });
+        return;
+      } else {
+        throw "Something went wrong deleting the data. Player stats remain intact.";
+      }
+    } else {
+      res.status(401).json({
+        message: "Match is currently live. Cannot delete from live matches.",
+      });
+      return;
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
 
 /** Get extra player stats standing in a season, pug or official matches.
 * @function

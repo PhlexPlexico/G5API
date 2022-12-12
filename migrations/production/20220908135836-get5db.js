@@ -18,9 +18,9 @@ exports.up = function(db) {
   return db.runSql("CREATE TABLE player_stat_extras (" +
       "id int(11) NOT NULL AUTO_INCREMENT," +
       "player_stat_id int(11) DEFAULT NULL," +
-      "match_id int(11) NOT NULL," +
-      "map_id int(11) NOT NULL," +
-      "team_id int(11) NOT NULL," +
+      "map_id int(11)," +
+      "match_id int(11)," +
+      "team_id int(11)," +
       "round_number int(11) NOT NULL," +
       "round_time int(11) NOT NULL," +
       "player_attacker_id int(11) DEFAULT NULL," +
@@ -37,10 +37,13 @@ exports.up = function(db) {
       "flash_assist tinyint(1) NOT NULL DEFAULT 0," +
       "PRIMARY KEY (id)," +
       "KEY player_stat_death_id_extras_fk (player_stat_id)," +
+      "KEY map_id_extras_fk (map_id)," +
+      "KEY match_id_extras_fk (match_id)," +
+      "KEY team_id_extras_fk (team_id)," +
       "KEY player_stat_assister_id_extras_fk (player_assister_id)," +
       "KEY player_stat_attacker_id_extras_fk (player_attacker_id)," +
-      "CONSTRAINT match_id_extras_fk FOREIGN KEY (match_id) REFERENCES `match` (id) ON DELETE SET NULL," +
       "CONSTRAINT map_id_extras_fk FOREIGN KEY (map_id) REFERENCES map_stats (id) ON DELETE SET NULL," +
+      "CONSTRAINT match_id_extras_fk FOREIGN KEY (match_id) REFERENCES `match` (id) ON DELETE SET NULL," +
       "CONSTRAINT team_id_extras_fk FOREIGN KEY (team_id) REFERENCES team (id) ON DELETE SET NULL," +
       "CONSTRAINT player_stat_assister_id_extras_fk FOREIGN KEY (player_assister_id) REFERENCES player_stats (id) ON DELETE SET NULL," +
       "CONSTRAINT player_stat_attacker_id_extras_fk FOREIGN KEY (player_attacker_id) REFERENCES player_stats (id) ON DELETE SET NULL," +
