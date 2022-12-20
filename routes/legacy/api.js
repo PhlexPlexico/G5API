@@ -1474,6 +1474,179 @@ router.post(
   }
 );
 
+
+/**
+ * @swagger
+ *
+ * /match/:match_id/map/:map_number/player/:steam_id/extras/update:
+ *   post:
+ *     description: Route serving to update a players stats within a match.
+ *     produces:
+ *       - text/plain
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        text/plain:
+ *          schema:
+ *            $ref: '#/components/schemas/PlayerStats'
+ *
+ *     tags:
+ *       - legacy
+ *     responses:
+ *       200:
+ *         description: Success.
+ *         content:
+ *             text/plain:
+ *                schema:
+ *                  type: string
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.post(
+  "/:match_id/map/:map_number/player/:steam_id/extras/update",
+  playerStatRateLimit,
+  async (req, res, next) => {
+    try {
+      // Give from API call.
+      let matchID =
+        req.params.match_id == null ? null : parseInt(req.params.match_id);
+      let mapNum =
+        req.params.map_number == null ? null : parseInt(req.params.map_number);
+      let steamId = req.params.steam_id == null ? null : req.params.steam_id;
+      let playerName = req.body.player.name == null ? null : req.body.player.name;
+      let playerSide = req.body.player.side == null ? null : req.body.player.side;
+      let weapon = req.body.weapon == null ? null : req.body.weapon;
+      let isDeathByBomb = req.body.bomb;
+      let isDeathByHeadshot = req.body.headshot;
+      let isDeathThruSmoke = req.body.thru_smoke;
+      let isDeathThruObject = req.body.penetrated;
+      let isAttackerBlind = req.body.attacker_blind;
+      let didAttackerNoScope = req.body.no_scope;
+      let isSuicide = req.body.suicide;
+      let isFriendlyFire = req.body.friendly_fire;
+      let attackerJSON =
+        req.body.attacker == null ? null : req.body.attacker;
+      let assisterJSON =
+        req.body.assist == null ? null : req.body.assist;
+
+      // Data manipulation inside function.
+      let updateStmt = {};
+      let updateSql;
+      let matchFinalized = true;
+      let playerTeamId;
+      let playerAttackerValues;
+      let assisterValues;
+      throw "NOT YET IMPLEMENTED";
+      // Database calls.
+      let sql = "SELECT * FROM `match` WHERE id = ?";
+      const matchValues = await db.query(sql, matchID);
+      if (
+        matchValues[0].end_time == null &&
+        (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
+      )
+        matchFinalized = false;
+      // Throw error if wrong key. Match finish doesn't matter.
+      await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
+
+      sql = "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
+      const mapStatValues = await db.query(sql, [matchID, mapNum]);
+      if (mapStatValues.length < 1) {
+        res.status(404).send({ message: "Failed to find map stats object." });
+        return;
+      }
+
+      // Always create a new row for the player death.
+      sql =
+        "SELECT * FROM player_stats WHERE match_id = ? AND map_id = ? AND steam_id = ?";
+      const playerStatValues = await db.query(sql, [
+        matchID,
+        mapStatValues[0].id,
+        steamId,
+      ]);
+      
+      if (attackerJSON) {
+        playerAttackerValues = await db.query(sql, [
+          matchID,
+          mapStatValues[0].id,
+          attacker.steamid
+        ]);
+      }
+      
+      if (assisterJSON.player) {
+        assisterValues = await db.query(sql, [
+          matchID,
+          mapStatValues[0].id,
+          assisterJSON.player.steamid
+        ]);
+      }
+
+
+      // Update player stats. ACID transaction.
+
+      if (playerTeam === "team1") playerTeamId = matchValues[0].team1_id;
+      else if (playerTeam === "team2") playerTeamId = matchValues[0].team2_id;
+
+      updateStmt = {
+        match_id: matchID,
+        map_id: mapStatValues[0].id,
+        team_id: playerTeamId,
+        steam_id: steamId,
+        name: playerName,
+        kills: playerKills,
+        deaths: playerDeaths,
+        roundsplayed: playerRoundsPlayed,
+        assists: playerAssists,
+        flashbang_assists: playerFBA,
+        teamkills: playerTKs,
+        knife_kills: knifeKills,
+        suicides: playerSuicide,
+        headshot_kills: playerHSK,
+        damage: playerDamage,
+        util_damage: utilDmg,
+        enemies_flashed: enemiesFlashed,
+        friendlies_flashed: friendlyFlashed,
+        bomb_plants: playerBombsPlanted,
+        bomb_defuses: playerBombsDefused,
+        v1: player1v1,
+        v2: player1v2,
+        v3: player1v3,
+        v4: player1v4,
+        v5: player1v5,
+        k1: player1k,
+        k2: player2k,
+        k3: player3k,
+        k4: player4k,
+        k5: player5k,
+        firstdeath_ct: playerFirstDeathCT,
+        firstdeath_t: playerFirstDeathT,
+        firstkill_ct: playerFirstKillCT,
+        firstkill_t: playerFirstKillT,
+        kast: playerKast,
+        contribution_score: playerContrib,
+        mvp: playerMvp
+      };
+      // Remove any values that may not be updated.
+      updateStmt = await db.buildUpdateStatement(updateStmt);
+
+      if (playerStatValues.length < 1) {
+        updateSql = "INSERT INTO player_stats SET ?";
+        await db.query(updateSql, [updateStmt]);
+      } else {
+        updateSql = "UPDATE player_stats SET ? WHERE id = ?";
+        await db.query(updateSql, [
+          updateStmt,
+          playerStatValues[0].id,
+        ]);
+      }
+      GlobalEmitter.emit("playerStatsUpdate");
+      res.status(200).send({ message: "Success" });
+    } catch (err) {
+      res.status(500).json({ message: err.toString() });
+      console.error(err);
+    }
+  }
+);
+
 /**
  * @swagger
  *

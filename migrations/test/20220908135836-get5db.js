@@ -17,13 +17,17 @@ exports.setup = function(options, seedLink) {
 exports.up = function(db) {
   return db.runSql("CREATE TABLE player_stat_extras (" +
       "id int(11) NOT NULL AUTO_INCREMENT," +
-      "player_stat_id int(11) DEFAULT NULL," +
+      "player_steam_id varchar(17) NOT NULL," +
+      "player_name varchar(75) NOT NULL," +
+      "player_side varchar(5) NOT NULL," +
       "map_id int(11)," +
       "match_id int(11)," +
       "team_id int(11)," +
       "round_number int(11) NOT NULL," +
       "round_time int(11) NOT NULL," +
-      "player_attacker_id int(11) DEFAULT NULL," +
+      "attacker_steam_id int(11) DEFAULT NULL," +
+      "attacker_name varchar(75) DEFAULT NULL," +
+      "attacker_side varchar(5) DEFAULT NULL," +
       "weapon varchar(15) NOT NULL," +
       "bomb tinyint(1) NOT NULL DEFAULT 0," +
       "headshot tinyint(1) NOT NULL DEFAULT 0," +
@@ -32,22 +36,20 @@ exports.up = function(db) {
       "no_scope tinyint(1) NOT NULL DEFAULT 0," +
       "suicide tinyint(1) NOT NULL DEFAULT 0," +
       "friendly_fire tinyint(1) NOT NULL DEFAULT 0," +
-      "player_assister_id int(11) DEFAULT NULL," +
+      "assister_steam_id int(11) DEFAULT NULL," +
+      "assister_name varchar(75) DEFAULT NULL," +
+      "assister_side varchar(5) DEFAULT NULL," +
       "assist_friendly_fire tinyint(1) NOT NULL DEFAULT 0," +
       "flash_assist tinyint(1) NOT NULL DEFAULT 0," +
       "PRIMARY KEY (id)," +
-      "KEY player_stat_death_id_extras_fk (player_stat_id)," +
       "KEY map_id_extras_fk (map_id)," +
       "KEY match_id_extras_fk (match_id)," +
       "KEY team_id_extras_fk (team_id)," +
-      "KEY player_stat_assister_id_extras_fk (player_assister_id)," +
-      "KEY player_stat_attacker_id_extras_fk (player_attacker_id)," +
       "CONSTRAINT map_id_extras_fk FOREIGN KEY (map_id) REFERENCES map_stats (id) ON DELETE SET NULL," +
       "CONSTRAINT match_id_extras_fk FOREIGN KEY (match_id) REFERENCES `match` (id) ON DELETE SET NULL," +
       "CONSTRAINT team_id_extras_fk FOREIGN KEY (team_id) REFERENCES team (id) ON DELETE SET NULL," +
-      "CONSTRAINT player_stat_assister_id_extras_fk FOREIGN KEY (player_assister_id) REFERENCES player_stats (id) ON DELETE SET NULL," +
-      "CONSTRAINT player_stat_attacker_id_extras_fk FOREIGN KEY (player_attacker_id) REFERENCES player_stats (id) ON DELETE SET NULL," +
-      "CONSTRAINT player_stat_death_id_extras_fk FOREIGN KEY (player_stat_id) REFERENCES player_stats (id) ON DELETE SET NULL" +
+      "INDEX player_steam_id_idx(player_steam_id)," +
+      "INDEX attacker_steam_id_idx(attacker_steam_id)" +
       ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
   );
 };

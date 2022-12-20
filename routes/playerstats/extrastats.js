@@ -28,9 +28,15 @@
  *         - steam_id
  *         - name
  *       properties:
- *         player_stat_id:
- *           type: integer
- *           description: Integer determining which player had died in the system, the victim.
+ *         player_steam_id:
+ *           type: string
+ *           description: The Steam64 identifier of the player killed.
+ *         player_name:
+ *           type: string
+ *           description: The name of the player being killed on the server.
+ *         player_side:
+ *           type: string
+ *           description: The side the player killed is on.
  *         match_id:
  *           type: integer
  *           description: Match identifier in the system.
@@ -46,9 +52,15 @@
  *         round_time:
  *           type: integer
  *           description: Integer determining the round time that the player death occurred on.
- *         player_attacker_id:
- *           type: integer
- *           description: Player identifier in the system on the given team that had killed the player that this record represents.
+ *         attacker_steam_id:
+ *           type: string
+ *           description: The Steam64 identifier of the player who attacked the player who had died.
+ *         attacker_name:
+ *           type: string
+ *           description: The name of the player attacking the killed player on the server.
+ *         attacker_side:
+ *           type: string
+ *           description: The side the attacker is on.
  *         weapon:
  *           type: string
  *           description: The name of the weapon that the player died from.
@@ -73,9 +85,15 @@
  *         friendly_fire:
  *           type: boolean
  *           description: Whether the player had died from friendly fire.
- *         player_assister_id:
- *           type: integer
- *           description: Player identifier in the system on the given team.
+ *         assister_steam_id:
+ *           type: string
+ *           description: The Steam64 identifier of the player who assisted the attacker.
+ *         assister_name:
+ *           type: string
+ *           description: The name of the player assisting the attacker on the server.
+ *         assister_side:
+ *           type: string
+ *           description: The side that the assister is on. If no assister, this is null.
  *         assist_friendly_fire:
  *           type: boolean
  *           description: Indicates if the assist was friendly fire.
@@ -331,7 +349,7 @@
     let sql = "SELECT * FROM player_stat_extras where match_id = ?";
     const extrastats = await db.query(sql, matchID);
     if (!extrastats.length) {
-      res.status(404).json({ message: "No stats found for match " + matchID });
+      res.status(404).json({ message: "No extra stats found for match " + matchID });
       return;
     }
     res.json({ extrastats });
@@ -486,13 +504,17 @@
       return;
     } else {
       let insertSet = {
-        player_stat_id: req.body[0].player_stat_id,
+        player_steam_id: req.body[0].steam_id,
+        player_name: req.body[0].player_name,
+        player_side: req.body[0].player_side,
         map_id: req.body[0].map_id,
         match_id: req.body[0].match_id,
         team_id: req.body[0].team_id,
         round_number: req.body[0].round_number,
         round_time: req.body[0].round_time,
-        player_attacker_id: req.body[0].player_attacker_id,
+        attacker_steam_id: req.body[0].attacker_steam_id,
+        attacker_name: req.body[0].attacker_name,
+        attacker_side: req.body[0].attacker_side,
         weapon: req.body[0].weapon,
         bomb: req.body[0].bomb,
         deaths: req.body[0].deaths,
@@ -502,7 +524,9 @@
         no_scope: req.body[0].no_scope,
         suicide: req.body[0].suicide,
         friendly_fire: req.body[0].friendly_fire,
-        player_assister_id: req.body[0].player_assister_id,
+        assister_steam_id: req.body[0].assister_steam_id,
+        assister_name: req.body[0].assister_name,
+        assister_side: req.body[0].assister_side,
         assist_friendly_fire: req.body[0].assist_friendly_fire,
         flash_assist: req.body[0].flash_assist
       };
@@ -593,7 +617,9 @@
       let updateStmt = {
         round_number: req.body[0].round_number,
         round_time: req.body[0].round_time,
-        player_attacker_id: req.body[0].player_attacker_id,
+        attacker_steam_id: req.body[0].attacker_steam_id,
+        attacker_name: req.body[0].attacker_name,
+        attacker_side: req.body[0].attacker_side,
         weapon: req.body[0].weapon,
         bomb: req.body[0].bomb,
         deaths: req.body[0].deaths,
@@ -603,7 +629,9 @@
         no_scope: req.body[0].no_scope,
         suicide: req.body[0].suicide,
         friendly_fire: req.body[0].friendly_fire,
-        player_assister_id: req.body[0].player_assister_id,
+        assister_steam_id: req.body[0].assister_steam_id,
+        assister_name: req.body[0].assister_name,
+        assister_side: req.body[0].assister_side,
         assist_friendly_fire: req.body[0].assist_friendly_fire,
         flash_assist: req.body[0].flash_assist
       };
@@ -628,7 +656,7 @@
       } else {
         sql = "INSERT INTO player_stats SET ?";
         // Update values to include match/map/steam_id.
-        updateStmt.player_stat_id = req.body[0].player_stat_id;
+        updateStmt.player_steam_id = req.body[0].player_steam_id;
         updateStmt.map_id = req.body[0].map_id;
         updateStmt.match_id = req.body[0].match_id;
         updateStmt.team_id = req.body[0].team_id;
