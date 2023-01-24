@@ -24,7 +24,7 @@ jobs:
         uses: ASzc/change-string-case-action@v5
         with:
           string: ${{ github.repository_owner }}
-      - uses: actions/checkout@v2.5.0
+      - uses: actions/checkout@v3.3.0
       - uses: docker/login-action@v2.1.0
         with:
           registry: ghcr.io
