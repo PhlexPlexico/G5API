@@ -1536,7 +1536,6 @@ router.post(
       let playerTeamId;
       let playerAttackerValues;
       let assisterValues;
-      throw "NOT YET IMPLEMENTED";
       // Database calls.
       let sql = "SELECT * FROM `match` WHERE id = ?";
       const matchValues = await db.query(sql, matchID);
