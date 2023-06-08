@@ -192,6 +192,8 @@ class ServerRcon {
       if (this.getGet5Version().includes("0.14")) {
         await this.execute("get5_remote_log_url " + config.get("server.apiURL").endsWith("/") ? + "v2" : + "/v2");
         await this.execute("get5_remote_backup_url " + config.get("server.apiURL").endsWith("/") ? + "v2/backup" : + "/v2/backup");
+        await this.execute("get5_remote_log_header_key Authorization");
+        await this.execute("get5_demo_upload_header_key Authorization");
         await this.execute("get5_remote_log_header_value " + get5APIKeyString);
         await this.execute("get5_remote_backup_header_value " + get5APIKeyString);
       } else {
