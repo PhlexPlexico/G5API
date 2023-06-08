@@ -44,6 +44,35 @@ class ServerRcon {
   }
 
   /**
+   * Patches a returned call if there was incomplete packets.
+   * @function
+   */
+  async fixIncompletePackets(rconResponse) {
+    return rconResponse.substring(0, rconResponse.lastIndexOf("L")).length == 0
+      ? rconResponse
+      : rconResponse.substring(0, rconResponse.lastIndexOf("L"));
+  }
+
+  /**
+   * Retrieve Get5's version from the server.
+   * @returns 
+   */
+  async getGet5Version() {
+    if (process.env.NODE_ENV === "test") {
+      return "unknown";
+    }
+
+    let get5Status = await this.execute("get5_status");
+    get5Status = await fixIncompletePackets(get5Status);
+
+    if (get5Status.includes("Unknown command")) {
+      return "unknown";
+    }
+    let get5JsonStatus = await JSON.parse(get5Status);
+    return get5JsonStatus.plugin_version;
+  }
+
+  /**
    * Checks the availability of the game server via a get5 call.
    * @function
    */
@@ -54,14 +83,15 @@ class ServerRcon {
       }
       let get5Status = await this.execute("get5_web_available");
       // Weird L coming in from the console call? Incomplete packets.
-      get5Status =
-        get5Status.substring(0, get5Status.lastIndexOf("L")).length == 0
-          ? get5Status
-          : get5Status.substring(0, get5Status.lastIndexOf("L"));
+      get5Status = await fixIncompletePackets(get5Status);
       let get5JsonStatus = await JSON.parse(get5Status);
       if (get5Status.includes("Unknown command")) {
-        console.log("Either get5 or get5_apistats plugin missing.");
-        return false;
+        if (this.getGet5Version().includes("0.14")) {
+          return true;
+        } else {
+          console.log("Either get5 or G5WS plugin is missing.");
+          return false;
+        }
       } else if (get5JsonStatus.gamestate != 0) {
         console.log("Server already has a get5 match setup.");
         return false;
@@ -158,11 +188,17 @@ class ServerRcon {
       if (loadMatchResponse.includes("Failed")) return false;
       else if (loadMatchResponse.includes("another match already loaded"))
         return false;
-      loadMatchResponse = await this.execute(
-        "get5_web_api_key " + get5APIKeyString
-      );
-      // Swap map to default dust2, ensures our cvars stick for the match.
-      // await this.execute("map de_dust2");
+
+      if (this.getGet5Version().includes("0.14")) {
+        await this.execute("get5_remote_log_url " + config.get("server.apiURL").endsWith("/") ? + "v2" : + "/v2");
+        await this.execute("get5_remote_backup_url " + config.get("server.apiURL").endsWith("/") ? + "v2/backup" : + "/v2/backup");
+        await this.execute("get5_remote_log_header_value " + get5APIKeyString);
+        await this.execute("get5_remote_backup_header_value " + get5APIKeyString);
+      } else {
+        await this.execute(
+          "get5_web_api_key " + get5APIKeyString
+        );
+      }
       return true;
     } catch (err) {
       console.error("Error on preparing match to server: " + err.toString());
@@ -238,13 +274,13 @@ class ServerRcon {
       if (nickName)
         loadMatchResponse = await this.execute(
           "get5_addplayer " +
-            steamId +
-            " " +
-            teamString +
-            " " +
-            '"' +
-            nickName +
-            '"'
+          steamId +
+          " " +
+          teamString +
+          " " +
+          '"' +
+          nickName +
+          '"'
         );
       else
         loadMatchResponse = await this.execute(
@@ -263,21 +299,21 @@ class ServerRcon {
    * @param {String} steamId - Formatted Steam64 ID.
    * @returns Returns the response from the server.
    */
-     async addCoach(teamString, steamId) {
-      try {
-        if (process.env.NODE_ENV === "test") {
-          return false;
-        }
-        let loadMatchResponse;
-        loadMatchResponse = await this.execute(
-          "get5_addcoach " + steamId + " " + teamString
-        );
-        return loadMatchResponse;
-      } catch (err) {
-        console.error("RCON error on addUser: " + err.toString());
-        throw err;
+  async addCoach(teamString, steamId) {
+    try {
+      if (process.env.NODE_ENV === "test") {
+        return false;
       }
+      let loadMatchResponse;
+      loadMatchResponse = await this.execute(
+        "get5_addcoach " + steamId + " " + teamString
+      );
+      return loadMatchResponse;
+    } catch (err) {
+      console.error("RCON error on addUser: " + err.toString());
+      throw err;
     }
+  }
 
   /** Removes a user from the match.
    * @function
@@ -340,7 +376,7 @@ class ServerRcon {
    * @param {String} backupName - The filename of the backup on the API.
    * @returns Returns the response from the server.
    */
-   async restoreBackupFromURL(backupName) {
+  async restoreBackupFromURL(backupName) {
     try {
       if (process.env.NODE_ENV === "test") {
         return false;
