@@ -1,0 +1,38 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_OnBackupRestore.yaml with typeconv
+  version: '1'
+  x-id: series_flow/Get5_OnBackupRestore.yaml
+  x-comment: >-
+    Generated from series_flow/Get5_OnBackupRestore.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_OnBackupRestore:
+      properties:
+        event:
+          title: Get5_OnBackupRestore.event
+          type: string
+        matchid:
+          title: Get5_OnBackupRestore.matchid
+          type: string
+        map_number:
+          title: Get5_OnBackupRestore.map_number
+          type: number
+        round_number:
+          title: Get5_OnBackupRestore.round_number
+          type: number
+        filename:
+          title: Get5_OnBackupRestore.filename
+          type: string
+      required:
+        - event
+        - matchid
+        - map_number
+        - round_number
+        - filename
+      additionalProperties: false
+      title: Get5_OnBackupRestore
+      type: object

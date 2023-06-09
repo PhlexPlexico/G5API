@@ -1,0 +1,38 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_OnMatchPausedUnpaused.yaml with typeconv
+  version: '1'
+  x-id: map_flow/Get5_OnMatchPausedUnpaused.yaml
+  x-comment: >-
+    Generated from map_flow/Get5_OnMatchPausedUnpaused.ts by
+    core-types-json-schema (https://github.com/grantila/core-types-json-schema)
+    on behalf of typeconv (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_OnMatchPausedUnpaused:
+      properties:
+        event:
+          title: Get5_OnMatchPausedUnpaused.event
+          type: string
+        matchid:
+          title: Get5_OnMatchPausedUnpaused.matchid
+          type: string
+        map_number:
+          title: Get5_OnMatchPausedUnpaused.map_number
+          type: number
+        team:
+          title: Get5_OnMatchPausedUnpaused.team
+          type: string
+        pause_type:
+          title: Get5_OnMatchPausedUnpaused.pause_type
+          type: string
+      required:
+        - event
+        - matchid
+        - map_number
+        - team
+        - pause_type
+      additionalProperties: false
+      title: Get5_OnMatchPausedUnpaused
+      type: object

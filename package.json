@@ -30,7 +30,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "nodemon ./bin/www.js",
+    "clean": "rm -rf ./dist",
+    "start": "tsc-watch --project . --outDir ./dist --onSuccess \"nodemon ./dist/bin/www.js\"",
     "tsstart": "yarn build; nodemon ./dist/bin/www.js",
     "startprod": "pm2 start ./prodrun.json --name \"G5API\"",
     "restartprod": "pm2 restart G5API",
@@ -58,7 +59,7 @@
     "test:playerstats": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.playerstats.config.cjs",
     "test:removeID": "sed -i -e 's.\"steam_ids\": \"[0-9][0-9]*\".\"steam_ids\": \"super_admins,go,here\".g' ./config/test.json",
     "test:seasons": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.seasons.config.cjs",
-    "test:setup-user": "export STEAMID=`grep -o -m 1 '[0-9][0-9]*' utility/mockProfile.js` && sed -i -e \"s/\\\"super_admins,go,here\\\"/\\\"$STEAMID\\\"/g\" config/test.json",
+    "test:setup-user": "export STEAMID=`grep -o -m 1 '[0-9][0-9]*' src/utility/mockProfile.js` && sed -i -e \"s/\\\"super_admins,go,here\\\"/\\\"$STEAMID\\\"/g\" config/test.json",
     "test:teams": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.teams.config.cjs",
     "test:user": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.users.config.cjs",
     "test:vetoes": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.vetoes.config.cjs",
@@ -97,6 +98,8 @@
     "swagger-ui-express": "^4.5.0"
   },
   "devDependencies": {
+    "@types/config": "^3.3.0",
+    "@types/express": "^4.17.17",
     "@types/node": "^20.2.5",
     "jest": "^29.0.1",
     "jsdoc": "^4.0.2",
@@ -104,6 +107,7 @@
     "passport-mock-strategy": "^2.0.0",
     "redis-mock": "^0.56.3",
     "supertest": "^6.3.3",
+    "tsc-watch": "^6.0.4",
     "typescript": "^5.1.3"
   }
 }

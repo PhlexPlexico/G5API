@@ -1,0 +1,41 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_OnPlayerBecameMvp.yaml with typeconv
+  version: '1'
+  x-id: map_flow/Get5_OnPlayerBecameMvp.yaml
+  x-comment: >-
+    Generated from map_flow/Get5_OnPlayerBecameMvp.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_OnPlayerBecameMvp:
+      properties:
+        event:
+          title: Get5_OnPlayerBecameMvp.event
+          type: string
+        matchid:
+          title: Get5_OnPlayerBecameMvp.matchid
+          type: string
+        map_number:
+          title: Get5_OnPlayerBecameMvp.map_number
+          type: number
+        round_number:
+          title: Get5_OnPlayerBecameMvp.round_number
+          type: number
+        player:
+          title: Get5_OnPlayerBecameMvp.player
+        reason:
+          title: Get5_OnPlayerBecameMvp.reason
+          type: number
+      required:
+        - event
+        - matchid
+        - map_number
+        - round_number
+        - player
+        - reason
+      additionalProperties: false
+      title: Get5_OnPlayerBecameMvp
+      type: object

@@ -1,0 +1,37 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_Player.yaml with typeconv
+  version: '1'
+  x-id: Get5_Player.yaml
+  x-comment: >-
+    Generated from Get5_Player.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_Player:
+      properties:
+        steamid:
+          title: Get5_Player.steamid
+          type: string
+        name:
+          title: Get5_Player.name
+          type: string
+        stats:
+          title: Get5_Player.stats
+        user_id:
+          title: Get5_Player.user_id
+          type: number
+        side:
+          title: Get5_Player.side
+          type: string
+        is_bot:
+          title: Get5_Player.is_bot
+          type: boolean
+      required:
+        - steamid
+        - name
+      additionalProperties: false
+      title: Get5_Player
+      type: object

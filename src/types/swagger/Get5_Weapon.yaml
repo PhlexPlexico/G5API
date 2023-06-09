@@ -1,0 +1,26 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_Weapon.yaml with typeconv
+  version: '1'
+  x-id: Get5_Weapon.yaml
+  x-comment: >-
+    Generated from Get5_Weapon.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_Weapon:
+      properties:
+        name:
+          title: Get5_Weapon.name
+          type: string
+        id:
+          title: Get5_Weapon.id
+          type: number
+      required:
+        - name
+        - id
+      additionalProperties: false
+      title: Get5_Weapon
+      type: object

@@ -1,0 +1,41 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_OnSeriesResult.yaml with typeconv
+  version: '1'
+  x-id: series_flow/Get5_OnSeriesResult.yaml
+  x-comment: >-
+    Generated from series_flow/Get5_OnSeriesResult.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_OnSeriesResult:
+      properties:
+        event:
+          title: Get5_OnSeriesResult.event
+          type: string
+        matchid:
+          title: Get5_OnSeriesResult.matchid
+          type: string
+        team1_series_score:
+          title: Get5_OnSeriesResult.team1_series_score
+          type: number
+        team2_series_score:
+          title: Get5_OnSeriesResult.team2_series_score
+          type: number
+        winner:
+          title: Get5_OnSeriesResult.winner
+        time_until_restore:
+          title: Get5_OnSeriesResult.time_until_restore
+          type: number
+      required:
+        - event
+        - matchid
+        - team1_series_score
+        - team2_series_score
+        - winner
+        - time_until_restore
+      additionalProperties: false
+      title: Get5_OnSeriesResult
+      type: object

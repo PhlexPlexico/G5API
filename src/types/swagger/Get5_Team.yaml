@@ -1,0 +1,55 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_Team.yaml with typeconv
+  version: '1'
+  x-id: Get5_Team.yaml
+  x-comment: >-
+    Generated from Get5_Team.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_Team:
+      properties:
+        id:
+          title: Get5_Team.id
+          type: string
+        name:
+          title: Get5_Team.name
+          type: string
+        series_score:
+          title: Get5_Team.series_score
+          type: number
+        score:
+          title: Get5_Team.score
+          type: number
+        score_ct:
+          title: Get5_Team.score_ct
+          type: number
+        score_t:
+          title: Get5_Team.score_t
+          type: number
+        players:
+          items: {}
+          title: Get5_Team.players
+          type: array
+        side:
+          title: Get5_Team.side
+          type: string
+        starting_side:
+          title: Get5_Team.starting_side
+          type: string
+      required:
+        - id
+        - name
+        - series_score
+        - score
+        - score_ct
+        - score_t
+        - players
+        - side
+        - starting_side
+      additionalProperties: false
+      title: Get5_Team
+      type: object
