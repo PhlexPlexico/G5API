@@ -27,21 +27,21 @@ import GlobalEmitter from "../utility/emitter.js";
  * @param {number} num_maps - The number of maps in the current match.
  * @param {string} [winner=null] - The string value representing the winner of the match.
  */
-async function update_challonge_match(match_id, season_id, team1_id, team2_id, num_maps, winner = null) {
+async function update_challonge_match(match_id: number, season_id: number, team1_id: number, team2_id: number, num_maps: number, winner: string | null = null) {
     // Check if a match has a season ID.
     let sql: string = "SELECT id, challonge_url, user_id FROM season WHERE id = ?";
     let team1Score: number;
     let team2Score: number;
-    const seasonInfo = await db.query(sql, season_id);
+    const seasonInfo: any = await db.query(sql, season_id);
     if (seasonInfo[0].challonge_url) {
       sql = "SELECT challonge_team_id FROM team WHERE id = ?";
-      const team1ChallongeId = await db.query(sql, team1_id);
-      const team2ChallongeId = await db.query(sql, team2_id);
+      const team1ChallongeId: any = await db.query(sql, team1_id);
+      const team2ChallongeId: any = await db.query(sql, team2_id);
   
       // Grab API key.
       sql = "SELECT challonge_api_key FROM user WHERE id = ?";
-      const challongeAPIKey = await db.query(sql, [seasonInfo[0].user_id]);
-      let decryptedKey = Utils.decrypt(challongeAPIKey[0].challonge_api_key);
+      const challongeAPIKey: any = await db.query(sql, [seasonInfo[0].user_id]);
+      let decryptedKey: string = Utils.decrypt(challongeAPIKey[0].challonge_api_key);
       // Get info of the current open match with the two IDs.
       let challongeResponse = await fetch(
         "https://api.challonge.com/v1/tournaments/" +
@@ -51,7 +51,7 @@ async function update_challonge_match(match_id, season_id, team1_id, team2_id, n
         team1ChallongeId[0].challonge_team_id +
         "&participant_id=" +
         team2ChallongeId[0].challonge_team_id);
-      let challongeData = await challongeResponse.json();
+      let challongeData: any = await challongeResponse.json();
       if (challongeData) {
         if (num_maps == 1) {
           // Submit the map stats scores instead.
@@ -59,7 +59,7 @@ async function update_challonge_match(match_id, season_id, team1_id, team2_id, n
         } else {
           sql = "SELECT team1_score, team2_score FROM `match` WHERE id = ?";
         }
-        const mapStats = await db.query(sql, [match_id]);
+        const mapStats: any = await db.query(sql, [match_id]);
         // Admins may just make a match that has teams swapped. This is okay as we can change what we
         // report to Challonge.
         team1Score = challongeData[0].match.player1_id == team1ChallongeId[0].challonge_team_id

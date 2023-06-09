@@ -99,9 +99,8 @@
     "skipLibCheck": true /* Skip type checking all .d.ts files. */
   },
   "include": [
-    "src/routes/**/*.js", // Every js file inside src folder
-    "src/routes/**/*.ts", // Every js file inside src folder
-    "src/utility/**/*.js", // Every ts file inside src folder
+    "src/**/**/*.js", // Every js file inside src folder
+    "src/**/**/*.ts", // Every js file inside src folder
     "bin/www.js"
   ],
   "exclude": [

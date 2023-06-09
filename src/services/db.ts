@@ -1,6 +1,7 @@
 /*Database driver.*/
 import { createPool } from 'mysql2/promise';
 import config from 'config';
+import { FieldPacket, PoolOptions, RowDataPacket } from 'mysql2/typings/mysql';
 
 const dbCfg = {
   host: config.get(process.env.NODE_ENV+".host"),
@@ -9,7 +10,7 @@ const dbCfg = {
   password: config.get(process.env.NODE_ENV+".password"),
   database: config.get(process.env.NODE_ENV+".database"),
   connectionLimit: config.get(process.env.NODE_ENV+".connectionLimit")
-}
+} as PoolOptions;
 const connPool = createPool(dbCfg);
 
 class Database {
@@ -17,10 +18,10 @@ class Database {
     this.setupAdmins();
   }
 
-  async query(sql, args) {
+  async query(sql: string, args: Object) {
     try {
-      let result;
-      result = await connPool.query(sql, args);
+      let result: [RowDataPacket[], FieldPacket[]];
+      result = await connPool.query<RowDataPacket[]>(sql, args);
       return result[0];
     } catch (error) {
       console.error("SQL ERROR SQL ERROR SQL ERROR SQL ERROR SQL ERROR\n" + error);
@@ -28,7 +29,7 @@ class Database {
     }
   }
 
-  async buildUpdateStatement(objValues){
+  async buildUpdateStatement(objValues: Object[]){
     for (let key in objValues) {
       if (objValues[key] == null) delete objValues[key];
     }
@@ -37,8 +38,8 @@ class Database {
 
   async setupAdmins() {
     try {
-      let listOfAdmins = config.get("admins.steam_ids").split(',');
-      let listofSuperAdmins = config.get("super_admins.steam_ids").split(',');
+      let listOfAdmins = (config.get("admins.steam_ids") as string).split(',');
+      let listofSuperAdmins = (config.get("super_admins.steam_ids") as string).split(',');
       // Get list of admins from database and compare list and add new admins.
       let updateAdmins = "UPDATE user SET admin = 1 WHERE steam_id IN (?)";
       let updateSuperAdmins = "UPDATE user SET super_admin = 1 WHERE steam_id in(?)";

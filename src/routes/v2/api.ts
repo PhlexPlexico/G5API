@@ -22,6 +22,7 @@ const router: Router = Router();
 import rateLimit from "express-rate-limit";
 
 import db from "../../services/db.js";
+import { RowDataPacket } from "mysql2";
 
 /** Basic Rate limiter.
  * @const
@@ -32,10 +33,11 @@ const basicRateLimit = rateLimit({
   message: "Too many requests from this IP. Please try again in 15 minutes.",
   keyGenerator: async (req) => {
     try {
-      const apiKey = req.get("Authorization");
-      const dbApiKey: any = await db.query(
+      console.log("LOOKING AT THE RATE LIMIT>>>>>>")
+      const apiKey: string | undefined = req.get("Authorization");
+      const dbApiKey: RowDataPacket[] = await db.query(
         "SELECT api_key FROM `match` WHERE api_key = ?",
-        apiKey
+        apiKey!
       );
       if (dbApiKey[0].api_key)
         return dbApiKey[0].api_key;
