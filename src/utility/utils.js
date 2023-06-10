@@ -26,7 +26,7 @@ const SteamAPI = new SteamURLResolver(config.get("server.steamAPIKey"));
  */
 import { ID } from "@node-steam/id";
 
-import {db} from "../services/db";
+import {db} from "../services/db.js";
 
 class Utils {
   /** Function to get an HLTV rating for a user.

@@ -21,7 +21,7 @@ const router: Router = Router();
  */
 import rateLimit from "express-rate-limit";
 
-import {db} from "../../services/db";
+import {db} from "../../services/db.js";
 import { RowDataPacket } from "mysql2";
 
 /** Basic Rate limiter.

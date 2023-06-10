@@ -7,7 +7,7 @@ import { Router } from "express";
 
 const router = Router();
 
-import {db} from "../../services/db";
+import {db} from "../../services/db.js";
 
 import { generate } from "randomstring";
 

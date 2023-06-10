@@ -31,7 +31,7 @@ import usersRouter from "./src/routes/users.js";
 import vetoesRouter from "./src/routes/vetoes.js";
 import vetosidesRouter from "./src/routes/vetosides.js";
 import passport from "./src/utility/auth.js";
-import {router as v2Router} from "./src/routes/v2/api";
+import {router as v2Router} from "./src/routes/v2/api.js";
 // End Route Files
 
 

@@ -8,7 +8,7 @@ import app from "../../app.js";
 
 const router = Router();
 
-import {db} from "../services/db";
+import {db} from "../services/db.js";
 
 import Utils from "../utility/utils.js";
 

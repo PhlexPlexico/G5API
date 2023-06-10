@@ -2,7 +2,9 @@
 // https://jestjs.io/docs/en/configuration.html
 process.env.NODE_ENV = "test";
 module.exports = {
-  preset: 'ts-jest',
+  preset: 'ts-jest/presets/js-with-ts-esm',
+  // A path to a custom resolver
+  resolver: "jest-ts-webcompat-resolver",
   // All imported modules in your tests should be mocked automatically
   // automock: false,
 

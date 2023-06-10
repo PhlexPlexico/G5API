@@ -8,7 +8,7 @@ import Utils from "../utility/utils.js";
 /** Database module.
  * @const
  */
-import {db} from "../services/db";
+import {db} from "../services/db.js";
 
 
 /** 
