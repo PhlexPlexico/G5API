@@ -50,5 +50,5 @@ class Database {
     }
   }
 }
-
-export default new Database();
+let db = new Database();
+export {db};

@@ -21,7 +21,7 @@ const router: Router = Router();
  */
 import rateLimit from "express-rate-limit";
 
-import db from "../../services/db.js";
+import {db} from "../../services/db";
 import { RowDataPacket } from "mysql2";
 
 /** Basic Rate limiter.
@@ -94,4 +94,4 @@ router.post("/", basicRateLimit, async (req, res) => {
   res.status(200).send({ message: "Success" });
   return;
 });
-export default router;
+export {router};

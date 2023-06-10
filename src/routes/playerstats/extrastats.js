@@ -7,7 +7,7 @@
  
  const router = Router();
  
- import db from "../../services/db.js";
+ import {db} from "../../services/db";
  
  import Utils from "../../utility/utils.js";
  

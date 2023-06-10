@@ -8,7 +8,7 @@ import { Router } from "express";
 
 const router = Router();
 
-import db from "../services/db.js";
+import {db} from "../services/db";
 
 import GameServer from "../utility/serverrcon.js";
 

@@ -10,7 +10,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { hashSync, compare } from "bcrypt";
 import MockStrategy from "passport-mock-strategy";
 import user from "./mockProfile.js";
-import db from "../services/db.js";
+import {db} from "../services/db";
 import { generate } from "randomstring";
 import Utils from "./utils.js";
 

@@ -11,7 +11,7 @@ const router = Router();
 /** Database module.
  * @const
  */
-import db from "../../services/db.js";
+import {db} from "../../services/db";
 
 /** Rate limit includes.
  * @const

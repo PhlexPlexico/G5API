@@ -2,6 +2,7 @@
 // https://jestjs.io/docs/en/configuration.html
 process.env.NODE_ENV = "test";
 module.exports = {
+  preset: 'ts-jest',
   // All imported modules in your tests should be mocked automatically
   // automock: false,
 
