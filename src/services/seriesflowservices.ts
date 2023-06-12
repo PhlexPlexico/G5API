@@ -5,7 +5,7 @@ import { db } from "./db.js";
 import { RowDataPacket } from "mysql2";
 import update_challonge_match from "../services/challonge.js";
 import { Get5_OnMapResult } from "../types/series_flow/Get5_OnMapResult.js";
-import GlobalEmitter from "../utility/emitter.js"
+import GlobalEmitter from "../utility/emitter.js";
 import { Get5_OnMapVetoed } from "../types/series_flow/veto/Get5_OnMapVetoed.js";
 import { Get5_OnMapPicked } from "../types/series_flow/veto/Get5_OnMapPicked.js";
 import { Get5_OnSidePicked } from "../types/series_flow/veto/Get5_OnSidePicked.js";
@@ -17,7 +17,10 @@ class SeriesFlowService {
   ) {
     try {
       // Check if match has been finalized.
-      const matchApiCheck: number = await Utils.checkApiKey(apiKey, event.matchid);
+      const matchApiCheck: number = await Utils.checkApiKey(
+        apiKey,
+        event.matchid
+      );
       let winnerId: number | null = null;
       let cancelled: number | null = null;
       let endTime: string = new Date()
@@ -124,7 +127,8 @@ class SeriesFlowService {
       return;
     } catch (error) {
       console.error(error);
-      res.status(500).send({message: error});
+      res.status(500).send({ message: error });
+      return;
     }
   }
 
@@ -150,7 +154,8 @@ class SeriesFlowService {
 
       if (matchApiCheck == 2 || matchApiCheck == 1) {
         res.status(401).send({
-          message: "Match already finalized or and invalid API key has been given."
+          message:
+            "Match already finalized or and invalid API key has been given."
         });
         return;
       }
@@ -166,14 +171,13 @@ class SeriesFlowService {
       }
       if (event.winner.team == "team1") {
         winnerId = event.team1.id;
-      }
-      else if (event.winner.team == "team2") {
+      } else if (event.winner.team == "team2") {
         winnerId = event.team2.id;
       }
       updateStmt = {
         end_time: mapEndTime,
         winner: winnerId
-      }
+      };
 
       sqlString = "UPDATE map_stats SET ? WHERE id = ?";
       updateStmt = await db.buildUpdateStatement(updateStmt);
@@ -206,6 +210,7 @@ class SeriesFlowService {
     } catch (error) {
       console.error(error);
       res.status(500).send({ message: error });
+      return;
     }
   }
 
@@ -215,10 +220,29 @@ class SeriesFlowService {
     res: Response
   ) {
     try {
-
+      const matchApiCheck: number = await Utils.checkApiKey(
+        apiKey,
+        event.matchid
+      );
+      if (matchApiCheck == 2 || matchApiCheck == 1) {
+        res.status(401).send({
+          message:
+            "Match already finalized or and invalid API key has been given."
+        });
+        return;
+      }
+      await this.insertPickOrBan(
+        "veto",
+        event.matchid,
+        event.map_name,
+        event.team
+      );
+      res.status(200).send({ message: "Success" });
+      return;
     } catch (error) {
       console.error(error);
       res.status(500).send({ message: error });
+      return;
     }
   }
 
@@ -228,9 +252,29 @@ class SeriesFlowService {
     res: Response
   ) {
     try {
+      const matchApiCheck: number = await Utils.checkApiKey(
+        apiKey,
+        event.matchid
+      );
+      if (matchApiCheck == 2 || matchApiCheck == 1) {
+        res.status(401).send({
+          message:
+            "Match already finalized or and invalid API key has been given."
+        });
+        return;
+      }
+      await this.insertPickOrBan(
+        "pick",
+        event.matchid,
+        event.map_name,
+        event.team
+      );
+      res.status(200).send({ message: "Success" });
+      return;
     } catch (error) {
       console.error(error);
       res.status(500).send({ message: error });
+      return;
     }
   }
 
@@ -240,10 +284,117 @@ class SeriesFlowService {
     res: Response
   ) {
     try {
+      const matchApiCheck: number = await Utils.checkApiKey(
+        apiKey,
+        event.matchid
+      );
+      if (matchApiCheck == 2 || matchApiCheck == 1) {
+        res.status(401).send({
+          message:
+            "Match already finalized or and invalid API key has been given."
+        });
+        return;
+      }
+      let sqlString: string =
+        "SELECT team1_id, team2_id FROM `match` WHERE id = ?";
+      let teamPickId: number;
+      let teamBanId: number;
+      let nameResRow: RowDataPacket[];
+      let teamPickMapString: string = "Default";
+      let teamPickSideString: string = "Default";
+      let vetoId: number;
+      let insertObj: Object;
+      if (event.team !== null) {
+        const matchInfo: RowDataPacket[] = await db.query(sqlString, [
+          event.matchid
+        ]);
+        // Need to get the initial veto data to link back to the veto table.
+        // If team1 is picking sides, that means team2 picked the map.
+        if (event.team === "team1") {
+          teamPickId = matchInfo[0].team1_id;
+          teamBanId = matchInfo[0].team2_id;
+        } else if (event.team === "team2") {
+          teamPickId = matchInfo[0].team2_id;
+          teamBanId = matchInfo[0].team1_id;
+        }
+        sqlString = "SELECT name FROM team WHERE id = ?";
+        nameResRow = await db.query(sqlString, [teamBanId!]);
+        teamPickMapString = nameResRow[0].name;
+        nameResRow = await db.query(sqlString, [teamPickId!]);
+        teamPickSideString = nameResRow[0].name;
+      }
+
+      // Retrieve veto id with team name and map veto.
+      sqlString =
+        "SELECT id FROM veto WHERE match_id = ? AND team_name = ? AND map = ?";
+      const vetoInfo = await db.query(sqlString, [
+        event.matchid,
+        teamPickMapString,
+        event.map_name
+      ]);
+      vetoId = vetoInfo[0].id;
+
+      // Insert into veto_side now.
+      insertObj = {
+        match_id: event.matchid,
+        veto_id: vetoId,
+        team_name: teamPickSideString,
+        map: event.map_name,
+        side: event.side
+      };
+
+      insertObj = await db.buildUpdateStatement(insertObj);
+      sqlString = "INSERT INTO veto_side SET ?";
+      await db.query(sqlString, [insertObj]);
+      GlobalEmitter.emit("vetoSideUpdate");
+      res.status(200).send({ message: "Success" });
+      return;
     } catch (error) {
       console.error(error);
       res.status(500).send({ message: error });
+      return;
     }
+  }
+
+  private static async insertPickOrBan(
+    vetoOrBan: string,
+    matchid: string,
+    map_name: string,
+    team: string
+  ) {
+    let insertObj: object;
+    let sqlString: string;
+    let teamId: number;
+    let teamString: string;
+    let teamInfo: RowDataPacket[];
+    let matchInfo: RowDataPacket[];
+
+    sqlString = "SELECT team1_id, team2_id, id FROM `match` WHERE id = ?";
+    // XXX: Maybe change the DB to use team1 and team2 and use a join query to retrieve the actual names?
+    matchInfo = await db.query(sqlString, [matchid]);
+    if (team === "team1") teamId = matchInfo[0].team1_id;
+    else if (team === "team2") teamId = matchInfo[0].team1_id;
+    else teamId = -1;
+
+    if (teamId == -1) {
+      teamString = "Decider";
+    } else {
+      sqlString = "SELECT name FROM team WHERE id = ?";
+      teamInfo = await db.query(sqlString, [teamId]);
+      teamString = teamInfo[0].name;
+    }
+
+    // All values should be present, no need to remove any unneeded variables.
+    insertObj = {
+      match_id: matchid,
+      team_name: teamString,
+      map: map_name,
+      pick_or_veto: vetoOrBan
+    };
+
+    sqlString = "INSERT INTO veto SET ?";
+    await db.query(sqlString, [insertObj]);
+    GlobalEmitter.emit("vetoUpdate");
   }
 }
 

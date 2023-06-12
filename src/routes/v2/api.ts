@@ -27,6 +27,9 @@ import { Get5_OnEvent } from "../../types/Get5_OnEvent.js";
 import SeriesFlowService from "../../services/seriesflowservices.js";
 import { Get5_OnSeriesResult } from "../../types/series_flow/Get5_OnSeriesResult.js";
 import { Get5_OnMapResult } from "../../types/series_flow/Get5_OnMapResult.js";
+import { Get5_OnMapVetoed } from "../../types/series_flow/veto/Get5_OnMapVetoed.js";
+import { Get5_OnMapPicked } from "../../types/series_flow/veto/Get5_OnMapPicked.js";
+import { Get5_OnSidePicked } from "../../types/series_flow/veto/Get5_OnSidePicked.js";
 
 /** Basic Rate limiter.
  * @const
@@ -95,6 +98,24 @@ router.post("/", basicRateLimit, async (req, res) => {
     }
 
     switch (eventType.event) {
+      case "map_picked":
+        SeriesFlowService.OnMapPicked(
+          apiKey,
+          req.body as Get5_OnMapPicked,
+          res
+        );
+      case "map_vetoed":
+        SeriesFlowService.OnMapVetoed(
+          apiKey,
+          req.body as Get5_OnMapVetoed,
+          res
+        );
+      case "side_picked":
+        SeriesFlowService.OnSidePicked(
+          apiKey,
+          req.body as Get5_OnSidePicked,
+          res
+        );
       case "map_result":
         SeriesFlowService.OnMapResult(
           apiKey,
