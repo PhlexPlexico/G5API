@@ -21,8 +21,11 @@ const router: Router = Router();
  */
 import rateLimit from "express-rate-limit";
 
-import {db} from "../../services/db.js";
+import { db } from "../../services/db.js";
 import { RowDataPacket } from "mysql2";
+import { Get5_OnEvent } from "../../types/Get5_OnEvent.js";
+import SeriesFlowService from "../../services/seriesflowservices.js";
+import { Get5_OnSeriesResult } from "../../types/series_flow/Get5_OnSeriesResult.js";
 
 /** Basic Rate limiter.
  * @const
@@ -33,19 +36,17 @@ const basicRateLimit = rateLimit({
   message: "Too many requests from this IP. Please try again in 15 minutes.",
   keyGenerator: async (req) => {
     try {
-      console.log("LOOKING AT THE RATE LIMIT>>>>>>")
       const apiKey: string | undefined = req.get("Authorization");
       const dbApiKey: RowDataPacket[] = await db.query(
         "SELECT api_key FROM `match` WHERE api_key = ?",
         apiKey!
       );
-      if (dbApiKey[0].api_key)
-        return dbApiKey[0].api_key;
+      if (dbApiKey[0].api_key) return dbApiKey[0].api_key;
       else return req.ip;
     } catch (err) {
       return req.ip;
     }
-  },
+  }
 });
 
 /**
@@ -71,27 +72,42 @@ const basicRateLimit = rateLimit({
 router.post("/", basicRateLimit, async (req, res) => {
   let matchId: string = req.body?.matchId;
   const apiKey: string | undefined = req.get("Authorization");
+  const eventType: Get5_OnEvent = req.body;
 
-  if(!apiKey) {
-    res.status(401).send({ message: "API key not provided." });
-    return;
-  }
-
-  if (!matchId) {
-    // Retrieve Match ID from the database.
-    const dbMatchKey: any = await db.query(
-      "SELECT id FROM `match` WHERE api_key = ?",
-      apiKey
-    );
-    if (!dbMatchKey[0]?.id) {
-      res.status(401).send({ message: "Match ID has not been provided." });
+  try {
+    if (!apiKey) {
+      res.status(401).send({ message: "API key not provided." });
       return;
     }
-    matchId = dbMatchKey[0].id;
+
+    if (!matchId) {
+      // Retrieve Match ID from the database.
+      const dbMatchKey: RowDataPacket[] = await db.query(
+        "SELECT id FROM `match` WHERE api_key = ?",
+        apiKey
+      );
+      if (!dbMatchKey[0]?.id) {
+        res.status(401).send({ message: "Match ID has not been provided." });
+        return;
+      }
+      matchId = dbMatchKey[0].id;
+    }
+
+    switch (eventType.event) {
+      case "series_end":
+        SeriesFlowService.OnSeriesResult(
+          matchId,
+          apiKey,
+          req.body as Get5_OnSeriesResult,
+          res
+        );
+    }
+    // Responses are taken care of in the case statements.
+    return;
+  } catch (error: unknown) {
+    return;
   }
-  
-  
-  res.status(200).send({ message: "Success" });
   return;
 });
-export {router};
+
+export { router };

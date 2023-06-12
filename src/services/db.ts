@@ -2,7 +2,9 @@
 import { createPool } from 'mysql2/promise';
 import config from 'config';
 import { FieldPacket, PoolOptions, RowDataPacket } from 'mysql2/typings/mysql';
-
+interface IStringIndex {
+  [key: string]: any;
+}
 const dbCfg = {
   host: config.get(process.env.NODE_ENV+".host"),
   port: config.get(process.env.NODE_ENV+".port"),
@@ -18,7 +20,7 @@ class Database {
     this.setupAdmins();
   }
 
-  async query(sql: string, args: Object) {
+  async query(sql: string, args?: Object) {
     try {
       let result: [RowDataPacket[], FieldPacket[]];
       result = await connPool.query<RowDataPacket[]>(sql, args);
@@ -28,8 +30,8 @@ class Database {
       throw error;
     }
   }
-
-  async buildUpdateStatement(objValues: Object[]){
+  
+  async buildUpdateStatement(objValues: IStringIndex){
     for (let key in objValues) {
       if (objValues[key] == null) delete objValues[key];
     }

@@ -27,6 +27,8 @@ const SteamAPI = new SteamURLResolver(config.get("server.steamAPIKey"));
 import { ID } from "@node-steam/id";
 
 import {db} from "../services/db.js";
+import { RowDataPacket } from 'mysql2';
+import { NextFunction, Request, Response } from 'express';
 
 class Utils {
   /** Function to get an HLTV rating for a user.
@@ -43,29 +45,29 @@ class Utils {
    * @function
    * @static */
   static getRating(
-    kills = 0,
-    roundsplayed = 0,
-    deaths = 0,
-    k1 = 0,
-    k2 = 0,
-    k3 = 0,
-    k4 = 0,
-    k5 = 0
+    kills: number = 0,
+    roundsplayed: number = 0,
+    deaths: number = 0,
+    k1: number = 0,
+    k2: number = 0,
+    k3: number = 0,
+    k4: number = 0,
+    k5: number = 0
   ) {
     try {
-      let AverageKPR = 0.679;
-      let AverageSPR = 0.317;
-      let AverageRMK = 1.277;
-      let KillRating =
+      let AverageKPR: number = 0.679;
+      let AverageSPR: number = 0.317;
+      let AverageRMK: number = 1.277;
+      let KillRating: number =
         roundsplayed === 0 ? 0 : kills / roundsplayed / AverageKPR;
-      let SurvivalRating =
+      let SurvivalRating: number =
         roundsplayed === 0
           ? 0
           : (roundsplayed - deaths) / roundsplayed / AverageSPR;
-      let killcount = k1 + 4 * k2 + 9 * k3 + 16 * k4 + 25 * k5;
-      let RoundsWithMultipleKillsRating =
+      let killcount: number = k1 + 4 * k2 + 9 * k3 + 16 * k4 + 25 * k5;
+      let RoundsWithMultipleKillsRating: number =
         roundsplayed === 0 ? 0 : killcount / roundsplayed / AverageRMK;
-      let rating =
+      let rating: number =
         (KillRating + 0.7 * SurvivalRating + RoundsWithMultipleKillsRating) /
         2.7;
 
@@ -83,7 +85,7 @@ class Utils {
    * @memberof module:utils
    * @param {string} source - The source to be decrypted.
    */
-  static decrypt(source) {
+  static decrypt(source: string) {
     try {
       if (source === null) return;
       let byteSource = utils.hex.toBytes(source.substring(32));
@@ -107,7 +109,7 @@ class Utils {
    * @memberof module:utils
    * @param {string} source - The source to be decrypted.
    */
-  static encrypt(source) {
+  static encrypt(source: string) {
     try {
       if (source === null) return;
 
@@ -129,7 +131,11 @@ class Utils {
    * @function
    * @memberof module:utils
    * @inner */
-  static async ensureAuthenticated(req, res, next) {
+  static async ensureAuthenticated(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     // Check the user based on API.
     const apiKey = req.get("user-api") || req.body[0]?.user_api;
     if (apiKey) {
@@ -146,7 +152,7 @@ class Utils {
             id: ourUser[0].id,
             small_image: ourUser[0].small_image,
             medium_image: ourUser[0].medium_image,
-            large_image: ourUser[0].large_image,
+            large_image: ourUser[0].large_image
           };
           req.user = curUser;
           return next();
@@ -164,9 +170,9 @@ class Utils {
    * @memberof module:utils
    * @inner
    * @name adminCheck
-   * @param {user} User - the users session object.
+   * @param {user} user - the users session object.
    */
-  static adminCheck(user) {
+  static adminCheck(user: User) {
     if (user) return user.super_admin === 0 && user.admin === 0 ? false : true;
     else return false;
   }
@@ -176,9 +182,9 @@ class Utils {
    * @memberof module:utils
    * @inner
    * @name superAdminCheck
-   * @param {user} User - the users session object.
+   * @param {user} user - the users session object.
    */
-  static superAdminCheck(user) {
+  static superAdminCheck(user: User) {
     if (user) return user.super_admin === 0 ? false : true;
     else return false;
   }
@@ -191,7 +197,7 @@ class Utils {
    * @param {String} anySteamID - String value of a Steam ID.
    * @returns A string representing a 64bit steam ID, or nothing if the profile is not found.
    */
-  static async convertToSteam64(anySteamID) {
+  static async convertToSteam64(anySteamID: string) {
     const steam64ID = new ID(anySteamID);
     if (steam64ID.isValid() && steam64ID.getType() == "INDIVIDUAL")
       return steam64ID.get64();
@@ -205,7 +211,7 @@ class Utils {
    * @param {String} authString - String value of a steam username/profile/url/steamID.
    * @returns A Steam64 value in string form, or nothing.
    */
-  static async getSteamPID(authString) {
+  static async getSteamPID(authString: string) {
     // Remove any https tags, as they aren't needed.
     authString = authString.replace(new RegExp("^(http|https)://", "i"), "");
     if (authString.includes("steamcommunity.com/id/")) {
@@ -238,7 +244,7 @@ class Utils {
    * @param {String} auth64 - String value of a steam 64 ID.
    * @returns A username from a given Steam64 ID.
    */
-  static async getSteamName(auth64) {
+  static async getSteamName(auth64: string) {
     try {
       let summaryInfo = await SteamAPI.getUserSummary(auth64);
       return summaryInfo.nickname;
@@ -255,7 +261,7 @@ class Utils {
    * @param {String} auth64 - String value of a steam 64 ID.
    * @returns A profile image link.
    */
-  static async getSteamImage(auth64) {
+  static async getSteamImage(auth64: string) {
     try {
       let summaryInfo = await SteamAPI.getUserSummary(auth64);
       return summaryInfo.avatar.medium;
@@ -269,22 +275,31 @@ class Utils {
    * @memberof module:utils
    * @inner
    * @name getUserMatchAccess
-   * @param {String} matchid - The ID of a match
+   * @param {String|Number} matchid - The ID of a match
    * @param {user} user - the users session object.
    * @param {boolean} [onlyAdmin = false] - Set to true to only check admin status and not super admin status.
    * @param {boolean} [serverCheck = false] - Optional parameter to check if a user owns a server, for elevated calls.
    * @returns An object containing the HTTP error, followed by a message.
    */
-  static async getUserMatchAccess(matchid, user, onlyAdmin = false, serverCheck = false) {
+  static async getUserMatchAccess(
+    matchid: string | number,
+    user: User,
+    onlyAdmin: boolean = false,
+    serverCheck: boolean = false
+  ) {
     try {
-      let retMessage = null;
+      let retMessage: object | null = null;
 
-      retMessage = await this.getUserMatchAccessNoFinalize(matchid, user, onlyAdmin, serverCheck);
-      if (retMessage != null)
-        return retMessage;
+      retMessage = await this.getUserMatchAccessNoFinalize(
+        matchid,
+        user,
+        onlyAdmin,
+        serverCheck
+      );
+      if (retMessage != null) return retMessage;
 
-
-      let currentMatchInfo = "SELECT cancelled, forfeit, end_time FROM `match` WHERE id = ?";
+      let currentMatchInfo =
+        "SELECT cancelled, forfeit, end_time FROM `match` WHERE id = ?";
       const matchRow = await db.query(currentMatchInfo, matchid);
       if (
         matchRow[0].cancelled == 1 ||
@@ -304,42 +319,51 @@ class Utils {
    * @memberof module:utils
    * @inner
    * @name getUserMatchAccessNoFinalize
-   * @param {String} matchid - The ID of a match
+   * @param {String|Number} matchid - The ID of a match
    * @param {user} user - the users session object.
    * @param {boolean} [onlyAdmin = false] - Set to true to only check admin status and not super admin status.
    * @param {boolean} [serverCheck = false] - Optional parameter to check if a user owns a server, for elevated calls.
    * @returns An object containing the HTTP error, followed by a message.
    */
-  static async getUserMatchAccessNoFinalize(matchid, user, onlyAdmin = false, serverCheck = false) {
+  static async getUserMatchAccessNoFinalize(
+    matchid: string | number,
+    user: User,
+    onlyAdmin: boolean = false,
+    serverCheck: boolean = false
+  ) {
     try {
-      let adminCheck = onlyAdmin ? this.adminCheck(user) : this.superAdminCheck(user);
-      let retMessage = null;
+      let adminCheck: boolean = onlyAdmin
+        ? this.adminCheck(user)
+        : this.superAdminCheck(user);
+      let retMessage: object | null = null;
       retMessage = await this.checkIfMatchExists(matchid);
 
-      if (retMessage != null)
-        return retMessage;
+      if (retMessage != null) return retMessage;
 
-
-      let currentMatchInfo = "SELECT user_id, server_id FROM `match` WHERE id = ?";
-      let currentServerInfo = "SELECT user_id FROM game_server WHERE id = ?"
+      let currentMatchInfo =
+        "SELECT user_id, server_id FROM `match` WHERE id = ?";
+      let currentServerInfo = "SELECT user_id FROM game_server WHERE id = ?";
       const matchRow = await db.query(currentMatchInfo, matchid);
 
       // If no server exists no need to check for info.
       if (!matchRow[0].server_id) return retMessage;
 
-      const serverRow = await db.query(currentServerInfo, matchRow[0].server_id);
-      if (
-        matchRow[0].user_id != user.id &&
-        !adminCheck
-      ) {
-        retMessage = { status: 403, message: "User is not authorized to perform action." };
+      const serverRow = await db.query(
+        currentServerInfo,
+        matchRow[0].server_id
+      );
+      if (matchRow[0].user_id != user.id && !adminCheck) {
+        retMessage = {
+          status: 403,
+          message: "User is not authorized to perform action."
+        };
       }
       if (serverCheck) {
-        if (
-          !this.superAdminCheck(user) &&
-          serverRow[0].user_id != user.id
-        ) {
-          retMessage = { status: 403, message: "User is not authorized to perform action." };
+        if (!this.superAdminCheck(user) && serverRow[0].user_id != user.id) {
+          retMessage = {
+            status: 403,
+            message: "User is not authorized to perform action."
+          };
         }
       }
       return retMessage;
@@ -353,10 +377,10 @@ class Utils {
    * @memberof module:utils
    * @inner
    * @name checkIfMatchExists
-   * @param {String} matchid - The ID of a match
+   * @param {String|Number} matchid - The ID of a match
    * @returns An object containing the HTTP error, followed by a message.
    */
-  static async checkIfMatchExists(matchid) {
+  static async checkIfMatchExists(matchid: string | number) {
     try {
       if (matchid == null) {
         return { status: 400, message: "Match ID Not Provided" };
@@ -378,27 +402,47 @@ class Utils {
    * @memberof module:utils
    * @inner
    * @name updatePugStats
-   * @param {Number} matchid The ID of a match.
+   * @param {String|Number} match_id The ID of a match.
    * @param {Number} map_id The ID of a map in a match.
    * @param {Number} team1_id The internal ID of team 1.
    * @param {Number} team2_id The internal ID of team 2.
    * @param {Number} winner The internal ID of the winning team.
    */
-  static async updatePugStats(match_id, map_id, team1_id, team2_id, winner, deleteTeams = true) {
-    let teamAuthSql =
+  static async updatePugStats(
+    match_id: string | number,
+    map_id: number,
+    team1_id: number,
+    team2_id: number,
+    winner: number,
+    deleteTeams = true
+  ) {
+    let teamAuthSql: string =
       "SELECT GROUP_CONCAT(ta.auth) as auth_name, GROUP_CONCAT(CONCAT(ta.name)) as name FROM team_auth_names ta WHERE team_id = ?";
-    let pugTeamNameSql = "SELECT name FROM team WHERE id = ?";
-    let playerStatUpdateSql = "UPDATE player_stats SET team_name = ?, winner = ? WHERE match_id = ? AND map_id = ? AND steam_id IN (?)";
-    let pugSql =
+    let pugTeamNameSql: string = "SELECT name FROM team WHERE id = ?";
+    let playerStatUpdateSql: string =
+      "UPDATE player_stats SET team_name = ?, winner = ? WHERE match_id = ? AND map_id = ? AND steam_id IN (?)";
+    let pugSql: string =
       "DELETE FROM team_auth_names WHERE team_id = ? OR team_id = ?";
-    let playerStatCheckExistsSql = "SELECT COUNT(*) as cnt FROM player_stats WHERE match_id = ? AND map_id = ?";
-    const teamNameOne = await db.query(pugTeamNameSql, [team1_id]);
-    const teamOneAuths = await db.query(teamAuthSql, [team1_id]);
-    const teamNameTwo = await db.query(pugTeamNameSql, [team2_id]);
-    const teamTwoAuths = await db.query(teamAuthSql, [team2_id]);
-    const doPlayerStatsExist = await db.query(playerStatCheckExistsSql, [match_id, map_id]);
-    const teamAuthListOne = teamOneAuths[0].auth_name.split(",");
-    const teamAuthTwoList = teamTwoAuths[0].auth_name.split(",");
+    let playerStatCheckExistsSql =
+      "SELECT COUNT(*) as cnt FROM player_stats WHERE match_id = ? AND map_id = ?";
+    const teamNameOne: RowDataPacket[] = await db.query(pugTeamNameSql, [
+      team1_id
+    ]);
+    const teamOneAuths: RowDataPacket[] = await db.query(teamAuthSql, [
+      team1_id
+    ]);
+    const teamNameTwo: RowDataPacket[] = await db.query(pugTeamNameSql, [
+      team2_id
+    ]);
+    const teamTwoAuths: RowDataPacket[] = await db.query(teamAuthSql, [
+      team2_id
+    ]);
+    const doPlayerStatsExist: RowDataPacket[] = await db.query(
+      playerStatCheckExistsSql,
+      [match_id, map_id]
+    );
+    const teamAuthListOne: string[] = teamOneAuths[0].auth_name.split(",");
+    const teamAuthTwoList: string[] = teamTwoAuths[0].auth_name.split(",");
     // Check to see if player stats already exist.
     if (doPlayerStatsExist[0].cnt && doPlayerStatsExist[0].cnt > 0) {
       await db.query(playerStatUpdateSql, [
@@ -416,10 +460,11 @@ class Utils {
         teamAuthTwoList
       ]);
     } else {
-      let newPlayerArr = [];
-      let teamNameOneList = teamOneAuths[0].name.split(",");
-      let teamNameTwoList = teamTwoAuths[0].name.split(",");
-      playerStatUpdateSql = "INSERT INTO player_stats (match_id, map_id, team_name, steam_id, name, winner) VALUES ?";
+      let newPlayerArr: Array<{}> = [];
+      let teamNameOneList: string[] = teamOneAuths[0].name.split(",");
+      let teamNameTwoList: string[] = teamTwoAuths[0].name.split(",");
+      playerStatUpdateSql =
+        "INSERT INTO player_stats (match_id, map_id, team_name, steam_id, name, winner) VALUES ?";
       for (let [idx, auth] of teamAuthListOne.entries()) {
         newPlayerArr.push([
           match_id,
@@ -443,18 +488,35 @@ class Utils {
       await db.query(playerStatUpdateSql, [newPlayerArr]);
     }
     if (deleteTeams) {
-      await db.query(pugSql, [
-        team1_id,
-        team2_id,
-      ]);
+      await db.query(pugSql, [team1_id, team2_id]);
       pugSql = "DELETE FROM team WHERE id = ? OR id = ?";
-      await db.query(pugSql, [
-        team1_id,
-        team2_id,
-      ]);
+      await db.query(pugSql, [team1_id, team2_id]);
     }
 
     return;
+  }
+
+  /**
+   * Performs a check on the server to see if the provided API key is correct, and if the match has not been finalized.
+   * @param {String} providedKey The API key sent by a user/game server.
+   * @param {String|Number} matchId The match ID sent by the user/game server.
+   * @returns 0 if successful, 1 if provided API key does not match, and 2 if the match has been finalized.
+   */
+  static async checkApiKey<Number>(
+    providedKey: string,
+    matchId: string | number
+  ) {
+    const matchInformation: RowDataPacket[] = await db.query(
+      "SELECT api_key, cancelled, end_time FROM `match` WHERE id = ?",
+      [matchId]
+    );
+    if (providedKey.localeCompare(matchInformation[0]?.api_key) !== 0) return 1;
+    else if (
+      matchInformation[0]?.cancelled === 1 ||
+      matchInformation[0]?.end_time != null
+    )
+      return 2;
+    else return 0;
   }
 }
 
