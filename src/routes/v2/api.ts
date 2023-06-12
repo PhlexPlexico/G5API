@@ -26,6 +26,7 @@ import { RowDataPacket } from "mysql2";
 import { Get5_OnEvent } from "../../types/Get5_OnEvent.js";
 import SeriesFlowService from "../../services/seriesflowservices.js";
 import { Get5_OnSeriesResult } from "../../types/series_flow/Get5_OnSeriesResult.js";
+import { Get5_OnMapResult } from "../../types/series_flow/Get5_OnMapResult.js";
 
 /** Basic Rate limiter.
  * @const
@@ -84,7 +85,7 @@ router.post("/", basicRateLimit, async (req, res) => {
       // Retrieve Match ID from the database.
       const dbMatchKey: RowDataPacket[] = await db.query(
         "SELECT id FROM `match` WHERE api_key = ?",
-        apiKey
+        [apiKey]
       );
       if (!dbMatchKey[0]?.id) {
         res.status(401).send({ message: "Match ID has not been provided." });
@@ -94,9 +95,14 @@ router.post("/", basicRateLimit, async (req, res) => {
     }
 
     switch (eventType.event) {
+      case "map_result":
+        SeriesFlowService.OnMapResult(
+          apiKey,
+          req.body as Get5_OnMapResult,
+          res
+        );
       case "series_end":
         SeriesFlowService.OnSeriesResult(
-          matchId,
           apiKey,
           req.body as Get5_OnSeriesResult,
           res
@@ -107,7 +113,6 @@ router.post("/", basicRateLimit, async (req, res) => {
   } catch (error: unknown) {
     return;
   }
-  return;
 });
 
 export { router };
