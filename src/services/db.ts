@@ -20,7 +20,7 @@ class Database {
     this.setupAdmins();
   }
 
-  async query(sql: string, args?: Object) {
+  async query(sql: string, args?: object) {
     try {
       let result: [RowDataPacket[], FieldPacket[]];
       result = await connPool.query<RowDataPacket[]>(sql, args);

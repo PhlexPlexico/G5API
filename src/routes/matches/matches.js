@@ -1440,6 +1440,7 @@ async function build_team_dict(team, teamNumber, matchData) {
     }
   }
   let teamData = {
+    id: team.id.toString(),
     name: team.name,
     tag: team.tag,
     flag: team.flag != null

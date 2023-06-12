@@ -146,7 +146,7 @@ class SeriesFlowService {
         .toISOString()
         .slice(0, 19)
         .replace("T", " ");
-      let winnerId: number | null = null;
+      let winnerId: number | null | string = null;
 
       if (matchApiCheck == 2 || matchApiCheck == 1) {
         res.status(401).send({
@@ -155,7 +155,7 @@ class SeriesFlowService {
         return;
       }
       sqlString =
-        "SELECT team1_id, team2_id, is_pug, max_maps, season_id FROM `match` WHERE id = ?";
+        "SELECT is_pug, max_maps, season_id FROM `match` WHERE id = ?";
       matchInfo = await db.query(sqlString, [event.matchid]);
       sqlString =
         "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
@@ -165,10 +165,10 @@ class SeriesFlowService {
         return;
       }
       if (event.winner.team == "team1") {
-        winnerId = matchInfo[0].team1_id;
+        winnerId = event.team1.id;
       }
       else if (event.winner.team == "team2") {
-        winnerId = matchInfo[0].team2_id;
+        winnerId = event.team2.id;
       }
       updateStmt = {
         end_time: mapEndTime,
@@ -193,9 +193,9 @@ class SeriesFlowService {
         await Utils.updatePugStats(
           event.matchid,
           mapInfo[0].id,
-          matchInfo[0].team1_id,
-          matchInfo[0].team2_id,
-          winnerId!,
+          +event.team1.id,
+          +event.team2.id,
+          +winnerId!,
           false
         );
       }
