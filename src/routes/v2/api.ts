@@ -30,6 +30,7 @@ import { Get5_OnMapResult } from "../../types/series_flow/Get5_OnMapResult.js";
 import { Get5_OnMapVetoed } from "../../types/series_flow/veto/Get5_OnMapVetoed.js";
 import { Get5_OnMapPicked } from "../../types/series_flow/veto/Get5_OnMapPicked.js";
 import { Get5_OnSidePicked } from "../../types/series_flow/veto/Get5_OnSidePicked.js";
+import { Get5_OnBackupRestore } from "../../types/series_flow/Get5_OnBackupRestore.js";
 
 /** Basic Rate limiter.
  * @const
@@ -43,7 +44,7 @@ const basicRateLimit = rateLimit({
       const apiKey: string | undefined = req.get("Authorization");
       const dbApiKey: RowDataPacket[] = await db.query(
         "SELECT api_key FROM `match` WHERE api_key = ?",
-        apiKey!
+        [apiKey]
       );
       if (dbApiKey[0].api_key) return dbApiKey[0].api_key;
       else return req.ip;
@@ -114,6 +115,12 @@ router.post("/", basicRateLimit, async (req, res) => {
         SeriesFlowService.OnSidePicked(
           apiKey,
           req.body as Get5_OnSidePicked,
+          res
+        );
+      case "backup_loaded":
+        SeriesFlowService.OnBackupRestore(
+          apiKey,
+          req.body as Get5_OnBackupRestore,
           res
         );
       case "map_result":

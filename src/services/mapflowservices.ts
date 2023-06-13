@@ -21,3 +21,5 @@ import config from "config";
  */
 import GlobalEmitter from "../utility/emitter.js";
 
+import Utils from "../utility/utils.js";
+

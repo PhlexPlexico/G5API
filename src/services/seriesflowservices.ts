@@ -1,15 +1,18 @@
-import { Get5_OnSeriesResult } from "../types/series_flow/Get5_OnSeriesResult.js";
-import Utils from "../utility/utils.js";
-import { NextFunction, Request, Response } from "express";
 import { db } from "./db.js";
-import { RowDataPacket } from "mysql2";
-import update_challonge_match from "../services/challonge.js";
-import { Get5_OnMapResult } from "../types/series_flow/Get5_OnMapResult.js";
-import GlobalEmitter from "../utility/emitter.js";
+import { Get5_OnSeriesResult } from "../types/series_flow/Get5_OnSeriesResult.js";
 import { Get5_OnMapVetoed } from "../types/series_flow/veto/Get5_OnMapVetoed.js";
 import { Get5_OnMapPicked } from "../types/series_flow/veto/Get5_OnMapPicked.js";
 import { Get5_OnSidePicked } from "../types/series_flow/veto/Get5_OnSidePicked.js";
+import { Get5_OnBackupRestore } from "../types/series_flow/Get5_OnBackupRestore.js";
+import { Get5_OnMapResult } from "../types/series_flow/Get5_OnMapResult.js";
+import GlobalEmitter from "../utility/emitter.js";
+import { RowDataPacket } from "mysql2";
+import { Response } from "express";
+import Utils from "../utility/utils.js";
+import update_challonge_match from "../services/challonge.js";
+
 class SeriesFlowService {
+  static wasRoundRestored: boolean = false;
   static async OnSeriesResult(
     apiKey: string,
     event: Get5_OnSeriesResult,
@@ -354,6 +357,43 @@ class SeriesFlowService {
       res.status(500).send({ message: error });
       return;
     }
+  }
+
+  static async OnBackupRestore(
+    apiKey: string,
+    event: Get5_OnBackupRestore,
+    res: Response
+  ) {
+    // Logic for this is to fix a bug in user stats when a round restore happens. In previous iterations of the API
+    // we would not care if a user would restore the match, which could lead to misrepresentation of stats.
+    // This route will now fix this issue by seeking out all the data that's > the current round where it can,
+    // and mark a value that will ensure the remaining player stats are updated as such.
+    // The main chunk of update logic will then take place in the map flow service, on the OnRoundEnd function
+    // as we get all the player information from that call.
+    const matchApiCheck: number = await Utils.checkApiKey(
+      apiKey,
+      event.matchid
+    );
+    if (matchApiCheck == 2 || matchApiCheck == 1) {
+      res.status(401).send({
+        message:
+          "Match already finalized or and invalid API key has been given."
+      });
+      return;
+    }
+    let sqlString: string =
+      "DELETE FROM player_stat_extras " +
+      "WHERE match_id = ? AND " +
+      "map_id = (SELECT id FROM map_stats WHERE match_id = ? AND map_number = ?) AND " +
+      "round_number >= ?";
+    await db.query(sqlString, [
+      event.matchid,
+      event.matchid,
+      event.map_number,
+      event.round_number
+    ]);
+    res.status(200).send({ message: "Success" });
+    this.wasRoundRestored = true;
   }
 
   private static async insertPickOrBan(
