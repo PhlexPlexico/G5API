@@ -33,6 +33,8 @@ import { Get5_OnSidePicked } from "../../types/series_flow/veto/Get5_OnSidePicke
 import { Get5_OnBackupRestore } from "../../types/series_flow/Get5_OnBackupRestore.js";
 import { Get5_OnGoingLive } from "../../types/map_flow/Get5_OnGoingLive.js";
 import MapFlowService from "../../services/mapflowservices.js";
+import { Get5_OnMatchPausedUnpaused } from "../../types/map_flow/Get5_OnMatchPausedUnpaused.js";
+import { Get5_OnPlayerDeath } from "../../types/map_flow/Get5_OnPlayerDeath.js";
 
 /** Basic Rate limiter.
  * @const
@@ -101,8 +103,7 @@ router.post("/", basicRateLimit, async (req, res) => {
     }
 
     switch (eventType.event) {
-      case "going_live":
-        MapFlowService.OnGoingLive(apiKey, req.body as Get5_OnGoingLive, res);
+      // Series Flows
       case "map_picked":
         SeriesFlowService.OnMapPicked(
           apiKey,
@@ -137,6 +138,27 @@ router.post("/", basicRateLimit, async (req, res) => {
         SeriesFlowService.OnSeriesResult(
           apiKey,
           req.body as Get5_OnSeriesResult,
+          res
+        );
+      // Map Flows
+      case "going_live":
+        MapFlowService.OnGoingLive(apiKey, req.body as Get5_OnGoingLive, res);
+      case "player_death":
+        MapFlowService.OnPlayerDeath(
+          apiKey,
+          req.body as Get5_OnPlayerDeath,
+          res
+        );
+      case "game_paused":
+        MapFlowService.OnMatchPausedUnPaused(
+          apiKey,
+          req.body as Get5_OnMatchPausedUnpaused,
+          res
+        );
+      case "game_unpaused":
+        MapFlowService.OnMatchPausedUnPaused(
+          apiKey,
+          req.body as Get5_OnMatchPausedUnpaused,
           res
         );
     }

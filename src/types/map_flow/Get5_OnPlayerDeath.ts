@@ -3,7 +3,7 @@ import { Get5_Attacker } from "../Get5_Attacker"
 import { Get5_Player } from "../Get5_Player"
 import { Get5_Weapon } from "../Get5_Weapon"
 
-export interface Root {
+export interface Get5_OnPlayerDeath {
   event: string
   matchid: string
   map_number: number

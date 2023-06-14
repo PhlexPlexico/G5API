@@ -1,21 +1,22 @@
-'use strict';
+"use strict";
 
 var dbm;
 var type;
 var seed;
 
 /**
-  * We receive the dbmigrate dependency from dbmigrate initially.
-  * This enables us to not have to rely on NODE_PATH.
-  */
-exports.setup = function(options, seedLink) {
+ * We receive the dbmigrate dependency from dbmigrate initially.
+ * This enables us to not have to rely on NODE_PATH.
+ */
+exports.setup = function (options, seedLink) {
   dbm = options.dbmigrate;
   type = dbm.dataType;
   seed = seedLink;
 };
 
-exports.up = function(db) {
-  return db.runSql("CREATE TABLE player_stat_extras (" +
+exports.up = function (db) {
+  return db.runSql(
+    "CREATE TABLE player_stat_extras (" +
       "id int(11) NOT NULL AUTO_INCREMENT," +
       "player_steam_id varchar(17) NOT NULL," +
       "player_name varchar(75) NOT NULL," +
@@ -25,7 +26,7 @@ exports.up = function(db) {
       "team_id int(11)," +
       "round_number int(11) NOT NULL," +
       "round_time int(11) NOT NULL," +
-      "attacker_steam_id int(11) DEFAULT NULL," +
+      "attacker_steam_id varchar(17) DEFAULT NULL," +
       "attacker_name varchar(75) DEFAULT NULL," +
       "attacker_side varchar(5) DEFAULT NULL," +
       "weapon varchar(15) NOT NULL," +
@@ -36,7 +37,7 @@ exports.up = function(db) {
       "no_scope tinyint(1) NOT NULL DEFAULT 0," +
       "suicide tinyint(1) NOT NULL DEFAULT 0," +
       "friendly_fire tinyint(1) NOT NULL DEFAULT 0," +
-      "assister_steam_id int(11) DEFAULT NULL," +
+      "assister_steam_id varchar(17) DEFAULT NULL," +
       "assister_name varchar(75) DEFAULT NULL," +
       "assister_side varchar(5) DEFAULT NULL," +
       "assist_friendly_fire tinyint(1) NOT NULL DEFAULT 0," +
@@ -54,11 +55,10 @@ exports.up = function(db) {
   );
 };
 
-exports.down = function(db) {
-  return db.dropTable('player_stat_extras');
+exports.down = function (db) {
+  return db.dropTable("player_stat_extras");
 };
 
 exports._meta = {
-  "version": 22
+  version: 22
 };
-

@@ -1058,6 +1058,10 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     if (req.body[0].server_id) {
       sql = "UPDATE game_server SET in_use = 1 WHERE id = ?";
       await db.query(sql, [req.body[0].server_id]);
+
+      sql = "UPDATE `match` SET plugin_version = ? WHERE id = ?";
+      let get5Version = await newServer.getGet5Version();
+      await db.query(sql, [get5Version, insertMatch.insertId]);
     }
     res.json({
       message: "Match inserted successfully!",
@@ -1161,7 +1165,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         maxMaps = Object.keys(vetoList).length;
         // Remove last two characters.
         // vetoMapPool = vetoMapPool.substring(0, vetoMapPool.length - 2);
-        //If we're identical to the matches map pool, it usually means we've begun.
+        // If we're identical to the matches map pool, it usually means we've begun.
         if (vetoMapPool == matchRow[0].veto_mappool) {
           vetoMapPool = null;
           maxMaps = null;
@@ -1240,6 +1244,10 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         if (serverConn != null && serverConn.endGet5Match()) {
           sql = "UPDATE game_server SET in_use=0 WHERE id=?";
           await db.query(sql, [matchRow[0].server_id]);
+
+          sql = "UPDATE `match` SET plugin_version = ? WHERE id = ?";
+          let get5Version = await newServer.getGet5Version();
+          await db.query(sql, [get5Version, matchRow[0].id]);
         }
         if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
           let pugSql =
