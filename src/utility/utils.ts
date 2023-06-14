@@ -300,7 +300,7 @@ class Utils {
 
       let currentMatchInfo =
         "SELECT cancelled, forfeit, end_time FROM `match` WHERE id = ?";
-      const matchRow = await db.query(currentMatchInfo, matchid);
+      const matchRow = await db.query(currentMatchInfo, [matchid]);
       if (
         matchRow[0].cancelled == 1 ||
         matchRow[0].forfeit == 1 ||
@@ -343,7 +343,7 @@ class Utils {
       let currentMatchInfo =
         "SELECT user_id, server_id FROM `match` WHERE id = ?";
       let currentServerInfo = "SELECT user_id FROM game_server WHERE id = ?";
-      const matchRow = await db.query(currentMatchInfo, matchid);
+      const matchRow = await db.query(currentMatchInfo, [matchid]);
 
       // If no server exists no need to check for info.
       if (!matchRow[0].server_id) return retMessage;
@@ -387,7 +387,7 @@ class Utils {
       }
 
       let currentMatchInfo = "SELECT id FROM `match` WHERE id = ?";
-      const matchRow = await db.query(currentMatchInfo, matchid);
+      const matchRow = await db.query(currentMatchInfo, [matchid]);
       if (!matchRow.length) {
         return { status: 404, message: "No match found." };
       }

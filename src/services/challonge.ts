@@ -41,11 +41,11 @@ async function update_challonge_match(
     "SELECT id, challonge_url, user_id FROM season WHERE id = ?";
   let team1Score: number;
   let team2Score: number;
-  const seasonInfo: any = await db.query(sql, season_id);
+  const seasonInfo: any = await db.query(sql, [season_id]);
   if (seasonInfo[0].challonge_url) {
     sql = "SELECT challonge_team_id FROM team WHERE id = ?";
-    const team1ChallongeId: any = await db.query(sql, team1_id);
-    const team2ChallongeId: any = await db.query(sql, team2_id);
+    const team1ChallongeId: any = await db.query(sql, [team1_id]);
+    const team2ChallongeId: any = await db.query(sql, [team2_id]);
 
     // Grab API key.
     sql = "SELECT challonge_api_key FROM user WHERE id = ?";

@@ -31,6 +31,8 @@ import { Get5_OnMapVetoed } from "../../types/series_flow/veto/Get5_OnMapVetoed.
 import { Get5_OnMapPicked } from "../../types/series_flow/veto/Get5_OnMapPicked.js";
 import { Get5_OnSidePicked } from "../../types/series_flow/veto/Get5_OnSidePicked.js";
 import { Get5_OnBackupRestore } from "../../types/series_flow/Get5_OnBackupRestore.js";
+import { Get5_OnGoingLive } from "../../types/map_flow/Get5_OnGoingLive.js";
+import MapFlowService from "../../services/mapflowservices.js";
 
 /** Basic Rate limiter.
  * @const
@@ -99,6 +101,8 @@ router.post("/", basicRateLimit, async (req, res) => {
     }
 
     switch (eventType.event) {
+      case "going_live":
+        MapFlowService.OnGoingLive(apiKey, req.body as Get5_OnGoingLive, res);
       case "map_picked":
         SeriesFlowService.OnMapPicked(
           apiKey,
