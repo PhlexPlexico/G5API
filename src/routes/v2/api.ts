@@ -35,6 +35,7 @@ import { Get5_OnGoingLive } from "../../types/map_flow/Get5_OnGoingLive.js";
 import MapFlowService from "../../services/mapflowservices.js";
 import { Get5_OnMatchPausedUnpaused } from "../../types/map_flow/Get5_OnMatchPausedUnpaused.js";
 import { Get5_OnPlayerDeath } from "../../types/map_flow/Get5_OnPlayerDeath.js";
+import { Get5_OnBombEvent } from "../../types/map_flow/Get5_OnBombEvent.js";
 
 /** Basic Rate limiter.
  * @const
@@ -148,6 +149,20 @@ router.post("/", basicRateLimit, async (req, res) => {
           apiKey,
           req.body as Get5_OnPlayerDeath,
           res
+        );
+      case "bomb_planted":
+        MapFlowService.OnBombEvent(
+          apiKey,
+          req.body as Get5_OnBombEvent,
+          res,
+          false
+        );
+      case "bomb_defused":
+        MapFlowService.OnBombEvent(
+          apiKey,
+          req.body as Get5_OnBombEvent,
+          res,
+          true
         );
       case "game_paused":
         MapFlowService.OnMatchPausedUnPaused(

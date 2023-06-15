@@ -271,6 +271,34 @@ import GlobalEmitter from "../../utility/emitter.js";
  *         season_id:
  *           type: integer
  *           description: The ID of the season. NULL if no season.
+ *     BombInfo:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: The integer ID from the database.
+ *         match_id:
+ *           type: integer
+ *           description: The match ID that the bomb was defused or planted.
+ *         map_id:
+ *           type: integer
+ *           description: The current Map ID that the bomb was planted/defused.
+ *         player_name:
+ *           type: string
+ *           description: The name of the player that planted/defused the bomb.
+ *         round_number:
+ *           type: integer
+ *           description: The round number where the bomb was planted/defused.
+ *         round_time:
+ *           type: integer
+ *           description: The time in ms during the round that the bomb was planted/defused.
+ *         site:
+ *           type: string
+ *           description: The site the bomb was planted/defused.
+ *         defused:
+ *           type: boolean
+ *           description: Whether the bomb was planted or defused.
+ *          
  *   responses:
  *     MatchFinished:
  *        description: Match already finished.
@@ -685,6 +713,146 @@ router.get("/:match_id", async (req, res, next) => {
     res.status(500).json({ message: err.toString() });
   }
 });
+
+/**
+ * @swagger
+ *
+ * /matches/:match_id/bombs/stream:
+ *   get:
+ *     description: Returns an bomb plant/defused event stream of a specified match. 
+ *     produces:
+ *       - text/event-stream
+ *     parameters:
+ *       - name: match_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Bomb Info from the match.
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: object
+ *                properties:
+ *                  match:
+ *                    $ref: '#/components/schemas/BombInfo'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.get("/:match_id/bombs/stream", async (req, res, next) => {
+  try {
+    let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
+    let sql;
+    const matchRow = await db.query(matchUserId, req.params.match_id);
+    if (!matchRow.length) {
+      res.status(404).json({ message: "No match found." });
+      return;
+    } else {
+      sql =
+        "SELECT mb.id, mb.match_id, mb.map_id, ps.name, mb.round_number, mb.round_time, mb.site, mb.defused, mb.bomb_time_remaining" +
+        "FROM match_bomb_plants mb JOIN player_stats ps ON mb.player_stats_id = ps.id WHERE mb.match_id = ?";
+    }
+
+    let matchID = req.params.match_id;
+    let bombInfo = await db.query(sql, matchID);
+
+    res.set({
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+      "Content-Type": "text/event-stream",
+      "X-Accel-Buffering": "no"
+    });
+    res.flushHeaders();
+    bombInfo = bombInfo.map((v) => Object.assign({}, v));
+    let bombInfoString = `event: bomb_info\ndata:${JSON.stringify(
+      bombInfo[0]
+    )}\n\n`;
+    // Need to name the function in order to remove it!
+    const matchStreamStatus = async () => {
+      bombInfo = await db.query(sql, matchID);
+      bombInfo = bombInfo.map((v) => Object.assign({}, v));
+      bombInfo = `event: bomb_info\ndata: ${JSON.stringify(bombInfo[0])}\n\n`;
+      res.write(bombInfoString);
+    };
+
+    GlobalEmitter.on("bombEvent", matchStreamStatus);
+    res.write(bombInfoString);
+
+    req.on("close", () => {
+      GlobalEmitter.removeListener("bombEvent", matchStreamStatus);
+      res.end();
+    });
+    req.on("disconnect", () => {
+      GlobalEmitter.removeListener("bombEvent", matchStreamStatus);
+      res.end();
+    });
+
+  } catch (err) {
+    console.error(err.toString());
+    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`)
+    res.end();
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /matches/:match_id/bombs:
+ *   get:
+ *     description: Returns an bomb plant/defused data of a specified match. 
+ *     produces:
+ *       - text/event-stream
+ *     parameters:
+ *       - name: match_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - matches
+ *     responses:
+ *       200:
+ *         description: Bomb Info from the match.
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: object
+ *                properties:
+ *                  match:
+ *                    $ref: '#/components/schemas/BombInfo'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+ router.get("/:match_id/bombs", async (req, res, next) => {
+   try {
+     let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
+     let sql;
+     const matchRow = await db.query(matchUserId, req.params.match_id);
+     if (!matchRow.length) {
+       res.status(404).json({ message: "No match found." });
+       return;
+     } else {
+       sql =
+         "SELECT mb.id, mb.match_id, mb.map_id, ps.name, mb.round_number, mb.round_time, mb.site, mb.defused, mb.bomb_time_remaining" +
+         "FROM match_bomb_plants mb JOIN player_stats ps ON mb.player_stats_id = ps.id WHERE mb.match_id = ?";
+     }
+
+     let matchID = req.params.match_id;
+     let bombInfo = await db.query(sql, matchID);
+     res.json({ bombInfo });
+     
+   } catch (err) {
+     console.error(err.toString());
+     res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`);
+     res.end();
+   }
+ });
 
 /**
  * @swagger

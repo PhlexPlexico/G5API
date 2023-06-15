@@ -33,7 +33,7 @@ class Database {
   
   async buildUpdateStatement(objValues: IStringIndex){
     for (let key in objValues) {
-      if (objValues[key] == null) delete objValues[key];
+      if (objValues[key] == null || objValues[key] == undefined) delete objValues[key];
     }
     return objValues;
   }

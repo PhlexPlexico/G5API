@@ -27,6 +27,7 @@ import { Response } from "express";
 import { RowDataPacket } from "mysql2";
 import { Get5_OnMatchPausedUnpaused } from "../types/map_flow/Get5_OnMatchPausedUnpaused.js";
 import { Get5_OnPlayerDeath } from "../types/map_flow/Get5_OnPlayerDeath.js";
+import { Get5_OnBombEvent } from "../types/map_flow/Get5_OnBombEvent.js";
 
 class MapFlowService {
   static async OnGoingLive(
@@ -117,6 +118,13 @@ class MapFlowService {
           message:
             "Match already finalized or and invalid API key has been given."
         });
+        return;
+      }
+      // We do not care about bot deaths for live stats.
+      if (event.player.is_bot) {
+        res
+          .status(200)
+          .send({ message: "Bot players do not count towards stats." });
         return;
       }
       let sqlString: string;
@@ -300,7 +308,69 @@ class MapFlowService {
       return;
     }
   }
-  
+
+  static async OnBombEvent(
+    apiKey: string,
+    event: Get5_OnBombEvent,
+    res: Response,
+    defused: boolean
+  ) {
+    try {
+      const matchApiCheck: number = await Utils.checkApiKey(
+        apiKey,
+        event.matchid
+      );
+      if (matchApiCheck == 2 || matchApiCheck == 1) {
+        res.status(401).send({
+          message:
+            "Match already finalized or and invalid API key has been given."
+        });
+        return;
+      }
+      let sqlString: string;
+      let mapInfo: RowDataPacket[];
+      let playerStatInfo: RowDataPacket[];
+      let insObject: object;
+      if (event.player.is_bot) {
+        res
+          .status(200)
+          .send({ message: "Bot players do not count towards stats." });
+        return;
+      }
+      sqlString =
+        "SELECT id FROM map_stats WHERE match_id = ? AND map_number = ?";
+      mapInfo = await db.query(sqlString, [event.matchid, event.map_number]);
+      sqlString =
+        "SELECT id FROM player_stats WHERE match_id = ? AND map_id = ? AND steam_id = ?";
+      playerStatInfo = await db.query(sqlString, [
+        event.matchid,
+        mapInfo[0].id,
+        event.player.steamid
+      ]);
+
+      insObject = {
+        match_id: event.matchid,
+        map_id: mapInfo[0].id,
+        player_stat_id: playerStatInfo[0].id,
+        round_number: event.round_number,
+        round_time: event.round_time,
+        site: event.site,
+        defused: defused,
+        bomb_time_remaining: event?.bomb_time_remaining
+      };
+      
+      insObject = await db.buildUpdateStatement(insObject);
+      sqlString = "INSERT INTO match_bomb_plant SET ?";
+      await db.query(sqlString, insObject);
+      GlobalEmitter.emit("bombEvent");
+      return;
+    } catch (error) {
+      console.error(error);
+      res.status(500).send({ message: error });
+      return;
+    }
+  }
+
   static async OnMatchPausedUnPaused(
     apiKey: string,
     event: Get5_OnMatchPausedUnpaused,
