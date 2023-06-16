@@ -34,7 +34,7 @@ jobs:
       - id: getversion
         uses: Saionaro/extract-package-version@v1.2.1
       - uses: docker/build-push-action@v3.2.0
-        if: github.ref == 'refs/heads/master'
+        if: github.ref != 'refs/heads/master'
         with:
           context: .
           file: Dockerfile
@@ -42,4 +42,12 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:next,ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:${{ steps.getversion.outputs.version }}
-
+      - uses: docker/build-push-action@v3.2.0
+        if: github.ref == 'refs/heads/master'
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
+          push: true
+          tags: |
+            ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:latest,ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:${{ steps.getversion.outputs.version }}
