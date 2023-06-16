@@ -211,8 +211,8 @@ class ServerRcon {
 
         await this.execute(
           "get5_demo_upload_url " + config.get("server.apiURL").endsWith("/")
-            ? +"v2"
-            : +"/v2"
+            ? +"v2/demo"
+            : +"/v2/demo"
         );
         await this.execute("get5_demo_upload_header_key Authorization");
         await this.execute("get5_demo_upload_header_value " + get5APIKeyString);

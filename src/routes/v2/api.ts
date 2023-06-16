@@ -1,4 +1,4 @@
-/** Express API router for teams in get5.
+/** Express API router for game server updates in get5.
  * @module routes/v2
  * @requires express
  * @requires db
@@ -36,6 +36,7 @@ import MapFlowService from "../../services/mapflowservices.js";
 import { Get5_OnMatchPausedUnpaused } from "../../types/map_flow/Get5_OnMatchPausedUnpaused.js";
 import { Get5_OnPlayerDeath } from "../../types/map_flow/Get5_OnPlayerDeath.js";
 import { Get5_OnBombEvent } from "../../types/map_flow/Get5_OnBombEvent.js";
+import { Get5_OnRoundStart } from "../../types/map_flow/Get5_OnRoundStart.js";
 
 /** Basic Rate limiter.
  * @const
@@ -144,6 +145,8 @@ router.post("/", basicRateLimit, async (req, res) => {
       // Map Flows
       case "going_live":
         MapFlowService.OnGoingLive(apiKey, req.body as Get5_OnGoingLive, res);
+      case "round_start":
+        MapFlowService.OnRoundStart(apiKey, req.body as Get5_OnRoundStart, res);
       case "player_death":
         MapFlowService.OnPlayerDeath(
           apiKey,

@@ -1,20 +1,5 @@
 import { db } from "./db.js";
 
-/** ZIP files.
- * @const
- */
-import JSZip from "jszip";
-
-/** Required to save files.
- * @const
- */
-import { existsSync, mkdirSync, writeFile } from "fs";
-
-/** Config to check demo uploads.
- * @const
- */
-import config from "config";
-
 /**
  * @const
  * Global Server Sent Emitter class for real time data.
@@ -28,6 +13,10 @@ import { RowDataPacket } from "mysql2";
 import { Get5_OnMatchPausedUnpaused } from "../types/map_flow/Get5_OnMatchPausedUnpaused.js";
 import { Get5_OnPlayerDeath } from "../types/map_flow/Get5_OnPlayerDeath.js";
 import { Get5_OnBombEvent } from "../types/map_flow/Get5_OnBombEvent.js";
+import { Get5_OnRoundEnd } from "../types/map_flow/Get5_OnRoundEnd.js";
+import SeriesFlowService from "./seriesflowservices.js";
+import { Get5_OnRoundStart } from "../types/map_flow/Get5_OnRoundStart.js";
+import { Get5_Player } from "../types/Get5_Player.js";
 
 class MapFlowService {
   static async OnGoingLive(
@@ -40,7 +29,6 @@ class MapFlowService {
         apiKey,
         event.matchid
       );
-      // XXX: Figure out where to store version number, be it at match start or when calling get5_status when creating the match.
       let sqlString: string;
       let mapStatInfo: RowDataPacket[];
       let vetoInfo: RowDataPacket[];
@@ -358,15 +346,179 @@ class MapFlowService {
         defused: defused,
         bomb_time_remaining: event?.bomb_time_remaining
       };
-      
+
       insObject = await db.buildUpdateStatement(insObject);
-      sqlString = "INSERT INTO match_bomb_plant SET ?";
+      sqlString = "INSERT INTO match_bomb_plants SET ?";
       await db.query(sqlString, insObject);
       GlobalEmitter.emit("bombEvent");
+      res.status(200).send({ message: "Success" });
       return;
     } catch (error) {
       console.error(error);
       res.status(500).send({ message: error });
+      return;
+    }
+  }
+
+  static async OnRoundEnd(
+    apiKey: string,
+    event: Get5_OnRoundEnd,
+    res: Response
+  ) {
+    try {
+      const matchApiCheck: number = await Utils.checkApiKey(
+        apiKey,
+        event.matchid
+      );
+      let sqlString: string =
+        "SELECT id FROM map_stats WHERE match_id = ? AND map_number = ?";
+      let insUpdStatement: object;
+      let mapStatInfo: RowDataPacket[];
+      let playerStats: RowDataPacket[];
+      let singlePlayerStat: RowDataPacket[];
+      if (matchApiCheck == 2 || matchApiCheck == 1) {
+        res.status(401).send({
+          message:
+            "Match already finalized or and invalid API key has been given."
+        });
+        return;
+      }
+      mapStatInfo = await db.query(sqlString, [
+        event.matchid,
+        event.map_number
+      ]);
+      sqlString =
+        "SELECT * FROM player_stats WHERE match_id = ? AND map_id = ?";
+      playerStats = await db.query(sqlString, [event.matchid, mapStatInfo[0].id]);
+      for (let player of event.team1.players) {
+        singlePlayerStat = playerStats.filter(
+          (dbPlayer) => dbPlayer.steam_id == player.steamid
+        );
+        await this.updatePlayerStats(
+          event,
+          mapStatInfo[0].id,
+          player,
+          singlePlayerStat[0].id
+        );
+      }
+      for (let player of event.team2.players) {
+        singlePlayerStat = playerStats.filter(
+          (dbPlayer) => dbPlayer.steam_id == player.steamid
+        );
+        await this.updatePlayerStats(
+          event,
+          mapStatInfo[0].id,
+          player,
+          singlePlayerStat[0].id
+        );
+      }
+      GlobalEmitter.emit("playerStatsUpdate");
+      res.status(200).send({ message: "Success" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).send({ message: error });
+      return;
+    }
+  }
+
+  private static async updatePlayerStats(event: Get5_OnRoundEnd, mapId: number, player: Get5_Player, playerId: number | null) {
+    let insUpdStatement: object;
+    let sqlString: string;
+    insUpdStatement = {
+      match_id: event.matchid,
+      map_id: mapId,
+      team_id: event.team1.id,
+      steam_id: player.steamid,
+      name: player.name,
+      kills: player.stats?.kills,
+      deaths: player.stats?.deaths,
+      roundsplayed: player.stats?.rounds_played,
+      assists: player.stats?.assists,
+      flashbang_assists: player.stats?.flash_assists,
+      teamkills: player.stats?.team_kills,
+      knife_kills: player.stats?.knife_kills,
+      suicides: player.stats?.suicides,
+      headshot_kills: player.stats?.headshot_kills,
+      damage: player.stats?.damage,
+      util_damage: player.stats?.utility_damage,
+      enemies_flashed: player.stats?.enemies_flashed,
+      friendlies_flashed: player.stats?.friendlies_flashed,
+      bomb_plants: player.stats?.bomb_plants,
+      bomb_defuses: player.stats?.bomb_defuses,
+      v1: player.stats?.["1v1"],
+      v2: player.stats?.["1v2"],
+      v3: player.stats?.["1v3"],
+      v4: player.stats?.["1v4"],
+      v5: player.stats?.["1v5"],
+      k1: player.stats?.["1k"],
+      k2: player.stats?.["2k"],
+      k3: player.stats?.["3k"],
+      k4: player.stats?.["4k"],
+      k5: player.stats?.["5k"],
+      firstdeath_ct: player.stats?.first_deaths_ct,
+      firstdeath_t: player.stats?.first_deaths_t,
+      firstkill_ct: player.stats?.first_kills_ct,
+      firstkill_t: player.stats?.first_kills_t,
+      kast: player.stats?.kast,
+      contribution_score: player.stats?.score,
+      mvp: player.stats?.mvp
+    };
+
+    insUpdStatement = await db.buildUpdateStatement(insUpdStatement);
+
+    if (playerId) {
+      sqlString = "UPDATE player_stats SET ? WHERE id = ?";
+      await db.query(sqlString, [insUpdStatement, playerId]);
+    } else {
+      sqlString = "INSERT INTO player_stats SET ?";
+      await db.query(sqlString, insUpdStatement);
+    }
+  }
+
+  static async OnRoundStart(
+    apiKey: string,
+    event: Get5_OnRoundStart,
+    res: Response
+  ) {
+    const matchApiCheck: number = await Utils.checkApiKey(
+      apiKey,
+      event.matchid
+    );
+    let sqlString: string;
+    let mapStatInfo: RowDataPacket[];
+    if (matchApiCheck == 2 || matchApiCheck == 1) {
+      res.status(401).send({
+        message:
+          "Match already finalized or and invalid API key has been given."
+      });
+      // Check if round was backed up and nuke the additional player stats and bomb plants.
+      if (SeriesFlowService.wasRoundRestored) {
+        sqlString =
+          "SELECT id FROM map_stats WHERE match_id = ? AND map_number = ?";
+        mapStatInfo = await db.query(sqlString, [
+          event.matchid,
+          event.map_number
+        ]);
+
+        sqlString =
+          "DELETE FROM match_bomb_plants WHERE round_number > ? AND match_id = ? AND map_id = ?";
+        await db.query(sqlString, [
+          event.round_number,
+          event.matchid,
+          mapStatInfo[0].id
+        ]);
+
+        sqlString =
+          "DELETE FROM player_stat_extras WHERE match_id = ? AND map_id = ? AND round_number > ?";
+        await db.query(sqlString, [
+          event.matchid,
+          mapStatInfo[0].id,
+          event.round_number
+        ]);
+        SeriesFlowService.wasRoundRestored = false;
+      }
+      GlobalEmitter.emit("playerStatsUpdate");
+      res.status(200).send({ message: "Success" });
       return;
     }
   }
