@@ -52,6 +52,12 @@
   *         application/json:
   *           schema:
   *             $ref: '#/components/schemas/SimpleResponse'
+  *     Success:
+  *       description: Success
+  *       content:
+  *         application/json:
+  *           schema:
+  *             $ref: '#/components/schemas/SimpleResponse'
   */
  
  /**
