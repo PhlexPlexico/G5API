@@ -36,7 +36,7 @@
     "startprod": "pm2 start ./prodrun.json --name \"G5API\"",
     "restartprod": "pm2 restart G5API",
     "stopprod": "pm2 stop G5API; pm2 delete G5API",
-    "doc": "jsdoc -c jsdoc.conf.json",
+    "doc": "tsc && jsdoc -c jsdoc.conf.json",
     "docclean": "rm -rf ./docs",
     "migrate-create-dev": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --env development --config config/development.json db:create get5dev",
     "migrate-create-prod": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --env production --config config/production.json db:create get5",

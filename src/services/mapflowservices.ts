@@ -1,3 +1,8 @@
+/** Service class for all map flow related logic during a live game.
+ * @module routes/v2
+ * @requires express
+ * @requires db
+ */
 import { db } from "./db.js";
 
 /**
@@ -6,6 +11,10 @@ import { db } from "./db.js";
  */
 import GlobalEmitter from "../utility/emitter.js";
 
+/**
+ * @const
+ * Utility library to check API key validity.
+ */
 import Utils from "../utility/utils.js";
 import { Get5_OnGoingLive } from "../types/map_flow/Get5_OnGoingLive.js";
 import { Response } from "express";
@@ -18,7 +27,17 @@ import SeriesFlowService from "./seriesflowservices.js";
 import { Get5_OnRoundStart } from "../types/map_flow/Get5_OnRoundStart.js";
 import { Get5_Player } from "../types/Get5_Player.js";
 
+/**
+ * @class
+ * Map flow service class for live games.
+ */
 class MapFlowService {
+  /**
+   * Updates the database and emits mapStatUpdate when the map has gone live.
+   * @param {string} apiKey The API key set by the API and given to the server.
+   * @param {Get5_OnGoingLive} event The OnGoingLive event provided from the game server.
+   * @param {Response} res The express response object to send status responses to the game server.
+   */
   static async OnGoingLive(
     apiKey: string,
     event: Get5_OnGoingLive,
@@ -91,6 +110,13 @@ class MapFlowService {
       return;
     }
   }
+
+  /**
+   * Updates the database and emits playerStatsUpdate when a player has died.
+   * @param {string} apiKey The API key set by the API and given to the server.
+   * @param {Get5_OnPlayerDeath} event The Get5_OnPlayerDeath event provided from the game server.
+   * @param {Response} res The express response object to send status responses to the game server.
+   */
   static async OnPlayerDeath(
     apiKey: string,
     event: Get5_OnPlayerDeath,
@@ -297,6 +323,12 @@ class MapFlowService {
     }
   }
 
+  /**
+   * Updates the database and emits bombEvent when a bomb has been planted or defused.
+   * @param {string} apiKey The API key set by the API and given to the server.
+   * @param {Get5_OnBombEvent} event The Get5_OnBombEvent event provided from the game server.
+   * @param {Response} res The express response object to send status responses to the game server.
+   */
   static async OnBombEvent(
     apiKey: string,
     event: Get5_OnBombEvent,
@@ -360,6 +392,12 @@ class MapFlowService {
     }
   }
 
+  /**
+   * Updates the database and emits playerStatsUpdate when a round has ended.
+   * @param {string} apiKey The API key set by the API and given to the server.
+   * @param {Get5_OnRoundEnd} event The Get5_OnRoundEnd event provided from the game server.
+   * @param {Response} res The express response object to send status responses to the game server.
+   */
   static async OnRoundEnd(
     apiKey: string,
     event: Get5_OnRoundEnd,
@@ -389,7 +427,10 @@ class MapFlowService {
       ]);
       sqlString =
         "SELECT * FROM player_stats WHERE match_id = ? AND map_id = ?";
-      playerStats = await db.query(sqlString, [event.matchid, mapStatInfo[0].id]);
+      playerStats = await db.query(sqlString, [
+        event.matchid,
+        mapStatInfo[0].id
+      ]);
       for (let player of event.team1.players) {
         singlePlayerStat = playerStats.filter(
           (dbPlayer) => dbPlayer.steam_id == player.steamid
@@ -421,7 +462,19 @@ class MapFlowService {
     }
   }
 
-  private static async updatePlayerStats(event: Get5_OnRoundEnd, mapId: number, player: Get5_Player, playerId: number | null) {
+  /**
+   * Private helper function to update player stats based on a team.
+   * @param {Get5_OnRoundEnd} event The Get5_OnRoundEnd event.
+   * @param {number} mapId The map ID from the database.
+   * @param {Get5_Player} player The Get5_Player structure.
+   * @param {number} playerId The player ID from the database.
+   */
+  private static async updatePlayerStats(
+    event: Get5_OnRoundEnd,
+    mapId: number,
+    player: Get5_Player,
+    playerId: number | null
+  ) {
     let insUpdStatement: object;
     let sqlString: string;
     insUpdStatement = {
@@ -475,6 +528,12 @@ class MapFlowService {
     }
   }
 
+  /**
+   * Updates the database and emits playerStatsUpdate when a round has been restored and the match has started again.
+   * @param {string} apiKey The API key set by the API and given to the server.
+   * @param {Get5_OnRoundStart} event The Get5_OnRoundStart event provided from the game server.
+   * @param {Response} res The express response object to send status responses to the game server.
+   */
   static async OnRoundStart(
     apiKey: string,
     event: Get5_OnRoundStart,
@@ -491,38 +550,44 @@ class MapFlowService {
         message:
           "Match already finalized or and invalid API key has been given."
       });
-      // Check if round was backed up and nuke the additional player stats and bomb plants.
-      if (SeriesFlowService.wasRoundRestored) {
-        sqlString =
-          "SELECT id FROM map_stats WHERE match_id = ? AND map_number = ?";
-        mapStatInfo = await db.query(sqlString, [
-          event.matchid,
-          event.map_number
-        ]);
-
-        sqlString =
-          "DELETE FROM match_bomb_plants WHERE round_number > ? AND match_id = ? AND map_id = ?";
-        await db.query(sqlString, [
-          event.round_number,
-          event.matchid,
-          mapStatInfo[0].id
-        ]);
-
-        sqlString =
-          "DELETE FROM player_stat_extras WHERE match_id = ? AND map_id = ? AND round_number > ?";
-        await db.query(sqlString, [
-          event.matchid,
-          mapStatInfo[0].id,
-          event.round_number
-        ]);
-        SeriesFlowService.wasRoundRestored = false;
-      }
-      GlobalEmitter.emit("playerStatsUpdate");
-      res.status(200).send({ message: "Success" });
-      return;
     }
+    // Check if round was backed up and nuke the additional player stats and bomb plants.
+    if (SeriesFlowService.wasRoundRestored) {
+      sqlString =
+        "SELECT id FROM map_stats WHERE match_id = ? AND map_number = ?";
+      mapStatInfo = await db.query(sqlString, [
+        event.matchid,
+        event.map_number
+      ]);
+
+      sqlString =
+        "DELETE FROM match_bomb_plants WHERE round_number > ? AND match_id = ? AND map_id = ?";
+      await db.query(sqlString, [
+        event.round_number,
+        event.matchid,
+        mapStatInfo[0].id
+      ]);
+
+      sqlString =
+        "DELETE FROM player_stat_extras WHERE match_id = ? AND map_id = ? AND round_number > ?";
+      await db.query(sqlString, [
+        event.matchid,
+        mapStatInfo[0].id,
+        event.round_number
+      ]);
+      SeriesFlowService.wasRoundRestored = false;
+    }
+    GlobalEmitter.emit("playerStatsUpdate");
+    res.status(200).send({ message: "Success" });
+    return;
   }
 
+  /**
+   * Updates the database and emits matchUpdate when a match has been paused or unpaused.
+   * @param {string} apiKey The API key set by the API and given to the server.
+   * @param {Get5_OnMatchPausedUnpaused} event The Get5_OnMatchPausedUnpaused event provided from the game server.
+   * @param {Response} res The express response object to send status responses to the game server.
+   */
   static async OnMatchPausedUnPaused(
     apiKey: string,
     event: Get5_OnMatchPausedUnpaused,
