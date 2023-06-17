@@ -33,6 +33,7 @@ import vetosidesRouter from "./src/routes/vetosides.js";
 import passport from "./src/utility/auth.js";
 import {router as v2Router} from "./src/routes/v2/api.js";
 import {router as v2DemoRouter} from "./src/routes/v2/demoapi.js";
+import { router as v2BackupRouter } from "./src/routes/v2/backupapi.js";
 // End Route Files
 
 
@@ -147,7 +148,7 @@ app.use("/leaderboard", leaderboardRouter);
 app.use("/maps", mapListRouter);
 app.use("/v2", v2Router);
 app.use("/v2/demo", v2DemoRouter);
-// app.use("/v2/backup", v2BackupRouter);
+app.use("/v2/backup", v2BackupRouter);
 // END ROUTES
 
 // Steam API Calls.
