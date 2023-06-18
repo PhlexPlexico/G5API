@@ -21,17 +21,24 @@ G5API is an API that will allow users to create, manage, and control Counter-Str
 
 This API is complete enough to provide the most functionality out of [get5](https://github.com/splewis/get5).
 
-For the plugin [G5WS](https://github.com/PhlexPlexico/G5WS), the routes currently put into place located in the `./routes/legacy/` and still point to `/match/` on this app.
+<details closed>
+  <summary><b>Note:</b> While available for backwards compatibility, it is recommended you use the <i>latest</i> version of get5, as you will no longer need an additional plugin for enhanced reporting. The only extension needed is SteamWorks.  </summary>
+  <br>
+
+  
+For the plugin [G5WS](https://github.com/PhlexPlexico/G5WS"), the routes currently put into place located in the `./src/routes/legacy/` and still point to `/match/` on this app. 
+</details>
+
+
+If you are using get5 0.14 or later, the G5WS plugin is **not** needed, and should be removed or disabled from your game server to avoid any conflicting actions. The new routes are located in `./src/routes/v2`, and the main logic can be found in their respective services under `./src/services`
 
 Game server interaction will still take place under the `/matches/:match_id` directive, but the logic can be found under `./matches/matchserver.js`.
-
-The webapi plugin for this can be downloaded from [here](https://github.com/PhlexPlexico/G5WS) to include the use of vetoes being recorded, as well as demoes being uploaded to the API server once the match is complete.
 
 There is also Challonge integration within the API. If a user provides a tournament ID to create a season, it will auto-fill a season start date, empty teams, and will auto-update the brackets at the end of each match if the match exists under the Season/Tournament.
 
 # What does it NOT do?
 This is simply a back-end to get myself used to JavaScript and Node. You will need a [front end](https://github.com/phlexplexico/g5v) or create something that can make it work! 
-
+ew routes are located
 # Why?
 [Get5-web](https://github.com/phlexplexico/get5-web) is a now out-dated webpanel, with python2.7 being officially EOL. Being built all on Flask, with ORM (SQLAlchemy), and Jinja2, its tech spans more than a few years old. While it works really well for now, it is becoming increasingly harder to deploy to more modern hardware/software (such as Ubuntu 19) to ensure easy setup.
 
