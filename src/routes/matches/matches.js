@@ -1209,6 +1209,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         (await newServer.isServerAlive()) &&
         (await newServer.isGet5Available())
       ) {
+        sql = "UPDATE game_server SET in_use = 1 WHERE id = ?";
+        await db.query(sql, [req.body[0].server_id]);
+
         sql = "UPDATE `match` SET plugin_version = ? WHERE id = ?";
         let get5Version = await newServer.getGet5Version();
         await db.query(sql, [get5Version, insertMatch.insertId]);
@@ -1221,13 +1224,19 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
             apiKey
           ))
         ) {
+          // Delete the match as it does not belong in the database.
+          sql = "DELETE FROM match_specatator WHERE match_id = ?";
+          await db.query(sql, [insertMatch.insertId]);
+          sql = "DELETE FROM match_cvar WHERE match_id = ?";
+          await db.query(sql, [insertMatch.insertId]);
+          sql = "DELETE FROM `match` WHERE id = ?";
+          await db.query(sql, [insertMatch.insertId]);
+
+          sql = "UPDATE game_server SET in_use = 0 WHERE id = ?";
+          await db.query(sql, [req.body[0].server_id]);
           throw "Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.";
         }
       }
-    }
-    if (req.body[0].server_id) {
-      sql = "UPDATE game_server SET in_use = 1 WHERE id = ?";
-      await db.query(sql, [req.body[0].server_id]);
     }
     res.json({
       message: "Match inserted successfully!",
