@@ -64,7 +64,7 @@ class ServerRcon {
     }
 
     let get5Status = await this.execute("get5_status");
-    get5Status = await fixIncompletePackets(get5Status);
+    get5Status = await this.fixIncompletePackets(get5Status);
 
     if (get5Status.includes("Unknown command")) {
       return "unknown";
@@ -84,7 +84,7 @@ class ServerRcon {
       }
       let get5Status = await this.execute("get5_web_available");
       // Weird L coming in from the console call? Incomplete packets.
-      get5Status = await fixIncompletePackets(get5Status);
+      get5Status = await this.fixIncompletePackets(get5Status);
       let get5JsonStatus = await JSON.parse(get5Status);
       if (get5Status.includes("Unknown command")) {
         if (this.getGet5Version().includes("0.14")) {
