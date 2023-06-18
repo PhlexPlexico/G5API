@@ -6,8 +6,6 @@
 
 import { Router } from "express";
 
-import config from "config";
-
 import fetch from "node-fetch";
 
 const router = Router();

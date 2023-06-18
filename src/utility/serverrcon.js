@@ -1,6 +1,7 @@
 import Utils from "./utils.js";
 import Rcon from "rcon";
 import fetch from "node-fetch";
+import config from "config";
 
 /**
  * Creates a new server object to run various tasks.
@@ -85,15 +86,18 @@ class ServerRcon {
       let get5Status = await this.execute("get5_web_available");
       // Weird L coming in from the console call? Incomplete packets.
       get5Status = await this.fixIncompletePackets(get5Status);
-      let get5JsonStatus = await JSON.parse(get5Status);
+
       if (get5Status.includes("Unknown command")) {
-        if (this.getGet5Version().includes("0.14")) {
+        let get5Version = await this.getGet5Version();
+        if (get5Version.includes("0.14")) {
           return true;
         } else {
           console.log("Either get5 or G5WS plugin is missing.");
           return false;
         }
-      } else if (get5JsonStatus.gamestate != 0) {
+      }
+      let get5JsonStatus = await JSON.parse(get5Status);
+      if (get5JsonStatus.gamestate != 0) {
         console.log("Server already has a get5 match setup.");
         return false;
       } else {
@@ -123,7 +127,7 @@ class ServerRcon {
   }
 
   /**
-   * 
+   *
    * Checks if the server is up to date via a steam API call.
    * @returns True if up to date, false otherwise.
    */
@@ -136,14 +140,22 @@ class ServerRcon {
       let serverResponse = await this.execute("version");
       let serverVersion = serverResponse.match(/(?<=version ).*(?= \[)/);
       // Call steam API to check if the version is the latest.
-      let response = await fetch("https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001/?appid=730&version=" + serverVersion + "&format=json");
+      let response = await fetch(
+        "https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001/?appid=730&version=" +
+          serverVersion +
+          "&format=json"
+      );
       let data = await response.json();
       if (!data.response.up_to_date) {
-        console.log("Server is not up to date! Current version: " + serverVersion + " - Latest version: " + data.response.required_version);
+        console.log(
+          "Server is not up to date! Current version: " +
+            serverVersion +
+            " - Latest version: " +
+            data.response.required_version
+        );
         return false;
-      }
-      else {
-        return true
+      } else {
+        return true;
       }
     } catch (err) {
       console.error("Error on game server: " + err.toString());
@@ -189,20 +201,25 @@ class ServerRcon {
       if (loadMatchResponse.includes("Failed")) return false;
       else if (loadMatchResponse.includes("another match already loaded"))
         return false;
-
-      if (this.getGet5Version().includes("0.14")) {
+      let get5Version = await this.getGet5Version();
+      if (parseFloat(get5Version) >= 0.14) {
+        let apiString = config.get("server.apiURL");
         await this.execute(
-          "get5_remote_log_url " + config.get("server.apiURL").endsWith("/")
-            ? +"v2"
-            : +"/v2"
+          "get5_remote_log_url ".concat(
+            apiString.endsWith("/")
+              ? apiString.concat("v2")
+              : apiString.concat("/v2")
+          )
         );
         await this.execute("get5_remote_log_header_key Authorization");
         await this.execute("get5_remote_log_header_value " + get5APIKeyString);
 
         await this.execute(
-          "get5_remote_backup_url " + config.get("server.apiURL").endsWith("/")
-            ? +"v2/backup"
-            : +"/v2/backup"
+          "get5_remote_backup_url ".concat(
+            apiString.endsWith("/")
+              ? apiString.concat("v2/backup")
+              : apiString.concat("/v2/backup")
+          )
         );
         await this.execute("get5_remote_backup_header_key Authorization");
         await this.execute(
@@ -210,16 +227,16 @@ class ServerRcon {
         );
 
         await this.execute(
-          "get5_demo_upload_url " + config.get("server.apiURL").endsWith("/")
-            ? +"v2/demo"
-            : +"/v2/demo"
+          "get5_demo_upload_url ".concat(
+            config.get("server.apiURL").endsWith("/")
+              ? apiString.concat("v2/demo")
+              : apiString.concat("/v2/demo")
+          )
         );
         await this.execute("get5_demo_upload_header_key Authorization");
         await this.execute("get5_demo_upload_header_value " + get5APIKeyString);
       } else {
-        await this.execute(
-          "get5_web_api_key " + get5APIKeyString
-        );
+        await this.execute("get5_web_api_key " + get5APIKeyString);
       }
       return true;
     } catch (err) {
@@ -255,7 +272,7 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      await this.execute("sm_pause")
+      await this.execute("sm_pause");
       return true;
     } catch (err) {
       console.error("RCON error on pause: " + err.toString());
@@ -296,13 +313,13 @@ class ServerRcon {
       if (nickName)
         loadMatchResponse = await this.execute(
           "get5_addplayer " +
-          steamId +
-          " " +
-          teamString +
-          " " +
-          '"' +
-          nickName +
-          '"'
+            steamId +
+            " " +
+            teamString +
+            " " +
+            '"' +
+            nickName +
+            '"'
         );
       else
         loadMatchResponse = await this.execute(
@@ -404,7 +421,7 @@ class ServerRcon {
         return false;
       }
       let loadMatchResponse = await this.execute(
-        "get5_loadbackup_url \"" + backupName + "\""
+        'get5_loadbackup_url "' + backupName + '"'
       );
       return loadMatchResponse;
     } catch (err) {
