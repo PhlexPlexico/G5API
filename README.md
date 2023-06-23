@@ -38,7 +38,7 @@ There is also Challonge integration within the API. If a user provides a tournam
 
 # What does it NOT do?
 This is simply a back-end to get myself used to JavaScript and Node. You will need a [front end](https://github.com/phlexplexico/g5v) or create something that can make it work! 
-ew routes are located
+
 # Why?
 [Get5-web](https://github.com/phlexplexico/get5-web) is a now out-dated webpanel, with python2.7 being officially EOL. Being built all on Flask, with ORM (SQLAlchemy), and Jinja2, its tech spans more than a few years old. While it works really well for now, it is becoming increasingly harder to deploy to more modern hardware/software (such as Ubuntu 19) to ensure easy setup.
 
@@ -115,7 +115,7 @@ For more details on these variables, follow along with production.json.template 
 ### Docs: 
 ```yarn doc```
 
-This will generate all the API information that I've created in the app, in the hopes of making it more readable and easier to pickup for anyone who wants to try more implementation, or even creating a front-end for this API. Swagger Express is also included, which can be accessed from `/api-docs` on application launch. This will house all the API calls, where JSDocs will show all the internal function calls in this application.
+This will generate all the API information that I've created in the app, in the hopes of making it more readable and easier to pickup for anyone who wants to try implementing more actions, or even creating a front-end for this API. Swagger Express is also included, which can be accessed from `/api-docs` on application launch. This will house all the API calls, where JSDocs will show all the internal function calls in this application. All TypeScript functions will be shown in the JSDocs.
 
 ### Coverage Tests
 Steam OAuth will be mocked in order to check if a user is "logged in", and create a temporary database (`get5test`) that will insert new values, and check various features of routes. If you wish to alter the "user" it authenticates as, you can edit `utility/mockProfile.js` to the values you prefer.

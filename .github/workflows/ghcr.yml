@@ -3,8 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master
-      - v2-api
+      - '**'
 jobs:
   push:
     name: Create build and push to GHCR
@@ -41,7 +40,7 @@ jobs:
           platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
           push: true
           tags: |
-            ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:next,ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:${{ steps.getversion.outputs.version }}
+            ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:next
       - uses: docker/build-push-action@v3.2.0
         if: github.ref == 'refs/heads/master'
         with:
