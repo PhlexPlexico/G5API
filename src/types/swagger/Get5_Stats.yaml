@@ -1,0 +1,150 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_Stats.yaml with typeconv
+  version: '1'
+  x-id: Get5_Stats.yaml
+  x-comment: >-
+    Generated from Get5_Stats.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_Stats:
+      properties:
+        kills:
+          title: Get5_Stats.kills
+          type: number
+        deaths:
+          title: Get5_Stats.deaths
+          type: number
+        assists:
+          title: Get5_Stats.assists
+          type: number
+        flash_assists:
+          title: Get5_Stats.flash_assists
+          type: number
+        team_kills:
+          title: Get5_Stats.team_kills
+          type: number
+        suicides:
+          title: Get5_Stats.suicides
+          type: number
+        damage:
+          title: Get5_Stats.damage
+          type: number
+        utility_damage:
+          title: Get5_Stats.utility_damage
+          type: number
+        enemies_flashed:
+          title: Get5_Stats.enemies_flashed
+          type: number
+        friendlies_flashed:
+          title: Get5_Stats.friendlies_flashed
+          type: number
+        knife_kills:
+          title: Get5_Stats.knife_kills
+          type: number
+        headshot_kills:
+          title: Get5_Stats.headshot_kills
+          type: number
+        rounds_played:
+          title: Get5_Stats.rounds_played
+          type: number
+        bomb_defuses:
+          title: Get5_Stats.bomb_defuses
+          type: number
+        bomb_plants:
+          title: Get5_Stats.bomb_plants
+          type: number
+        '"1k"':
+          title: Get5_Stats."1k"
+          type: number
+        '"2k"':
+          title: Get5_Stats."2k"
+          type: number
+        '"3k"':
+          title: Get5_Stats."3k"
+          type: number
+        '"4k"':
+          title: Get5_Stats."4k"
+          type: number
+        '"5k"':
+          title: Get5_Stats."5k"
+          type: number
+        '"1v1"':
+          title: Get5_Stats."1v1"
+          type: number
+        '"1v2"':
+          title: Get5_Stats."1v2"
+          type: number
+        '"1v3"':
+          title: Get5_Stats."1v3"
+          type: number
+        '"1v4"':
+          title: Get5_Stats."1v4"
+          type: number
+        '"1v5"':
+          title: Get5_Stats."1v5"
+          type: number
+        first_kills_t:
+          title: Get5_Stats.first_kills_t
+          type: number
+        first_kills_ct:
+          title: Get5_Stats.first_kills_ct
+          type: number
+        first_deaths_t:
+          title: Get5_Stats.first_deaths_t
+          type: number
+        first_deaths_ct:
+          title: Get5_Stats.first_deaths_ct
+          type: number
+        trade_kills:
+          title: Get5_Stats.trade_kills
+          type: number
+        kast:
+          title: Get5_Stats.kast
+          type: number
+        score:
+          title: Get5_Stats.score
+          type: number
+        mvp:
+          title: Get5_Stats.mvp
+          type: number
+      required:
+        - kills
+        - deaths
+        - assists
+        - flash_assists
+        - team_kills
+        - suicides
+        - damage
+        - utility_damage
+        - enemies_flashed
+        - friendlies_flashed
+        - knife_kills
+        - headshot_kills
+        - rounds_played
+        - bomb_defuses
+        - bomb_plants
+        - '"1k"'
+        - '"2k"'
+        - '"3k"'
+        - '"4k"'
+        - '"5k"'
+        - '"1v1"'
+        - '"1v2"'
+        - '"1v3"'
+        - '"1v4"'
+        - '"1v5"'
+        - first_kills_t
+        - first_kills_ct
+        - first_deaths_t
+        - first_deaths_ct
+        - trade_kills
+        - kast
+        - score
+        - mvp
+      additionalProperties: false
+      title: Get5_Stats
+      type: object

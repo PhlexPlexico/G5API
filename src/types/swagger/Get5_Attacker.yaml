@@ -1,0 +1,38 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_Attacker.yaml with typeconv
+  version: '1'
+  x-id: Get5_Attacker.yaml
+  x-comment: >-
+    Generated from Get5_Attacker.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_Attacker:
+      properties:
+        steamid:
+          title: Get5_Attacker.steamid
+          type: string
+        name:
+          title: Get5_Attacker.name
+          type: string
+        user_id:
+          title: Get5_Attacker.user_id
+          type: number
+        side:
+          title: Get5_Attacker.side
+          type: string
+        is_bot:
+          title: Get5_Attacker.is_bot
+          type: boolean
+      required:
+        - steamid
+        - name
+        - user_id
+        - side
+        - is_bot
+      additionalProperties: false
+      title: Get5_Attacker
+      type: object

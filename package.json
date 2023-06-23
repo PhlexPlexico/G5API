@@ -1,6 +1,6 @@
 {
   "name": "g5api",
-  "version": "1.7.0.0",
+  "version": "2.0.0.0",
   "private": true,
   "type": "module",
   "licenses": [
@@ -29,11 +29,14 @@
     "config": "./config"
   },
   "scripts": {
-    "start": "nodemon ./bin/www.js",
+    "build": "tsc",
+    "clean": "rm -rf ./dist",
+    "start": "tsc-watch --project . --outDir ./dist --onSuccess \"nodemon ./dist/bin/www.js\"",
+    "tsstart": "yarn build; nodemon ./dist/bin/www.js",
     "startprod": "pm2 start ./prodrun.json --name \"G5API\"",
     "restartprod": "pm2 restart G5API",
     "stopprod": "pm2 stop G5API; pm2 delete G5API",
-    "doc": "jsdoc -c jsdoc.conf.json",
+    "doc": "tsc && jsdoc -c jsdoc.conf.json",
     "docclean": "rm -rf ./docs",
     "migrate-create-dev": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --env development --config config/development.json db:create get5dev",
     "migrate-create-prod": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --env production --config config/production.json db:create get5",
@@ -48,7 +51,7 @@
     "migrate-drop-prod": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --env production --config config/production.json db:drop get5",
     "migrate-drop-test": "MYSQL_FLAGS=\"-CONNECT_WITH_DB\" db-migrate --env test --config config/test.json db:drop get5test",
     "prod": "NODE_ENV=production yarn migrate-create-prod && yarn migrate-prod-upgrade",
-    "test": "NODE_ENV=test && yarn test:setup-user && yarn migrate-drop-test && yarn migrate-create-test && yarn migrate-test-upgrade && yarn test:user && yarn test:gameservers && yarn test:teams && yarn test:matches && yarn test:seasons && yarn test:vetoes && yarn test:mapstats && yarn test:playerstats && yarn test:vetosides && yarn test:maplists",
+    "test": "yarn build && NODE_ENV=test && yarn test:setup-user && yarn migrate-drop-test && yarn migrate-create-test && yarn migrate-test-upgrade && yarn test:user && yarn test:gameservers && yarn test:teams && yarn test:matches && yarn test:seasons && yarn test:vetoes && yarn test:mapstats && yarn test:playerstats && yarn test:vetosides && yarn test:maplists",
     "test:gameservers": "yarn test:removeID && NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.gameservers.config.cjs",
     "test:mapstats": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.mapstats.config.cjs",
     "test:maplists": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.maplist.config.cjs",
@@ -56,7 +59,7 @@
     "test:playerstats": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.playerstats.config.cjs",
     "test:removeID": "sed -i -e 's.\"steam_ids\": \"[0-9][0-9]*\".\"steam_ids\": \"super_admins,go,here\".g' ./config/test.json",
     "test:seasons": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.seasons.config.cjs",
-    "test:setup-user": "export STEAMID=`grep -o -m 1 '[0-9][0-9]*' utility/mockProfile.js` && sed -i -e \"s/\\\"super_admins,go,here\\\"/\\\"$STEAMID\\\"/g\" config/test.json",
+    "test:setup-user": "export STEAMID=`grep -o -m 1 '[0-9][0-9]*' dist/src/utility/mockProfile.js` && sed -i -e \"s/\\\"super_admins,go,here\\\"/\\\"$STEAMID\\\"/g\" config/test.json",
     "test:teams": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.teams.config.cjs",
     "test:user": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.users.config.cjs",
     "test:vetoes": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.vetoes.config.cjs",
@@ -75,7 +78,7 @@
     "debug": "~4.1.1",
     "express": "~4.17.1",
     "express-bearer-token": "^2.4.0",
-    "express-rate-limit": "^5.0.0",
+    "express-rate-limit": "^6.7.0",
     "express-session": "^1.17.0",
     "helmet": "^6.0.0",
     "http-errors": "~1.7.3",
@@ -95,11 +98,21 @@
     "swagger-ui-express": "^4.5.0"
   },
   "devDependencies": {
-    "jest": "^29.0.1",
-    "jsdoc": "^3.6.11",
+    "@types/aes-js": "^3.1.1",
+    "@types/config": "^3.3.0",
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.2.5",
+    "@types/steamapi": "^2.2.2",
+    "jest": "^29.1.0",
+    "jest-ts-webcompat-resolver": "^1.0.0",
+    "jsdoc": "^4.0.2",
     "nodemon": "^2.0.15",
     "passport-mock-strategy": "^2.0.0",
     "redis-mock": "^0.56.3",
-    "supertest": "^6.3.2"
+    "supertest": "^6.3.3",
+    "ts-jest": "^29.1.0",
+    "tsc": "^2.0.4",
+    "tsc-watch": "^6.0.4",
+    "typescript": "^5.1.3"
   }
 }

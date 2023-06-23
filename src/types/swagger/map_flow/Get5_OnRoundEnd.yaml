@@ -1,0 +1,51 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_OnRoundEnd.yaml with typeconv
+  version: '1'
+  x-id: map_flow/Get5_OnRoundEnd.yaml
+  x-comment: >-
+    Generated from map_flow/Get5_OnRoundEnd.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_OnRoundEnd:
+      properties:
+        event:
+          title: Get5_OnRoundEnd.event
+          type: string
+        matchid:
+          title: Get5_OnRoundEnd.matchid
+          type: string
+        map_number:
+          title: Get5_OnRoundEnd.map_number
+          type: number
+        round_number:
+          title: Get5_OnRoundEnd.round_number
+          type: number
+        round_time:
+          title: Get5_OnRoundEnd.round_time
+          type: number
+        reason:
+          title: Get5_OnRoundEnd.reason
+          type: number
+        winner:
+          title: Get5_OnRoundEnd.winner
+        team1:
+          title: Get5_OnRoundEnd.team1
+        team2:
+          title: Get5_OnRoundEnd.team2
+      required:
+        - event
+        - matchid
+        - map_number
+        - round_number
+        - round_time
+        - reason
+        - winner
+        - team1
+        - team2
+      additionalProperties: false
+      title: Get5_OnRoundEnd
+      type: object

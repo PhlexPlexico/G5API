@@ -21,11 +21,18 @@ G5API is an API that will allow users to create, manage, and control Counter-Str
 
 This API is complete enough to provide the most functionality out of [get5](https://github.com/splewis/get5).
 
-For the plugin [G5WS](https://github.com/PhlexPlexico/G5WS), the routes currently put into place located in the `./routes/legacy/` and still point to `/match/` on this app.
+<details closed>
+  <summary><b>Note:</b> While available for backwards compatibility, it is recommended you use the <i>latest</i> version of get5, as you will no longer need an additional plugin for enhanced reporting. The only extension needed is SteamWorks.  </summary>
+  <br>
+
+  
+For the plugin [G5WS](https://github.com/PhlexPlexico/G5WS"), the routes currently put into place located in the `./src/routes/legacy/` and still point to `/match/` on this app. 
+</details>
+
+
+If you are using get5 0.14 or later, the G5WS plugin is **not** needed, and should be removed or disabled from your game server to avoid any conflicting actions. The new routes are located in `./src/routes/v2`, and the main logic can be found in their respective services under `./src/services`
 
 Game server interaction will still take place under the `/matches/:match_id` directive, but the logic can be found under `./matches/matchserver.js`.
-
-The webapi plugin for this can be downloaded from [here](https://github.com/PhlexPlexico/G5WS) to include the use of vetoes being recorded, as well as demoes being uploaded to the API server once the match is complete.
 
 There is also Challonge integration within the API. If a user provides a tournament ID to create a season, it will auto-fill a season start date, empty teams, and will auto-update the brackets at the end of each match if the match exists under the Season/Tournament.
 
@@ -108,7 +115,7 @@ For more details on these variables, follow along with production.json.template 
 ### Docs: 
 ```yarn doc```
 
-This will generate all the API information that I've created in the app, in the hopes of making it more readable and easier to pickup for anyone who wants to try more implementation, or even creating a front-end for this API. Swagger Express is also included, which can be accessed from `/api-docs` on application launch. This will house all the API calls, where JSDocs will show all the internal function calls in this application.
+This will generate all the API information that I've created in the app, in the hopes of making it more readable and easier to pickup for anyone who wants to try implementing more actions, or even creating a front-end for this API. Swagger Express is also included, which can be accessed from `/api-docs` on application launch. This will house all the API calls, where JSDocs will show all the internal function calls in this application. All TypeScript functions will be shown in the JSDocs.
 
 ### Coverage Tests
 Steam OAuth will be mocked in order to check if a user is "logged in", and create a temporary database (`get5test`) that will insert new values, and check various features of routes. If you wish to alter the "user" it authenticates as, you can edit `utility/mockProfile.js` to the values you prefer.

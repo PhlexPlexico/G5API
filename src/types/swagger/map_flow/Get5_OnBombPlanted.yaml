@@ -1,0 +1,45 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_OnBombPlanted.yaml with typeconv
+  version: '1'
+  x-id: map_flow/Get5_OnBombPlanted.yaml
+  x-comment: >-
+    Generated from map_flow/Get5_OnBombPlanted.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_OnBombPlanted:
+      properties:
+        event:
+          title: Get5_OnBombPlanted.event
+          type: string
+        matchid:
+          title: Get5_OnBombPlanted.matchid
+          type: string
+        map_number:
+          title: Get5_OnBombPlanted.map_number
+          type: number
+        round_number:
+          title: Get5_OnBombPlanted.round_number
+          type: number
+        round_time:
+          title: Get5_OnBombPlanted.round_time
+          type: number
+        player:
+          title: Get5_OnBombPlanted.player
+        site:
+          title: Get5_OnBombPlanted.site
+          type: string
+      required:
+        - event
+        - matchid
+        - map_number
+        - round_number
+        - round_time
+        - player
+        - site
+      additionalProperties: false
+      title: Get5_OnBombPlanted
+      type: object

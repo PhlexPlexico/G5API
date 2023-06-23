@@ -1,0 +1,29 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_Assist.yaml with typeconv
+  version: '1'
+  x-id: Get5_Assist.yaml
+  x-comment: >-
+    Generated from Get5_Assist.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_Assist:
+      properties:
+        player:
+          title: Get5_Assist.player
+        friendly_fire:
+          title: Get5_Assist.friendly_fire
+          type: boolean
+        flash_assist:
+          title: Get5_Assist.flash_assist
+          type: boolean
+      required:
+        - player
+        - friendly_fire
+        - flash_assist
+      additionalProperties: false
+      title: Get5_Assist
+      type: object

@@ -1,0 +1,26 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_Winner.yaml with typeconv
+  version: '1'
+  x-id: Get5_Winner.yaml
+  x-comment: >-
+    Generated from Get5_Winner.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_Winner:
+      properties:
+        side:
+          title: Get5_Winner.side
+          type: string
+        team:
+          title: Get5_Winner.team
+          type: string
+      required:
+        - side
+        - team
+      additionalProperties: false
+      title: Get5_Winner
+      type: object

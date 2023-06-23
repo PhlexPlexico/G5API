@@ -1,12 +1,12 @@
-name: publish to ghcr
+name: Publish to GHCR
 on:
   workflow_dispatch:
   push:
     branches:
-      - master
+      - '**'
 jobs:
   push:
-    name: "Create build and push to GHCR"
+    name: Create build and push to GHCR
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -30,12 +30,23 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - id: getversion
+        uses: Saionaro/extract-package-version@v1.2.1
       - uses: docker/build-push-action@v3.2.0
+        if: github.ref != 'refs/heads/master'
         with:
           context: .
           file: Dockerfile
           platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
           push: true
           tags: |
-            ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:latest
-
+            ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:next
+      - uses: docker/build-push-action@v3.2.0
+        if: github.ref == 'refs/heads/master'
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
+          push: true
+          tags: |
+            ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:latest,ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:${{ steps.getversion.outputs.version }}

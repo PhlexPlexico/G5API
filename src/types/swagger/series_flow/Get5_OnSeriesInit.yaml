@@ -1,0 +1,36 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_OnSeriesInit.yaml with typeconv
+  version: '1'
+  x-id: series_flow/Get5_OnSeriesInit.yaml
+  x-comment: >-
+    Generated from series_flow/Get5_OnSeriesInit.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_OnSeriesInit:
+      properties:
+        event:
+          title: Get5_OnSeriesInit.event
+          type: string
+        matchid:
+          title: Get5_OnSeriesInit.matchid
+          type: string
+        num_maps:
+          title: Get5_OnSeriesInit.num_maps
+          type: number
+        team1:
+          title: Get5_OnSeriesInit.team1
+        team2:
+          title: Get5_OnSeriesInit.team2
+      required:
+        - event
+        - matchid
+        - num_maps
+        - team1
+        - team2
+      additionalProperties: false
+      title: Get5_OnSeriesInit
+      type: object

@@ -1,0 +1,49 @@
+openapi: 3.0.0
+info:
+  title: Converted from Get5_OnBombDefused.yaml with typeconv
+  version: '1'
+  x-id: map_flow/Get5_OnBombDefused.yaml
+  x-comment: >-
+    Generated from map_flow/Get5_OnBombDefused.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    Get5_OnBombDefused:
+      properties:
+        event:
+          title: Get5_OnBombDefused.event
+          type: string
+        matchid:
+          title: Get5_OnBombDefused.matchid
+          type: string
+        map_number:
+          title: Get5_OnBombDefused.map_number
+          type: number
+        round_number:
+          title: Get5_OnBombDefused.round_number
+          type: number
+        round_time:
+          title: Get5_OnBombDefused.round_time
+          type: number
+        player:
+          title: Get5_OnBombDefused.player
+        site:
+          title: Get5_OnBombDefused.site
+          type: string
+        bomb_time_remaining:
+          title: Get5_OnBombDefused.bomb_time_remaining
+          type: number
+      required:
+        - event
+        - matchid
+        - map_number
+        - round_number
+        - round_time
+        - player
+        - site
+        - bomb_time_remaining
+      additionalProperties: false
+      title: Get5_OnBombDefused
+      type: object

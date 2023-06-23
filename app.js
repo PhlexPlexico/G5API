@@ -15,21 +15,25 @@ import swaggerJSDoc from "swagger-jsdoc";
 import { serve, setup } from "swagger-ui-express";
 
 // Route Files
-import indexRouter from "./routes/index.js";
-import leaderboardRouter from "./routes/leaderboard.js";
-import legacyAPICalls from "./routes/legacy/api.js";
-import mapListRouter from "./routes/maps.js";
-import mapstatsRouter from "./routes/mapstats.js";
-import matchesRouter from "./routes/matches/matches.js";
-import matchServerRouter from "./routes/matches/matchserver.js";
-import playerstatsRouter from "./routes/playerstats.js";
-import seasonsRouter from "./routes/seasons.js";
-import serversRouter from "./routes/servers.js";
-import teamsRouter from "./routes/teams.js";
-import usersRouter from "./routes/users.js";
-import vetoesRouter from "./routes/vetoes.js";
-import vetosidesRouter from "./routes/vetosides.js";
-import passport from "./utility/auth.js";
+import indexRouter from "./src/routes/index.js";
+import leaderboardRouter from "./src/routes/leaderboard.js";
+import legacyAPICalls from "./src/routes/legacy/api.js";
+import mapListRouter from "./src/routes/maps.js";
+import mapstatsRouter from "./src/routes/mapstats.js";
+import matchesRouter from "./src/routes/matches/matches.js";
+import matchServerRouter from "./src/routes/matches/matchserver.js";
+import playerstatsRouter from "./src/routes/playerstats/playerstats.js";
+import playerstatsextraRouter from "./src/routes/playerstats/extrastats.js";
+import seasonsRouter from "./src/routes/seasons.js";
+import serversRouter from "./src/routes/servers.js";
+import teamsRouter from "./src/routes/teams.js";
+import usersRouter from "./src/routes/users.js";
+import vetoesRouter from "./src/routes/vetoes.js";
+import vetosidesRouter from "./src/routes/vetosides.js";
+import passport from "./src/utility/auth.js";
+import {router as v2Router} from "./src/routes/v2/api.js";
+import {router as v2DemoRouter} from "./src/routes/v2/demoapi.js";
+import { router as v2BackupRouter } from "./src/routes/v2/backupapi.js";
 // End Route Files
 
 
@@ -112,25 +116,15 @@ const options = {
     openapi: "3.0.0", // Specification (optional, defaults to swagger: '2.0')
     info: {
       title: "G5API", // Title (required)
-      version: "1.7.0", // Version (required)
-    },
+      version: "2.0.0" // Version (required)
+    }
   },
   // Path to the API docs
   apis: [
-    "./routes/leaderboard.js",
-    "./routes/legacy/api.js",
-    "./routes/matches/matches.js",
-    "./routes/matches/matchserver.js",
-    "./routes/maps.js",
-    "./routes/mapstats.js",
-    "./routes/playerstats.js",
-    "./routes/seasons.js",
-    "./routes/servers.js",
-    "./routes/teams.js",
-    "./routes/users.js",
-    "./routes/vetoes.js",
-    "./routes/vetosides.js",
-  ],
+    "./dist/src/routes/**/*.js",
+    "./dist/src/services/**/*.js",
+    "./dist/src/routes/*.js"
+  ]
 };
 const swaggerSpec = swaggerJSDoc(options);
 
@@ -148,10 +142,14 @@ app.use("/vetosides", vetosidesRouter);
 app.use("/matches", matchesRouter, matchServerRouter);
 app.use("/mapstats", mapstatsRouter);
 app.use("/playerstats", playerstatsRouter);
+app.use("/playerstatsextra", playerstatsextraRouter);
 app.use("/seasons", seasonsRouter);
 app.use("/match", legacyAPICalls);
 app.use("/leaderboard", leaderboardRouter);
 app.use("/maps", mapListRouter);
+app.use("/v2", v2Router);
+app.use("/v2/demo", v2DemoRouter);
+app.use("/v2/backup", v2BackupRouter);
 // END ROUTES
 
 // Steam API Calls.

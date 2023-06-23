@@ -1,7 +1,11 @@
+/** @type {import('ts-jest').JestConfigWithTsJest} */
 // For a detailed explanation regarding each configuration property, visit:
 // https://jestjs.io/docs/en/configuration.html
 process.env.NODE_ENV = "test";
 module.exports = {
+  preset: 'ts-jest/presets/js-with-ts-esm',
+  // A path to a custom resolver
+  resolver: "jest-ts-webcompat-resolver",
   // All imported modules in your tests should be mocked automatically
   // automock: false,
 
@@ -58,7 +62,9 @@ module.exports = {
   globalTeardown: "./test-teardown-globals.cjs",
 
   // A set of global variables that need to be available in all test environments
-  // globals: {},
+  // globals: {
+  //   extensionsToTreatAsEsm: ['.ts', '.js']
+  // },
 
   // The maximum amount of workers used to run your tests. Can be specified as % or a number. E.g. maxWorkers: 10% will use 10% of your CPU amount + 1 as the maximum worker number. maxWorkers: 2 will use a maximum of 2 workers.
   // maxWorkers: "50%",
@@ -71,11 +77,14 @@ module.exports = {
   // An array of file extensions your modules use
   moduleFileExtensions: [
     "js",
-    "cjs"
+    "cjs",
+    "ts"
   ],
 
   // A map from regular expressions to module names that allow to stub out resources with a single module
-  // moduleNameMapper: {},
+  moduleNameMapper: {
+    
+  },
 
   // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
   // modulePathIgnorePatterns: [],
@@ -101,8 +110,6 @@ module.exports = {
   // Reset the module registry before running each individual test
   // resetModules: false,
 
-  // A path to a custom resolver
-  // resolver: undefined,
 
   // Automatically restore mock state between every test
   // restoreMocks: false,
@@ -162,7 +169,11 @@ module.exports = {
   // timers: "real",
 
   // A map from regular expressions to paths to transformers
-  // transform: undefined,
+  // transform: {'\\.[jt]sx?$': ['ts-jest', { useESM: true }] },
+  // moduleNameMapper: {
+  //   '(.+)\\.js': '$1'
+  // },
+  // extensionsToTreatAsEsm: ['.ts'],
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
   // transformIgnorePatterns: [
