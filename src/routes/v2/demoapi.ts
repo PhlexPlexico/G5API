@@ -159,7 +159,7 @@ router.post("/", async (req: Request, res: Response) => {
     updateStmt = await db.buildUpdateStatement(updateStmt);
 
     sqlString = "UPDATE map_stats SET ? WHERE id = ?";
-    await db.query(sqlString, [mapInfo[0].id]);
+    await db.query(sqlString, [updateStmt, mapInfo[0].id]);
     GlobalEmitter.emit("demoUpdate");
     res.status(200).send({message: "Success"});
     return;

@@ -35,28 +35,30 @@ class SeriesFlowService {
       // let forfeit: number = event.
       // Match is finalized, this is usually called after a cancel so we just ignore the value with a 200 response.
       if (matchApiCheck == 2) {
-        res.status(200).send({
+        return res.status(200).send({
           message:
             "Match already finalized or and invalid API key has been given."
         });
-        return;
       } else if (matchApiCheck == 1) {
-        res.status(401).send({
+        console.error(
+          "Match already finalized or and invalid API key has been given."
+        );
+        return res.status(401).send({
           message:
             "Match already finalized or and invalid API key has been given."
         });
-        return;
       }
 
       const matchInfo: RowDataPacket[] = await db.query(
         "SELECT team1_id, team2_id, max_maps, start_time, server_id, is_pug, season_id FROM `match` WHERE id = ?",
         [event.matchid]
       );
-      if (event.winner.team === "team1") winnerId = matchInfo[0]?.team1_id;
-      else if (event.winner.team === "team2") winnerId = matchInfo[0]?.team2_id;
+      if (event.winner?.team === "team1") winnerId = matchInfo[0]?.team1_id;
+      else if (event.winner?.team === "team2")
+        winnerId = matchInfo[0]?.team2_id;
       // BO2 situation.
       else if (
-        event.winner.team === "none" &&
+        event.winner?.team === "none" &&
         matchInfo[0].max_maps != 2 &&
         event.team1_series_score == 0 &&
         event.team2_series_score == 0
@@ -126,12 +128,10 @@ class SeriesFlowService {
         );
       }
       GlobalEmitter.emit("matchUpdate");
-      res.status(200).send({ message: "Success" });
-      return;
+      return res.status(200).send({ message: "Success" });
     } catch (error) {
       console.error(error);
-      res.status(500).send({ message: error });
-      return;
+      return res.status(500).send({ message: error });
     }
   }
 
@@ -156,11 +156,13 @@ class SeriesFlowService {
       let winnerId: number | null | string = null;
 
       if (matchApiCheck == 2 || matchApiCheck == 1) {
-        res.status(401).send({
+        console.error(
+          "Match already finalized or and invalid API key has been given."
+        );
+        return res.status(401).send({
           message:
             "Match already finalized or and invalid API key has been given."
         });
-        return;
       }
       sqlString =
         "SELECT is_pug, max_maps, season_id FROM `match` WHERE id = ?";
@@ -169,12 +171,11 @@ class SeriesFlowService {
         "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
       mapInfo = await db.query(sqlString, [event.matchid, event.map_number]);
       if (mapInfo.length < 1) {
-        res.status(404).send({ message: "Failed to find map stats object." });
-        return;
+        return res.status(404).send({ message: "Failed to find map stats object." });
       }
-      if (event.winner.team == "team1") {
+      if (event.winner?.team == "team1") {
         winnerId = event.team1.id;
-      } else if (event.winner.team == "team2") {
+      } else if (event.winner?.team == "team2") {
         winnerId = event.team2.id;
       }
       updateStmt = {
@@ -208,12 +209,10 @@ class SeriesFlowService {
       }
 
       GlobalEmitter.emit("mapStatUpdate");
-      res.status(200).send({ message: "Success" });
-      return;
+      return res.status(200).send({ message: "Success" });
     } catch (error) {
       console.error(error);
-      res.status(500).send({ message: error });
-      return;
+      return res.status(500).send({ message: error });
     }
   }
 
@@ -228,11 +227,13 @@ class SeriesFlowService {
         event.matchid
       );
       if (matchApiCheck == 2 || matchApiCheck == 1) {
-        res.status(401).send({
+        console.error(
+          "Match already finalized or and invalid API key has been given."
+        );
+        return res.status(401).send({
           message:
             "Match already finalized or and invalid API key has been given."
         });
-        return;
       }
       await this.insertPickOrBan(
         "veto",
@@ -240,12 +241,10 @@ class SeriesFlowService {
         event.map_name,
         event.team
       );
-      res.status(200).send({ message: "Success" });
-      return;
+      return res.status(200).send({ message: "Success" });
     } catch (error) {
       console.error(error);
-      res.status(500).send({ message: error });
-      return;
+      return res.status(500).send({ message: error });
     }
   }
 
@@ -260,11 +259,13 @@ class SeriesFlowService {
         event.matchid
       );
       if (matchApiCheck == 2 || matchApiCheck == 1) {
-        res.status(401).send({
+        console.error(
+          "Match already finalized or and invalid API key has been given."
+        );
+        return res.status(401).send({
           message:
             "Match already finalized or and invalid API key has been given."
         });
-        return;
       }
       await this.insertPickOrBan(
         "pick",
@@ -272,12 +273,10 @@ class SeriesFlowService {
         event.map_name,
         event.team
       );
-      res.status(200).send({ message: "Success" });
-      return;
+      return res.status(200).send({ message: "Success" });
     } catch (error) {
       console.error(error);
-      res.status(500).send({ message: error });
-      return;
+      return res.status(500).send({ message: error });
     }
   }
 
@@ -292,11 +291,13 @@ class SeriesFlowService {
         event.matchid
       );
       if (matchApiCheck == 2 || matchApiCheck == 1) {
-        res.status(401).send({
+        console.error(
+          "Match already finalized or and invalid API key has been given."
+        );
+        return res.status(401).send({
           message:
             "Match already finalized or and invalid API key has been given."
         });
-        return;
       }
       let sqlString: string =
         "SELECT team1_id, team2_id FROM `match` WHERE id = ?";
@@ -307,6 +308,10 @@ class SeriesFlowService {
       let teamPickSideString: string = "Default";
       let vetoId: number;
       let insertObj: Object;
+      // No side was chosen, perhaps was default? Ignore the event.
+      if (!event.side) {
+        return res.status(200).send({ message: "Success" });
+      }
       if (event.team !== null) {
         const matchInfo: RowDataPacket[] = await db.query(sqlString, [
           event.matchid
@@ -335,7 +340,7 @@ class SeriesFlowService {
         teamPickMapString,
         event.map_name
       ]);
-      vetoId = vetoInfo[0].id;
+      vetoId = vetoInfo[0]?.id;
 
       // Insert into veto_side now.
       insertObj = {
@@ -350,12 +355,10 @@ class SeriesFlowService {
       sqlString = "INSERT INTO veto_side SET ?";
       await db.query(sqlString, [insertObj]);
       GlobalEmitter.emit("vetoSideUpdate");
-      res.status(200).send({ message: "Success" });
-      return;
+      return res.status(200).send({ message: "Success" });
     } catch (error) {
       console.error(error);
-      res.status(500).send({ message: error });
-      return;
+      return res.status(500).send({ message: error });
     }
   }
 
@@ -375,11 +378,13 @@ class SeriesFlowService {
       event.matchid
     );
     if (matchApiCheck == 2 || matchApiCheck == 1) {
-      res.status(401).send({
+      console.error(
+        "Match already finalized or and invalid API key has been given."
+      );
+      return res.status(401).send({
         message:
           "Match already finalized or and invalid API key has been given."
       });
-      return;
     }
     let sqlString: string =
       "DELETE FROM player_stat_extras " +
@@ -392,8 +397,8 @@ class SeriesFlowService {
       event.map_number,
       event.round_number
     ]);
-    res.status(200).send({ message: "Success" });
     this.wasRoundRestored = true;
+    return res.status(200).send({ message: "Success" });
   }
 
   private static async insertPickOrBan(
