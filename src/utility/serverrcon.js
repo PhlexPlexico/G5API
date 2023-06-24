@@ -205,21 +205,21 @@ class ServerRcon {
       if (parseFloat(get5Version) >= 0.14) {
         let apiString = config.get("server.apiURL");
         await this.execute(
-          "get5_remote_log_url ".concat(
+          'get5_remote_log_url "'.concat(
             apiString.endsWith("/")
               ? apiString.concat("v2")
               : apiString.concat("/v2")
-          )
+          ) + '"'
         );
         await this.execute("get5_remote_log_header_key Authorization");
         await this.execute("get5_remote_log_header_value " + get5APIKeyString);
 
         await this.execute(
-          "get5_remote_backup_url ".concat(
+          'get5_remote_backup_url "'.concat(
             apiString.endsWith("/")
               ? apiString.concat("v2/backup")
               : apiString.concat("/v2/backup")
-          )
+          ) + '"'
         );
         await this.execute("get5_remote_backup_header_key Authorization");
         await this.execute(
@@ -227,11 +227,11 @@ class ServerRcon {
         );
 
         await this.execute(
-          "get5_demo_upload_url ".concat(
-            config.get("server.apiURL").endsWith("/")
+          'get5_demo_upload_url "'.concat(
+            apiString.endsWith("/")
               ? apiString.concat("v2/demo")
               : apiString.concat("/v2/demo")
-          )
+          ) + '"'
         );
         await this.execute("get5_demo_upload_header_key Authorization");
         await this.execute("get5_demo_upload_header_value " + get5APIKeyString);
