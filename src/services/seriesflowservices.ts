@@ -14,16 +14,11 @@ import update_challonge_match from "../services/challonge.js";
 class SeriesFlowService {
   static wasRoundRestored: boolean = false;
   static async OnSeriesResult(
-    apiKey: string,
     event: Get5_OnSeriesResult,
     res: Response
   ) {
     try {
       // Check if match has been finalized.
-      const matchApiCheck: number = await Utils.checkApiKey(
-        apiKey,
-        event.matchid
-      );
       let winnerId: number | null = null;
       let cancelled: number | null = null;
       let endTime: string = new Date()
@@ -31,23 +26,6 @@ class SeriesFlowService {
         .slice(0, 19)
         .replace("T", " ");
       let updateObject: {};
-      // As of right now there is no way to track forfeits via API calls.
-      // let forfeit: number = event.
-      // Match is finalized, this is usually called after a cancel so we just ignore the value with a 200 response.
-      if (matchApiCheck == 2) {
-        return res.status(200).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-      } else if (matchApiCheck == 1) {
-        console.error(
-          "Match already finalized or and invalid API key has been given."
-        );
-        return res.status(401).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-      }
 
       const matchInfo: RowDataPacket[] = await db.query(
         "SELECT team1_id, team2_id, max_maps, start_time, server_id, is_pug, season_id FROM `match` WHERE id = ?",
@@ -129,22 +107,19 @@ class SeriesFlowService {
       }
       GlobalEmitter.emit("matchUpdate");
       return res.status(200).send({ message: "Success" });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      return res.status(500).send({ message: error });
+      if (error instanceof Error)
+        return res.status(500).send({ message: error.message });
+      else return res.status(500).send({ message: error });
     }
   }
 
   static async OnMapResult(
-    apiKey: string,
     event: Get5_OnMapResult,
     res: Response
   ) {
     try {
-      const matchApiCheck: number = await Utils.checkApiKey(
-        apiKey,
-        event.matchid
-      );
       let updateStmt: object = {};
       let sqlString: string;
       let matchInfo: RowDataPacket[];
@@ -154,16 +129,6 @@ class SeriesFlowService {
         .slice(0, 19)
         .replace("T", " ");
       let winnerId: number | null | string = null;
-
-      if (matchApiCheck == 2 || matchApiCheck == 1) {
-        console.error(
-          "Match already finalized or and invalid API key has been given."
-        );
-        return res.status(401).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-      }
       sqlString =
         "SELECT is_pug, max_maps, season_id FROM `match` WHERE id = ?";
       matchInfo = await db.query(sqlString, [event.matchid]);
@@ -210,31 +175,19 @@ class SeriesFlowService {
 
       GlobalEmitter.emit("mapStatUpdate");
       return res.status(200).send({ message: "Success" });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      return res.status(500).send({ message: error });
+      if (error instanceof Error)
+        return res.status(500).send({ message: error.message });
+      else return res.status(500).send({ message: error });
     }
   }
 
   static async OnMapVetoed(
-    apiKey: string,
     event: Get5_OnMapVetoed,
     res: Response
   ) {
     try {
-      const matchApiCheck: number = await Utils.checkApiKey(
-        apiKey,
-        event.matchid
-      );
-      if (matchApiCheck == 2 || matchApiCheck == 1) {
-        console.error(
-          "Match already finalized or and invalid API key has been given."
-        );
-        return res.status(401).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-      }
       await this.insertPickOrBan(
         "veto",
         event.matchid,
@@ -242,31 +195,19 @@ class SeriesFlowService {
         event.team
       );
       return res.status(200).send({ message: "Success" });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      return res.status(500).send({ message: error });
+      if (error instanceof Error)
+        return res.status(500).send({ message: error.message });
+      else return res.status(500).send({ message: error });
     }
   }
 
   static async OnMapPicked(
-    apiKey: string,
     event: Get5_OnMapPicked,
     res: Response
   ) {
     try {
-      const matchApiCheck: number = await Utils.checkApiKey(
-        apiKey,
-        event.matchid
-      );
-      if (matchApiCheck == 2 || matchApiCheck == 1) {
-        console.error(
-          "Match already finalized or and invalid API key has been given."
-        );
-        return res.status(401).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-      }
       await this.insertPickOrBan(
         "pick",
         event.matchid,
@@ -274,31 +215,19 @@ class SeriesFlowService {
         event.team
       );
       return res.status(200).send({ message: "Success" });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      return res.status(500).send({ message: error });
+      if (error instanceof Error)
+        return res.status(500).send({ message: error.message });
+      else return res.status(500).send({ message: error });
     }
   }
 
   static async OnSidePicked(
-    apiKey: string,
     event: Get5_OnSidePicked,
     res: Response
   ) {
     try {
-      const matchApiCheck: number = await Utils.checkApiKey(
-        apiKey,
-        event.matchid
-      );
-      if (matchApiCheck == 2 || matchApiCheck == 1) {
-        console.error(
-          "Match already finalized or and invalid API key has been given."
-        );
-        return res.status(401).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-      }
       let sqlString: string =
         "SELECT team1_id, team2_id FROM `match` WHERE id = ?";
       let teamPickId: number;
@@ -356,14 +285,15 @@ class SeriesFlowService {
       await db.query(sqlString, [insertObj]);
       GlobalEmitter.emit("vetoSideUpdate");
       return res.status(200).send({ message: "Success" });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      return res.status(500).send({ message: error });
+      if (error instanceof Error)
+        return res.status(500).send({ message: error.message });
+      else return res.status(500).send({ message: error });
     }
   }
 
   static async OnBackupRestore(
-    apiKey: string,
     event: Get5_OnBackupRestore,
     res: Response
   ) {
@@ -373,19 +303,6 @@ class SeriesFlowService {
     // and mark a value that will ensure the remaining player stats are updated as such.
     // The main chunk of update logic will then take place in the map flow service, on the OnRoundEnd function
     // as we get all the player information from that call.
-    const matchApiCheck: number = await Utils.checkApiKey(
-      apiKey,
-      event.matchid
-    );
-    if (matchApiCheck == 2 || matchApiCheck == 1) {
-      console.error(
-        "Match already finalized or and invalid API key has been given."
-      );
-      return res.status(401).send({
-        message:
-          "Match already finalized or and invalid API key has been given."
-      });
-    }
     let sqlString: string =
       "DELETE FROM player_stat_extras " +
       "WHERE match_id = ? AND " +
