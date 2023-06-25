@@ -38,6 +38,7 @@ import { Get5_OnPlayerDeath } from "../../types/map_flow/Get5_OnPlayerDeath.js";
 import { Get5_OnBombEvent } from "../../types/map_flow/Get5_OnBombEvent.js";
 import { Get5_OnRoundStart } from "../../types/map_flow/Get5_OnRoundStart.js";
 import Utils from "../../utility/utils.js";
+import { Get5_OnRoundEnd } from "../../types/map_flow/Get5_OnRoundEnd.js";
 
 /** Basic Rate limiter.
  * @const
@@ -107,8 +108,10 @@ router.post("/", basicRateLimit, async (req, res) => {
     }
 
     const matchApiCheck: number = await Utils.checkApiKey(apiKey, matchId);
-
-    if (eventType.event == "series_end") {
+    if (eventType.event == "demo_upload_ended") {
+      // Ignore demo_upload_ended event.
+      return res.status(200).send({message: "Success"});
+    } else if (eventType.event == "series_end") {
       // let forfeit: number = event.
       // Match is finalized, this is usually called after a cancel so we just ignore the value with a 200 response.
       if (matchApiCheck == 2) {
@@ -125,7 +128,7 @@ router.post("/", basicRateLimit, async (req, res) => {
             "Match already finalized or and invalid API key has been given."
         });
       }
-    } else {
+    } /*else {
       if (matchApiCheck == 2 || matchApiCheck == 1) {
         console.error(
           "Match already finalized or and invalid API key has been given."
@@ -135,7 +138,7 @@ router.post("/", basicRateLimit, async (req, res) => {
             "Match already finalized or and invalid API key has been given."
         });
       }
-    }
+    }*/
 
     switch (eventType.event) {
       // Series Flows
@@ -166,6 +169,9 @@ router.post("/", basicRateLimit, async (req, res) => {
         break;
       case "round_start":
         MapFlowService.OnRoundStart(req.body as Get5_OnRoundStart, res);
+        break;
+      case "round_end":
+        MapFlowService.OnRoundEnd(req.body as Get5_OnRoundEnd, res);
         break;
       case "player_death":
         MapFlowService.OnPlayerDeath(req.body as Get5_OnPlayerDeath, res);

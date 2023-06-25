@@ -23,9 +23,9 @@ import { Get5_OnMatchPausedUnpaused } from "../types/map_flow/Get5_OnMatchPaused
 import { Get5_OnPlayerDeath } from "../types/map_flow/Get5_OnPlayerDeath.js";
 import { Get5_OnBombEvent } from "../types/map_flow/Get5_OnBombEvent.js";
 import { Get5_OnRoundEnd } from "../types/map_flow/Get5_OnRoundEnd.js";
-import SeriesFlowService from "./seriesflowservices.js";
 import { Get5_OnRoundStart } from "../types/map_flow/Get5_OnRoundStart.js";
 import { Get5_Player } from "../types/Get5_Player.js";
+import update_challonge_match from "./challonge.js";
 
 /**
  * @class
@@ -370,6 +370,7 @@ class MapFlowService {
         "SELECT id FROM map_stats WHERE match_id = ? AND map_number = ?";
       let insUpdStatement: object;
       let mapStatInfo: RowDataPacket[];
+      let matchSeasonInfo: RowDataPacket[];
       let playerStats: RowDataPacket[];
       let singlePlayerStat: RowDataPacket[];
 
@@ -406,6 +407,28 @@ class MapFlowService {
         );
       }
       GlobalEmitter.emit("playerStatsUpdate");
+      
+      // Update map stats. Grab season info
+      sqlString = "UPDATE map_stats SET ? WHERE id = ?";
+      insUpdStatement = {
+        team1_score: event.team1.score,
+        team2_score: event.team2.score
+      }
+      await db.query(sqlString, [insUpdStatement, mapStatInfo[0].id]);
+      // Update Challonge info if needed.
+      sqlString = "SELECT max_maps, season_id FROM `match` WHERE id = ?";
+      matchSeasonInfo = await db.query(sqlString, [event.matchid]);
+      if (matchSeasonInfo[0]?.season_id && matchSeasonInfo[0].max_maps == 1) {
+        await update_challonge_match(
+          event.matchid,
+          matchSeasonInfo[0].season_id,
+          +event.team1.id,
+          +event.team2.id,
+          matchSeasonInfo[0].max_maps
+        );
+      }
+      GlobalEmitter.emit("mapStatUpdate");
+
       return res.status(200).send({ message: "Success" });
     } catch (error: unknown) {
       console.error(error);
@@ -494,14 +517,9 @@ class MapFlowService {
     let mapStatInfo: RowDataPacket[];
 
     // Check if round was backed up and nuke the additional player stats and bomb plants.
-    if (SeriesFlowService.wasRoundRestored) {
-      sqlString =
-        "SELECT id FROM map_stats WHERE match_id = ? AND map_number = ?";
-      mapStatInfo = await db.query(sqlString, [
-        event.matchid,
-        event.map_number
-      ]);
-
+    sqlString = "SELECT round_restored, id FROM map_stats WHERE match_id = ? AND map_number = ?";
+    mapStatInfo = await db.query(sqlString, [event.matchid, event.map_number]);
+    if (mapStatInfo[0]?.round_restored) {
       sqlString =
         "DELETE FROM match_bomb_plants WHERE round_number > ? AND match_id = ? AND map_id = ?";
       await db.query(sqlString, [
@@ -517,9 +535,9 @@ class MapFlowService {
         mapStatInfo[0].id,
         event.round_number
       ]);
-      SeriesFlowService.wasRoundRestored = false;
+      // Only emit if there was an actual update.
+      GlobalEmitter.emit("playerStatsUpdate");
     }
-    GlobalEmitter.emit("playerStatsUpdate");
     return res.status(200).send({ message: "Success" });
   }
 

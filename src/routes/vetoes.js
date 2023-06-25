@@ -188,7 +188,6 @@ router.get("/:match_id/stream", async (req, res, next) => {
     res.write(vetoEventString);
 
     req.on("close", () => {
-      console.log("\n\nCLOSED\n\n");
       GlobalEmitter.removeListener("vetoUpdate", vetoStreamData);
       res.end();
     });

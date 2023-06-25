@@ -12,11 +12,7 @@ import Utils from "../utility/utils.js";
 import update_challonge_match from "../services/challonge.js";
 
 class SeriesFlowService {
-  static wasRoundRestored: boolean = false;
-  static async OnSeriesResult(
-    event: Get5_OnSeriesResult,
-    res: Response
-  ) {
+  static async OnSeriesResult(event: Get5_OnSeriesResult, res: Response) {
     try {
       // Check if match has been finalized.
       let winnerId: number | null = null;
@@ -115,10 +111,7 @@ class SeriesFlowService {
     }
   }
 
-  static async OnMapResult(
-    event: Get5_OnMapResult,
-    res: Response
-  ) {
+  static async OnMapResult(event: Get5_OnMapResult, res: Response) {
     try {
       let updateStmt: object = {};
       let sqlString: string;
@@ -136,7 +129,9 @@ class SeriesFlowService {
         "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
       mapInfo = await db.query(sqlString, [event.matchid, event.map_number]);
       if (mapInfo.length < 1) {
-        return res.status(404).send({ message: "Failed to find map stats object." });
+        return res
+          .status(404)
+          .send({ message: "Failed to find map stats object." });
       }
       if (event.winner?.team == "team1") {
         winnerId = event.team1.id;
@@ -183,10 +178,7 @@ class SeriesFlowService {
     }
   }
 
-  static async OnMapVetoed(
-    event: Get5_OnMapVetoed,
-    res: Response
-  ) {
+  static async OnMapVetoed(event: Get5_OnMapVetoed, res: Response) {
     try {
       await this.insertPickOrBan(
         "veto",
@@ -203,10 +195,7 @@ class SeriesFlowService {
     }
   }
 
-  static async OnMapPicked(
-    event: Get5_OnMapPicked,
-    res: Response
-  ) {
+  static async OnMapPicked(event: Get5_OnMapPicked, res: Response) {
     try {
       await this.insertPickOrBan(
         "pick",
@@ -223,10 +212,7 @@ class SeriesFlowService {
     }
   }
 
-  static async OnSidePicked(
-    event: Get5_OnSidePicked,
-    res: Response
-  ) {
+  static async OnSidePicked(event: Get5_OnSidePicked, res: Response) {
     try {
       let sqlString: string =
         "SELECT team1_id, team2_id FROM `match` WHERE id = ?";
@@ -293,10 +279,7 @@ class SeriesFlowService {
     }
   }
 
-  static async OnBackupRestore(
-    event: Get5_OnBackupRestore,
-    res: Response
-  ) {
+  static async OnBackupRestore(event: Get5_OnBackupRestore, res: Response) {
     // Logic for this is to fix a bug in user stats when a round restore happens. In previous iterations of the API
     // we would not care if a user would restore the match, which could lead to misrepresentation of stats.
     // This route will now fix this issue by seeking out all the data that's > the current round where it can,
@@ -314,7 +297,9 @@ class SeriesFlowService {
       event.map_number,
       event.round_number
     ]);
-    this.wasRoundRestored = true;
+    sqlString =
+      "UPDATE `map_stats` SET round_restored = 1 WHERE match_id = ? AND map_number = ?";
+    await db.query(sqlString, [event.matchid, event.map_number]);
     return res.status(200).send({ message: "Success" });
   }
 
@@ -335,7 +320,7 @@ class SeriesFlowService {
     // XXX: Maybe change the DB to use team1 and team2 and use a join query to retrieve the actual names?
     matchInfo = await db.query(sqlString, [matchid]);
     if (team === "team1") teamId = matchInfo[0].team1_id;
-    else if (team === "team2") teamId = matchInfo[0].team1_id;
+    else if (team === "team2") teamId = matchInfo[0].team2_id;
     else teamId = -1;
 
     if (teamId == -1) {

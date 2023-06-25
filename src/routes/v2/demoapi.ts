@@ -104,18 +104,16 @@ router.post("/", async (req: Request, res: Response) => {
     const demoFilename: string | undefined = req.get("Get5-FileName");
     // Check that the values have made it across.
     if (!apiKey || !matchId || !mapNumber || !demoFilename) {
-      res
+      return res
         .status(401)
         .send({ message: "API key, Match ID, or Map Number not provided." });
-      return;
     }
     // Check if our API key is correct.
     const matchApiCheck: number = await Utils.checkApiKey(apiKey, matchId);
     if (matchApiCheck == 1) {
-      res.status(401).send({
+      return res.status(401).send({
         message: "Invalid API key has been given."
       });
-      return;
     }
     // Begin file compression into public/demos and check time variance of 8 minutes.
     let zip: JSZip = new JSZip();
@@ -126,8 +124,7 @@ router.post("/", async (req: Request, res: Response) => {
       mapNumber
     ]);
     if (mapInfo.length == 0) {
-      res.status(404).send({ message: "Failed to find map stats object." });
-      return;
+      return res.status(404).send({ message: "Failed to find map stats object." });
     }
     let currentDate: Date = new Date();
     let endTimeMs: Date = new Date(mapInfo[0].end_time);
@@ -137,15 +134,14 @@ router.post("/", async (req: Request, res: Response) => {
     let minuteDifference = Math.floor(timeDifference / 1000 / 60);
     let updateStmt: object;
     if (minuteDifference > 8) {
-      res.status(401).json({ message: "Demo can no longer be uploaded." });
-      return;
+      return res.status(401).json({ message: "Demo can no longer be uploaded." });
     }
 
     zip.file(demoFilename, req.body, { binary: true });
     zip
       .generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
       .then((buf) => {
-        writeFile("public/demos" + demoFilename, buf, "binary", function (err) {
+        writeFile("public/demos/" + demoFilename, buf, "binary", function (err) {
           if (err) {
             console.error(err);
             throw err;
