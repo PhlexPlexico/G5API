@@ -90,8 +90,7 @@ router.post("/", basicRateLimit, async (req, res) => {
 
   try {
     if (!apiKey) {
-      res.status(401).send({ message: "API key not provided." });
-      return;
+      return res.status(401).send({ message: "API key not provided." });
     }
 
     if (!matchId) {
@@ -110,7 +109,6 @@ router.post("/", basicRateLimit, async (req, res) => {
     const matchApiCheck: number = await Utils.checkApiKey(apiKey, matchId);
 
     if (eventType.event == "series_end") {
-      // As of right now there is no way to track forfeits via API calls.
       // let forfeit: number = event.
       // Match is finalized, this is usually called after a cancel so we just ignore the value with a 200 response.
       if (matchApiCheck == 2) {
@@ -189,6 +187,9 @@ router.post("/", basicRateLimit, async (req, res) => {
           req.body as Get5_OnMatchPausedUnpaused,
           res
         );
+        break;
+      default:
+        res.status(400).send({message: `Event ${eventType.event} is not implemented.`});
         break;
     }
     // Responses are taken care of in the case statements.
