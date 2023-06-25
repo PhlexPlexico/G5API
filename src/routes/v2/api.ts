@@ -88,6 +88,7 @@ router.post("/", basicRateLimit, async (req, res) => {
   const eventType: Get5_OnEvent = req.body;
 
   try {
+    console.log(req.body);
     if (!apiKey) {
       res.status(401).send({ message: "API key not provided." });
       return;
