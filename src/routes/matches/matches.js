@@ -117,6 +117,9 @@ import GlobalEmitter from "../../utility/emitter.js";
  *         match_cvars:
  *           type: object
  *           description: An object of key-value pairs containing different unique match CVARs.
+ *         wingman:
+ *           type: boolean
+ *           description: Flag indicating whether the gamemode is wingman or not.
  *
  *     MatchConfig:
  *        type: object
@@ -1035,7 +1038,8 @@ router.get("/:match_id/config", async (req, res, next) => {
       min_spectators_to_ready:
         matchInfo[0].min_spectators_to_ready !== null
           ? matchInfo[0].min_spectators_to_ready
-          : 0
+          : 0,
+      wingman: matchInfo[0]?.wingman == 1 ? true : false
     };
     matchJSON.num_maps = parseInt(matchInfo[0].max_maps);
     if (matchJSON.skip_veto && matchInfo[0].map_sides)
@@ -1162,7 +1166,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         req.body[0].min_spectators_to_ready !== null
           ? req.body[0].min_spectators_to_ready
           : 0,
-      map_sides: req.body[0].map_sides !== null ? req.body[0].map_sides : null
+      map_sides: req.body[0].map_sides !== null ? req.body[0].map_sides : null,
+      wingman: req.body[0]?.wingman 
     };
     let sql = "INSERT INTO `match` SET ?";
     let cvarSql =
@@ -1371,7 +1376,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           req.body[0].min_spectators_to_ready !== null
             ? req.body[0].min_spectators_to_ready
             : 0,
-        map_sides: req.body[0].map_sides !== null ? req.body[0].map_sides : null
+        map_sides: req.body[0].map_sides !== null ? req.body[0].map_sides : null,
+        wingman: req.body[0]?.wingman
       };
       // Remove any values that may not be updated.
       updateStmt = await db.buildUpdateStatement(updateStmt);
