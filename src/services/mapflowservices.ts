@@ -24,7 +24,6 @@ import { Get5_OnPlayerDeath } from "../types/map_flow/Get5_OnPlayerDeath.js";
 import { Get5_OnBombEvent } from "../types/map_flow/Get5_OnBombEvent.js";
 import { Get5_OnRoundEnd } from "../types/map_flow/Get5_OnRoundEnd.js";
 import { Get5_OnRoundStart } from "../types/map_flow/Get5_OnRoundStart.js";
-import { Get5_Player } from "../types/Get5_Player.js";
 import update_challonge_match from "./challonge.js";
 
 /**
@@ -331,11 +330,27 @@ class MapFlowService {
         mapInfo[0].id,
         event.player.steamid
       ]);
+      // If player does not have player stats yet, insert them.
+      if (!playerStatInfo.length && !event.player?.is_bot) {
+        let teamId: RowDataPacket[];
+        sqlString =
+          "SELECT t.id FROM team t JOIN team_auth_names ta ON ta.team_id = t.id WHERE ta.auth = ?";
+        teamId = await db.query(sqlString, [event.player.steamid]);
+        await Utils.updatePlayerStats(event.matchid, teamId[0].id, mapInfo[0].id, event.player, null);
 
+        // Grab player info again!
+        sqlString =
+          "SELECT id FROM player_stats WHERE match_id = ? AND map_id = ? AND steam_id = ?";
+        playerStatInfo = await db.query(sqlString, [
+          event.matchid,
+          mapInfo[0].id,
+          event.player.steamid
+        ]);
+      }
       insObject = {
         match_id: event.matchid,
         map_id: mapInfo[0].id,
-        player_stat_id: playerStatInfo[0].id,
+        player_stats_id: playerStatInfo[0].id,
         round_number: event.round_number,
         round_time: event.round_time,
         site: event.site,
@@ -382,7 +397,7 @@ class MapFlowService {
         "SELECT * FROM player_stats WHERE match_id = ? AND map_id = ?";
       playerStats = await db.query(sqlString, [
         event.matchid,
-        mapStatInfo[0].id
+        mapStatInfo[0]?.id
       ]);
       for (let player of event.team1.players) {
         singlePlayerStat = playerStats.filter(
@@ -393,7 +408,7 @@ class MapFlowService {
           event.team1.id,
           mapStatInfo[0].id,
           player,
-          singlePlayerStat[0].id
+          singlePlayerStat[0]?.id
         );
       }
       for (let player of event.team2.players) {
@@ -405,7 +420,7 @@ class MapFlowService {
           event.team2.id,
           mapStatInfo[0].id,
           player,
-          singlePlayerStat[0].id
+          singlePlayerStat[0]?.id
         );
       }
       GlobalEmitter.emit("playerStatsUpdate");
