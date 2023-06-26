@@ -128,7 +128,7 @@ router.post("/", basicRateLimit, async (req, res) => {
             "Match already finalized or and invalid API key has been given."
         });
       }
-    } /*else {
+    } else {
       if (matchApiCheck == 2 || matchApiCheck == 1) {
         console.error(
           "Match already finalized or and invalid API key has been given."
@@ -138,7 +138,7 @@ router.post("/", basicRateLimit, async (req, res) => {
             "Match already finalized or and invalid API key has been given."
         });
       }
-    }*/
+    }
 
     switch (eventType.event) {
       // Series Flows

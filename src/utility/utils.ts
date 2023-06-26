@@ -29,6 +29,8 @@ import { ID } from "@node-steam/id";
 import {db} from "../services/db.js";
 import { RowDataPacket } from 'mysql2';
 import { NextFunction, Request, Response } from 'express';
+import { Get5_OnRoundEnd } from '../types/map_flow/Get5_OnRoundEnd.js';
+import { Get5_Player } from '../types/Get5_Player.js';
 
 class Utils {
   /** Function to get an HLTV rating for a user.
@@ -517,6 +519,74 @@ class Utils {
     )
       return 2;
     else return 0;
+  }
+
+  /**
+   * Private helper function to update player stats based on a team.
+   * @param {string} matchid The current match ID.
+   * @param {string} teamid The team ID of the player being updated.
+   * @param {number} mapId The map ID from the database.
+   * @param {Get5_Player} player The Get5_Player structure.
+   * @param {number} playerId The player ID from the database.
+   */
+  public static async updatePlayerStats(
+    matchid: string,
+    teamid: string,
+    mapId: number,
+    player: Get5_Player,
+    playerId: number | null
+  ) {
+    let insUpdStatement: object;
+    let sqlString: string;
+    insUpdStatement = {
+      match_id: matchid,
+      map_id: mapId,
+      team_id: teamid,
+      steam_id: player.steamid,
+      name: player.name,
+      kills: player.stats?.kills,
+      deaths: player.stats?.deaths,
+      roundsplayed: player.stats?.rounds_played,
+      assists: player.stats?.assists,
+      flashbang_assists: player.stats?.flash_assists,
+      teamkills: player.stats?.team_kills,
+      knife_kills: player.stats?.knife_kills,
+      suicides: player.stats?.suicides,
+      headshot_kills: player.stats?.headshot_kills,
+      damage: player.stats?.damage,
+      util_damage: player.stats?.utility_damage,
+      enemies_flashed: player.stats?.enemies_flashed,
+      friendlies_flashed: player.stats?.friendlies_flashed,
+      bomb_plants: player.stats?.bomb_plants,
+      bomb_defuses: player.stats?.bomb_defuses,
+      v1: player.stats?.["1v1"],
+      v2: player.stats?.["1v2"],
+      v3: player.stats?.["1v3"],
+      v4: player.stats?.["1v4"],
+      v5: player.stats?.["1v5"],
+      k1: player.stats?.["1k"],
+      k2: player.stats?.["2k"],
+      k3: player.stats?.["3k"],
+      k4: player.stats?.["4k"],
+      k5: player.stats?.["5k"],
+      firstdeath_ct: player.stats?.first_deaths_ct,
+      firstdeath_t: player.stats?.first_deaths_t,
+      firstkill_ct: player.stats?.first_kills_ct,
+      firstkill_t: player.stats?.first_kills_t,
+      kast: player.stats?.kast,
+      contribution_score: player.stats?.score,
+      mvp: player.stats?.mvp
+    };
+
+    insUpdStatement = await db.buildUpdateStatement(insUpdStatement);
+
+    if (playerId) {
+      sqlString = "UPDATE player_stats SET ? WHERE id = ?";
+      await db.query(sqlString, [insUpdStatement, playerId]);
+    } else {
+      sqlString = "INSERT INTO player_stats SET ?";
+      await db.query(sqlString, insUpdStatement);
+    }
   }
 }
 

@@ -53,7 +53,7 @@ class MapFlowService {
       let mapName: string;
       let matchInfo: RowDataPacket[];
 
-      sqlString = "SELECT map FROM veto WHERE match_id = ? ORDER BY id";
+      sqlString = "SELECT map FROM veto WHERE match_id = ? AND pick_or_veto = 'pick' ORDER BY id";
       vetoInfo = await db.query(sqlString, [event.matchid]);
       if (vetoInfo.length) {
         mapName = vetoInfo[event.map_number]?.map;
@@ -388,8 +388,9 @@ class MapFlowService {
         singlePlayerStat = playerStats.filter(
           (dbPlayer) => dbPlayer.steam_id == player.steamid
         );
-        await this.updatePlayerStats(
-          event,
+        await Utils.updatePlayerStats(
+          event.matchid,
+          event.team1.id,
           mapStatInfo[0].id,
           player,
           singlePlayerStat[0].id
@@ -399,8 +400,9 @@ class MapFlowService {
         singlePlayerStat = playerStats.filter(
           (dbPlayer) => dbPlayer.steam_id == player.steamid
         );
-        await this.updatePlayerStats(
-          event,
+        await Utils.updatePlayerStats(
+          event.matchid,
+          event.team2.id,
           mapStatInfo[0].id,
           player,
           singlePlayerStat[0].id
@@ -438,71 +440,7 @@ class MapFlowService {
     }
   }
 
-  /**
-   * Private helper function to update player stats based on a team.
-   * @param {Get5_OnRoundEnd} event The Get5_OnRoundEnd event.
-   * @param {number} mapId The map ID from the database.
-   * @param {Get5_Player} player The Get5_Player structure.
-   * @param {number} playerId The player ID from the database.
-   */
-  private static async updatePlayerStats(
-    event: Get5_OnRoundEnd,
-    mapId: number,
-    player: Get5_Player,
-    playerId: number | null
-  ) {
-    let insUpdStatement: object;
-    let sqlString: string;
-    insUpdStatement = {
-      match_id: event.matchid,
-      map_id: mapId,
-      team_id: event.team1.id,
-      steam_id: player.steamid,
-      name: player.name,
-      kills: player.stats?.kills,
-      deaths: player.stats?.deaths,
-      roundsplayed: player.stats?.rounds_played,
-      assists: player.stats?.assists,
-      flashbang_assists: player.stats?.flash_assists,
-      teamkills: player.stats?.team_kills,
-      knife_kills: player.stats?.knife_kills,
-      suicides: player.stats?.suicides,
-      headshot_kills: player.stats?.headshot_kills,
-      damage: player.stats?.damage,
-      util_damage: player.stats?.utility_damage,
-      enemies_flashed: player.stats?.enemies_flashed,
-      friendlies_flashed: player.stats?.friendlies_flashed,
-      bomb_plants: player.stats?.bomb_plants,
-      bomb_defuses: player.stats?.bomb_defuses,
-      v1: player.stats?.["1v1"],
-      v2: player.stats?.["1v2"],
-      v3: player.stats?.["1v3"],
-      v4: player.stats?.["1v4"],
-      v5: player.stats?.["1v5"],
-      k1: player.stats?.["1k"],
-      k2: player.stats?.["2k"],
-      k3: player.stats?.["3k"],
-      k4: player.stats?.["4k"],
-      k5: player.stats?.["5k"],
-      firstdeath_ct: player.stats?.first_deaths_ct,
-      firstdeath_t: player.stats?.first_deaths_t,
-      firstkill_ct: player.stats?.first_kills_ct,
-      firstkill_t: player.stats?.first_kills_t,
-      kast: player.stats?.kast,
-      contribution_score: player.stats?.score,
-      mvp: player.stats?.mvp
-    };
-
-    insUpdStatement = await db.buildUpdateStatement(insUpdStatement);
-
-    if (playerId) {
-      sqlString = "UPDATE player_stats SET ? WHERE id = ?";
-      await db.query(sqlString, [insUpdStatement, playerId]);
-    } else {
-      sqlString = "INSERT INTO player_stats SET ?";
-      await db.query(sqlString, insUpdStatement);
-    }
-  }
+  
 
   /**
    * Updates the database and emits playerStatsUpdate when a round has been restored and the match has started again.

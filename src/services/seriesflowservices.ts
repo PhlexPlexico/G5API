@@ -117,6 +117,8 @@ class SeriesFlowService {
       let sqlString: string;
       let matchInfo: RowDataPacket[];
       let mapInfo: RowDataPacket[];
+      let playerStats: RowDataPacket[];
+      let singlePlayerStat: RowDataPacket[];
       let mapEndTime: string = new Date()
         .toISOString()
         .slice(0, 19)
@@ -146,6 +148,36 @@ class SeriesFlowService {
       sqlString = "UPDATE map_stats SET ? WHERE id = ?";
       updateStmt = await db.buildUpdateStatement(updateStmt);
       await db.query(sqlString, [updateStmt, mapInfo[0].id]);
+
+      // Final update of playerstats.
+      sqlString =
+        "SELECT * FROM player_stats WHERE match_id = ? AND map_id = ?";
+      playerStats = await db.query(sqlString, [event.matchid, mapInfo[0].id]);
+      for (let player of event.team1.players) {
+        singlePlayerStat = playerStats.filter(
+          (dbPlayer) => dbPlayer.steam_id == player.steamid
+        );
+        await Utils.updatePlayerStats(
+          event.matchid,
+          event.team1.id,
+          mapInfo[0].id,
+          player,
+          singlePlayerStat[0].id
+        );
+      }
+      for (let player of event.team2.players) {
+        singlePlayerStat = playerStats.filter(
+          (dbPlayer) => dbPlayer.steam_id == player.steamid
+        );
+        await Utils.updatePlayerStats(
+          event.matchid,
+          event.team2.id,
+          mapInfo[0].id,
+          player,
+          singlePlayerStat[0].id
+        );
+      }
+      GlobalEmitter.emit("playerStatsUpdate");
 
       // Update match table.
       updateStmt = {
@@ -317,7 +349,6 @@ class SeriesFlowService {
     let matchInfo: RowDataPacket[];
 
     sqlString = "SELECT team1_id, team2_id, id FROM `match` WHERE id = ?";
-    // XXX: Maybe change the DB to use team1 and team2 and use a join query to retrieve the actual names?
     matchInfo = await db.query(sqlString, [matchid]);
     if (team === "team1") teamId = matchInfo[0].team1_id;
     else if (team === "team2") teamId = matchInfo[0].team2_id;
