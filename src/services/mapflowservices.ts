@@ -23,9 +23,8 @@ import { Get5_OnMatchPausedUnpaused } from "../types/map_flow/Get5_OnMatchPaused
 import { Get5_OnPlayerDeath } from "../types/map_flow/Get5_OnPlayerDeath.js";
 import { Get5_OnBombEvent } from "../types/map_flow/Get5_OnBombEvent.js";
 import { Get5_OnRoundEnd } from "../types/map_flow/Get5_OnRoundEnd.js";
-import SeriesFlowService from "./seriesflowservices.js";
 import { Get5_OnRoundStart } from "../types/map_flow/Get5_OnRoundStart.js";
-import { Get5_Player } from "../types/Get5_Player.js";
+import update_challonge_match from "./challonge.js";
 
 /**
  * @class
@@ -34,20 +33,14 @@ import { Get5_Player } from "../types/Get5_Player.js";
 class MapFlowService {
   /**
    * Updates the database and emits mapStatUpdate when the map has gone live.
-   * @param {string} apiKey The API key set by the API and given to the server.
    * @param {Get5_OnGoingLive} event The OnGoingLive event provided from the game server.
    * @param {Response} res The express response object to send status responses to the game server.
    */
   static async OnGoingLive(
-    apiKey: string,
     event: Get5_OnGoingLive,
     res: Response
   ) {
     try {
-      const matchApiCheck: number = await Utils.checkApiKey(
-        apiKey,
-        event.matchid
-      );
       let sqlString: string;
       let mapStatInfo: RowDataPacket[];
       let vetoInfo: RowDataPacket[];
@@ -58,17 +51,11 @@ class MapFlowService {
       let insUpdStatement: object;
       let mapName: string;
       let matchInfo: RowDataPacket[];
-      if (matchApiCheck == 2 || matchApiCheck == 1) {
-        res.status(401).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-        return;
-      }
-      sqlString = "SELECT map FROM veto WHERE match_id = ? ORDER BY id";
+
+      sqlString = "SELECT map FROM veto WHERE match_id = ? AND pick_or_veto = 'pick' ORDER BY id";
       vetoInfo = await db.query(sqlString, [event.matchid]);
       if (vetoInfo.length) {
-        mapName = vetoInfo[event.map_number].map;
+        mapName = vetoInfo[event.map_number]?.map;
       } else {
         sqlString = "SELECT veto_mappool FROM `match` WHERE id = ?";
         matchInfo = await db.query(sqlString, [event.matchid]);
@@ -88,7 +75,7 @@ class MapFlowService {
         sqlString =
           "UPDATE map_stats SET ? WHERE match_id = ? AND map_number = ?";
         insUpdStatement = await db.buildUpdateStatement(insUpdStatement);
-        await db.query(sqlString, insUpdStatement);
+        await db.query(sqlString, [insUpdStatement, event.matchid, event.map_number]);
       } else {
         insUpdStatement = {
           match_id: event.matchid,
@@ -101,41 +88,27 @@ class MapFlowService {
         sqlString = "INSERT INTO map_stats SET ?";
         await db.query(sqlString, insUpdStatement);
         GlobalEmitter.emit("mapStatUpdate");
-        res.status(200).send({ message: "Success" });
-        return;
+        return res.status(200).send({ message: "Success" });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      res.status(500).send({ message: error });
-      return;
+      if (error instanceof Error)
+        return res.status(500).send({ message: error.message });
+      else return res.status(500).send({ message: error });
     }
   }
 
   /**
    * Updates the database and emits playerStatsUpdate when a player has died.
-   * @param {string} apiKey The API key set by the API and given to the server.
    * @param {Get5_OnPlayerDeath} event The Get5_OnPlayerDeath event provided from the game server.
    * @param {Response} res The express response object to send status responses to the game server.
    */
   static async OnPlayerDeath(
-    apiKey: string,
     event: Get5_OnPlayerDeath,
     res: Response
   ) {
     try {
-      const matchApiCheck: number = await Utils.checkApiKey(
-        apiKey,
-        event.matchid
-      );
-      if (matchApiCheck == 2 || matchApiCheck == 1) {
-        res.status(401).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-        return;
-      }
-      // We do not care about bot deaths for live stats.
-      if (event.player.is_bot) {
+      if (event.player?.is_bot) {
         res
           .status(200)
           .send({ message: "Bot players do not count towards stats." });
@@ -153,7 +126,7 @@ class MapFlowService {
       sqlString =
         "SELECT team_id FROM team_auth_names JOIN `match` m " +
         "ON (m.team1_id = team_id OR m.team2_id = team_id) WHERE m.id = ? AND auth = ?";
-      playerTeamId = await db.query(sqlString, [event.player.steamid]);
+      playerTeamId = await db.query(sqlString, [event.matchid, event.player.steamid]);
       insertObj = {
         match_id: event.matchid,
         map_id: mapInfo[0].id,
@@ -174,11 +147,11 @@ class MapFlowService {
         no_scope: event.no_scope,
         suicide: event.suicide,
         friendly_fire: event.friendly_fire,
-        assister_steam_id: event.assist.player.steamid,
-        assister_name: event.assist.player.name,
-        assister_side: event.assist.player.side,
-        assist_friendly_fire: event.assist.friendly_fire,
-        flash_assist: event.assist.flash_assist
+        assister_steam_id: event.assist?.player.steamid,
+        assister_name: event.assist?.player.name,
+        assister_side: event.assist?.player.side,
+        assist_friendly_fire: event.assist?.friendly_fire,
+        flash_assist: event.assist?.flash_assist
       };
       insertObj = await db.buildUpdateStatement(insertObj);
       sqlString = "INSERT INTO player_stat_extras SET ?";
@@ -250,13 +223,15 @@ class MapFlowService {
           sqlString =
             "SELECT team_id FROM team_auth_names JOIN `match` m " +
             "ON (m.team1_id = team_id OR m.team2_id = team_id) WHERE m.id = ? AND auth = ?";
-          playerStatVals = await db.query(sqlString, [event.attacker.steamid]);
-          sqlString = "INESRT INTO player_stats SET ?";
+          playerStatVals = await db.query(sqlString, [event.matchid, event.attacker.steamid]);
+          sqlString = "INSERT INTO player_stats SET ?";
+          
           insertObj = {
-            match_id: event.matchid,
+            match_id: +event.matchid,
             map_id: mapInfo[0].id,
             team_id: playerStatVals[0].team_id,
             steam_id: event.attacker.steamid,
+            name: event.attacker.name,
             kills: 1,
             headshot_kills: event.headshot ? 1 : null,
             teamkills: event.friendly_fire ? 1 : null,
@@ -300,7 +275,7 @@ class MapFlowService {
           playerStatVals = await db.query(sqlString, [
             event.assist.player.steamid
           ]);
-          sqlString = "INESRT INTO player_stats SET ?";
+          sqlString = "INSERT INTO player_stats SET ?";
           insertObj = {
             match_id: event.matchid,
             map_id: mapInfo[0].id,
@@ -314,44 +289,32 @@ class MapFlowService {
         }
       }
       GlobalEmitter.emit("playerStatsUpdate");
-      res.status(200).send({ message: "Success" });
-      return;
-    } catch (error) {
+      return res.status(200).send({ message: "Success" });
+    } catch (error: unknown) {
       console.error(error);
-      res.status(500).send({ message: error });
-      return;
+      if (error instanceof Error)
+        return res.status(500).send({ message: error.message });
+      else return res.status(500).send({ message: error });
+      
     }
   }
 
   /**
    * Updates the database and emits bombEvent when a bomb has been planted or defused.
-   * @param {string} apiKey The API key set by the API and given to the server.
    * @param {Get5_OnBombEvent} event The Get5_OnBombEvent event provided from the game server.
    * @param {Response} res The express response object to send status responses to the game server.
    */
   static async OnBombEvent(
-    apiKey: string,
     event: Get5_OnBombEvent,
     res: Response,
     defused: boolean
   ) {
     try {
-      const matchApiCheck: number = await Utils.checkApiKey(
-        apiKey,
-        event.matchid
-      );
-      if (matchApiCheck == 2 || matchApiCheck == 1) {
-        res.status(401).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-        return;
-      }
       let sqlString: string;
       let mapInfo: RowDataPacket[];
       let playerStatInfo: RowDataPacket[];
       let insObject: object;
-      if (event.player.is_bot) {
+      if (event.player?.is_bot) {
         res
           .status(200)
           .send({ message: "Bot players do not count towards stats." });
@@ -367,11 +330,27 @@ class MapFlowService {
         mapInfo[0].id,
         event.player.steamid
       ]);
+      // If player does not have player stats yet, insert them.
+      if (!playerStatInfo.length && !event.player?.is_bot) {
+        let teamId: RowDataPacket[];
+        sqlString =
+          "SELECT t.id FROM team t JOIN team_auth_names ta ON ta.team_id = t.id WHERE ta.auth = ?";
+        teamId = await db.query(sqlString, [event.player.steamid]);
+        await Utils.updatePlayerStats(event.matchid, teamId[0].id, mapInfo[0].id, event.player, null);
 
+        // Grab player info again!
+        sqlString =
+          "SELECT id FROM player_stats WHERE match_id = ? AND map_id = ? AND steam_id = ?";
+        playerStatInfo = await db.query(sqlString, [
+          event.matchid,
+          mapInfo[0].id,
+          event.player.steamid
+        ]);
+      }
       insObject = {
         match_id: event.matchid,
         map_id: mapInfo[0].id,
-        player_stat_id: playerStatInfo[0].id,
+        player_stats_id: playerStatInfo[0].id,
         round_number: event.round_number,
         round_time: event.round_time,
         site: event.site,
@@ -383,44 +362,33 @@ class MapFlowService {
       sqlString = "INSERT INTO match_bomb_plants SET ?";
       await db.query(sqlString, insObject);
       GlobalEmitter.emit("bombEvent");
-      res.status(200).send({ message: "Success" });
-      return;
-    } catch (error) {
+      return res.status(200).send({ message: "Success" });
+    } catch (error: unknown) {
       console.error(error);
-      res.status(500).send({ message: error });
-      return;
+      if (error instanceof Error)
+        return res.status(500).send({ message: error.message });
+      else return res.status(500).send({ message: error });
     }
   }
 
   /**
    * Updates the database and emits playerStatsUpdate when a round has ended.
-   * @param {string} apiKey The API key set by the API and given to the server.
    * @param {Get5_OnRoundEnd} event The Get5_OnRoundEnd event provided from the game server.
    * @param {Response} res The express response object to send status responses to the game server.
    */
   static async OnRoundEnd(
-    apiKey: string,
     event: Get5_OnRoundEnd,
     res: Response
   ) {
     try {
-      const matchApiCheck: number = await Utils.checkApiKey(
-        apiKey,
-        event.matchid
-      );
       let sqlString: string =
         "SELECT id FROM map_stats WHERE match_id = ? AND map_number = ?";
       let insUpdStatement: object;
       let mapStatInfo: RowDataPacket[];
+      let matchSeasonInfo: RowDataPacket[];
       let playerStats: RowDataPacket[];
       let singlePlayerStat: RowDataPacket[];
-      if (matchApiCheck == 2 || matchApiCheck == 1) {
-        res.status(401).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-        return;
-      }
+
       mapStatInfo = await db.query(sqlString, [
         event.matchid,
         event.map_number
@@ -429,137 +397,82 @@ class MapFlowService {
         "SELECT * FROM player_stats WHERE match_id = ? AND map_id = ?";
       playerStats = await db.query(sqlString, [
         event.matchid,
-        mapStatInfo[0].id
+        mapStatInfo[0]?.id
       ]);
       for (let player of event.team1.players) {
         singlePlayerStat = playerStats.filter(
           (dbPlayer) => dbPlayer.steam_id == player.steamid
         );
-        await this.updatePlayerStats(
-          event,
+        await Utils.updatePlayerStats(
+          event.matchid,
+          event.team1.id,
           mapStatInfo[0].id,
           player,
-          singlePlayerStat[0].id
+          singlePlayerStat[0]?.id
         );
       }
       for (let player of event.team2.players) {
         singlePlayerStat = playerStats.filter(
           (dbPlayer) => dbPlayer.steam_id == player.steamid
         );
-        await this.updatePlayerStats(
-          event,
+        await Utils.updatePlayerStats(
+          event.matchid,
+          event.team2.id,
           mapStatInfo[0].id,
           player,
-          singlePlayerStat[0].id
+          singlePlayerStat[0]?.id
         );
       }
       GlobalEmitter.emit("playerStatsUpdate");
-      res.status(200).send({ message: "Success" });
-    } catch (error) {
+      
+      // Update map stats. Grab season info
+      sqlString = "UPDATE map_stats SET ? WHERE id = ?";
+      insUpdStatement = {
+        team1_score: event.team1.score,
+        team2_score: event.team2.score
+      }
+      await db.query(sqlString, [insUpdStatement, mapStatInfo[0].id]);
+      // Update Challonge info if needed.
+      sqlString = "SELECT max_maps, season_id FROM `match` WHERE id = ?";
+      matchSeasonInfo = await db.query(sqlString, [event.matchid]);
+      if (matchSeasonInfo[0]?.season_id && matchSeasonInfo[0].max_maps == 1) {
+        await update_challonge_match(
+          event.matchid,
+          matchSeasonInfo[0].season_id,
+          +event.team1.id,
+          +event.team2.id,
+          matchSeasonInfo[0].max_maps
+        );
+      }
+      GlobalEmitter.emit("mapStatUpdate");
+
+      return res.status(200).send({ message: "Success" });
+    } catch (error: unknown) {
       console.error(error);
-      res.status(500).send({ message: error });
-      return;
+      if (error instanceof Error)
+        return res.status(500).send({ message: error.message });
+      else return res.status(500).send({ message: error });
     }
   }
 
-  /**
-   * Private helper function to update player stats based on a team.
-   * @param {Get5_OnRoundEnd} event The Get5_OnRoundEnd event.
-   * @param {number} mapId The map ID from the database.
-   * @param {Get5_Player} player The Get5_Player structure.
-   * @param {number} playerId The player ID from the database.
-   */
-  private static async updatePlayerStats(
-    event: Get5_OnRoundEnd,
-    mapId: number,
-    player: Get5_Player,
-    playerId: number | null
-  ) {
-    let insUpdStatement: object;
-    let sqlString: string;
-    insUpdStatement = {
-      match_id: event.matchid,
-      map_id: mapId,
-      team_id: event.team1.id,
-      steam_id: player.steamid,
-      name: player.name,
-      kills: player.stats?.kills,
-      deaths: player.stats?.deaths,
-      roundsplayed: player.stats?.rounds_played,
-      assists: player.stats?.assists,
-      flashbang_assists: player.stats?.flash_assists,
-      teamkills: player.stats?.team_kills,
-      knife_kills: player.stats?.knife_kills,
-      suicides: player.stats?.suicides,
-      headshot_kills: player.stats?.headshot_kills,
-      damage: player.stats?.damage,
-      util_damage: player.stats?.utility_damage,
-      enemies_flashed: player.stats?.enemies_flashed,
-      friendlies_flashed: player.stats?.friendlies_flashed,
-      bomb_plants: player.stats?.bomb_plants,
-      bomb_defuses: player.stats?.bomb_defuses,
-      v1: player.stats?.["1v1"],
-      v2: player.stats?.["1v2"],
-      v3: player.stats?.["1v3"],
-      v4: player.stats?.["1v4"],
-      v5: player.stats?.["1v5"],
-      k1: player.stats?.["1k"],
-      k2: player.stats?.["2k"],
-      k3: player.stats?.["3k"],
-      k4: player.stats?.["4k"],
-      k5: player.stats?.["5k"],
-      firstdeath_ct: player.stats?.first_deaths_ct,
-      firstdeath_t: player.stats?.first_deaths_t,
-      firstkill_ct: player.stats?.first_kills_ct,
-      firstkill_t: player.stats?.first_kills_t,
-      kast: player.stats?.kast,
-      contribution_score: player.stats?.score,
-      mvp: player.stats?.mvp
-    };
-
-    insUpdStatement = await db.buildUpdateStatement(insUpdStatement);
-
-    if (playerId) {
-      sqlString = "UPDATE player_stats SET ? WHERE id = ?";
-      await db.query(sqlString, [insUpdStatement, playerId]);
-    } else {
-      sqlString = "INSERT INTO player_stats SET ?";
-      await db.query(sqlString, insUpdStatement);
-    }
-  }
+  
 
   /**
    * Updates the database and emits playerStatsUpdate when a round has been restored and the match has started again.
-   * @param {string} apiKey The API key set by the API and given to the server.
    * @param {Get5_OnRoundStart} event The Get5_OnRoundStart event provided from the game server.
    * @param {Response} res The express response object to send status responses to the game server.
    */
   static async OnRoundStart(
-    apiKey: string,
     event: Get5_OnRoundStart,
     res: Response
   ) {
-    const matchApiCheck: number = await Utils.checkApiKey(
-      apiKey,
-      event.matchid
-    );
     let sqlString: string;
     let mapStatInfo: RowDataPacket[];
-    if (matchApiCheck == 2 || matchApiCheck == 1) {
-      res.status(401).send({
-        message:
-          "Match already finalized or and invalid API key has been given."
-      });
-    }
-    // Check if round was backed up and nuke the additional player stats and bomb plants.
-    if (SeriesFlowService.wasRoundRestored) {
-      sqlString =
-        "SELECT id FROM map_stats WHERE match_id = ? AND map_number = ?";
-      mapStatInfo = await db.query(sqlString, [
-        event.matchid,
-        event.map_number
-      ]);
 
+    // Check if round was backed up and nuke the additional player stats and bomb plants.
+    sqlString = "SELECT round_restored, id FROM map_stats WHERE match_id = ? AND map_number = ?";
+    mapStatInfo = await db.query(sqlString, [event.matchid, event.map_number]);
+    if (mapStatInfo[0]?.round_restored) {
       sqlString =
         "DELETE FROM match_bomb_plants WHERE round_number > ? AND match_id = ? AND map_id = ?";
       await db.query(sqlString, [
@@ -575,40 +488,27 @@ class MapFlowService {
         mapStatInfo[0].id,
         event.round_number
       ]);
-      SeriesFlowService.wasRoundRestored = false;
+      // Only emit if there was an actual update.
+      GlobalEmitter.emit("playerStatsUpdate");
     }
-    GlobalEmitter.emit("playerStatsUpdate");
-    res.status(200).send({ message: "Success" });
-    return;
+    return res.status(200).send({ message: "Success" });
   }
 
   /**
    * Updates the database and emits matchUpdate when a match has been paused or unpaused.
-   * @param {string} apiKey The API key set by the API and given to the server.
    * @param {Get5_OnMatchPausedUnpaused} event The Get5_OnMatchPausedUnpaused event provided from the game server.
    * @param {Response} res The express response object to send status responses to the game server.
    */
   static async OnMatchPausedUnPaused(
-    apiKey: string,
     event: Get5_OnMatchPausedUnpaused,
     res: Response
   ) {
-    const matchApiCheck: number = await Utils.checkApiKey(
-      apiKey,
-      event.matchid
-    );
     let sqlString: string;
     let matchInfo: RowDataPacket[];
     let pauseInfo: RowDataPacket[];
     let insUpdStatement: object;
     let teamPaused: string;
-    if (matchApiCheck == 2 || matchApiCheck == 1) {
-      res.status(401).send({
-        message:
-          "Match already finalized or and invalid API key has been given."
-      });
-      return;
-    }
+
     sqlString = "SELECT team1_string, team2_string FROM `match` WHERE id = ?";
     matchInfo = await db.query(sqlString, [event.matchid]);
 
@@ -627,7 +527,7 @@ class MapFlowService {
         paused: event.event == "game_paused" ? true : false
       };
       insUpdStatement = await db.buildUpdateStatement(insUpdStatement);
-      await db.query(sqlString, insUpdStatement);
+      await db.query(sqlString, [insUpdStatement, event.matchid]);
     } else {
       sqlString = "INSERT INTO match_pause SET ?";
       insUpdStatement = {
@@ -640,8 +540,7 @@ class MapFlowService {
       await db.query(sqlString, insUpdStatement);
     }
     GlobalEmitter.emit("matchUpdate");
-    res.status(200).send({ message: "Success" });
-    return;
+    return res.status(200).send({ message: "Success" });
   }
 }
 

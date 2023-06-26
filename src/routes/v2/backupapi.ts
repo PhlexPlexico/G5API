@@ -25,7 +25,6 @@ import { RowDataPacket } from "mysql2";
  * @const
  * Global Server Sent Emitter class for real time data.
  */
-import GlobalEmitter from "../../utility/emitter.js";
 import { existsSync, mkdirSync, writeFile } from "fs";
 
 /** Express module

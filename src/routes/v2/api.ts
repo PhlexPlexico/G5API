@@ -37,6 +37,8 @@ import { Get5_OnMatchPausedUnpaused } from "../../types/map_flow/Get5_OnMatchPau
 import { Get5_OnPlayerDeath } from "../../types/map_flow/Get5_OnPlayerDeath.js";
 import { Get5_OnBombEvent } from "../../types/map_flow/Get5_OnBombEvent.js";
 import { Get5_OnRoundStart } from "../../types/map_flow/Get5_OnRoundStart.js";
+import Utils from "../../utility/utils.js";
+import { Get5_OnRoundEnd } from "../../types/map_flow/Get5_OnRoundEnd.js";
 
 /** Basic Rate limiter.
  * @const
@@ -83,14 +85,13 @@ const basicRateLimit = rateLimit({
  *         $ref: '#/components/responses/Error'
  */
 router.post("/", basicRateLimit, async (req, res) => {
-  let matchId: string = req.body?.matchId;
+  let matchId: string = req.body?.matchid;
   const apiKey: string | undefined = req.get("Authorization");
   const eventType: Get5_OnEvent = req.body;
 
   try {
     if (!apiKey) {
-      res.status(401).send({ message: "API key not provided." });
-      return;
+      return res.status(401).send({ message: "API key not provided." });
     }
 
     if (!matchId) {
@@ -106,81 +107,96 @@ router.post("/", basicRateLimit, async (req, res) => {
       matchId = dbMatchKey[0].id;
     }
 
+    const matchApiCheck: number = await Utils.checkApiKey(apiKey, matchId);
+    if (eventType.event == "demo_upload_ended") {
+      // Ignore demo_upload_ended event.
+      return res.status(200).send({message: "Success"});
+    } else if (eventType.event == "series_end") {
+      // let forfeit: number = event.
+      // Match is finalized, this is usually called after a cancel so we just ignore the value with a 200 response.
+      if (matchApiCheck == 2) {
+        return res.status(200).send({
+          message:
+            "Match already finalized or and invalid API key has been given."
+        });
+      } else if (matchApiCheck == 1) {
+        console.error(
+          "Match already finalized or and invalid API key has been given."
+        );
+        return res.status(401).send({
+          message:
+            "Match already finalized or and invalid API key has been given."
+        });
+      }
+    } else {
+      if (matchApiCheck == 2 || matchApiCheck == 1) {
+        console.error(
+          "Match already finalized or and invalid API key has been given."
+        );
+        return res.status(401).send({
+          message:
+            "Match already finalized or and invalid API key has been given."
+        });
+      }
+    }
+
     switch (eventType.event) {
       // Series Flows
       case "map_picked":
-        SeriesFlowService.OnMapPicked(
-          apiKey,
-          req.body as Get5_OnMapPicked,
-          res
-        );
+        SeriesFlowService.OnMapPicked(req.body as Get5_OnMapPicked, res);
+        break;
       case "map_vetoed":
-        SeriesFlowService.OnMapVetoed(
-          apiKey,
-          req.body as Get5_OnMapVetoed,
-          res
-        );
+        SeriesFlowService.OnMapVetoed(req.body as Get5_OnMapVetoed, res);
+        break;
       case "side_picked":
-        SeriesFlowService.OnSidePicked(
-          apiKey,
-          req.body as Get5_OnSidePicked,
-          res
-        );
+        SeriesFlowService.OnSidePicked(req.body as Get5_OnSidePicked, res);
+        break;
       case "backup_loaded":
         SeriesFlowService.OnBackupRestore(
-          apiKey,
           req.body as Get5_OnBackupRestore,
           res
         );
+        break;
       case "map_result":
-        SeriesFlowService.OnMapResult(
-          apiKey,
-          req.body as Get5_OnMapResult,
-          res
-        );
+        SeriesFlowService.OnMapResult(req.body as Get5_OnMapResult, res);
+        break;
       case "series_end":
-        SeriesFlowService.OnSeriesResult(
-          apiKey,
-          req.body as Get5_OnSeriesResult,
-          res
-        );
+        SeriesFlowService.OnSeriesResult(req.body as Get5_OnSeriesResult, res);
+        break;
       // Map Flows
       case "going_live":
-        MapFlowService.OnGoingLive(apiKey, req.body as Get5_OnGoingLive, res);
+        MapFlowService.OnGoingLive(req.body as Get5_OnGoingLive, res);
+        break;
       case "round_start":
-        MapFlowService.OnRoundStart(apiKey, req.body as Get5_OnRoundStart, res);
+        MapFlowService.OnRoundStart(req.body as Get5_OnRoundStart, res);
+        break;
+      case "round_end":
+        MapFlowService.OnRoundEnd(req.body as Get5_OnRoundEnd, res);
+        break;
       case "player_death":
-        MapFlowService.OnPlayerDeath(
-          apiKey,
-          req.body as Get5_OnPlayerDeath,
-          res
-        );
+        MapFlowService.OnPlayerDeath(req.body as Get5_OnPlayerDeath, res);
+        break;
       case "bomb_planted":
-        MapFlowService.OnBombEvent(
-          apiKey,
-          req.body as Get5_OnBombEvent,
-          res,
-          false
-        );
+        MapFlowService.OnBombEvent(req.body as Get5_OnBombEvent, res, false);
+        break;
       case "bomb_defused":
-        MapFlowService.OnBombEvent(
-          apiKey,
-          req.body as Get5_OnBombEvent,
-          res,
-          true
-        );
+        MapFlowService.OnBombEvent(req.body as Get5_OnBombEvent, res, true);
+        break;
       case "game_paused":
         MapFlowService.OnMatchPausedUnPaused(
-          apiKey,
           req.body as Get5_OnMatchPausedUnpaused,
           res
         );
+        break;
       case "game_unpaused":
         MapFlowService.OnMatchPausedUnPaused(
-          apiKey,
           req.body as Get5_OnMatchPausedUnpaused,
           res
         );
+        break;
+      default:
+        res.status(400).send({message: `Event ${eventType.event} is not implemented.`});
+        break;
     }
     // Responses are taken care of in the case statements.
     return;

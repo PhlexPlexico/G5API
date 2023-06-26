@@ -12,18 +12,9 @@ import Utils from "../utility/utils.js";
 import update_challonge_match from "../services/challonge.js";
 
 class SeriesFlowService {
-  static wasRoundRestored: boolean = false;
-  static async OnSeriesResult(
-    apiKey: string,
-    event: Get5_OnSeriesResult,
-    res: Response
-  ) {
+  static async OnSeriesResult(event: Get5_OnSeriesResult, res: Response) {
     try {
       // Check if match has been finalized.
-      const matchApiCheck: number = await Utils.checkApiKey(
-        apiKey,
-        event.matchid
-      );
       let winnerId: number | null = null;
       let cancelled: number | null = null;
       let endTime: string = new Date()
@@ -31,32 +22,17 @@ class SeriesFlowService {
         .slice(0, 19)
         .replace("T", " ");
       let updateObject: {};
-      // As of right now there is no way to track forfeits via API calls.
-      // let forfeit: number = event.
-      // Match is finalized, this is usually called after a cancel so we just ignore the value with a 200 response.
-      if (matchApiCheck == 2) {
-        res.status(200).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-        return;
-      } else if (matchApiCheck == 1) {
-        res.status(401).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-        return;
-      }
 
       const matchInfo: RowDataPacket[] = await db.query(
         "SELECT team1_id, team2_id, max_maps, start_time, server_id, is_pug, season_id FROM `match` WHERE id = ?",
         [event.matchid]
       );
-      if (event.winner.team === "team1") winnerId = matchInfo[0]?.team1_id;
-      else if (event.winner.team === "team2") winnerId = matchInfo[0]?.team2_id;
+      if (event.winner?.team === "team1") winnerId = matchInfo[0]?.team1_id;
+      else if (event.winner?.team === "team2")
+        winnerId = matchInfo[0]?.team2_id;
       // BO2 situation.
       else if (
-        event.winner.team === "none" &&
+        event.winner?.team === "none" &&
         matchInfo[0].max_maps != 2 &&
         event.team1_series_score == 0 &&
         event.team2_series_score == 0
@@ -126,42 +102,28 @@ class SeriesFlowService {
         );
       }
       GlobalEmitter.emit("matchUpdate");
-      res.status(200).send({ message: "Success" });
-      return;
-    } catch (error) {
+      return res.status(200).send({ message: "Success" });
+    } catch (error: unknown) {
       console.error(error);
-      res.status(500).send({ message: error });
-      return;
+      if (error instanceof Error)
+        return res.status(500).send({ message: error.message });
+      else return res.status(500).send({ message: error });
     }
   }
 
-  static async OnMapResult(
-    apiKey: string,
-    event: Get5_OnMapResult,
-    res: Response
-  ) {
+  static async OnMapResult(event: Get5_OnMapResult, res: Response) {
     try {
-      const matchApiCheck: number = await Utils.checkApiKey(
-        apiKey,
-        event.matchid
-      );
       let updateStmt: object = {};
       let sqlString: string;
       let matchInfo: RowDataPacket[];
       let mapInfo: RowDataPacket[];
+      let playerStats: RowDataPacket[];
+      let singlePlayerStat: RowDataPacket[];
       let mapEndTime: string = new Date()
         .toISOString()
         .slice(0, 19)
         .replace("T", " ");
       let winnerId: number | null | string = null;
-
-      if (matchApiCheck == 2 || matchApiCheck == 1) {
-        res.status(401).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-        return;
-      }
       sqlString =
         "SELECT is_pug, max_maps, season_id FROM `match` WHERE id = ?";
       matchInfo = await db.query(sqlString, [event.matchid]);
@@ -169,12 +131,13 @@ class SeriesFlowService {
         "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
       mapInfo = await db.query(sqlString, [event.matchid, event.map_number]);
       if (mapInfo.length < 1) {
-        res.status(404).send({ message: "Failed to find map stats object." });
-        return;
+        return res
+          .status(404)
+          .send({ message: "Failed to find map stats object." });
       }
-      if (event.winner.team == "team1") {
+      if (event.winner?.team == "team1") {
         winnerId = event.team1.id;
-      } else if (event.winner.team == "team2") {
+      } else if (event.winner?.team == "team2") {
         winnerId = event.team2.id;
       }
       updateStmt = {
@@ -185,6 +148,36 @@ class SeriesFlowService {
       sqlString = "UPDATE map_stats SET ? WHERE id = ?";
       updateStmt = await db.buildUpdateStatement(updateStmt);
       await db.query(sqlString, [updateStmt, mapInfo[0].id]);
+
+      // Final update of playerstats.
+      sqlString =
+        "SELECT * FROM player_stats WHERE match_id = ? AND map_id = ?";
+      playerStats = await db.query(sqlString, [event.matchid, mapInfo[0].id]);
+      for (let player of event.team1.players) {
+        singlePlayerStat = playerStats.filter(
+          (dbPlayer) => dbPlayer.steam_id == player.steamid
+        );
+        await Utils.updatePlayerStats(
+          event.matchid,
+          event.team1.id,
+          mapInfo[0].id,
+          player,
+          singlePlayerStat[0].id
+        );
+      }
+      for (let player of event.team2.players) {
+        singlePlayerStat = playerStats.filter(
+          (dbPlayer) => dbPlayer.steam_id == player.steamid
+        );
+        await Utils.updatePlayerStats(
+          event.matchid,
+          event.team2.id,
+          mapInfo[0].id,
+          player,
+          singlePlayerStat[0].id
+        );
+      }
+      GlobalEmitter.emit("playerStatsUpdate");
 
       // Update match table.
       updateStmt = {
@@ -208,96 +201,51 @@ class SeriesFlowService {
       }
 
       GlobalEmitter.emit("mapStatUpdate");
-      res.status(200).send({ message: "Success" });
-      return;
-    } catch (error) {
+      return res.status(200).send({ message: "Success" });
+    } catch (error: unknown) {
       console.error(error);
-      res.status(500).send({ message: error });
-      return;
+      if (error instanceof Error)
+        return res.status(500).send({ message: error.message });
+      else return res.status(500).send({ message: error });
     }
   }
 
-  static async OnMapVetoed(
-    apiKey: string,
-    event: Get5_OnMapVetoed,
-    res: Response
-  ) {
+  static async OnMapVetoed(event: Get5_OnMapVetoed, res: Response) {
     try {
-      const matchApiCheck: number = await Utils.checkApiKey(
-        apiKey,
-        event.matchid
-      );
-      if (matchApiCheck == 2 || matchApiCheck == 1) {
-        res.status(401).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-        return;
-      }
       await this.insertPickOrBan(
         "veto",
         event.matchid,
         event.map_name,
         event.team
       );
-      res.status(200).send({ message: "Success" });
-      return;
-    } catch (error) {
+      return res.status(200).send({ message: "Success" });
+    } catch (error: unknown) {
       console.error(error);
-      res.status(500).send({ message: error });
-      return;
+      if (error instanceof Error)
+        return res.status(500).send({ message: error.message });
+      else return res.status(500).send({ message: error });
     }
   }
 
-  static async OnMapPicked(
-    apiKey: string,
-    event: Get5_OnMapPicked,
-    res: Response
-  ) {
+  static async OnMapPicked(event: Get5_OnMapPicked, res: Response) {
     try {
-      const matchApiCheck: number = await Utils.checkApiKey(
-        apiKey,
-        event.matchid
-      );
-      if (matchApiCheck == 2 || matchApiCheck == 1) {
-        res.status(401).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-        return;
-      }
       await this.insertPickOrBan(
         "pick",
         event.matchid,
         event.map_name,
         event.team
       );
-      res.status(200).send({ message: "Success" });
-      return;
-    } catch (error) {
+      return res.status(200).send({ message: "Success" });
+    } catch (error: unknown) {
       console.error(error);
-      res.status(500).send({ message: error });
-      return;
+      if (error instanceof Error)
+        return res.status(500).send({ message: error.message });
+      else return res.status(500).send({ message: error });
     }
   }
 
-  static async OnSidePicked(
-    apiKey: string,
-    event: Get5_OnSidePicked,
-    res: Response
-  ) {
+  static async OnSidePicked(event: Get5_OnSidePicked, res: Response) {
     try {
-      const matchApiCheck: number = await Utils.checkApiKey(
-        apiKey,
-        event.matchid
-      );
-      if (matchApiCheck == 2 || matchApiCheck == 1) {
-        res.status(401).send({
-          message:
-            "Match already finalized or and invalid API key has been given."
-        });
-        return;
-      }
       let sqlString: string =
         "SELECT team1_id, team2_id FROM `match` WHERE id = ?";
       let teamPickId: number;
@@ -307,6 +255,10 @@ class SeriesFlowService {
       let teamPickSideString: string = "Default";
       let vetoId: number;
       let insertObj: Object;
+      // No side was chosen, perhaps was default? Ignore the event.
+      if (!event.side) {
+        return res.status(200).send({ message: "Success" });
+      }
       if (event.team !== null) {
         const matchInfo: RowDataPacket[] = await db.query(sqlString, [
           event.matchid
@@ -335,7 +287,7 @@ class SeriesFlowService {
         teamPickMapString,
         event.map_name
       ]);
-      vetoId = vetoInfo[0].id;
+      vetoId = vetoInfo[0]?.id;
 
       // Insert into veto_side now.
       insertObj = {
@@ -350,37 +302,22 @@ class SeriesFlowService {
       sqlString = "INSERT INTO veto_side SET ?";
       await db.query(sqlString, [insertObj]);
       GlobalEmitter.emit("vetoSideUpdate");
-      res.status(200).send({ message: "Success" });
-      return;
-    } catch (error) {
+      return res.status(200).send({ message: "Success" });
+    } catch (error: unknown) {
       console.error(error);
-      res.status(500).send({ message: error });
-      return;
+      if (error instanceof Error)
+        return res.status(500).send({ message: error.message });
+      else return res.status(500).send({ message: error });
     }
   }
 
-  static async OnBackupRestore(
-    apiKey: string,
-    event: Get5_OnBackupRestore,
-    res: Response
-  ) {
+  static async OnBackupRestore(event: Get5_OnBackupRestore, res: Response) {
     // Logic for this is to fix a bug in user stats when a round restore happens. In previous iterations of the API
     // we would not care if a user would restore the match, which could lead to misrepresentation of stats.
     // This route will now fix this issue by seeking out all the data that's > the current round where it can,
     // and mark a value that will ensure the remaining player stats are updated as such.
     // The main chunk of update logic will then take place in the map flow service, on the OnRoundEnd function
     // as we get all the player information from that call.
-    const matchApiCheck: number = await Utils.checkApiKey(
-      apiKey,
-      event.matchid
-    );
-    if (matchApiCheck == 2 || matchApiCheck == 1) {
-      res.status(401).send({
-        message:
-          "Match already finalized or and invalid API key has been given."
-      });
-      return;
-    }
     let sqlString: string =
       "DELETE FROM player_stat_extras " +
       "WHERE match_id = ? AND " +
@@ -392,8 +329,10 @@ class SeriesFlowService {
       event.map_number,
       event.round_number
     ]);
-    res.status(200).send({ message: "Success" });
-    this.wasRoundRestored = true;
+    sqlString =
+      "UPDATE `map_stats` SET round_restored = 1 WHERE match_id = ? AND map_number = ?";
+    await db.query(sqlString, [event.matchid, event.map_number]);
+    return res.status(200).send({ message: "Success" });
   }
 
   private static async insertPickOrBan(
@@ -410,10 +349,9 @@ class SeriesFlowService {
     let matchInfo: RowDataPacket[];
 
     sqlString = "SELECT team1_id, team2_id, id FROM `match` WHERE id = ?";
-    // XXX: Maybe change the DB to use team1 and team2 and use a join query to retrieve the actual names?
     matchInfo = await db.query(sqlString, [matchid]);
     if (team === "team1") teamId = matchInfo[0].team1_id;
-    else if (team === "team2") teamId = matchInfo[0].team1_id;
+    else if (team === "team2") teamId = matchInfo[0].team2_id;
     else teamId = -1;
 
     if (teamId == -1) {
