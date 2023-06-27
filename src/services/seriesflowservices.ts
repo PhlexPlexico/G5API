@@ -157,6 +157,9 @@ class SeriesFlowService {
         singlePlayerStat = playerStats.filter(
           (dbPlayer) => dbPlayer.steam_id == player.steamid
         );
+        console.log(
+          `OUR PLAYER ON TEAM 1\n ${JSON.stringify(player)}`
+        );
         await Utils.updatePlayerStats(
           event.matchid,
           event.team1.id,
@@ -169,6 +172,7 @@ class SeriesFlowService {
         singlePlayerStat = playerStats.filter(
           (dbPlayer) => dbPlayer.steam_id == player.steamid
         );
+        console.log(`OUR PLAYER ON TEAM 2\n ${JSON.stringify(player)}`);
         await Utils.updatePlayerStats(
           event.matchid,
           event.team2.id,

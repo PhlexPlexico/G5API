@@ -175,7 +175,6 @@ class MapFlowService {
         insertObj = await db.buildUpdateStatement(insertObj);
         await db.query(sqlString, [insertObj, playerStatVals[0].id]);
       } else {
-        console.log("INSERTING INTO PLAYERSTATS VIA ONPLAYERDEATH");
         sqlString = "INSERT INTO player_stats SET ?";
         insertObj = {
           match_id: event.matchid,
@@ -199,6 +198,9 @@ class MapFlowService {
           event.attacker.steamid
         ]);
         if (playerStatVals.length) {
+          console.log(
+            `UPDATING OUR PLAYER_STATS ON DEATH FOR KILLS ${playerStatVals[0].kills}`
+          );
           sqlString = "UPDATE player_stats SET ? WHERE id = ?";
           insertObj = {
             kills: playerStatVals[0].kills + 1,
@@ -404,6 +406,7 @@ class MapFlowService {
         singlePlayerStat = playerStats.filter(
           (dbPlayer) => dbPlayer.steam_id == player.steamid
         );
+        console.log(`ROUND END, PLAYER TEAM 1 IS ${JSON.stringify(player)}`);
         await Utils.updatePlayerStats(
           event.matchid,
           event.team1.id,
@@ -416,6 +419,7 @@ class MapFlowService {
         singlePlayerStat = playerStats.filter(
           (dbPlayer) => dbPlayer.steam_id == player.steamid
         );
+        console.log(`ROUND END, PLAYER TEAM 2 IS ${JSON.stringify(player)}`);
         await Utils.updatePlayerStats(
           event.matchid,
           event.team2.id,
