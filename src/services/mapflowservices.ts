@@ -175,6 +175,7 @@ class MapFlowService {
         insertObj = await db.buildUpdateStatement(insertObj);
         await db.query(sqlString, [insertObj, playerStatVals[0].id]);
       } else {
+        console.log("INSERTING INTO PLAYERSTATS VIA ONPLAYERDEATH");
         sqlString = "INSERT INTO player_stats SET ?";
         insertObj = {
           match_id: event.matchid,

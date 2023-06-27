@@ -584,6 +584,7 @@ class Utils {
       sqlString = "UPDATE player_stats SET ? WHERE id = ?";
       await db.query(sqlString, [insUpdStatement, playerId]);
     } else {
+      console.log("INSERTING INTO PLAYERSTATS VIA UPDATEPLAYERSTATS");
       sqlString = "INSERT INTO player_stats SET ?";
       await db.query(sqlString, insUpdStatement);
     }
