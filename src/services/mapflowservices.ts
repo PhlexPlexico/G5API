@@ -159,16 +159,17 @@ class MapFlowService {
 
       // Update player stats for what we can here, start with the victim.
       sqlString =
-        "SELECT id, deaths, suicides FROM player_stats WHERE match_id = ? AND map_id = ? AND steam_id = ?";
+        "SELECT name, id, deaths, suicides FROM player_stats WHERE match_id = ? AND map_id = ? AND steam_id = ?";
       playerStatVals = await db.query(sqlString, [
         event.matchid,
         mapInfo[0].id,
         event.player.steamid
       ]);
-
+      console.log(`OnPlayerDeath: ${JSON.stringify(playerStatVals[0])}`);
       if (playerStatVals.length) {
+        console.log("OnPlayerDeath: WE HAVE VALUES TO UPDATE!!!");
         sqlString = "UPDATE player_stats SET ? WHERE id = ?";
-        insertObj = {
+        insertObj = { 
           deaths: playerStatVals[0].deaths + 1,
           suicides: event.suicide ? playerStatVals[0].suicides + 1 : null
         };
@@ -176,6 +177,7 @@ class MapFlowService {
         await db.query(sqlString, [insertObj, playerStatVals[0].id]);
       } else {
         sqlString = "INSERT INTO player_stats SET ?";
+        console.log(`OnPlayerDeath: ${JSON.stringify(playerTeamId[0])}`);
         insertObj = {
           match_id: event.matchid,
           map_id: mapInfo[0].id,
@@ -186,12 +188,13 @@ class MapFlowService {
           suicides: event.suicide ? 1 : null
         };
         insertObj = await db.buildUpdateStatement(insertObj);
+        console.log(`OnPlayerDeath: Insert object for victim is ${JSON.stringify(insertObj)}`);
         await db.query(sqlString, insertObj);
       }
 
       if (event.attacker) {
         sqlString =
-          "SELECT id, kills, headshot_kills, teamkills, knife_kills FROM player_stats WHERE match_id = ? AND map_id = ? AND steam_id = ?";
+          "SELECT name, id, kills, headshot_kills, teamkills, knife_kills FROM player_stats WHERE match_id = ? AND map_id = ? AND steam_id = ?";
         playerStatVals = await db.query(sqlString, [
           event.matchid,
           mapInfo[0].id,
@@ -199,7 +202,7 @@ class MapFlowService {
         ]);
         if (playerStatVals.length) {
           console.log(
-            `UPDATING OUR PLAYER_STATS ON DEATH FOR KILLS ${playerStatVals[0].kills}`
+            `OnPlayerDeath: UPDATING OUR PLAYER_STATS FOR ATTACKER ${JSON.stringify(playerStatVals[0])}`
           );
           sqlString = "UPDATE player_stats SET ? WHERE id = ?";
           insertObj = {
@@ -223,12 +226,15 @@ class MapFlowService {
           insertObj = await db.buildUpdateStatement(insertObj);
           await db.query(sqlString, [insertObj, playerStatVals[0].id]);
         } else {
+          
           sqlString =
             "SELECT team_id FROM team_auth_names JOIN `match` m " +
             "ON (m.team1_id = team_id OR m.team2_id = team_id) WHERE m.id = ? AND auth = ?";
           playerStatVals = await db.query(sqlString, [event.matchid, event.attacker.steamid]);
           sqlString = "INSERT INTO player_stats SET ?";
-          
+          console.log(
+            `OnPlayerDeath: It is round ${event.round_number} and attacker does not exist yet.\nOur attacker is ${event.attacker}`
+          );
           insertObj = {
             match_id: +event.matchid,
             map_id: mapInfo[0].id,
@@ -384,6 +390,7 @@ class MapFlowService {
     res: Response
   ) {
     try {
+      console.log(`OnRoundEnd: ROUND NUMBER ENDED IS ${event.round_number}`);
       let sqlString: string =
         "SELECT id FROM map_stats WHERE match_id = ? AND map_number = ?";
       let insUpdStatement: object;
@@ -406,7 +413,11 @@ class MapFlowService {
         singlePlayerStat = playerStats.filter(
           (dbPlayer) => dbPlayer.steam_id == player.steamid
         );
-        console.log(`ROUND END, PLAYER TEAM 1 IS ${JSON.stringify(player)}`);
+        console.log(
+          `OnRoundEnd: PLAYER TEAM 1 IS ${JSON.stringify(
+            player
+          )} and the id IS ${singlePlayerStat[0]?.id}`
+        );
         await Utils.updatePlayerStats(
           event.matchid,
           event.team1.id,
@@ -419,7 +430,11 @@ class MapFlowService {
         singlePlayerStat = playerStats.filter(
           (dbPlayer) => dbPlayer.steam_id == player.steamid
         );
-        console.log(`ROUND END, PLAYER TEAM 2 IS ${JSON.stringify(player)}`);
+        console.log(
+          `OnRoundEnd: PLAYER TEAM 2 IS ${JSON.stringify(
+            player
+          )} and the id IS ${singlePlayerStat[0]?.id}`
+        );
         await Utils.updatePlayerStats(
           event.matchid,
           event.team2.id,
@@ -473,7 +488,7 @@ class MapFlowService {
   ) {
     let sqlString: string;
     let mapStatInfo: RowDataPacket[];
-
+    console.log(`OnRoundStart: ROUND NUMBER IS ${event.round_number}`);
     // Check if round was backed up and nuke the additional player stats and bomb plants.
     sqlString = "SELECT round_restored, id FROM map_stats WHERE match_id = ? AND map_number = ?";
     mapStatInfo = await db.query(sqlString, [event.matchid, event.map_number]);

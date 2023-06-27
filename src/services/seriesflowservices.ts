@@ -158,7 +158,9 @@ class SeriesFlowService {
           (dbPlayer) => dbPlayer.steam_id == player.steamid
         );
         console.log(
-          `OUR PLAYER ON TEAM 1\n ${JSON.stringify(player)}`
+          `OnMapResult: OUR PLAYER ON TEAM 1\n ${JSON.stringify(
+            player
+          )} and their ID is ${singlePlayerStat[0].id}`
         );
         await Utils.updatePlayerStats(
           event.matchid,
@@ -172,7 +174,11 @@ class SeriesFlowService {
         singlePlayerStat = playerStats.filter(
           (dbPlayer) => dbPlayer.steam_id == player.steamid
         );
-        console.log(`OUR PLAYER ON TEAM 2\n ${JSON.stringify(player)}`);
+        console.log(
+          `OnMapResult: OUR PLAYER ON TEAM 2\n ${JSON.stringify(
+            player
+          )} and their ID is ${singlePlayerStat[0].id}`
+        );
         await Utils.updatePlayerStats(
           event.matchid,
           event.team2.id,
