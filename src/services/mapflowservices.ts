@@ -157,82 +157,6 @@ class MapFlowService {
       sqlString = "INSERT INTO player_stat_extras SET ?";
       await db.query(sqlString, insertObj);
 
-      // Update player stats for what we can here, start with the victim.
-      sqlString =
-        "SELECT name, id, deaths, suicides FROM player_stats WHERE match_id = ? AND map_id = ? AND steam_id = ?";
-      playerStatVals = await db.query(sqlString, [
-        event.matchid,
-        mapInfo[0].id,
-        event.player.steamid
-      ]);
-      // Due to concurrency issues with the calls, we will only ever update the values.
-      if (playerStatVals.length) {
-        console.log("OnPlayerDeath: Values exist in the database. Updating.");
-        sqlString = "UPDATE player_stats SET ? WHERE id = ?";
-        insertObj = { 
-          deaths: playerStatVals[0].deaths + 1,
-          suicides: event.suicide ? playerStatVals[0].suicides + 1 : null
-        };
-        insertObj = await db.buildUpdateStatement(insertObj);
-        await db.query(sqlString, [insertObj, playerStatVals[0].id]);
-      }
-
-      if (event.attacker) {
-        sqlString =
-          "SELECT name, id, kills, headshot_kills, teamkills, knife_kills FROM player_stats WHERE match_id = ? AND map_id = ? AND steam_id = ?";
-        playerStatVals = await db.query(sqlString, [
-          event.matchid,
-          mapInfo[0].id,
-          event.attacker.steamid
-        ]);
-        if (playerStatVals.length) {
-          console.log(
-            `OnPlayerDeath: Updating our player stats for attacker ${JSON.stringify(playerStatVals[0])}`
-          );
-          sqlString = "UPDATE player_stats SET ? WHERE id = ?";
-          insertObj = {
-            kills: playerStatVals[0].kills + 1,
-            headshot_kills: event.headshot
-              ? playerStatVals[0].headshot_kills + 1
-              : null,
-            teamkills: event.friendly_fire
-              ? playerStatVals[0].teamkills + 1
-              : null,
-            knife_kills:
-              event.weapon.id == 28 ||
-              event.weapon.id == 50 ||
-              event.weapon.id == 28 ||
-              event.weapon.id == 59 ||
-              event.weapon.id == 80 ||
-              event.weapon.id > 500
-                ? playerStatVals[0].knife_kills + 1
-                : null
-          };
-          insertObj = await db.buildUpdateStatement(insertObj);
-          await db.query(sqlString, [insertObj, playerStatVals[0].id]);
-        }
-      }
-
-      if (event.assist) {
-        sqlString =
-          "SELECT id, assists, flashbang_assists FROM player_stats WHERE match_id = ? AND map_id = ? AND steam_id = ?";
-        playerStatVals = await db.query(sqlString, [
-          event.matchid,
-          mapInfo[0].id,
-          event.assist.player.steamid
-        ]);
-        if (playerStatVals.length) {
-          sqlString = "UPDATE player_stats SET ? WHERE id = ?";
-          insertObj = {
-            assists: playerStatVals[0].assists + 1,
-            flashbang_assists: event.assist.flash_assist
-              ? playerStatVals[0].flashbang_assists + 1
-              : null
-          };
-          insertObj = await db.buildUpdateStatement(insertObj);
-          await db.query(sqlString, [insertObj, playerStatVals[0].id]);
-        }
-      }
       GlobalEmitter.emit("playerStatsUpdate");
       return res.status(200).send({ message: "Success" });
     } catch (error: unknown) {
@@ -277,6 +201,7 @@ class MapFlowService {
       ]);
       // If player does not have player stats yet, insert them.
       if (!playerStatInfo.length && !event.player?.is_bot) {
+        console.log(`OnBombEvent: Bomb Plant event ${JSON.stringify(event)} player does not exist in the DB so we must insert.`);
         let teamId: RowDataPacket[];
         sqlString =
           "SELECT t.id FROM team t JOIN team_auth_names ta ON ta.team_id = t.id WHERE ta.auth = ?";
