@@ -162,7 +162,7 @@ import GlobalEmitter from "../../utility/emitter.js";
  *            description: Key value pair containing an integer representing map order, and value representing map name.
  *           min_spectators_to_ready:
  *            type: integer
- *            description: Value representing specatators to ready up.
+ *            description: Value representing spectators to ready up.
  *           maps_to_win:
  *            type: integer
  *            description: The amount of maps required to win a match.
@@ -1230,7 +1230,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           ))
         ) {
           // Delete the match as it does not belong in the database.
-          sql = "DELETE FROM match_specatator WHERE match_id = ?";
+          sql = "DELETE FROM match_spectator WHERE match_id = ?";
           await db.query(sql, [insertMatch.insertId]);
           sql = "DELETE FROM match_cvar WHERE match_id = ?";
           await db.query(sql, [insertMatch.insertId]);
