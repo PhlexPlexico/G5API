@@ -201,7 +201,6 @@ class MapFlowService {
       ]);
       // If player does not have player stats yet, insert them.
       if (!playerStatInfo.length && !event.player?.is_bot) {
-        console.log(`OnBombEvent: Bomb Plant event ${JSON.stringify(event)} player does not exist in the DB so we must insert.`);
         let teamId: RowDataPacket[];
         sqlString =
           "SELECT t.id FROM team t JOIN team_auth_names ta ON ta.team_id = t.id WHERE ta.auth = ?";
@@ -251,7 +250,6 @@ class MapFlowService {
     res: Response
   ) {
     try {
-      console.log(`OnRoundEnd: ROUND NUMBER ENDED IS ${event.round_number}`);
       let sqlString: string =
         "SELECT id FROM map_stats WHERE match_id = ? AND map_number = ?";
       let insUpdStatement: object;
@@ -274,11 +272,6 @@ class MapFlowService {
         singlePlayerStat = playerStats.filter(
           (dbPlayer) => dbPlayer.steam_id == player.steamid
         );
-        console.log(
-          `OnRoundEnd: Player team 1 is ${JSON.stringify(
-            player
-          )} and the team id is ${singlePlayerStat[0]?.id}`
-        );
         await Utils.updatePlayerStats(
           event.matchid,
           event.team1.id,
@@ -290,11 +283,6 @@ class MapFlowService {
       for (let player of event.team2.players) {
         singlePlayerStat = playerStats.filter(
           (dbPlayer) => dbPlayer.steam_id == player.steamid
-        );
-        console.log(
-          `OnRoundEnd: Player on team 2 is ${JSON.stringify(
-            player
-          )} and the team id is ${singlePlayerStat[0]?.id}`
         );
         await Utils.updatePlayerStats(
           event.matchid,
@@ -349,7 +337,6 @@ class MapFlowService {
   ) {
     let sqlString: string;
     let mapStatInfo: RowDataPacket[];
-    console.log(`OnRoundStart: ROUND NUMBER IS ${event.round_number}`);
     // Check if round was backed up and nuke the additional player stats and bomb plants.
     sqlString = "SELECT round_restored, id FROM map_stats WHERE match_id = ? AND map_number = ?";
     mapStatInfo = await db.query(sqlString, [event.matchid, event.map_number]);

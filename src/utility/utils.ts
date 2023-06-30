@@ -75,7 +75,7 @@ class Utils {
 
       return rating.toFixed(2);
     } catch (err) {
-      console.log("HELPER getRating Failed -- " + err);
+      console.error("HELPER getRating Failed -- " + err);
       return 0;
     }
   }
@@ -581,15 +581,9 @@ class Utils {
     insUpdStatement = await db.buildUpdateStatement(insUpdStatement);
 
     if (playerId) {
-      console.log(
-        "updatePlayerStats: Stats do exist! Updating."
-      );
       sqlString = "UPDATE player_stats SET ? WHERE id = ?";
       await db.query(sqlString, [insUpdStatement, playerId]);
     } else {
-      console.log(
-        "updatePlayerStats: Stats do not exist currently. Inserting."
-      );
       sqlString = "INSERT INTO player_stats SET ?";
       await db.query(sqlString, insUpdStatement);
     }
