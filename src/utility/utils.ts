@@ -75,7 +75,7 @@ class Utils {
 
       return rating.toFixed(2);
     } catch (err) {
-      console.log("HELPER getRating Failed -- " + err);
+      console.error("HELPER getRating Failed -- " + err);
       return 0;
     }
   }

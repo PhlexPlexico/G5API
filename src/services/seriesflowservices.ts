@@ -149,36 +149,6 @@ class SeriesFlowService {
       updateStmt = await db.buildUpdateStatement(updateStmt);
       await db.query(sqlString, [updateStmt, mapInfo[0].id]);
 
-      // Final update of playerstats.
-      sqlString =
-        "SELECT * FROM player_stats WHERE match_id = ? AND map_id = ?";
-      playerStats = await db.query(sqlString, [event.matchid, mapInfo[0].id]);
-      for (let player of event.team1.players) {
-        singlePlayerStat = playerStats.filter(
-          (dbPlayer) => dbPlayer.steam_id == player.steamid
-        );
-        await Utils.updatePlayerStats(
-          event.matchid,
-          event.team1.id,
-          mapInfo[0].id,
-          player,
-          singlePlayerStat[0].id
-        );
-      }
-      for (let player of event.team2.players) {
-        singlePlayerStat = playerStats.filter(
-          (dbPlayer) => dbPlayer.steam_id == player.steamid
-        );
-        await Utils.updatePlayerStats(
-          event.matchid,
-          event.team2.id,
-          mapInfo[0].id,
-          player,
-          singlePlayerStat[0].id
-        );
-      }
-      GlobalEmitter.emit("playerStatsUpdate");
-
       // Update match table.
       updateStmt = {
         team1_score: event.team1.series_score,
