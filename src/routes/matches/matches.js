@@ -19,6 +19,9 @@ import config from "config";
 
 import GlobalEmitter from "../../utility/emitter.js";
 
+import { compare } from "compare-versions";
+
+
 /**
  * @swagger
  *
@@ -996,10 +999,33 @@ router.get("/:match_id/config", async (req, res, next) => {
     let matchID = req.params.match_id;
     let matchCvars;
     let matchSpecs;
+    let apiKey = req.get("Authorization");
+    let apiString = config.get("server.apiURL");
+    
     const matchInfo = await db.query(sql, [matchID]);
     if (!matchInfo.length) {
       res.status(404).json({ message: "No match found." });
       return;
+    }
+    if (
+      matchInfo[0].plugin_version != "unknown" && compare(
+        matchInfo[0].plugin_version,
+        "0.13.1",
+        ">="
+      )
+    ) {
+      // Check for API key and deny access if not provided.
+      if (!apiKey) {
+        res
+          .status(401)
+          .json({ message: "Unauthorized to access match config." });
+        return;
+      } else if (matchInfo[0].api_key.localeCompare(apiKey)) {
+        res
+          .status(401)
+          .json({ message: "Unauthorized to access match config." });
+        return;
+      }
     }
     let matchJSON = {
       matchid: matchID,
@@ -1020,13 +1046,34 @@ router.get("/:match_id/config", async (req, res, next) => {
       cvars:
         matchInfo[0].plugin_version != null &&
         (matchInfo[0].plugin_version == "unknown" ||
-          parseFloat(matchInfo[0].plugin_version) < 0.14)
+          compare(matchInfo[0].plugin_version, "0.13.1", "<"))
           ? {
               get5_web_api_url: config.get("server.apiURL"),
               get5_check_auths: matchInfo[0].enforce_teams.toString()
             }
           : {
-              get5_check_auths: matchInfo[0].enforce_teams.toString()
+              get5_check_auths: matchInfo[0].enforce_teams.toString(),
+              get5_remote_log_url: `${
+                apiString.endsWith("/")
+                  ? apiString.concat("v2")
+                  : apiString.concat("/v2")
+              }`,
+              get5_remote_log_header_key: "Authorization",
+              get5_remote_log_header_value: apiKey,
+              get5_remote_backup_url: `${
+                apiString.endsWith("/")
+                  ? apiString.concat("v2/backup")
+                  : apiString.concat("/v2/backup")
+              }`,
+              get5_remote_backup_header_key: "Authorization",
+              get5_remote_backup_header_value: apiKey,
+              get5_demo_upload_url: `${
+                apiString.endsWith("/")
+                  ? apiString.concat("v2/demo")
+                  : apiString.concat("/v2/demo")
+              }`,
+              get5_demo_upload_header_key: "Authorization",
+              get5_demo_upload_header_value: apiKey
             },
       spectators: {
         players: []
