@@ -91,7 +91,7 @@ class ServerRcon {
 
       if (get5Status.includes("Unknown command")) {
         let get5Version = await this.getGet5Version();
-        if (get5Version.includes("0.14")) {
+        if (compare(get5Version, "0.13.1", ">=")) {
           return true;
         } else {
           console.log("Either get5 or G5WS plugin is missing.");
