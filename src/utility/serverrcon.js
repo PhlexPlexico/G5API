@@ -3,6 +3,8 @@ import Rcon from "rcon";
 import fetch from "node-fetch";
 import config from "config";
 
+import { compare } from "compare-versions";
+
 /**
  * Creates a new server object to run various tasks.
  * @class
@@ -195,47 +197,29 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      let loadMatchResponse = await this.execute(
-        "get5_loadmatch_url " + '"' + get5URLString + '"'
-      );
+      let loadMatchResponse;
+      let get5Version = await this.getGet5Version();
+      if (compare(get5Version, "0.13.1", ">=")) {
+        loadMatchResponse = await this.execute(
+          "get5_loadmatch_url " +
+            '"' +
+            get5URLString +
+            '" ' +
+            '"Authorization" "' +
+            get5APIKeyString +
+            '"'
+        );
+      } else {
+        loadMatchResponse = await this.execute(
+          "get5_loadmatch_url " + '"' + get5URLString + '"'
+        );
+      }
+      
       if (loadMatchResponse.includes("Failed")) return false;
       else if (loadMatchResponse.includes("another match already loaded"))
         return false;
-      let get5Version = await this.getGet5Version();
-      if (parseFloat(get5Version) >= 0.14) {
-        let apiString = config.get("server.apiURL");
-        await this.execute(
-          'get5_remote_log_url "'.concat(
-            apiString.endsWith("/")
-              ? apiString.concat("v2")
-              : apiString.concat("/v2")
-          ) + '"'
-        );
-        await this.execute("get5_remote_log_header_key Authorization");
-        await this.execute("get5_remote_log_header_value " + get5APIKeyString);
-
-        await this.execute(
-          'get5_remote_backup_url "'.concat(
-            apiString.endsWith("/")
-              ? apiString.concat("v2/backup")
-              : apiString.concat("/v2/backup")
-          ) + '"'
-        );
-        await this.execute("get5_remote_backup_header_key Authorization");
-        await this.execute(
-          "get5_remote_backup_header_value " + get5APIKeyString
-        );
-
-        await this.execute(
-          'get5_demo_upload_url "'.concat(
-            apiString.endsWith("/")
-              ? apiString.concat("v2/demo")
-              : apiString.concat("/v2/demo")
-          ) + '"'
-        );
-        await this.execute("get5_demo_upload_header_key Authorization");
-        await this.execute("get5_demo_upload_header_value " + get5APIKeyString);
-      } else {
+      
+      if (compare(get5Version, "0.13.1", "<")) {
         await this.execute("get5_web_api_key " + get5APIKeyString);
       }
       return true;
