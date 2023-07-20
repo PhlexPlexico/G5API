@@ -1225,13 +1225,11 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       sql =
         "INSERT match_spectator (match_id, auth, spectator_name) VALUES (?,?,?)";
       for (let key in req.body[0].spectator_auths) {
-        let newAuth = await Utils.getSteamPID(
-          req.body[0].spectator_auths[key].split(";")[0]
-        );
+        let newAuth = await Utils.getSteamPID(key);
         await db.query(sql, [
           insertMatch.insertId,
           newAuth,
-          req.body[0].spectator_auths[key].split(";")[1]
+          req.body[0].spectator_auths[key]
         ]);
       }
     }
@@ -1438,13 +1436,11 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         sql =
           "INSERT match_spectator (match_id, auth, spectator_name) VALUES (?,?,?)";
         for (let key in req.body[0].spectator_auths) {
-          let newAuth = await Utils.getSteamPID(
-            req.body[0].spectator_auths[key].split(";")[0]
-          );
+          let newAuth = await Utils.getSteamPID(key);
           await db.query(sql, [
             insertMatch.insertId,
             newAuth,
-            req.body[0].spectator_auths[key].split(";")[1]
+            req.body[0].spectator_auths[key]
           ]);
         }
       }
