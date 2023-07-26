@@ -195,7 +195,7 @@ router.post("/", basicRateLimit, async (req, res) => {
         );
         break;
       default:
-        res.status(400).send({message: `Event ${eventType.event} is not implemented.`});
+        res.status(202).send({message: `Event ${eventType.event} is not implemented.`});
         break;
     }
     // Responses are taken care of in the case statements.
