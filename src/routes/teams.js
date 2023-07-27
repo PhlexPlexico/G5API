@@ -399,7 +399,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
       "INSERT INTO team_auth_names (team_id, auth, name, captain, coach) VALUES (?, ?, ?, ?, ?)";
     for (let key in auths) {
       let isCaptain = auths[key].captain == null ? 0 : auths[key].captain;
-      let isCoach = auths[key].captain == null ? 0 : auths[key].coach;
+      let isCoach = auths[key].coach == null ? 0 : auths[key].coach;
       let usersSteamId = await Utils.getSteamPID(key);
       await db.query(sql, [
         teamID,
