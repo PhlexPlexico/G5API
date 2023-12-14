@@ -89,7 +89,7 @@
     "node-fetch": "^3.2.0",
     "passport": "^0.6.0",
     "passport-local": "^1.0.0",
-    "passport-steam": "^1.0.17",
+    "passport-steam": "^1.0.18",
     "pm2": "^5.3.0",
     "randomstring": "^1.2.2",
     "rcon": "^1.1.0",
