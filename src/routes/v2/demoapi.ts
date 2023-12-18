@@ -150,7 +150,7 @@ router.post("/", async (req: Request, res: Response) => {
       });
     // Update map stats object to include the link to the demo.
     updateStmt = {
-      demoFile: demoFilename.replace("dem", "zip")
+      demoFile: demoFilename.replace(".dem", ".zip")
     };
     updateStmt = await db.buildUpdateStatement(updateStmt);
 
