@@ -2311,9 +2311,9 @@ find-up@^4.0.0, find-up@^4.1.0:
     path-exists "^4.0.0"
 
 follow-redirects@^1.14.0:
-  version "1.15.1"
-  resolved "https://registry.npmjs.org/follow-redirects/-/follow-redirects-1.15.1.tgz"
-  integrity sha512-yLAMQs+k0b2m7cVxpS1VKJVvoz7SS9Td1zss3XRwXj+ZDH00RJgnuLx7E44wx02kQLrdM3aOOy+FpzS7+8OizA==
+  version "1.15.4"
+  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.4.tgz#cdc7d308bf6493126b17ea2191ea0ccf3e535adf"
+  integrity sha512-Cr4D/5wlrb0z9dgERpUL3LrmPKVDsETIJhaCMeDfuFYcqa5bldGV6wBsAN6X/vxlXQtFBMrXdXxdL8CbDTGniw==
 
 form-data@^4.0.0:
   version "4.0.0"
@@ -3884,10 +3884,10 @@ passport-mock-strategy@^2.0.0:
     es6-promise "^4.2.6"
     passport "^0.4.0"
 
-passport-steam@^1.0.17:
-  version "1.0.17"
-  resolved "https://registry.npmjs.org/passport-steam/-/passport-steam-1.0.17.tgz"
-  integrity sha512-aolIlooF5hZwp1GAaoK3d8einOGLeDDauQEmrb1jtEFrNYP2lC6WS5hVeUdP4rPfZiBHwY60lHcQksCKiSgnlA==
+passport-steam@^1.0.18:
+  version "1.0.18"
+  resolved "https://registry.yarnpkg.com/passport-steam/-/passport-steam-1.0.18.tgz#7d934344c521f04adb35628f7118761f502299d5"
+  integrity sha512-3S6XlgATcJE3M3IfpwkvjWHeTDreaPUWQPykwxjv8LA5RtnfHrkt5c5HJdadYMCRHf3qh1OfCWETMxdpSdlBZA==
   dependencies:
     "@passport-next/passport-openid" "^1.0.0"
     steam-web "0.4.0"
