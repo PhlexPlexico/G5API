@@ -1,7 +1,9 @@
 # G5API - A Tournament Management API Backend for Get5
 _**Status: Supported.**_
 
-After the announcement of CS2 I have decided to put this project on support. No more features will be actively developed, but supoprt will still be given if you need assistance in setting things up. Pull Requests are always welcome and will be reviewed!
+No more features will be actively developed, but supoprt will still be given if you need assistance in setting things up. Pull Requests are always welcome and will be reviewed!
+
+With the recent developments of Counter-Strike Sharp, there are a few plugins which have graciously added support for G5API. Huge thanks to [MatchZy](https://shobhit-pathak.github.io/MatchZy/) and [PugSharp](https://github.com/Lan2Play/PugSharp) for adding support to this project.
 
 G5API is a replacement for the get5-webpanel. This is the backend only, as it will allow the plugin to interface with a database, Steam OAuth, Local Logins, and API Keys, as well as make various calls to functionality that is seen in the [get5-web](https://github.com/phlexplexico/get5-web).
 
@@ -17,27 +19,14 @@ If you've donated and would like to have your name listed as a sponsor, please m
 ---
 
 ## What does it do?
-G5API is an API that will allow users to create, manage, and control Counter-Strike: Global Offensive matches. Add teams, create matches, and most importantly, track statistics across matches, and create Seasons/Tournaments to track stats within date ranges.  
+G5API is an API that will allow users to create, manage, and control Counter-Strike 2 (CS2) matches. Add teams, create matches, and most importantly, track statistics across matches, and create Seasons/Tournaments to track stats within date ranges.  
 
-This API is complete enough to provide the most functionality out of [get5](https://github.com/splewis/get5).
-
-<details closed>
-  <summary><b>Note:</b> While available for backwards compatibility, it is recommended you use the <i>latest</i> version of get5, as you will no longer need an additional plugin for enhanced reporting. The only extension needed is SteamWorks.  </summary>
-  <br>
-
-  
-For the plugin [G5WS](https://github.com/PhlexPlexico/G5WS"), the routes currently put into place located in the `./src/routes/legacy/` and still point to `/match/` on this app. 
-</details>
-
-
-If you are using get5 0.14 or later, the G5WS plugin is **not** needed, and should be removed or disabled from your game server to avoid any conflicting actions. The new routes are located in `./src/routes/v2`, and the main logic can be found in their respective services under `./src/services`
-
-Game server interaction will still take place under the `/matches/:match_id` directive, but the logic can be found under `./matches/matchserver.js`.
+This API is complete enough to provide the most functionality out of [get5](https://github.com/splewis/get5), and has support for events that are fired off from [MatchZy](https://shobhit-pathak.github.io/MatchZy/) and [PugSharp](https://github.com/Lan2Play/PugSharp).
 
 There is also Challonge integration within the API. If a user provides a tournament ID to create a season, it will auto-fill a season start date, empty teams, and will auto-update the brackets at the end of each match if the match exists under the Season/Tournament.
 
 # What does it NOT do?
-This is simply a back-end to get myself used to JavaScript and Node. You will need a [front end](https://github.com/phlexplexico/g5v) or create something that can make it work! 
+As stated, this is an API and does not contain a front end. You can either create your own front-end, or use [G5V](https://github.com/phlexplexico/g5v) to provide a simple, but effective front-end experience.
 
 # Why?
 [Get5-web](https://github.com/phlexplexico/get5-web) is a now out-dated webpanel, with python2.7 being officially EOL. Being built all on Flask, with ORM (SQLAlchemy), and Jinja2, its tech spans more than a few years old. While it works really well for now, it is becoming increasingly harder to deploy to more modern hardware/software (such as Ubuntu 19) to ensure easy setup.
@@ -51,7 +40,7 @@ First you will need to copy over the ```development/test/production.json.templat
 
 If you wish to roll a production build, please copy ```production.json.template``` and fill out all the values.
 
-To see initial configuration/installation on your server, please [visit the wiki](https://github.com/PhlexPlexico/G5API/wiki/) to learn more about first-time setup. Node, Redis, and MariaDB/MySQL are all pre-requisites, and the wiki will provide you with information on how to set it up, as well as some useful information about the templated configuration files.
+To see initial configuration/installation on your server, please [visit the wiki](https://github.com/PhlexPlexico/G5API/wiki/) to learn more about first-time setup. Node, Redis, and MariaDB/MySQL are all pre-requisites, and the wiki will provide you with information on how to set it up, as well as some useful information about the templated configuration files. *However, it is recommended to use the Docker build, or the docker compose file, please read beLow for further information.*
 
 ### Migrate dev database: 
 ```yarn migrate-create-dev && yarn migrate-dev-upgrade```
@@ -74,7 +63,7 @@ This guide assumes you have a MariaDB or MySQL compatible server running. You ca
 Build your docker image.
 Run the command ```docker build -t yourname\g5api:latest .```
 Once this has finished, you can run the container using 
-```
+```sh
 docker container run --name g5api \
 -p 3301:3301 \
 -v redisVol:/RedisFiles \
@@ -94,6 +83,7 @@ docker container run --name g5api \
 -e SUPERADMINS="" \
 -e REDISURL="" \
 -e REDISTTL="" \
+-e USEREDIS="true" \
 -e UPLOADDEMOS="" \
 -e LOCALLOGINS="" \
 yourname\g5api:latest
@@ -105,10 +95,12 @@ Provided in this repository is a `docker-compose.yml` file. Much like the above 
 The first thing needed, however, is a network bridge, and this can be done by calling `docker network create -d bridge get5`.
 
 #### With Caddy
-A few changes need to be created in order to get the reverse proxy working either with HTTPS or just HTTP. It is recommeneded you use a DNS (duckdns for example) as it will allow for HTTPS. Inside the [docker-compose](./docker-compose.yml) you will find various references to `localhost`. Please change these values according to whatever your host is. These will exist in lines 46, 54, 56, 57, and 80. Once that is done, and all the other aforementioned information is filled in, you can call `docker-compose up -d` to run the application. After a few minutes of setup, it should be accessible at your host.
+A few changes need to be created in order to get the reverse proxy working either with HTTPS or just HTTP. It is recommeneded you use a DNS (duckdns for example) as it will allow for HTTPS. Inside the [docker-compose](./docker-compose.yml) you will find various references to `localhost`. Please change these values according to whatever your host is. **These will exist in lines 46, 54, 56, 57, and 80**. Once that is done, and all the other aforementioned information is filled in, you can call `docker-compose up -d` to run the application. After a few minutes of setup, it should be accessible.
 
 #### Without Caddy
-If you already have a webserver setup, and reverse proxies enabled with another tool (such as NGINX), you may remove all the labels associated with `caddy`, and remove the `caddy` image itself. After that, fill in the aforementioned data (the localhost bits included on lines 54, 56, 57) that is required and call `docker-compose up -d` and wait a few minutes for it to launch, and it will be available at your host.
+If you already have a webserver setup, and reverse proxies enabled with another tool (such as NGINX, Apache, Caddy, etc.), you may **remove all the labels associated with** `caddy`, and remove the `caddy` image itself. After that, fill in the aforementioned data (the **localhost bits included on lines 54, 56, 57**) that is required and call `docker-compose up -d` and wait a few minutes for it to launch, and it will be available.
+
+*If there are any issues with starting the container*, please observe the log using (provided you didn't change the container names) `docker container logs g5api` and see where it is failing to launch. Using docker logs is a very useful tool for debugging and checking why a build is failing.
 
 
 For more details on these variables, follow along with production.json.template located in /config
@@ -125,7 +117,7 @@ Steam OAuth will be mocked in order to check if a user is "logged in", and creat
 Will *require* `test.json` to exist in projects `config` folder. It will grab the value from `./utility/mockProfile.js` to set it as a `super_admin` temporarily, then remove it after. These tests are mainly meant for CI, and will be the go-to to test if any changes break the application.
 
 # Contribution
-If you have a knack for APIs and a penchant for JavaScript, I could always use help! Create a fork of this application, make your changes, and submit a PR. I will be using the [Issues](https://github.com/phlexplexico/G5API/issues) page to track what calls still need to be completed. Even though this project is "complete" in a sense of it does what is on the tin, I wouldn't be opposed to new features or suggestions on how to make the API better!
+If you have a knack for APIs and a penchant for JavaScript, I could always use help! Create a fork of this application, make your changes, and submit a PR. I will be using the [Issues](https://github.com/phlexplexico/G5API/issues) page to track what calls still need to be completed. Even though this project is "complete" in a sense of it does what it says on the tin, I wouldn't be opposed to new features or suggestions on how to make the API better!
 
 If you so choose to contribute, please make sure you include documentation for the API calls, as it is how I am keeping track of all the functionality. I'm using [JSDoc](https://devdocs.io/jsdoc/) as well as [Swagger](https://swagger.io) to provide documentation. Please read over some of the files to get accustomed to usage.
 
