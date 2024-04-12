@@ -85,7 +85,7 @@
     "http-errors": "~1.7.3",
     "jszip": "^3.7.0",
     "morgan": "^1.10.0",
-    "mysql2": "^2.2.5",
+    "mysql2": "^3.9.4",
     "node-fetch": "^3.2.0",
     "passport": "^0.6.0",
     "passport-local": "^1.0.0",
