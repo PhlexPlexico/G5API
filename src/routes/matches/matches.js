@@ -584,7 +584,7 @@ router.get("/:match_id/stream", async (req, res, next) => {
     const matchStreamStatus = async () => {
       matches = await db.query(sql, matchID);
       matches = matches.map((v) => Object.assign({}, v));
-      matches = `event: matches\ndata: ${JSON.stringify(matches[0])}\n\n`;
+      matchString = `event: matches\ndata: ${JSON.stringify(matches[0])}\n\n`;
       res.write(matchString);
     };
 
