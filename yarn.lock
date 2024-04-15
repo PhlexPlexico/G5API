@@ -3577,7 +3577,7 @@ mute-stream@~0.0.4:
 
 mysql2@^2.1.0:
   version "2.3.3"
-  resolved "https://registry.npmjs.org/mysql2/-/mysql2-2.3.3.tgz"
+  resolved "https://registry.yarnpkg.com/mysql2/-/mysql2-2.3.3.tgz#944f3deca4b16629052ff8614fbf89d5552545a0"
   integrity sha512-wxJUev6LgMSgACDkb/InIFxDprRa6T95+VEoR+xPvtngtccNH2dGjEB/fVZ8yg1gWv1510c9CvXuJHi5zUm0ZA==
   dependencies:
     denque "^2.0.1"
