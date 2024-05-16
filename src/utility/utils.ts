@@ -19,8 +19,8 @@ import config from "config";
 /** Steam API Handler for custom URLs
  * @const
  */
-import SteamURLResolver from "steamapi";
-const SteamAPI = new SteamURLResolver(config.get("server.steamAPIKey"));
+import SteamAPI from "steamapi";
+const steam = new SteamAPI(config.get("server.steamAPIKey"));
 /** Steam ID Handler for other IDs.
  * @const
  */
@@ -217,7 +217,7 @@ class Utils {
     // Remove any https tags, as they aren't needed.
     authString = authString.replace(new RegExp("^(http|https)://", "i"), "");
     if (authString.includes("steamcommunity.com/id/")) {
-      let steamID = await SteamAPI.resolve(authString);
+      let steamID = await steam.resolve(authString);
       return steamID;
     } else if (authString.includes("steamcommunity.com/profiles/")) {
       return authString.split("/")[2];
@@ -232,7 +232,7 @@ class Utils {
     } else if (authString.startsWith("7656119")) {
       return authString;
     } else {
-      let steamID = await SteamAPI.resolve(
+      let steamID = await steam.resolve(
         "steamcommunity.com/id/" + authString
       );
       return steamID;
@@ -248,7 +248,8 @@ class Utils {
    */
   static async getSteamName(auth64: string) {
     try {
-      let summaryInfo = await SteamAPI.getUserSummary(auth64);
+      let summaryInfo = await steam.getUserSummary(auth64);
+      // @ts-expect-error
       return summaryInfo.nickname;
     } catch {
       return null;
@@ -265,7 +266,8 @@ class Utils {
    */
   static async getSteamImage(auth64: string) {
     try {
-      let summaryInfo = await SteamAPI.getUserSummary(auth64);
+      let summaryInfo = await steam.getUserSummary(auth64);
+      // @ts-expect-error
       return summaryInfo.avatar.medium;
     } catch {
       return null;
