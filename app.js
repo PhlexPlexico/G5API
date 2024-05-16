@@ -1,5 +1,5 @@
 import config from "config";
-import connectRedis from "connect-redis";
+import RedisStore from "connect-redis";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -57,11 +57,9 @@ app.use(helmet());
 if (config.get("server.useRedis")) {
   // Messy but avoids any open file handles.
   const redisClient = createClient({
-    legacyMode: true,
     url: config.get("server.redisUrl"),
   });
 
-  const redisStore = connectRedis(session);
   await redisClient.connect();
   redisClient.on("error", (err) => {
     console.log("Redis error: ", err);
@@ -77,8 +75,8 @@ if (config.get("server.useRedis")) {
       name: "G5API",
       resave: false,
       saveUninitialized: true,
-      store: new redisStore(redisCfg),
-      cookie: { maxAge: 3600000 },
+      store: new RedisStore(redisCfg),
+      cookie: { maxAge: 86400000 },
     })
   );
 } else {
@@ -88,7 +86,7 @@ if (config.get("server.useRedis")) {
       name: "G5API",
       resave: false,
       saveUninitialized: true,
-      cookie: { maxAge: 3600000 },
+      cookie: { maxAge: 86400000 },
     })
   );
 }
@@ -116,7 +114,7 @@ const options = {
     openapi: "3.0.0", // Specification (optional, defaults to swagger: '2.0')
     info: {
       title: "G5API", // Title (required)
-      version: "2.0.0" // Version (required)
+      version: "2.0.2.4" // Version (required)
     }
   },
   // Path to the API docs

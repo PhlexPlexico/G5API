@@ -1371,6 +1371,12 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           return;
         }
         if (req.body[0].server_id != matchRow[0].server_id) diffServer = true;
+        if (returnedServer[0].in_use) {
+          res.status(401).json({
+          message: "Server is already in use, please select a different server."
+        });
+        return;
+        }
       }
 
       let vetoSql =
