@@ -29,7 +29,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.TOKEN }}
       - id: getversion
         uses: Saionaro/extract-package-version@v1.2.1
       - uses: docker/build-push-action@v3.2.0
