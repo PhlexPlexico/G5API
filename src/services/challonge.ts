@@ -66,55 +66,74 @@ async function update_challonge_match(
     );
     let challongeData: any = await challongeResponse.json();
     if (challongeData) {
-      if (num_maps == 1) {
-        // Submit the map stats scores instead.
-        sql =
-          "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ?";
+
+      let correctIndex = -1; // Initialize with -1 to indicate not found
+
+      // Iterate through the team1ChallongeId array to find the correct index
+      for (let i = 0; i < challongeData.length; i++) {
+        if ((challongeData[i].match.player1_id === team1ChallongeId[0].challonge_team_id && challongeData[i].match.player2_id === team2ChallongeId[0].challonge_team_id) ||
+            (challongeData[i].match.player2_id === team1ChallongeId[0].challonge_team_id && challongeData[i].match.player1_id === team2ChallongeId[0].challonge_team_id)) {
+          correctIndex = i;
+          break; // Exit the loop once the correct index is found
+        }
+      }
+
+      // If correctIndex remains -1, it means no matching index was found based on the conditions
+      if (correctIndex === -1) {
+        console.log("No matching index found.");
+
       } else {
-        sql = "SELECT team1_score, team2_score FROM `match` WHERE id = ?";
-      }
-      const mapStats: any = await db.query(sql, [match_id]);
-      // Admins may just make a match that has teams swapped. This is okay as we can change what we
-      // report to Challonge.
-      team1Score =
-        challongeData[0].match.player1_id ==
-        team1ChallongeId[0].challonge_team_id
-          ? mapStats[0].team1_score
-          : mapStats[0].team2_score;
-      team2Score =
-        challongeData[0].match.player2_id ==
-        team2ChallongeId[0].challonge_team_id
-          ? mapStats[0].team2_score
-          : mapStats[0].team1_score;
-      // Build the PUT body.
-      let putBody = {
-        api_key: decryptedKey,
-        match: {
-          scores_csv: `${team1Score}-${team2Score}`,
-          winner_id:
-            winner === "team1"
-              ? team1ChallongeId[0].challonge_team_id
-              : team2ChallongeId[0].challonge_team_id
+        console.log(`Correct index found: ${correctIndex}`);
+if (num_maps == 1) {
+          // Submit the map stats scores instead.
+          sql =
+            "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ?";
+        } else {
+          sql = "SELECT team1_score, team2_score FROM `match` WHERE id = ?";
         }
-      };
-      // If we're just updating the score, remove this.
-      if (winner === null) {
-        delete putBody.match.winner_id;
-      }
-      await fetch(
-        "https://api.challonge.com/v1/tournaments/" +
-          seasonInfo[0].challonge_url +
-          "/matches/" +
-          challongeData[0].match.id +
-          ".json",
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(putBody)
+        const mapStats: any = await db.query(sql, [match_id]);
+        // Admins may just make a match that has teams swapped. This is okay as we can change what we
+        // report to Challonge.
+        team1Score =
+          challongeData[correctIndex].match.player1_id ==
+          team1ChallongeId[0].challonge_team_id
+            ? mapStats[0].team1_score
+            : mapStats[0].team2_score;
+        team2Score =
+          challongeData[correctIndex].match.player2_id ==
+          team2ChallongeId[0].challonge_team_id
+            ? mapStats[0].team2_score
+            : mapStats[0].team1_score;
+        // Build the PUT body.
+        let putBody = {
+          api_key: decryptedKey,
+          match: {
+            scores_csv: `${team1Score}-${team2Score}`,
+            winner_id:
+              winner === "team1"
+                ? team1ChallongeId[0].challonge_team_id
+                : team2ChallongeId[0].challonge_team_id
+          }
+        };
+        // If we're just updating the score, remove this.
+        if (winner === null) {
+          delete putBody.match.winner_id;
         }
-      );
+        await fetch(
+          "https://api.challonge.com/v1/tournaments/" +
+            seasonInfo[0].challonge_url +
+            "/matches/" +
+            challongeData[correctIndex].match.id +
+            ".json",
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(putBody)
+          }
+        );
+      }
       // Check and see if any matches remain, if not, finalize the tournament.
       challongeResponse = await fetch(
         "https://api.challonge.com/v1/tournaments/" +
