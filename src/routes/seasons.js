@@ -314,18 +314,18 @@ router.get(
         "FROM teams_seasons ts " +
         "INNER JOIN team ON ts.teams_id = team.id " +
         "WHERE ts.season_id = ?"
-      let cvar = await db.query(sql, [req.params.season_id]);
-      if (cvar[0].cvars == null) {
+      let team = await db.query(sql, [req.params.season_id]);
+      if (team[0].teams == null) {
         res.status(404).json({
           message: "No teams found for season id " + req.params.season_id + ".",
         });
         return;
       }
-      for (let row in cvar) {
-        if (cvar[row].cvars == null) delete cvar[row].cvars;
-        else cvar[row].cvars = JSON.parse(cvar[row].cvars);
+      for (let row in team) {
+        if (team[row].teams == null) delete team[row].teams;
+        else team[row].teams = JSON.parse(team[row].teams);
       }
-      res.json(cvar[0]);
+      res.json(team[0]);
     } catch (err) {
       res.status(500).json({ message: err.toString() });
     }
