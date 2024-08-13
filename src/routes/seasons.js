@@ -280,6 +280,61 @@ router.get(
 /**
  * @swagger
  *
+ * /seasons/:season_id/teams:
+ *   get:
+ *     description: Get all teams present of a given season ID.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: season_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: All matches within the system.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/cvars'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.get(
+  "/:season_id/teams",
+  Utils.ensureAuthenticated,
+  async (req, res, next) => {
+    try {
+      let sql =
+        "SELECT CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',team.name,'\"',': \"',ts.id,'\"')),'}') as teams " + 
+        "FROM teams_seasons ts " +
+        "INNER JOIN team ON ts.teams_id = team.id " +
+        "WHERE ts.season_id = ?"
+      let cvar = await db.query(sql, [req.params.season_id]);
+      if (cvar[0].cvars == null) {
+        res.status(404).json({
+          message: "No teams found for season id " + req.params.season_id + ".",
+        });
+        return;
+      }
+      for (let row in cvar) {
+        if (cvar[row].cvars == null) delete cvar[row].cvars;
+        else cvar[row].cvars = JSON.parse(cvar[row].cvars);
+      }
+      res.json(cvar[0]);
+    } catch (err) {
+      res.status(500).json({ message: err.toString() });
+    }
+  }
+);
+
+/**
+ * @swagger
+ *
  * /seasons/:season_id:
  *   get:
  *     description: Set of matches from a season.
