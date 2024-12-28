@@ -29,7 +29,7 @@ function strategyForEnvironment() {
       const newUser = new user();
       strategy = new MockStrategy({ name: "steam", user: newUser, passReqToCallback: true }, returnStrategy);
       break;
-      // TODO: Fix crashing while on dev environment. "cb is not a function" error. Discord @tshiken
+      // #TODO: Fix crashing while on dev environment. "cb is not a function" error. Discord @tshiken
     default:
       strategy = new SteamStrategy(
         {
