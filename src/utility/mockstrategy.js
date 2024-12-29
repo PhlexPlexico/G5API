@@ -1,27 +1,32 @@
-import { Strategy as _Strategy } from "passport-strategy";
-import { inherits } from "util"; // The reply from Github OAuth2
+/**
+ * Author: Michael Weibel <michael.weibel@gmail.com>
+ * License: MIT
+ */
+"use strict";
+
+import {Strategy as OpenIDStrategy} from '@passport-next/passport-openid';
+import { inherits } from 'util';
 import user from "./mockProfile.js";
-class MockStrategy extends _Strategy{
-  constructor(name, strategyCallback) {
-    super(name);
-    
-    
-    if (!name || !name.length) {
-      throw new TypeError("DevStrategy requires a Strategy name");
-    }
-    
-    _Strategy.call(this);
-    this.name = name;
-    this._identifier = user;
-    // Callback supplied to OAuth2 strategies handling verification
-    this._cb = strategyCallback;
-  }
-  authenticate() {
-    this._cb(null, this._identifier, (error, user) => {
-      this.success(user);
-    });
-  }
+
+function MockStrategy(options, verify) {
+	this.name = options.name;
+	this.passAuthentication = options.passAuthentication ? true : false;
+	this.userId = options.userId || 1;
+	this.verify = verify;
+  this.user = new user();
 }
-export {
-  MockStrategy as default
-};
+
+inherits(MockStrategy, OpenIDStrategy);
+
+MockStrategy.prototype.authenticate = function authenticate(req) {
+	if (this.passAuthentication) {
+		var self = this;
+		this.verify(this.user.id, this.user, function(identifier, profile, done) {
+			self.success(profile);
+		});
+	} else {
+		this.fail('Unauthorized');
+	}
+}
+
+export default MockStrategy;

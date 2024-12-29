@@ -11,7 +11,9 @@ export default class user {
     {
       value: "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/d6/d6f3cfd2a1f5131863bbca13675412924cccc004_full.jpg",
     }];
-    identifier = 'https://steamcommunity.com/openid/id/76561198025644194'
+    identifier = 'https://steamcommunity.com/openid/id/76561198025644194';
+    super_admin = 1;
+    admin = 1;
 };
 // export const id = "76561198025644194";
 // export const displayName = "Phlex";
