@@ -25,10 +25,6 @@ passport.deserializeUser((obj, done) => {
 function strategyForEnvironment() {
   let strategy;
   switch (process.env.NODE_ENV) {
-    case "test":
-      const newUser = new user();
-      strategy = new MockStrategy({ name: "steam", user: newUser, passReqToCallback: true }, returnStrategy);
-      break;
       // #TODO: Fix crashing while on dev environment. "cb is not a function" error. Discord @tshiken
     default:
       strategy = new SteamStrategy(
