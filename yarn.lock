@@ -689,6 +689,16 @@
   dependencies:
     lodash "^4.17.21"
 
+"@kejiehe/passport-mock-strategy@^2.0.0":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@kejiehe/passport-mock-strategy/-/passport-mock-strategy-2.0.1.tgz#b74e3597eae208daf3d6f507941f4f8b2726dab3"
+  integrity sha512-YkJb9WKr8ZTu0lMr9yHYKNkQKr9KL3kMOe1qQ7rG6vK4U3eArV7QrG64RtBpNUB8Oi+HluoiEZd1DtyazHNNrA==
+  dependencies:
+    "@types/express" "^4.16.1"
+    "@types/passport" "^1.0.0"
+    es6-promise "^4.2.6"
+    passport "^0.4.0"
+
 "@mapbox/node-pre-gyp@^1.0.11":
   version "1.0.11"
   resolved "https://registry.yarnpkg.com/@mapbox/node-pre-gyp/-/node-pre-gyp-1.0.11.tgz#417db42b7f5323d79e93b34a6d7a2a12c0df43fa"
@@ -929,15 +939,6 @@
   resolved "https://registry.npmjs.org/@types/cuint/-/cuint-0.2.1.tgz"
   integrity sha512-yIO66K76vGSV1Y2Ovq5LklkYiHOtbJIukCfO9GRYg7hDccwoapWkDKaygxBvDgB+1uNHsgaTyK41xtbJGLCCGA==
 
-"@types/express-serve-static-core@^4.17.18":
-  version "4.17.30"
-  resolved "https://registry.npmjs.org/@types/express-serve-static-core/-/express-serve-static-core-4.17.30.tgz"
-  integrity sha512-gstzbTWro2/nFed1WXtf+TtrpwxH7Ggs4RLYTLbeVgIkUQOI3WG/JKjgeOU1zXDvezllupjrf8OPIdvTbIaVOQ==
-  dependencies:
-    "@types/node" "*"
-    "@types/qs" "*"
-    "@types/range-parser" "*"
-
 "@types/express-serve-static-core@^4.17.33":
   version "4.17.35"
   resolved "https://registry.yarnpkg.com/@types/express-serve-static-core/-/express-serve-static-core-4.17.35.tgz#c95dd4424f0d32e525d23812aa8ab8e4d3906c4f"
@@ -948,13 +949,33 @@
     "@types/range-parser" "*"
     "@types/send" "*"
 
-"@types/express@*", "@types/express@^4.16.1":
-  version "4.17.13"
-  resolved "https://registry.npmjs.org/@types/express/-/express-4.17.13.tgz"
-  integrity sha512-6bSZTPaTIACxn48l50SR+axgrqm6qXFIxrdAKaG6PaJk3+zuUr35hBlgT7vOmJcum+OEaIBLtHV/qloEAFITeA==
+"@types/express-serve-static-core@^5.0.0":
+  version "5.0.2"
+  resolved "https://registry.yarnpkg.com/@types/express-serve-static-core/-/express-serve-static-core-5.0.2.tgz#812d2871e5eea17fb0bd5214dda7a7b748c0e12a"
+  integrity sha512-vluaspfvWEtE4vcSDlKRNer52DvOGrB2xv6diXy6UKyKW0lqZiWHGNApSyxOv+8DE5Z27IzVvE7hNkxg7EXIcg==
+  dependencies:
+    "@types/node" "*"
+    "@types/qs" "*"
+    "@types/range-parser" "*"
+    "@types/send" "*"
+
+"@types/express@*":
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/@types/express/-/express-5.0.0.tgz#13a7d1f75295e90d19ed6e74cab3678488eaa96c"
+  integrity sha512-DvZriSMehGHL1ZNLzi6MidnsDhUZM/x2pRdDIKdwbUNqqwHxMlRdkxtn6/EPKyqKpHqTl/4nRZsRNLpZxZRpPQ==
   dependencies:
     "@types/body-parser" "*"
-    "@types/express-serve-static-core" "^4.17.18"
+    "@types/express-serve-static-core" "^5.0.0"
+    "@types/qs" "*"
+    "@types/serve-static" "*"
+
+"@types/express@^4.16.1":
+  version "4.17.21"
+  resolved "https://registry.yarnpkg.com/@types/express/-/express-4.17.21.tgz#c26d4a151e60efe0084b23dc3369ebc631ed192d"
+  integrity sha512-ejlPM315qwLpaQlQDTjPdsUFSc6ZsP4AN6AlWnogPjQ7CVi7PYF3YVz+CY3jE2pwYf7E/7HlDAN0rV2GxTG0HQ==
+  dependencies:
+    "@types/body-parser" "*"
+    "@types/express-serve-static-core" "^4.17.33"
     "@types/qs" "*"
     "@types/serve-static" "*"
 
@@ -1033,9 +1054,9 @@
   integrity sha512-JJulVEQXmiY9Px5axXHeYGLSjhkZEnD+MDPDGbCbIAbMslkKwmygtZFy1X6s/075Yo94sf8GuSlFfPzysQrWZQ==
 
 "@types/passport@^1.0.0":
-  version "1.0.10"
-  resolved "https://registry.npmjs.org/@types/passport/-/passport-1.0.10.tgz"
-  integrity sha512-IZamnXuN7mY+2/v8bAW6nuTcKiay7gXBBcMBZ8n7YHB4u5DwsWoJaNrHdAQ8PZEODRjCv3oHOg76CYJ40j9RqA==
+  version "1.0.17"
+  resolved "https://registry.yarnpkg.com/@types/passport/-/passport-1.0.17.tgz#718a8d1f7000ebcf6bbc0853da1bc8c4bc7ea5e6"
+  integrity sha512-aciLyx+wDwT2t2/kJGJR2AEeBz0nJU4WuRX04Wu9Dqc5lSUtwu0WERPHYsLhF9PtseiAMPBGNUOtFjxZ56prsg==
   dependencies:
     "@types/express" "*"
 
@@ -3967,16 +3988,6 @@ passport-local@^1.0.0:
   dependencies:
     passport-strategy "1.x.x"
 
-passport-mock-strategy@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.npmjs.org/passport-mock-strategy/-/passport-mock-strategy-2.0.0.tgz"
-  integrity sha512-9YUT0sja/7n+HfQ+Jwx4XETERRh1uciRjpHhEZMcYS1FBnMrfrSlKVS42bMU06ewSFiPhXztazAE6XwiZdZQ/g==
-  dependencies:
-    "@types/express" "^4.16.1"
-    "@types/passport" "^1.0.0"
-    es6-promise "^4.2.6"
-    passport "^0.4.0"
-
 passport-steam@^1.0.18:
   version "1.0.18"
   resolved "https://registry.yarnpkg.com/passport-steam/-/passport-steam-1.0.18.tgz#7d934344c521f04adb35628f7118761f502299d5"
@@ -3992,7 +4003,7 @@ passport-strategy@1.x.x:
 
 passport@^0.4.0:
   version "0.4.1"
-  resolved "https://registry.npmjs.org/passport/-/passport-0.4.1.tgz"
+  resolved "https://registry.yarnpkg.com/passport/-/passport-0.4.1.tgz#941446a21cb92fc688d97a0861c38ce9f738f270"
   integrity sha512-IxXgZZs8d7uFSt3eqNjM9NQ3g3uQCW5avD8mRNoXV99Yig50vjuaez6dQK2qC0kVWPRTujxY0dWgGfT09adjYg==
   dependencies:
     passport-strategy "1.x.x"

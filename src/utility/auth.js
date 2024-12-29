@@ -8,8 +8,8 @@ import { Strategy as SteamStrategy } from "passport-steam";
 import passport from 'passport';
 import { Strategy as LocalStrategy } from "passport-local";
 import { hashSync, compare } from "bcrypt";
-import MockStrategy from "passport-mock-strategy";
 import user from "./mockProfile.js";
+import MockStrategy from "./mockstrategy.js";
 import {db} from "../services/db.js";
 import { generate } from "randomstring";
 import Utils from "./utils.js";
@@ -26,6 +26,15 @@ function strategyForEnvironment() {
   let strategy;
   switch (process.env.NODE_ENV) {
       // #TODO: Fix crashing while on dev environment. "cb is not a function" error. Discord @tshiken
+    case "test":
+      try {
+const newUser = new user();
+      strategy = new MockStrategy({ name: "steam", user: newUser, passReqToCallback: true }, returnStrategy);
+      break;
+      } catch (err) {
+        console.error(err);
+      }
+      
     default:
       strategy = new SteamStrategy(
         {
@@ -128,6 +137,7 @@ async function returnStrategy(identifier, profile, done) {
         api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key),
       });
     } catch (err) {
+      console.log(profile.toString());
       console.log(
         "ERRORERRORERRORERRORERRORERRORERRORERROR " +
         err +
