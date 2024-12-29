@@ -29,7 +29,6 @@ import { ID } from "@node-steam/id";
 import {db} from "../services/db.js";
 import { RowDataPacket } from 'mysql2';
 import { NextFunction, Request, Response } from 'express';
-import { Get5_OnRoundEnd } from '../types/map_flow/Get5_OnRoundEnd.js';
 import { Get5_Player } from '../types/Get5_Player.js';
 
 class Utils {

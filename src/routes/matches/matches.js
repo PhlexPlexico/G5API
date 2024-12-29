@@ -1473,7 +1473,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           await db.query(sql, [matchRow[0].server_id]);
 
           sql = "UPDATE `match` SET plugin_version = ? WHERE id = ?";
-          let get5Version = await newServer.getGet5Version();
+          let get5Version = await serverConn.getGet5Version();
           await db.query(sql, [get5Version, matchRow[0].id]);
         }
         if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
