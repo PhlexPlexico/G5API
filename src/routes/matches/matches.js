@@ -448,16 +448,10 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
       return;
     }
 
-    // Append server_ip:port as ip_string to each match
-    const formattedMatches = matches.map(match => ({
-      ...match,
-      ip_string: match.server_ip && match.port ? `${match.server_ip}:${match.port}` : null
-    }));
-
     if (isAscending) {
-      res.json({ matches: formattedMatches.reverse() });
+      res.json({ matches: matches.reverse() });
     } else {
-      res.json({ matches: formattedMatches });
+      res.json({ matches });
     }
   } catch (err) {
     console.error(err);
