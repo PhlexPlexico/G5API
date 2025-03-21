@@ -880,9 +880,10 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
       let challongeTeamId = team.participant.id;
 
       // Insert team data into the 'team' table and retrieve the inserted team's ID
-      let insertResult = await db.query("INSERT INTO team (user_id, name, tag, challonge_team_id) VALUES ?", [
-        [req.user.id, displayName, displayName, challongeTeamId]
+      let insertResult = await db.query("INSERT INTO team (user_id, name, tag, challonge_team_id) VALUES (?, ?, ?, ?)", [
+        req.user.id, displayName, displayName, challongeTeamId
       ]);
+
 
       let teamID = insertResult.insertId; // Get the ID of the inserted team
 
