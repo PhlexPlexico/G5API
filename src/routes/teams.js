@@ -860,7 +860,7 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
   try {
     let userID = req.user.id;
     const userInfo = await db.query("SELECT challonge_api_key FROM user WHERE id = ?", [userID]);
-    let challongeAPIKey = Utils.decrypt(userInfo[0].challonge_api_key]);
+    let challongeAPIKey = Utils.decrypt(userInfo[0].challonge_api_key);
     let tournamentId = req.body[0].tournament_id;
 
     // Fetch the list of participants (teams) in the tournament
