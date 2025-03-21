@@ -907,7 +907,7 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
 
     // Insert Steam IDs into the 'team_auth_names' table with the captain flag
     if (authArray.length > 0) {
-      let authSqlString = "INSERT INTO team_auth_names (team_id, auth, is_captain) VALUES ?";
+      let authSqlString = "INSERT INTO team_auth_names (team_id, auth, captain) VALUES ?";
       await db.query(authSqlString, [authArray]);
     }
 
