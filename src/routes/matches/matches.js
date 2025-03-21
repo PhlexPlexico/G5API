@@ -431,7 +431,7 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
              mtch.enforce_teams, mtch.min_player_ready, mtch.season_id, mtch.is_pug, 
              usr.name AS owner, 
              mp.team1_score AS team1_mapscore, mp.team2_score AS team2_mapscore,
-             gs.display_name AS server_name, gs.server_ip, gs.port
+             gs.display_name AS server_name, gs.ip_string, gs.port
       FROM \`match\` mtch
       JOIN user usr ON mtch.user_id = usr.id
       LEFT JOIN map_stats mp ON mp.match_id = mtch.id
