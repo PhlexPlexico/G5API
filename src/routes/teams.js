@@ -860,13 +860,13 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
   try {
     let userID = req.user.id;
     const userInfo = await db.query("SELECT challonge_api_key FROM user WHERE id = ?", [userID]);
-    let challongeAPIKey = Utils.decrypt(userInfo[0].challonge_api_key);
+    let challongeAPIKey = Utils.decrypt(userInfo[0].challonge_api_key]);
     let tournamentId = req.body[0].tournament_id;
 
     // Fetch the list of participants (teams) in the tournament
     let challongeResponse = await fetch("https://api.challonge.com/v1/tournaments/" + tournamentId + "/participants.json?api_key=" + challongeAPIKey);
     let challongeData = await challongeResponse.json();
-    
+
     if (!challongeData || challongeData.length === 0) {
       throw "No teams found for Tournament " + tournamentId + ".";
     }
@@ -879,8 +879,12 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
       let displayName = team.participant.display_name.substring(0, 40);
       let challongeTeamId = team.participant.id;
 
-      // Insert team data into the 'team' table
-      teamArray.push([req.user.id, displayName, displayName, challongeTeamId]);
+      // Insert team data into the 'team' table and retrieve the inserted team's ID
+      let insertResult = await db.query("INSERT INTO team (user_id, name, tag, challonge_team_id) VALUES ?", [
+        [req.user.id, displayName, displayName, challongeTeamId]
+      ]);
+
+      let teamID = insertResult.insertId; // Get the ID of the inserted team
 
       // Check if 'custom_field_response' contains Steam IDs
       if (team.participant.custom_field_response) {
@@ -892,17 +896,11 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
             let isCaptain = isFirstPlayer;
             isFirstPlayer = false; // Only the first player is the captain
 
-            // Insert the team_id, Steam ID (auth), and captain flag into the team_auth_names table
-            authArray.push([challongeTeamId, value, isCaptain ? 1 : 0]); // 1 for captain, 0 for others
+            // Insert the team ID (from the team table), Steam ID (auth), and captain flag into the team_auth_names table
+            authArray.push([teamID, value, isCaptain ? 1 : 0]); // 1 for captain, 0 for others
           }
         }
       }
-    }
-
-    // Insert all teams into the 'team' table
-    if (teamArray.length > 0) {
-      let sqlString = "INSERT INTO team (user_id, name, tag, challonge_team_id) VALUES ?";
-      await db.query(sqlString, [teamArray]);
     }
 
     // Insert Steam IDs into the 'team_auth_names' table with the captain flag
@@ -920,6 +918,7 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
     res.status(500).json({ message: err.toString() });
   }
 });
+
 
 
 /* Helper Functions */
