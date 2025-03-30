@@ -16,6 +16,8 @@
  import {db} from "../services/db.js";
  
  import Utils from "../utility/utils.js";
+import { TeamStanding } from "../types/leaderboard/TeamStanding.js";
+import { Player } from "../types/leaderboard/Player.js";
  
  /**
   * @swagger
@@ -86,7 +88,7 @@
      res.json({ leaderboard });
    } catch (err) {
      console.error(err);
-     res.status(500).json({ message: err.toString() });
+     res.status(500).json({ message: err });
    }
  });
  
@@ -177,7 +179,7 @@
   */
  router.get("/players/:season_id", async (req, res) => {
    try {
-     let seasonId = req.params.season_id;
+     let seasonId: number = +req.params.season_id;
      let leaderboard = await getPlayerLeaderboard(seasonId);
      res.json({ leaderboard });
    } catch (err) {
@@ -213,7 +215,7 @@
   */
  router.get("/:season_id", async (req, res) => {
    try {
-     let seasonId = req.params.season_id;
+     let seasonId = +req.params.season_id;
      let leaderboard = await getTeamLeaderboard(seasonId);
      res.json({ leaderboard });
    } catch (err) {
@@ -227,7 +229,7 @@
   * @memberof module:routes/leaderboard
   * @param {string} [seasonId=null] - Season ID to filter.
   * @inner */
- const getTeamLeaderboard = async (seasonId = null) => {
+ const getTeamLeaderboard = async (seasonId: number | null = null) => {
    try {
      /* Logic:
       * 1. Get all matches.
@@ -238,7 +240,7 @@
      let allMatches = null;
      let winningRounds,
        losingRounds = 0;
-     let teamStandings = [];
+     let teamStandings: Array<TeamStanding> = [];
      let matchSql = "";
      if (!seasonId) {
        matchSql =
@@ -299,16 +301,16 @@
              rounddiff: 0,
            });
          }
-         let winners = teamStandings.find((team) => {
+         let winners: TeamStanding | undefined = teamStandings.find((team) => {
            return team.name === winName;
          });
-         winners.wins += 1;
-         winners.rounddiff += winningRounds - losingRounds;
-         let losers = teamStandings.find((team) => {
+         winners!.wins += 1;
+         winners!.rounddiff += winningRounds - losingRounds;
+         let losers: TeamStanding | undefined = teamStandings.find((team) => {
            return team.name === loseName;
          });
-         losers.losses += 1;
-         losers.rounddiff += losingRounds - winningRounds;
+         losers!.losses += 1;
+         losers!.rounddiff += losingRounds - winningRounds;
        }
      }
      return teamStandings;
@@ -323,8 +325,8 @@
   * @memberof module:routes/leaderboard
   * @param {string} [seasonId=null] - Season ID to filter.
   */
- const getPlayerLeaderboard = async (seasonId = null, pug = false) => {
-   let allPlayers = [];
+ const getPlayerLeaderboard = async (seasonId: number | null = null, pug: boolean = false) => {
+   let allPlayers: Array<Player> = [];
    let playerStats;
    /* Logic:
     * 1. Get all player values where match is not cancelled or forfeit.
@@ -425,7 +427,7 @@
          hsp:
            parseFloat(player.kills) === 0
              ? 0
-             : (
+             : +(
                  (parseFloat(player.hsk) / parseFloat(player.kills)) *
                  100
                ).toFixed(2),
@@ -451,51 +453,51 @@
        });
        // Update name, or concat name?
        if (player.name == "")
-         collisionPlayer.name = (collisionPlayer.name + "/" + player.name)
+         collisionPlayer!.name = (collisionPlayer!.name + "/" + player.name)
            .replace(/\/+$/, "")
            .replace('/"/g', '\\"');
        else
-         collisionPlayer.name = player.name
+         collisionPlayer!.name = player.name
            .replace(/\/+$/, "")
            .replace('/"/g', '\\"');
-       collisionPlayer.kills += parseFloat(player.kills);
-       collisionPlayer.deaths += parseFloat(player.deaths);
-       collisionPlayer.assists += parseFloat(player.assists);
-       collisionPlayer.k1 += parseFloat(player.k1);
-       collisionPlayer.k2 += parseFloat(player.k2);
-       collisionPlayer.k3 += parseFloat(player.k3);
-       collisionPlayer.k4 += parseFloat(player.k4);
-       collisionPlayer.k5 += parseFloat(player.k5);
-       collisionPlayer.v1 += parseFloat(player.v1);
-       collisionPlayer.v2 += parseFloat(player.v2);
-       collisionPlayer.v3 += parseFloat(player.v3);
-       collisionPlayer.v4 += parseFloat(player.v4);
-       collisionPlayer.v5 += parseFloat(player.v5);
-       collisionPlayer.trp += parseFloat(player.trp);
-       collisionPlayer.fba += parseFloat(player.fba);
-       collisionPlayer.hsk += parseFloat(player.hsk);
-       collisionPlayer.total_damage += parseFloat(player.dmg);
-       collisionPlayer.total_maps += parseFloat(player.totalMaps);
-       collisionPlayer.hsp =
-         parseFloat(collisionPlayer.kills) === 0
+       collisionPlayer!.kills += parseFloat(player.kills);
+       collisionPlayer!.deaths += parseFloat(player.deaths);
+       collisionPlayer!.assists += parseFloat(player.assists);
+       collisionPlayer!.k1 += parseFloat(player.k1);
+       collisionPlayer!.k2 += parseFloat(player.k2);
+       collisionPlayer!.k3 += parseFloat(player.k3);
+       collisionPlayer!.k4 += parseFloat(player.k4);
+       collisionPlayer!.k5 += parseFloat(player.k5);
+       collisionPlayer!.v1 += parseFloat(player.v1);
+       collisionPlayer!.v2 += parseFloat(player.v2);
+       collisionPlayer!.v3 += parseFloat(player.v3);
+       collisionPlayer!.v4 += parseFloat(player.v4);
+       collisionPlayer!.v5 += parseFloat(player.v5);
+       collisionPlayer!.trp += parseFloat(player.trp);
+       collisionPlayer!.fba += parseFloat(player.fba);
+       collisionPlayer!.hsk += parseFloat(player.hsk);
+       collisionPlayer!.total_damage += parseFloat(player.dmg);
+       collisionPlayer!.total_maps += parseFloat(player.totalMaps);
+       collisionPlayer!.hsp =
+         collisionPlayer!.kills === 0
            ? 0
-           : (
-               (parseFloat(collisionPlayer.hsk) /
-                 parseFloat(collisionPlayer.kills)) *
+           : +(
+               (collisionPlayer!.hsk /
+                 collisionPlayer!.kills) *
                100
              ).toFixed(2);
-       collisionPlayer.average_rating = Utils.getRating(
-         parseFloat(collisionPlayer.kills),
-         parseFloat(collisionPlayer.trp),
-         parseFloat(collisionPlayer.k1),
-         parseFloat(collisionPlayer.k2),
-         parseFloat(collisionPlayer.k3),
-         parseFloat(collisionPlayer.k4),
-         parseFloat(collisionPlayer.k5)
+       collisionPlayer!.average_rating = Utils.getRating(
+         collisionPlayer!.kills,
+         collisionPlayer!.trp,
+         collisionPlayer!.k1,
+         collisionPlayer!.k2,
+         collisionPlayer!.k3,
+         collisionPlayer!.k4,
+         collisionPlayer!.k5
        );
-       collisionPlayer.enemies_flashed += parseFloat(player.eflash);
-       collisionPlayer.friendlies_flashed += parseFloat(player.fflash);
-       collisionPlayer.util_damage += parseFloat(player.utildmg);
+       collisionPlayer!.enemies_flashed += parseFloat(player.eflash);
+       collisionPlayer!.friendlies_flashed += parseFloat(player.fflash);
+       collisionPlayer!.util_damage += parseFloat(player.utildmg);
      }
    }
    return allPlayers;

@@ -72,7 +72,7 @@ class Utils {
         (KillRating + 0.7 * SurvivalRating + RoundsWithMultipleKillsRating) /
         2.7;
 
-      return rating.toFixed(2);
+      return +rating.toFixed(2);
     } catch (err) {
       console.error("HELPER getRating Failed -- " + err);
       return 0;
