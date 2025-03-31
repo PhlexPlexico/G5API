@@ -1,4 +1,4 @@
-interface User extends Express.User {
+export interface User extends Express.User {
   steam_id: string
   name: string
   admin: boolean | number

@@ -10,7 +10,7 @@ const router = Router();
 import {db} from "../services/db.js";
 
 import Utils from "../utility/utils.js";
-
+import { User } from "../types/User.js"
 /* Swagger shared definitions */
 
 /**
@@ -79,7 +79,7 @@ router.get("/", async (req, res) => {
     res.json({ maplist });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: err });
   }
 });
 
@@ -121,7 +121,7 @@ router.get("/:user_id", async (req, res, next) => {
       res.status(404).json({message: "Maplist does not exist in the system for given user."});
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: err });
   }
 });
 
@@ -163,7 +163,7 @@ router.get("/:user_id/enabled", async (req, res, next) => {
       res.status(404).json({message: "Maplist does not exist in the system for given user."});
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: err });
   }
 });
 
@@ -197,12 +197,12 @@ router.get("/:user_id/enabled", async (req, res, next) => {
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let userID = req.user.id;
-    let enabled = req.body[0].enabled == null
+    let userID: number = (req.user as User).id;
+    let enabled: boolean = req.body[0].enabled == null
       ? true
       : req.body[0].enabled;
-    let newMapID;
-    let insertSet = {
+    let newMapID: number;
+    let insertSet: Object = {
       user_id: userID,
       map_name: req.body[0].map_name,
       map_display_name: req.body[0].map_display_name,
@@ -213,12 +213,13 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let sql =
       "INSERT INTO map_list SET ?";
     let newMap = await db.query(sql, [insertSet]);
+    //@ts-ignore
     newMapID = newMap.insertId;
     res.json({ message: "MapList created successfully.", id: newMapID });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: err });
   }
 });
 
@@ -260,12 +261,12 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   }
   try {
-    let userID = req.user.id;
+    let userID = (req.user as User).id;
     let mapListId = req.body[0].id;
     let enabled = req.body[0].enabled == null
       ? true
       : req.body[0].enabled;
-    let insertSet = {
+    let insertSet: Object = {
       map_name: req.body[0].map_name,
       map_display_name: req.body[0].map_display_name,
       enabled: enabled
@@ -279,7 +280,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: err });
   }
 });
 
@@ -321,7 +322,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   }
   try {
-    let userID = req.user.id;
+    let userID = (req.user as User).id;
     let mapListId = req.body[0].id;
     // Check if user is allowed to create?
     let sql =
@@ -330,7 +331,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
     res.json({ message: "Map deleted successfully." });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: err });
   }
 });
 

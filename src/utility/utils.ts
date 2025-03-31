@@ -30,6 +30,7 @@ import {db} from "../services/db.js";
 import { RowDataPacket } from 'mysql2';
 import { NextFunction, Request, Response } from 'express';
 import { Get5_Player } from '../types/Get5_Player.js';
+import { User } from "../types/User.js"
 
 class Utils {
   /** Function to get an HLTV rating for a user.
