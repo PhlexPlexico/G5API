@@ -12,12 +12,13 @@ import MockStrategy from "./mockstrategy.js";
 import {db} from "../services/db.js";
 import { generate } from "randomstring";
 import Utils from "./utils.js";
+import User from "steamapi/dist/src/structures/User.js";
 
 passport.serializeUser((user, done) => {
   done(null, user);
 });
 
-passport.deserializeUser((obj, done) => {
+passport.deserializeUser((obj: User, done) => {
   done(null, obj);
 });
 
@@ -43,20 +44,20 @@ function strategyForEnvironment() {
   return strategy;
 }
 
-async function returnStrategy(identifier, profile, done) {
+async function returnStrategy(identifier: any, profile: any, done: any) {
   process.nextTick(async () => {
     profile.identifier = identifier;
     try {
       let defaultMaps = [];
       let isAdmin = 0;
       let isSuperAdmin = 0;
-      let superAdminList = config.get("super_admins.steam_ids").split(",");
-      let adminList = config.get("admins.steam_ids").split(",");
+      let superAdminList = (config.get("super_admins.steam_ids") as String).split(",");
+      let adminList = (config.get("admins.steam_ids") as String).split(",");
       let sql = "SELECT * FROM user WHERE steam_id = ?";
       // If we are an admin, check!
-      if (superAdminList.indexOf(profile.id.toString()) >= 0) {
+      if (superAdminList.indexOf(profile.id!.toString()) >= 0) {
         isSuperAdmin = 1;
-      } else if (adminList.indexOf(profile.id.toString()) >= 0) {
+      } else if (adminList.indexOf(profile.id!.toString()) >= 0) {
         isAdmin = 1;
       }
       let curUser = await db.query(sql, profile.id);
@@ -77,7 +78,7 @@ async function returnStrategy(identifier, profile, done) {
           small_image: profile.photos[0].value,
           medium_image: profile.photos[1].value,
           large_image: profile.photos[2].value,
-          api_key: await Utils.encrypt(apiKey),
+          api_key: Utils.encrypt(apiKey),
         };
         curUser = await db.query(sql, [newUser]);
         sql = "SELECT * FROM user WHERE steam_id = ?";
@@ -149,7 +150,7 @@ passport.use('local-login', new LocalStrategy(async (username, password, done) =
       return done(null, false, {message: "Sorry, local logins are disabled for this instance."});
     }
     let sql = "SELECT * FROM user WHERE username = ?";
-    const curUser = await db.query(sql, username);
+    const curUser = await db.query(sql, [username]);
     if (curUser.length) {
       const isValidPassword = await compare(password, curUser[0].password);
       if (isValidPassword) {
@@ -173,7 +174,7 @@ passport.use('local-login', new LocalStrategy(async (username, password, done) =
   } catch (e) {
     console.error(e);
   }
-  return done(null, null);
+  return done(null, undefined);
 }));
 
 passport.use('local-register',
@@ -184,8 +185,8 @@ passport.use('local-register',
       }
       let sql = "SELECT * FROM user WHERE username = ? OR steam_id = ?";
       let defaultMaps = [];
-      let superAdminList = config.get("super_admins.steam_ids").split(",");
-      let adminList = config.get("admins.steam_ids").split(",");
+      let superAdminList = (config.get("super_admins.steam_ids") as String).split(",");
+      let adminList = (config.get("admins.steam_ids") as String).split(",");
       let isAdmin, isSuperAdmin = 0;
       if (!req.body.steam_id) {
         return done(null, false, {message: "Steam ID was not provided"});
@@ -208,8 +209,8 @@ passport.use('local-register',
           capitalization: "uppercase",
         });
         sql = "INSERT INTO user SET ?";
-        let steamName = await Utils.getSteamName(req.body.steam_id);
-        let newUser = {
+        let steamName: String = await Utils.getSteamName(req.body.steam_id);
+        let newUser: Object = {
           steam_id: req.body.steam_id,
           name: steamName,
           admin: isAdmin,
@@ -247,7 +248,7 @@ passport.use('local-register',
     } catch (e) {
       console.error(e);
     }
-    return done(null, null, 
+    return done(null, undefined, 
       {message: "Unknown error. Please ensure the steam ID is not already in use."});
   })));
 
