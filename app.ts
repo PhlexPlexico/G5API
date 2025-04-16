@@ -54,12 +54,13 @@ app.use("/materials/panorama/images/tournaments/teams", express.static("public/i
 
 // Security defaults with helmet
 app.use(helmet());
+
+let sessionType: any;
 if (config.get("server.useRedis")) {
-  // Messy but avoids any open file handles.
   const redisClient = createClient({
     url: config.get("server.redisUrl"),
   });
-
+  
   await redisClient.connect();
   redisClient.on("error", (err) => {
     console.log("Redis error: ", err);
@@ -67,30 +68,31 @@ if (config.get("server.useRedis")) {
 
   const redisCfg = {
     client: redisClient,
-    ttl: config.get("server.redisTTL"),
   };
-  app.use(
-    session({
-      secret: config.get("server.sharedSecret"),
-      name: "G5API",
-      resave: false,
-      saveUninitialized: true,
-      store: new RedisStore(redisCfg),
-      cookie: { maxAge: 86400000 },
-    })
-  );
+  sessionType = session({
+    secret: config.get("server.sharedSecret"),
+    name: "G5API",
+    resave: false,
+    saveUninitialized: true,
+    store: new RedisStore(redisCfg),
+    cookie: { maxAge: 86400000 },
+  });
+  process.on("exit", function () {
+    redisClient.quit();
+  });
 } else {
-  app.use(
-    session({
-      secret: config.get("server.sharedSecret"),
-      name: "G5API",
-      resave: false,
-      saveUninitialized: true,
-      cookie: { maxAge: 86400000 },
-    })
-  );
+  sessionType = session({
+    secret: config.get("server.sharedSecret"),
+    name: "G5API",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { maxAge: 86400000 },
+  });
 }
-app.use(passport.initialize());
+
+app.use(sessionType);
+
+app.use(passport.initialize() as any);
 app.use(passport.session());
 app.use(bearerToken());
 
@@ -126,7 +128,7 @@ const options = {
 };
 const swaggerSpec = swaggerJSDoc(options);
 
-app.use("/api-docs", serve, setup(swaggerSpec));
+app.use("/api-docs", serve as any, setup(swaggerSpec) as any);
 
 // END API SETUP
 
@@ -189,10 +191,10 @@ app.post(
     failWithError: true,
     failureMessage: true,
   }),
-  (req, res) => {
+  (req: any, res: any) => {
     return res.json({ message: "Success!" });
   },
-  (err, req, res, next) => {
+  (err: any, req: any, res: any, next: any) => {
     console.log(err);
     err.message = req.session.messages[req.session.messages.length - 1];
     return res.json(err);
@@ -205,10 +207,10 @@ app.post(
     failWithError: true,
     failureMessage: true,
   }),
-  (req, res) => {
+  (req: any, res: any) => {
     return res.json({ message: "Success!" });
   },
-  (err, req, res, next) => {
+  (err: any, req: any, res: any, next: any) => {
     err.message = req.session.messages[req.session.messages.length - 1];
     return res.json(err);
   }
@@ -222,7 +224,7 @@ app.use(function (req, res, next) {
 });
 
 // error handler
-app.use(function (err, req, res, next) {
+app.use(function (err: any, req: any, res: any, next: any) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get("env") === "development" ? err : {};
@@ -232,9 +234,4 @@ app.use(function (err, req, res, next) {
   res.json({ error: err.message });
 });
 
-if (config.get("server.useRedis")) {
-  process.on("exit", function () {
-    redisClient.end();
-  });
-}
 export default app;

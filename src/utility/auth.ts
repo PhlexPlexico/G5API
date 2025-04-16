@@ -19,13 +19,14 @@ passport.serializeUser((user, done) => {
 });
 
 passport.deserializeUser((obj: User, done) => {
-  done(null, obj);
+  done(null, obj as any);
 });
 
 function strategyForEnvironment() {
-  let strategy;
+  let strategy: any;
   switch (process.env.NODE_ENV) {
     case "test":
+      //@ts-ignore
       strategy = new MockStrategy({ name: "steam", passAuthentication: true }, returnStrategy);
       break;
     default:

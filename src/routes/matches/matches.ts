@@ -20,6 +20,9 @@ import config from "config";
 import GlobalEmitter from "../../utility/emitter.js";
 
 import { compare } from "compare-versions";
+import { MatchJSON } from "../../types/matches/MatchJson.js";
+import { MatchData } from "../../types/matches/MatchData.js";
+import { TeamData } from "../../types/teams/TeamData.js";
 
 
 /**
@@ -383,7 +386,7 @@ router.get("/", async (req, res, next) => {
     }
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -435,7 +438,7 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
       "OR cancelled IS NULL " +
       "GROUP BY mtch.id " +
       "ORDER BY id DESC";
-    const matches = await db.query(sql, [req.user.id]);
+    const matches = await db.query(sql, [req?.user?.id]);
     if (!matches.length) {
       res.status(404).json({ message: "No matches found." });
       return;
@@ -447,7 +450,7 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
     }
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -485,13 +488,13 @@ router.get("/:match_id", async (req, res, next) => {
   try {
     let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
     let sql;
-    const matchRow = await db.query(matchUserId, req.params.match_id);
+    const matchRow = await db.query(matchUserId, [req.params.match_id]);
     if (!matchRow.length) {
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
       req.user !== undefined &&
-      (matchRow[0].user_id == req.user.id || Utils.superAdminCheck(req.user))
+      (matchRow[0].user_id == req.user!.id || Utils.superAdminCheck(req.user))
     ) {
       sql = "SELECT * FROM `match` where id=?";
     } else {
@@ -503,7 +506,7 @@ router.get("/:match_id", async (req, res, next) => {
         "season_id, is_pug, map_sides FROM `match` where id = ?";
     }
     let matchID = req.params.match_id;
-    const matches = await db.query(sql, matchID);
+    const matches = await db.query(sql, [matchID]);
     if (!matches.length) {
       res.status(404).json({ message: "No match found." });
       return;
@@ -512,7 +515,7 @@ router.get("/:match_id", async (req, res, next) => {
     res.json({ match });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -550,13 +553,13 @@ router.get("/:match_id/stream", async (req, res, next) => {
   try {
     let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
     let sql;
-    const matchRow = await db.query(matchUserId, req.params.match_id);
+    const matchRow = await db.query(matchUserId, [req.params.match_id]);
     if (!matchRow.length) {
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
       req.user !== undefined &&
-      (matchRow[0].user_id == req.user.id || Utils.superAdminCheck(req.user))
+      (matchRow[0].user_id == req.user!.id || Utils.superAdminCheck(req.user))
     ) {
       sql = "SELECT * FROM `match` where id=?";
     } else {
@@ -569,7 +572,7 @@ router.get("/:match_id/stream", async (req, res, next) => {
     }
 
     let matchID = req.params.match_id;
-    let matches = await db.query(sql, matchID);
+    let matches = await db.query(sql, [matchID]);
 
     res.set({
       "Cache-Control": "no-cache",
@@ -582,7 +585,7 @@ router.get("/:match_id/stream", async (req, res, next) => {
     let matchString = `event: matches\ndata:${JSON.stringify(matches[0])}\n\n`;
     // Need to name the function in order to remove it!
     const matchStreamStatus = async () => {
-      matches = await db.query(sql, matchID);
+      matches = await db.query(sql, [matchID]);
       matches = matches.map((v) => Object.assign({}, v));
       matchString = `event: matches\ndata: ${JSON.stringify(matches[0])}\n\n`;
       res.write(matchString);
@@ -600,8 +603,8 @@ router.get("/:match_id/stream", async (req, res, next) => {
       res.end();
     });
   } catch (err) {
-    console.error(err.toString());
-    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`);
+    console.error((err as Error).toString());
+    res.status(500).write(`event: error\ndata: ${(err as Error).toString()}\n\n`);
     res.end();
   }
 });
@@ -637,7 +640,7 @@ router.get("/:match_id/paused/stream", async (req, res, next) => {
       "SELECT id, match_id, pause_type, team_paused, paused " +
       "FROM `match_pause` " +
       "WHERE match_id = ? ";
-    let matchPauseInfo = await db.query(sql, matchId);
+    let matchPauseInfo = await db.query(sql, [matchId]);
 
     res.set({
       "Cache-Control": "no-cache",
@@ -653,10 +656,10 @@ router.get("/:match_id/paused/stream", async (req, res, next) => {
     )}`;
     // Need to name the function in order to remove it!
     const matchPauseStreamStatus = async () => {
-      matchPauseInfo = await db.query(sql, matchId);
+      matchPauseInfo = await db.query(sql, [matchId]);
       matchPauseInfo = matchPauseInfo.map((v) => Object.assign({}, v));
-      matchPauseInfo = `event: matches\ndata: ${JSON.stringify(
-        matchPauseString
+      matchPauseString = `event: matches\ndata: ${JSON.stringify(
+        matchPauseInfo
       )}\n\n`;
       res.write(matchPauseString);
     };
@@ -673,8 +676,8 @@ router.get("/:match_id/paused/stream", async (req, res, next) => {
       res.end();
     });
   } catch (err) {
-    console.error(err.toString());
-    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`);
+    console.error((err as Error).toString());
+    res.status(500).write(`event: error\ndata: ${(err as Error).toString()}\n\n`);
     res.end();
   }
 });
@@ -717,7 +720,7 @@ router.get("/:match_id/paused", async (req, res, next) => {
     res.json({ matchPauseInfo });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -755,7 +758,7 @@ router.get("/:match_id/bombs/stream", async (req, res, next) => {
   try {
     let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
     let sql;
-    const matchRow = await db.query(matchUserId, req.params.match_id);
+    const matchRow = await db.query(matchUserId, [req.params.match_id]);
     if (!matchRow.length) {
       res.status(404).json({ message: "No match found." });
       return;
@@ -766,7 +769,7 @@ router.get("/:match_id/bombs/stream", async (req, res, next) => {
     }
 
     let matchID = req.params.match_id;
-    let bombInfo = await db.query(sql, matchID);
+    let bombInfo = await db.query(sql, [matchID]);
 
     res.set({
       "Cache-Control": "no-cache",
@@ -781,9 +784,9 @@ router.get("/:match_id/bombs/stream", async (req, res, next) => {
     )}\n\n`;
     // Need to name the function in order to remove it!
     const matchStreamStatus = async () => {
-      bombInfo = await db.query(sql, matchID);
+      bombInfo = await db.query(sql, [matchID]);
       bombInfo = bombInfo.map((v) => Object.assign({}, v));
-      bombInfo = `event: bomb_info\ndata: ${JSON.stringify(bombInfo[0])}\n\n`;
+      bombInfoString = `event: bomb_info\ndata: ${JSON.stringify(bombInfo[0])}\n\n`;
       res.write(bombInfoString);
     };
 
@@ -799,8 +802,8 @@ router.get("/:match_id/bombs/stream", async (req, res, next) => {
       res.end();
     });
   } catch (err) {
-    console.error(err.toString());
-    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`);
+    console.error((err as Error).toString());
+    res.status(500).write(`event: error\ndata: ${(err as Error).toString()}\n\n`);
     res.end();
   }
 });
@@ -839,7 +842,7 @@ router.get("/:match_id/bombs", async (req, res, next) => {
   try {
     let matchUserId = "SELECT user_id FROM `match` WHERE id = ?";
     let sql;
-    const matchRow = await db.query(matchUserId, req.params.match_id);
+    const matchRow = await db.query(matchUserId, [req.params.match_id]);
     if (!matchRow.length) {
       res.status(404).json({ message: "No match found." });
       return;
@@ -850,11 +853,11 @@ router.get("/:match_id/bombs", async (req, res, next) => {
     }
 
     let matchID = req.params.match_id;
-    let bombInfo = await db.query(sql, matchID);
+    let bombInfo = await db.query(sql, [matchID]);
     res.json({ bombInfo });
   } catch (err) {
-    console.error(err.toString());
-    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`);
+    console.error((err as Error).toString());
+    res.status(500).write(`event: error\ndata: ${(err as Error).toString()}\n\n`);
     res.end();
   }
 });
@@ -902,11 +905,11 @@ router.get("/limit/:limiter", async (req, res, next) => {
         "season_id, is_pug, map_sides FROM `match` WHERE cancelled = 0 " +
         "OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?";
     }
-    const matches = await db.query(sql, lim);
+    const matches = await db.query(sql, [lim]);
     res.json({ matches });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -943,7 +946,9 @@ router.get("/limit/:limiter", async (req, res, next) => {
  */
 router.get("/page/:firstvalue&:lastvalue", async (req, res, next) => {
   try {
+    //@ts-ignore
     let firstVal = parseInt(req.params.firstvalue);
+    //@ts-ignore
     let secondVal = parseInt(req.params.lastvalue);
     let sql;
     if (req.user !== undefined && Utils.superAdminCheck(req.user)) {
@@ -962,7 +967,7 @@ router.get("/page/:firstvalue&:lastvalue", async (req, res, next) => {
     res.json({ matches });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -1000,7 +1005,7 @@ router.get("/:match_id/config", async (req, res, next) => {
     let matchCvars;
     let matchSpecs;
     let apiKey = req.get("Authorization");
-    let apiString = config.get("server.apiURL");
+    let apiString: string = config.get("server.apiURL");
     
     const matchInfo = await db.query(sql, [matchID]);
     if (!matchInfo.length) {
@@ -1027,7 +1032,7 @@ router.get("/:match_id/config", async (req, res, next) => {
         return;
       }
     }
-    let matchJSON = {
+    let matchJSON: MatchJSON = {
       matchid: matchID,
       match_title: matchInfo[0].title,
       side_type: matchInfo[0].side_type,
@@ -1086,30 +1091,30 @@ router.get("/:match_id/config", async (req, res, next) => {
         matchInfo[0].min_spectators_to_ready !== null
           ? matchInfo[0].min_spectators_to_ready
           : 0,
-      wingman: matchInfo[0]?.wingman == 1 ? true : false
+      wingman: matchInfo[0]?.wingman == 1 ? true : false,
     };
     matchJSON.num_maps = parseInt(matchInfo[0].max_maps);
     if (matchJSON.skip_veto && matchInfo[0].map_sides)
       matchJSON.map_sides = matchInfo[0].map_sides.split(",");
     sql = "SELECT * FROM team WHERE id = ?";
-    const team1Data = await db.query(sql, [matchInfo[0].team1_id]);
-    const team2Data = await db.query(sql, [matchInfo[0].team2_id]);
+    const team1Data = await db.query(sql, [matchInfo[0].team1_id]) as any;
+    const team2Data = await db.query(sql, [matchInfo[0].team2_id]) as any;
 
     matchJSON.team1 = JSON.parse(
-      await build_team_dict(team1Data[0], 1, matchInfo[0])
+      await build_team_dict(team1Data[0], 1, matchInfo[0] as MatchData)
     );
     matchJSON.team2 = JSON.parse(
-      await build_team_dict(team2Data[0], 2, matchInfo[0])
+      await build_team_dict(team2Data[0], 2, matchInfo[0] as MatchData)
     );
     sql = "SELECT * FROM match_cvar WHERE match_id = ?";
-    matchCvars = await db.query(sql, matchID);
+    matchCvars = await db.query(sql, [matchID]);
     //XXX: Possibly breaking JSON with quotes only?
     matchCvars.forEach((row) => {
       matchJSON.cvars[row.cvar_name] = row.cvar_value;
     });
     sql = "SELECT * FROM match_spectator WHERE match_id=?";
-    matchSpecs = await db.query(sql, matchID);
-    let newSpecs = {};
+    matchSpecs = await db.query(sql, [matchID]);
+    let newSpecs: { [key: string]: any } = [];
     matchSpecs.forEach((row) => {
       newSpecs[row.auth] = row.spectator_name == null ? "" : row.spectator_name;
     });
@@ -1118,7 +1123,7 @@ router.get("/:match_id/config", async (req, res, next) => {
     res.json(matchJSON);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -1165,8 +1170,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         });
         return;
       } else if (
-        serverInUse[0].user_id != req.user.id &&
-        !Utils.superAdminCheck(req.user) &&
+        serverInUse[0].user_id != req.user?.id &&
+        (req.user && !Utils.superAdminCheck(req.user)) &&
         serverInUse[0].public_server == 0
       ) {
         res.status(403).json({ message: "User does not own this server." });
@@ -1182,9 +1187,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     });
     let skipVeto =
       req.body[0].skip_veto == null ? false : req.body[0].skip_veto;
-    let insertMatch;
-    let insertSet = {
-      user_id: req.user.id,
+    let insertMatch: any;
+    let insertSet: MatchData = {
+      user_id: req.user!.id,
       server_id: req.body[0].server_id,
       team1_id: req.body[0].team1_id,
       team2_id: req.body[0].team2_id,
@@ -1219,7 +1224,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let sql = "INSERT INTO `match` SET ?";
     let cvarSql =
       "INSERT match_cvar (match_id, cvar_name, cvar_value) VALUES (?,?,?)";
-    insertSet = await db.buildUpdateStatement(insertSet);
+    insertSet = await db.buildUpdateStatement(insertSet) as MatchData;
     insertMatch = await db.query(sql, [insertSet]);
     if (req.body[0].spectator_auths) {
       sql =
@@ -1296,7 +1301,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -1346,7 +1351,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let message = "Match updated successfully!";
     let errMessage = await Utils.getUserMatchAccess(
       req.body[0].match_id,
-      req.user
+      req.user!
     );
     if (errMessage != null) {
       res.status(errMessage.status).json({ message: errMessage.message });
@@ -1363,8 +1368,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           req.body[0].server_id
         ]);
         if (
-          returnedServer[0].user_id != req.user.id &&
-          !Utils.superAdminCheck(req.user) &&
+          returnedServer[0].user_id != req.user?.id &&
+          (req.user && !Utils.superAdminCheck(req.user)) &&
           returnedServer[0].public_server == 0
         ) {
           res.status(403).json({ message: "User does not own this server." });
@@ -1381,12 +1386,12 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
 
       let vetoSql =
         "SELECT map FROM veto WHERE match_id = ? AND pick_or_veto = 'pick'";
-      let vetoMapPool = null;
-      let maxMaps = null;
+      let vetoMapPool: any = null;
+      let maxMaps: number | null = null;
       vetoList = await db.query(vetoSql, req.body[0].match_id);
       vetoList = JSON.parse(JSON.stringify(vetoList));
       if (Object.keys(vetoList).length > 0) {
-        vetoList.forEach((veto) => {
+        vetoList.forEach((veto: {map: string}) => {
           //console.log(veto);
           if (vetoMapPool == null) vetoMapPool = veto.map;
           else vetoMapPool = vetoMapPool + " " + veto.map;
@@ -1400,7 +1405,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           maxMaps = null;
         }
       }
-      let updateStmt = {
+      let updateStmt: MatchData = {
         user_id: req.body[0].user_id,
         server_id: req.body[0].server_id,
         season_id: req.body[0].season_id,
@@ -1424,7 +1429,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
             ? 0
             : req.body[0].enforce_teams, // Do not update these unless required.
         players_per_team:
-          req.body[0].players_per_team == null ? null : players_per_team,
+          req.body[0].players_per_team == null ? null : req.body[0].players_per_team,
         min_spectators_to_ready:
           req.body[0].min_spectators_to_ready !== null
             ? req.body[0].min_spectators_to_ready
@@ -1433,7 +1438,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         wingman: req.body[0]?.wingman
       };
       // Remove any values that may not be updated.
-      updateStmt = await db.buildUpdateStatement(updateStmt);
+      updateStmt = await db.buildUpdateStatement(updateStmt) as MatchData;
       if (!Object.keys(updateStmt)) {
         res.status(412).json({ message: "No update data has been provided." });
         return;
@@ -1448,7 +1453,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
             req.body[0].spectator_auths[key].split(";")[0]
           );
           await db.query(sql, [
-            insertMatch.insertId,
+            req.body[0].match_id,
             newAuth,
             req.body[0].spectator_auths[key].split(";")[1]
           ]);
@@ -1468,7 +1473,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         req.body[0].cancelled == 1 ||
         req.body[0].end_time != null
       ) {
-        if (serverConn != null && serverConn.endGet5Match()) {
+        if (serverConn != null && await serverConn.endGet5Match()) {
           sql = "UPDATE game_server SET in_use=0 WHERE id=?";
           await db.query(sql, [matchRow[0].server_id]);
 
@@ -1486,7 +1491,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       } else {
         if (!req.body[0].ignore_server) {
           if (diffServer) {
-            if (serverConn != null && serverConn.endGet5Match()) {
+            if (serverConn != null && await serverConn.endGet5Match()) {
               sql = "UPDATE game_server SET in_use=0 WHERE id=?";
               await db.query(sql, [matchRow[0].server_id]);
             }
@@ -1527,7 +1532,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       return;
     }
   } catch (err) {
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
     console.error(err);
   }
 });
@@ -1568,8 +1573,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let userId = req.user.id;
-  if (req.body[0].all_cancelled == false || req.body[0].all_cancelled == null) {
+  let userId: number = req.user!.id;
+  if (req.user && (req.body[0].all_cancelled == false || req.body[0].all_cancelled == null)) {
     let errMessage = await Utils.getUserMatchAccessNoFinalize(
       req.body[0].match_id,
       req.user
@@ -1597,7 +1602,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
           await db.query(playerStatDeleteSql, matchId);
           await db.query(mapStatDeleteSql, matchId);
           await db.query(spectatorDeleteSql, matchId);
-          const delRows = await db.query(deleteMatchsql, matchId);
+          const delRows = await db.query(deleteMatchsql, matchId) as any;
           if (delRows.affectedRows > 0)
             res.json({ message: "Match deleted successfully!" });
           else throw "We found an issue deleting the match values.";
@@ -1609,7 +1614,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
           return;
         }
       } catch (err) {
-        res.status(500).json({ message: err.toString() });
+        res.status(500).json({ message: (err as Error).toString() });
       }
     }
   } else if (req.body[0].all_cancelled == true) {
@@ -1625,14 +1630,14 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       await db.query(deleteCancelledStats, [userId]);
       await db.query(deleteCancelledMapStats, [userId]);
       await db.query(deleteCancelledSpecs, [userId]);
-      const delRows = await db.query(deleteMatch, [userId]);
+      const delRows = await db.query(deleteMatch, [userId]) as any;
       if (delRows.affectedRows > 0)
         res.json({ message: "Matches deleted successfully!" });
       else res.json({ message: "No cancelled matches to delete." });
       return;
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: err.toString() });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: (err as Error).toString() });
       return;
     }
   }
@@ -1645,12 +1650,12 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
  * @param {number} teamNumber - Which team to provide for the match title.
  * @param {Object} matchData - The data that contains the match to get the team string and scores.
  */
-async function build_team_dict(team, teamNumber, matchData) {
+async function build_team_dict(team: TeamData, teamNumber: number, matchData: MatchData) {
   let sql =
     "SELECT auth, name, coach FROM team_auth_names WHERE team_id = ? ORDER BY captain DESC";
   const playerAuths = await db.query(sql, [team.id]);
-  let normalizedAuths = {};
-  let normalizedCoachAuths = {};
+  let normalizedAuths: { [key: string]: any } = {};
+  let normalizedCoachAuths: { [key: string]: any } = {};
   for (let i = 0; i < playerAuths.length; i++) {
     const key = playerAuths[i].auth;
     if (playerAuths[i].coach) {
@@ -1661,13 +1666,12 @@ async function build_team_dict(team, teamNumber, matchData) {
       else normalizedAuths[key] = playerAuths[i].name;
     }
   }
-  let teamData = {
+  let teamData: TeamData = {
     id: team.id.toString(),
     name: team.name,
     tag: team.tag,
     flag: team.flag != null ? team.flag.toUpperCase() : "",
     logo: team.logo,
-    matchtext: team.matchtext,
     players: normalizedAuths,
     coaches:
       Object.keys(normalizedCoachAuths).length == 0

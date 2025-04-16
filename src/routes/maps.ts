@@ -197,7 +197,7 @@ router.get("/:user_id/enabled", async (req, res, next) => {
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let userID: number = (req.user as User).id;
+    let userID: number = req.user!.id;
     let enabled: boolean = req.body[0].enabled == null
       ? true
       : req.body[0].enabled;
@@ -261,7 +261,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   }
   try {
-    let userID = (req.user as User).id;
+    let userID = req.user!.id;
     let mapListId = req.body[0].id;
     let enabled = req.body[0].enabled == null
       ? true
@@ -322,7 +322,7 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   }
   try {
-    let userID = (req.user as User).id;
+    let userID = req.user!.id;
     let mapListId = req.body[0].id;
     // Check if user is allowed to create?
     let sql =

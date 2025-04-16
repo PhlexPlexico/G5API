@@ -154,7 +154,8 @@ class Utils {
             id: ourUser[0].id,
             small_image: ourUser[0].small_image,
             medium_image: ourUser[0].medium_image,
-            large_image: ourUser[0].large_image
+            large_image: ourUser[0].large_image,
+            api_key: apiKey.split(":")[1]
           };
           req.user = curUser;
           return next();
@@ -292,7 +293,7 @@ class Utils {
     serverCheck: boolean = false
   ) {
     try {
-      let retMessage: object | null = null;
+      let retMessage: {status: number, message: string} | null = null;
 
       retMessage = await this.getUserMatchAccessNoFinalize(
         matchid,
@@ -339,7 +340,7 @@ class Utils {
       let adminCheck: boolean = onlyAdmin
         ? this.adminCheck(user)
         : this.superAdminCheck(user);
-      let retMessage: object | null = null;
+      let retMessage: { status: number, message: string } | null = null;
       retMessage = await this.checkIfMatchExists(matchid);
 
       if (retMessage != null) return retMessage;
