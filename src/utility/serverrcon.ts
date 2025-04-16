@@ -117,6 +117,7 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
+      // TODO: Version was removed in CS2 as an executable command. Use status and regex the value instead.
       let serverResponse = await this.execute("version");
       let serverVersion = serverResponse.match(/(?<=version: ).*(?= \[)/);
       let response = await fetch(

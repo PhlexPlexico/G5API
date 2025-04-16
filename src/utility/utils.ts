@@ -418,7 +418,7 @@ class Utils {
     map_id: number,
     team1_id: number,
     team2_id: number,
-    winner: number,
+    winner: number | null,
     deleteTeams = true
   ) {
     let teamAuthSql: string =
