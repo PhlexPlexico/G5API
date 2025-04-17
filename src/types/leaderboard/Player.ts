@@ -22,7 +22,7 @@ export interface Player {
     average_rating: number,
     wins: number,
     total_maps: number,
-    enemies_flashed: number,
-    friendlies_flashed: number,
-    util_damage: number
+    enemies_flashed?: number,
+    friendlies_flashed?: number,
+    util_damage?: number
 }

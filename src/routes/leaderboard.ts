@@ -495,9 +495,9 @@ import { Player } from "../types/leaderboard/Player.js";
          collisionPlayer!.k4,
          collisionPlayer!.k5
        );
-       collisionPlayer!.enemies_flashed += parseFloat(player.eflash);
-       collisionPlayer!.friendlies_flashed += parseFloat(player.fflash);
-       collisionPlayer!.util_damage += parseFloat(player.utildmg);
+       collisionPlayer!.enemies_flashed! += parseFloat(player.eflash);
+       collisionPlayer!.friendlies_flashed! += parseFloat(player.fflash);
+       collisionPlayer!.util_damage! += parseFloat(player.utildmg);
      }
    }
    return allPlayers;

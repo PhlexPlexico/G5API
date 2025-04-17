@@ -12,6 +12,9 @@
  import Utils from "../../utility/utils.js";
  
  import GlobalEmitter from "../../utility/emitter.js";
+import { RowDataPacket } from "mysql2";
+import { PlayerInfo } from "../../types/playerstats/PlayerObject.js";
+import { Response } from "express-serve-static-core";
 
  /* Swagger shared definitions */
 /**
@@ -128,8 +131,8 @@
  */
  router.get("/", async (req, res, next) => {
     try {
-      let sql = "SELECT * FROM player_stat_extras";
-      const playerStatExtra = await db.query(sql);
+      let sql: string = "SELECT * FROM player_stat_extras";
+      const playerStatExtra: RowDataPacket[] = await db.query(sql);
       if (!playerStatExtra.length) {
         res.status(404).json({ message: "No additional stats found on the site!" });
         return;
@@ -137,7 +140,7 @@
       res.json({ playerStatExtra });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: err.toString() });
+      res.status(500).json({ message: (err as Error).toString() });
     }
 });
 
@@ -172,15 +175,15 @@
  */
  router.get("/:steam_id", async (req, res, next) => {
   try {
-    let steamID = req.params.steam_id;
-    let sql = "SELECT id FROM player_stats WHERE steam_id = ?"
-    let extraSql = "SELECT * FROM player_stat_extras where id IN (?)";
-    const playerIds = await db.query(sql, steamID);
+    let steamID: string = req.params.steam_id;
+    let sql: string = "SELECT id FROM player_stats WHERE steam_id = ?"
+    let extraSql: string = "SELECT * FROM player_stat_extras where id IN (?)";
+    const playerIds: RowDataPacket[] = await db.query(sql, [steamID]);
     if (!playerIds.length) {
       res.status(404).json({ message: "No stats found for player " + steamID });
       return;
     }
-    const extrastats = await db.query(extraSql, [playerIds]);
+    const extrastats: RowDataPacket[] = await db.query(extraSql, [playerIds]);
     if (!extrastats.length) {
       res.status(404).json({ message: "No extra stats found for player " + steamID });
       return;
@@ -188,7 +191,7 @@
     res.json({ extrastats });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -223,11 +226,11 @@
  */
  router.get("/:steam_id/pug", async (req, res, next) => {
   try {
-    let steamID = req.params.steam_id;
+    let steamID: string = req.params.steam_id;
     return getIdFromMatches(steamID, 1, null, res);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -262,11 +265,11 @@
  */
  router.get("/:steam_id/official", async (req, res, next) => {
   try {
-    let steamID = req.params.steam_id;
+    let steamID: string = req.params.steam_id;
     return getIdFromMatches(steamID, 0, null, res);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -305,12 +308,12 @@
  */
  router.get("/:steam_id/season/:season_id", async (req, res, next) => {
     try {
-      let steamID = req.params.steam_id;
-      let seasonID = req.params.season_id
+      let steamID: string = req.params.steam_id;
+      let seasonID: number = parseInt(req.params.season_id);
       return getIdFromMatches(steamID, 0, seasonID, res);
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: err.toString() });
+      res.status(500).json({ message: (err as Error).toString() });
     }
 });
 
@@ -345,9 +348,9 @@
  */
  router.get("/match/:match_id", async (req, res, next) => {
   try {
-    let matchID = req.params.match_id;
-    let sql = "SELECT * FROM player_stat_extras where match_id = ?";
-    const extrastats = await db.query(sql, matchID);
+    let matchID: string = req.params.match_id;
+    let sql: string = "SELECT * FROM player_stat_extras where match_id = ?";
+    const extrastats: RowDataPacket[] = await db.query(sql, [matchID]);
     if (!extrastats.length) {
       res.status(404).json({ message: "No extra stats found for match " + matchID });
       return;
@@ -355,7 +358,7 @@
     res.json({ extrastats });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -390,9 +393,9 @@
  */
  router.get("/match/:match_id/stream", async (req, res, next) => {
   try {
-    let matchID = req.params.match_id;
-    let sql = "SELECT * FROM player_stat_extras where match_id = ?";
-    let playerstats = await db.query(sql, matchID);
+    let matchID: string = req.params.match_id;
+    let sql: string = "SELECT * FROM player_stat_extras where match_id = ?";
+    let playerstats: RowDataPacket[] = await db.query(sql, [matchID]);
 
     res.set({
       "Cache-Control": "no-cache",
@@ -402,11 +405,11 @@
     });
     res.flushHeaders();
     playerstats = playerstats.map(v => Object.assign({}, v));
-    let playerString = `event: playerstatextras\ndata: ${JSON.stringify(playerstats)}\n\n`
+    let playerString: string = `event: playerstatextras\ndata: ${JSON.stringify(playerstats)}\n\n`
     
     // Need to name the function in order to remove it!
     const playerStreamStats = async () => {
-      playerstats = await db.query(sql, matchID);
+      playerstats = await db.query(sql, [matchID]);
       playerstats = playerstats.map(v => Object.assign({}, v));
       playerString = `event: playerstatextras\ndata: ${JSON.stringify(playerstats)}\n\n`
       res.write(playerString);
@@ -424,8 +427,8 @@
       res.end();
     });
   } catch (err) {
-    console.error(err.toString());
-    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`)
+    console.error((err as Error).toString());
+    res.status(500).write(`event: error\ndata: ${(err as Error).toString()}\n\n`)
     res.end();
   }
 });
@@ -478,13 +481,14 @@
       res.status(412).json({ message: "Required Data Not Provided" });
       return;
     }
-    let currentMatchInfo =
+    let currentMatchInfo: string =
       "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time, mtch.api_key as mtch_api_key FROM `match` mtch WHERE mtch.id=?";
-    const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
+    const matchRow: RowDataPacket[] = await db.query(currentMatchInfo, req.body[0].match_id);
     if (!matchRow.length) {
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
+      req.user &&
       matchRow[0].mtch_api_key != req.body[0].api_key &&
       !Utils.superAdminCheck(req.user)
     ) {
@@ -503,7 +507,7 @@
       });
       return;
     } else {
-      let insertSet = {
+      let insertSet: PlayerInfo = {
         player_steam_id: req.body[0].steam_id,
         player_name: req.body[0].player_name,
         player_side: req.body[0].player_side,
@@ -530,18 +534,19 @@
         assist_friendly_fire: req.body[0].assist_friendly_fire,
         flash_assist: req.body[0].flash_assist
       };
-      let sql = "INSERT INTO player_stat_extras SET ?";
+      let sql: string = "INSERT INTO player_stat_extras SET ?";
       // Remove any values that may not be inserted off the hop.
-      insertSet = await db.buildUpdateStatement(insertSet);
-      let insertPlayStats = await db.query(sql, [insertSet]);
+      insertSet = await db.buildUpdateStatement(insertSet) as PlayerInfo;
+      let insertPlayStats: RowDataPacket[] = await db.query(sql, [insertSet]);
       GlobalEmitter.emit("playerStatsExtraUpdate");
       res.json({
         message: "Extra Player Stats inserted successfully!",
+        //@ts-ignore
         id: insertPlayStats.insertId,
       });
     }
   } catch (err) {
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -590,13 +595,14 @@
       res.status(412).json({ message: "Required Data Not Provided" });
       return;
     }
-    let currentMatchInfo =
+    let currentMatchInfo: string =
       "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time, mtch.api_key as mtch_api_key FROM `match` mtch, map_stats mstat WHERE mtch.id=? AND mstat.match_id=mtch.id";
-    const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
+    const matchRow: RowDataPacket[] = await db.query(currentMatchInfo, req.body[0].match_id);
     if (!matchRow.length) {
       res.status(404).json({ message: "No match found." });
       return;
     } else if (
+      req.user &&
       matchRow[0].mtch_api_key != req.body[0].api_key &&
       !Utils.superAdminCheck(req.user)
     ) {      
@@ -614,7 +620,7 @@
       });
       return;
     } else {
-      let updateStmt = {
+      let updateStmt: PlayerInfo = {
         round_number: req.body[0].round_number,
         round_time: req.body[0].round_time,
         attacker_steam_id: req.body[0].attacker_steam_id,
@@ -636,21 +642,22 @@
         flash_assist: req.body[0].flash_assist
       };
       // Remove any values that may not be updated.
-      updateStmt = await db.buildUpdateStatement(updateStmt);
+      updateStmt = await db.buildUpdateStatement(updateStmt) as PlayerInfo;
       if (!Object.keys(updateStmt)) {
         res
           .status(412)
           .json({ message: "No update data has been provided." });
         return;
       }
-      let sql =
+      let sql: string =
         "UPDATE player_stat_extras SET ? WHERE map_id = ? AND match_id = ? AND player_stat_id = ?";
-      const updatedPlayerStats = await db.query(sql, [
+      const updatedPlayerStats: RowDataPacket[] = await db.query(sql, [
         updateStmt,
         req.body[0].map_id,
         req.body[0].match_id,
         req.body[0].player_stat_id,
       ]);
+      //@ts-ignore
       if (updatedPlayerStats.affectedRows > 0) {
         res.json({ message: "Extra Player Stats were updated successfully!" });
       } else {
@@ -668,7 +675,7 @@
     }
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -715,13 +722,14 @@ router.delete("/", async (req, res, next) => {
       res.status(412).json({ message: "Required Data Not Provided" });
       return;
     }
-    let currentMatchInfo =
+    let currentMatchInfo: string =
       "SELECT mtch.user_id as user_id, mtch.cancelled as cancelled, mtch.forfeit as forfeit, mtch.end_time as mtch_end_time, mtch.api_key as mtch_api_key FROM `match` mtch, map_stats mstat WHERE mtch.id=?";
-    const matchRow = await db.query(currentMatchInfo, req.body[0].match_id);
+    const matchRow: RowDataPacket[] = await db.query(currentMatchInfo, req.body[0].match_id);
     if (!matchRow.length) {
       res.status(404).json({ message: "No player stats data found." });
       return;
     } else if (
+      req.user &&
       matchRow[0].user_id != req.user.id &&
       !Utils.superAdminCheck(req.user)
     ) {
@@ -734,10 +742,11 @@ router.delete("/", async (req, res, next) => {
       matchRow[0].forfeit == 1 ||
       matchRow[0].mtch_end_time != null
     ) {
-      let deleteSql = "DELETE FROM player_stat_extras; WHERE match_id = ?";
-      const delRows = await db.query(deleteSql, [
+      let deleteSql: string = "DELETE FROM player_stat_extras; WHERE match_id = ?";
+      const delRows: RowDataPacket[] = await db.query(deleteSql, [
         req.body[0].match_id,
       ]);
+      //@ts-ignore
       if (delRows.affectedRows > 0) {
         GlobalEmitter.emit("playerStatsExtraUpdate");
         res.json({ message: "Player stats has been deleted successfully." });
@@ -753,7 +762,7 @@ router.delete("/", async (req, res, next) => {
     }
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -766,8 +775,8 @@ router.delete("/", async (req, res, next) => {
 * @param {string} [seasonId=null] - Season ID to filter.
 * @param {object} [res] - The response to send back to the client.
 */
-const getIdFromMatches = async (steamId, isPug, seasonId, res) => {
-    let pugSql = 
+const getIdFromMatches = async (steamId: string, isPug: boolean | number, seasonId: number | null, res: Response<any, Record<string, any>, number>) => {
+    let pugSql: string = 
       `SELECT id
         FROM player_stats 
         WHERE steam_id = ?
@@ -787,13 +796,13 @@ const getIdFromMatches = async (steamId, isPug, seasonId, res) => {
         AND season_id = ?
       )`;
     }
-    let playerIds = await db.query(pugSql, [steamId, isPug, seasonId]);
-    let extraSql = "SELECT * FROM player_stat_extras where id IN (?)";
+    let playerIds: RowDataPacket[] = await db.query(pugSql, [steamId, isPug, seasonId]);
+    let extraSql: string = "SELECT * FROM player_stat_extras where id IN (?)";
     if (!playerIds.length) {
       res.status(404).json({ message: "No stats found for player " + steamId });
       return;
     }
-    const extrastats = await db.query(extraSql, [playerIds]);
+    const extrastats: RowDataPacket[] = await db.query(extraSql, [playerIds]);
     if (!extrastats.length) {
       res.status(404).json({ message: "No extra stats found for player " + steamId });
       return;

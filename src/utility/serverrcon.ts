@@ -2,6 +2,7 @@ import Utils from "./utils.js";
 import { Rcon } from "dathost-rcon-client";
 import fetch from "node-fetch";
 import { compare } from "compare-versions";
+import { SteamApiResponse } from "../types/serverrcon/SteamApiResponse.js";
 
 /**
  * Creates a new server object to run various tasks.
@@ -117,13 +118,12 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      // TODO: Version was removed in CS2 as an executable command. Use status and regex the value instead.
-      let serverResponse = await this.execute("version");
-      let serverVersion = serverResponse.match(/(?<=version: ).*(?= \[)/);
+      let serverResponse: string = await this.execute("status");
+      let serverVersion: string | undefined  = serverResponse.match(/(?<=version \: ).*(?=\/)/)?.toString();
       let response = await fetch(
         `https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001/?appid=730&version=${serverVersion}&format=json`
       );
-      let data: any = await response.json();
+      let data: SteamApiResponse = await response.json() as SteamApiResponse;
       if (!data.response.up_to_date) {
         console.log(
           `Server is not up to date! Current version: ${serverVersion} - Latest version: ${data.response.required_version}`
