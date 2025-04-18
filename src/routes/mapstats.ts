@@ -13,6 +13,9 @@ import {db} from "../services/db.js";
 import Utils from "../utility/utils.js";
 
 import GlobalEmitter from "../utility/emitter.js";
+import { RowDataPacket } from "mysql2";
+import { MapStats } from "../types/mapstats/MapStats.js";
+import { AccessMessage } from "../types/mapstats/AccessMessage.js";
 
 /**
  * @swagger
@@ -98,8 +101,8 @@ import GlobalEmitter from "../utility/emitter.js";
  */
 router.get("/", async (req, res, next) => {
   try {
-    let sql = "SELECT * FROM map_stats";
-    let mapstats = await db.query(sql);
+    let sql: string = "SELECT * FROM map_stats";
+    let mapstats: RowDataPacket[] = await db.query(sql);
     if (!mapstats.length) {
       res.status(404).json({ message: "No stats found." });
       return;
@@ -107,7 +110,7 @@ router.get("/", async (req, res, next) => {
     res.json({ mapstats });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -142,9 +145,9 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/:match_id", async (req, res, next) => {
   try {
-    let matchID = req.params.match_id;
-    let sql = "SELECT * FROM map_stats where match_id = ?";
-    let mapstats = await db.query(sql, matchID);
+    let matchID: string = req.params.match_id;
+    let sql: string = "SELECT * FROM map_stats where match_id = ?";
+    let mapstats: RowDataPacket[] = await db.query(sql, [matchID]);
     if (!mapstats.length) {
       res.status(404).json({ message: "No stats found." });
       return;
@@ -152,7 +155,7 @@ router.get("/:match_id", async (req, res, next) => {
     res.json({ mapstats });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -187,9 +190,9 @@ router.get("/:match_id", async (req, res, next) => {
  */
  router.get("/:match_id/stream", async (req, res, next) => {
   try {
-    let matchID = req.params.match_id;
-    let sql = "SELECT * FROM map_stats where match_id = ?";
-    let mapstats = await db.query(sql, matchID);
+    let matchID: string = req.params.match_id;
+    let sql: string = "SELECT * FROM map_stats where match_id = ?";
+    let mapstats: RowDataPacket[] = await db.query(sql, [matchID]);
     
     res.set({
       "Cache-Control": "no-cache",
@@ -199,11 +202,11 @@ router.get("/:match_id", async (req, res, next) => {
     });
     res.flushHeaders();
     mapstats = mapstats.map(v => Object.assign({}, v));
-    let mapStatString = `event: mapstats\ndata: ${JSON.stringify(mapstats)}\n\n`
+    let mapStatString: string = `event: mapstats\ndata: ${JSON.stringify(mapstats)}\n\n`
     
     // Need to name the function in order to remove it!
     const mapStatStreamStats = async () => {
-      mapstats = await db.query(sql, matchID);
+      mapstats = await db.query(sql, [matchID]);
       mapstats = mapstats.map(v => Object.assign({}, v));
       mapStatString = `event: mapstats\ndata: ${JSON.stringify(mapstats)}\n\n`
       res.write(mapStatString);
@@ -222,8 +225,8 @@ router.get("/:match_id", async (req, res, next) => {
     });
 
   } catch (err) {
-    console.error(err.toString());
-    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`)
+    console.error((err as Error).toString());
+    res.status(500).write(`event: error\ndata: ${(err as Error).toString()}\n\n`)
     res.end();
   }
 });
@@ -263,10 +266,10 @@ router.get("/:match_id", async (req, res, next) => {
  */
 router.get("/:match_id/:map_number/stream", async (req, res, next) => {
   try {
-    let matchID = req.params.match_id;
-    let mapID = req.params.map_number;
-    let sql = "SELECT * FROM map_stats where match_id = ? AND map_number = ?";
-    let mapstats = await db.query(sql, [matchID, mapID]);
+    let matchID: string = req.params.match_id;
+    let mapID: number = parseInt(req.params.map_number);
+    let sql: string = "SELECT * FROM map_stats where match_id = ? AND map_number = ?";
+    let mapstats: RowDataPacket[] = await db.query(sql, [matchID, mapID]);
     
     res.set({
       "Cache-Control": "no-cache",
@@ -274,11 +277,11 @@ router.get("/:match_id/:map_number/stream", async (req, res, next) => {
     });
     res.flushHeaders();
     mapstats = mapstats.map(v => Object.assign({}, v));
-    let mapStatString = `event: mapstats\ndata: ${JSON.stringify(mapstats[0])}\n\n`
+    let mapStatString: string = `event: mapstats\ndata: ${JSON.stringify(mapstats[0])}\n\n`
     
     // Need to name the function in order to remove it!
     const mapStatStreamStats = async () => {
-      mapstats = await db.query(sql, matchID);
+      mapstats = await db.query(sql, [matchID]);
       mapstats = mapstats.map(v => Object.assign({}, v));
       mapStatString = `event: mapstats\ndata: ${JSON.stringify(mapstats)}\n\n`
       res.write(mapStatString);
@@ -296,8 +299,8 @@ router.get("/:match_id/:map_number/stream", async (req, res, next) => {
       res.end();
     });
   } catch (err) {
-    console.error(err.toString());
-    res.status(500).write(`event: error\ndata: ${err.toString()}\n\n`)
+    console.error((err as Error).toString());
+    res.status(500).write(`event: error\ndata: ${(err as Error).toString()}\n\n`)
     res.end();
   }
 });
@@ -337,9 +340,9 @@ router.get("/:match_id/:map_number/stream", async (req, res, next) => {
  */
  router.get("/:match_id/:map_number", async (req, res, next) => {
   try {
-    let matchID = req.params.match_id;
-    let mapID = req.params.map_number;
-    let sql = "SELECT * FROM map_stats where match_id = ? AND map_number = ?";
+    let matchID: string = req.params.match_id;
+    let mapID: number = parseInt(req.params.map_number);
+    let sql: string = "SELECT * FROM map_stats where match_id = ? AND map_number = ?";
     const mapstats = await db.query(sql, [matchID, mapID]);
     if (!mapstats.length) {
       res.status(404).json({ message: "No stats found." });
@@ -348,7 +351,7 @@ router.get("/:match_id/:map_number/stream", async (req, res, next) => {
     const mapstat = JSON.parse(JSON.stringify(mapstats[0]));
     res.json({ mapstat });
   } catch (err) {
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -390,32 +393,33 @@ router.get("/:match_id/:map_number/stream", async (req, res, next) => {
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let errMessage = await Utils.getUserMatchAccess(
+    let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
       req.body[0].match_id,
-      req.user,
+      req.user!,
       false
     );
     if (errMessage != null) {
       res.status(errMessage.status).json({ message: errMessage.message });
       return;
     } else {
-      let mapStatSet = {
+      let mapStatSet: MapStats = {
         match_id: req.body[0].match_id,
         map_number: req.body[0].map_number,
         map_name: req.body[0].map_name,
         start_time: req.body[0].start_time,
       };
-      let sql = "INSERT INTO map_stats SET ?";
-      let insertedStats = await db.query(sql, [mapStatSet]);
+      let sql: string = "INSERT INTO map_stats SET ?";
+      let insertedStats: RowDataPacket[] = await db.query(sql, [mapStatSet]);
       GlobalEmitter.emit("mapStatUpdate");
       res.json({
         message: "Map stats inserted successfully!",
+        //@ts-ignore
         id: insertedStats.insertId,
       });
     }
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -463,11 +467,11 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(412).json({ message: "Map stat ID Not Provided" });
       return;
     }
-    let currentMatchInfo = "SELECT match_id FROM map_stats WHERE id = ?";
-    const matchRow = await db.query(currentMatchInfo, req.body[0].map_stats_id);
-    let errMessage = await Utils.getUserMatchAccess(
+    let currentMatchInfo: string = "SELECT match_id FROM map_stats WHERE id = ?";
+    const matchRow: RowDataPacket[] = await db.query(currentMatchInfo, req.body[0].map_stats_id);
+    let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
       matchRow[0].match_id,
-      req.user,
+      req.user!,
       false
     );
     if (errMessage != null) {
@@ -475,7 +479,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       return;
     } else {
       let mapStatId = req.body[0].map_stats_id;
-      let updatedValues = {
+      let updatedValues: MapStats = {
         end_time: req.body[0].end_time,
         team1_score: req.body[0].team1_score,
         team2_score: req.body[0].team2_score,
@@ -483,15 +487,16 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         demoFile: req.body[0].demo_file,
         map_name: req.body[0].map_name,
       };
-      updatedValues = await db.buildUpdateStatement(updatedValues);
+      updatedValues = await db.buildUpdateStatement(updatedValues) as MapStats;
       if (!Object.keys(updatedValues)) {
         res
           .status(412)
           .json({ message: "No update data has been provided." });
         return;
       }
-      let sql = "UPDATE map_stats SET ? WHERE id = ?";
-      const updateMapStats = await db.query(sql, [updatedValues, mapStatId]);
+      let sql: string = "UPDATE map_stats SET ? WHERE id = ?";
+      const updateMapStats: RowDataPacket[] = await db.query(sql, [updatedValues, mapStatId]);
+      //@ts-ignore
       if (updateMapStats.affectedRows > 0) {
         GlobalEmitter.emit("mapStatUpdate");
         res.json({ message: "Map Stats updated successfully!" });
@@ -503,7 +508,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     }
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -552,20 +557,21 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
       res.status(412).json({ message: "Map Stats ID Not Provided" });
       return;
     }
-    let currentMatchInfo = "SELECT match_id FROM map_stats WHERE id = ?";
-    const matchRow = await db.query(currentMatchInfo, req.body[0].map_stats_id);
-    let errMessage = await Utils.getUserMatchAccess(
+    let currentMatchInfo: string = "SELECT match_id FROM map_stats WHERE id = ?";
+    const matchRow: RowDataPacket[] = await db.query(currentMatchInfo, [req.body[0].map_stats_id]);
+    let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
       matchRow[0].match_id,
-      req.user,
+      req.user!,
       false
     );
     if (errMessage != null) {
       res.status(errMessage.status).json({ message: errMessage.message });
       return;
     } else {
-      let mapStatsId = req.body[0].map_stats_id;
-      let deleteSql = "DELETE FROM map_stats WHERE id = ?";
-      const delRows = await db.query(deleteSql, [mapStatsId]);
+      let mapStatsId: number = parseInt(req.body[0].map_stats_id);
+      let deleteSql: string = "DELETE FROM map_stats WHERE id = ?";
+      const delRows: RowDataPacket[] = await db.query(deleteSql, [mapStatsId]);
+      //@ts-ignore
       if (delRows.affectedRows > 0) {
         GlobalEmitter.emit("mapStatUpdate");
         res.json({ message: "Map Stats deleted successfully!" });
