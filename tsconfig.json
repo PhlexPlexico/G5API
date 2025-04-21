@@ -104,7 +104,7 @@
   "include": [
     "src/**/**/*.js", // Every js file inside src folder
     "src/**/**/*.ts", // Every js file inside src folder
-    "bin/www.js"
+    "bin/*.ts"
   ],
   "exclude": [
     "node_modules",
