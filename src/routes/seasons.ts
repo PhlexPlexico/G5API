@@ -13,6 +13,9 @@ const router = Router();
 import {db} from "../services/db.js";
 
 import Utils from "../utility/utils.js";
+import { RowDataPacket } from "mysql2";
+import { SeasonObject } from "../types/seasons/SeasonObject.js";
+import { SeasonCvarObject } from "../types/seasons/SeasonCvarObject.js";
 
 /**
  * @swagger
@@ -82,13 +85,13 @@ import Utils from "../utility/utils.js";
  */
 router.get("/", async (req, res, next) => {
   try {
-    let sql =
+    let sql: string =
       "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
       "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\": \"',sc.cvar_value,'\"')),'}') as cvars " +
       "FROM season s LEFT OUTER JOIN season_cvar sc " +
       "ON s.id = sc.season_id " +
       "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
-    let seasons = await db.query(sql);
+    let seasons: RowDataPacket[] = await db.query(sql);
     if (!seasons.length) {
       res.status(404).json({ message: "No seasons found." });
       return;
@@ -100,7 +103,7 @@ router.get("/", async (req, res, next) => {
     res.json({ seasons });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -130,14 +133,14 @@ router.get("/", async (req, res, next) => {
  */
 router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let sql =
+    let sql: string =
       "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
       "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
       "FROM season s LEFT OUTER JOIN season_cvar sc " +
       "ON s.id = sc.season_id " +
       "WHERE s.user_id = ? " +
       "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
-    let seasons = await db.query(sql, [req.user.id]);
+    let seasons: RowDataPacket[] = await db.query(sql, [req.user?.id]);
     if (!seasons.length) {
       res.status(404).json({ message: "No seasons found." });
       return;
@@ -149,7 +152,7 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
     res.json({ seasons });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -181,11 +184,11 @@ router.get(
   "/myseasons/available",
   Utils.ensureAuthenticated,
   async (req, res, next) => {
-    let sql;
-    let seasons;
+    let sql: string;
+    let seasons: RowDataPacket[];
     try {
       // Check if super admin, if they are use this query.
-      if (Utils.superAdminCheck(req.user)) {
+      if (req.user && Utils.superAdminCheck(req.user)) {
         sql =
           "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
           "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
@@ -205,7 +208,7 @@ router.get(
           "AND (s.end_date >= CURDATE() " +
           "OR s.end_date IS NULL) " +
           "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
-        seasons = await db.query(sql, [req.user.id]);
+        seasons = await db.query(sql, [req.user?.id]);
       }
       if (!seasons.length) {
         res.status(404).json({ message: "No seasons found." });
@@ -218,7 +221,7 @@ router.get(
       res.json({ seasons });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: err.toString() });
+      res.status(500).json({ message: (err as Error).toString() });
     }
   }
 );
@@ -255,11 +258,11 @@ router.get(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let sql =
+      let sql: string =
         "SELECT CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
         "FROM season_cvar sc " +
         "WHERE sc.season_id = ? ";
-      let cvar = await db.query(sql, [req.params.season_id]);
+      let cvar: RowDataPacket[] = await db.query(sql, [req.params.season_id]);
       if (cvar[0].cvars == null) {
         res.status(404).json({
           message: "No cvars found for season id " + req.params.season_id + ".",
@@ -272,7 +275,7 @@ router.get(
       }
       res.json(cvar[0]);
     } catch (err) {
-      res.status(500).json({ message: err.toString() });
+      res.status(500).json({ message: (err as Error).toString() });
     }
   }
 );
@@ -308,21 +311,21 @@ router.get(
  */
 router.get("/:season_id", async (req, res, next) => {
   try {
-    let seasonID = req.params.season_id;
-    let sql =
+    let seasonID: number = parseInt(req.params.season_id);
+    let sql: string =
       "SELECT id, user_id, server_id, team1_id, team2_id, winner, team1_score, team2_score, team1_series_score, team2_series_score, team1_string, team2_string, cancelled, forfeit, start_time, end_time, max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, season_id, is_pug FROM `match` where season_id = ?";
-    let seasonSql = "SELECT * FROM season WHERE id = ?";
-    let seasons = await db.query(seasonSql, seasonID);
-    let matches = await db.query(sql, seasonID);
+    let seasonSql: string = "SELECT * FROM season WHERE id = ?";
+    let seasons: RowDataPacket[] = await db.query(seasonSql, [seasonID]);
+    let matches: RowDataPacket[] = await db.query(sql, [seasonID]);
     if (!seasons.length) {
       res.status(404).json({ message: "Season not found." });
       return;
     }
-    const season = JSON.parse(JSON.stringify(seasons[0]));
+    const season: string = JSON.parse(JSON.stringify(seasons[0]));
     res.json({ matches, season });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -358,19 +361,20 @@ router.get("/:season_id", async (req, res, next) => {
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let defaultCvar = req.body[0].season_cvar;
-    let insertSet = {
-      user_id: req.user.id,
+    let defaultCvar: any = req.body[0].season_cvar;
+    let insertSet: SeasonObject | SeasonCvarObject = {
+      user_id: req.user?.id,
       name: req.body[0].name,
       start_date: req.body[0].start_date,
       end_date: req.body[0].end_date,
     };
-    let sql = "INSERT INTO season SET ?";
-    let insertSeason = await db.query(sql, [insertSet]);
+    let sql: string = "INSERT INTO season SET ?";
+    let insertSeason: RowDataPacket[] = await db.query(sql, [insertSet]);
     if (defaultCvar != null) {
       sql = "INSERT INTO season_cvar SET ?";
       for (let key in defaultCvar) {
         insertSet = {
+          //@ts-ignore
           season_id: insertSeason.insertId,
           cvar_name: key.replace(/"/g, '\\"'),
           cvar_value: typeof defaultCvar[key] === 'string' ? defaultCvar[key].replace(/"/g, '\\"').replace(/\\/g, '\\\\') : defaultCvar[key]
@@ -380,11 +384,12 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     }
     res.json({
       message: "Season inserted successfully!",
+      //@ts-ignore
       id: insertSeason.insertId,
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -426,16 +431,17 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
-  let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
+  let seasonUserId: string = "SELECT user_id FROM season WHERE id = ?";
   if (req.body[0].season_id == null) {
     res.status(400).json({ message: "No season ID provided." });
     return;
   }
-  const seasonRow = await db.query(seasonUserId, req.body[0].season_id);
+  const seasonRow: RowDataPacket[] = await db.query(seasonUserId, [req.body[0].season_id]);
   if (!seasonRow.length) {
     res.status(404).json({ message: "No season found." });
     return;
   } else if (
+    req.user &&
     seasonRow[0].user_id != req.user.id &&
     !Utils.superAdminCheck(req.user)
   ) {
@@ -445,8 +451,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   } else {
     try {
-      let defaultCvar = req.body[0].season_cvar;
-      let updateStmt = {
+      let defaultCvar: any = req.body[0].season_cvar;
+      let updateStmt: SeasonObject = {
         user_id: req.body[0].user_id,
         name: req.body[0].name,
         start_date: req.body[0].start_date,
@@ -463,14 +469,14 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
           .json({ message: "No update data has been provided." });
         return;
       }
-      let sql = "UPDATE season SET ? WHERE id = ?";
+      let sql: string = "UPDATE season SET ? WHERE id = ?";
       await db.query(sql, [updateStmt, req.body[0].season_id]);
       if (defaultCvar != null) {
         sql = "DELETE FROM season_cvar WHERE season_id = ?";
         await db.query(sql, [req.body[0].season_id]);
         sql = "INSERT INTO season_cvar SET ?";
         for (let key in defaultCvar) {
-          let insertSet = {
+          let insertSet: SeasonCvarObject = {
             season_id: req.body[0].season_id,
             cvar_name: key.replace(/"/g, '\\"'),
             cvar_value: typeof defaultCvar[key] === 'string' ? defaultCvar[key].replace(/"/g, '\\"').replace(/\\/g, '\\\\') : defaultCvar[key],
@@ -481,7 +487,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
       res.json({ message: "Season updated successfully!" });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: err.toString() });
+      res.status(500).json({ message: (err as Error).toString() });
     }
   }
 });
@@ -523,12 +529,13 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         $ref: '#/components/responses/Error'
  */
 router.delete("/", async (req, res, next) => {
-  let seasonUserId = "SELECT user_id FROM season WHERE id = ?";
-  const seasonRow = await db.query(seasonUserId, req.body[0].season_id);
+  let seasonUserId: string = "SELECT user_id FROM season WHERE id = ?";
+  const seasonRow: RowDataPacket[] = await db.query(seasonUserId, req.body[0].season_id);
   if (seasonRow[0] == null) {
     res.status(404).json({ message: "No season found." });
     return;
   } else if (
+    req.user &&
     seasonRow[0].user_id != req.user.id &&
     !Utils.superAdminCheck(req.user)
   ) {
@@ -538,13 +545,13 @@ router.delete("/", async (req, res, next) => {
     return;
   } else {
     try {
-      let deleteSql = "DELETE FROM season WHERE id = ?";
-      let seasonId = req.body[0].season_id;
+      let deleteSql: string = "DELETE FROM season WHERE id = ?";
+      let seasonId: number = parseInt(req.body[0].season_id);
       await db.query(deleteSql, [seasonId]);
       res.json({ message: "Season deleted successfully!" });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: err.toString() });
+      res.status(500).json({ message: (err as Error).toString() });
     }
   }
 });
@@ -588,13 +595,13 @@ router.delete("/", async (req, res, next) => {
  */
 router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    const userInfo = await db.query("SELECT challonge_api_key FROM user WHERE id = ?", [req.user.id]);
-    let challongeAPIKey = Utils.decrypt(userInfo[0].challonge_api_key);
+    const userInfo: RowDataPacket[] = await db.query("SELECT challonge_api_key FROM user WHERE id = ?", [req.user!.id]);
+    let challongeAPIKey: string | undefined | null = Utils.decrypt(userInfo[0].challonge_api_key);
     if (!challongeAPIKey) {
       throw "No challonge API key provided for user.";
     }
-    let tournamentId = req.body[0].tournament_id;
-    let challongeResponse = await fetch(
+    let tournamentId: string = req.body[0].tournament_id;
+    let challongeResponse: any = await fetch(
       "https://api.challonge.com/v1/tournaments/" +
       tournamentId +
       ".json?api_key=" +
@@ -603,23 +610,23 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
     let challongeData = await challongeResponse.json()
     if (challongeData) {
       // Insert the season.
-      let sqlString = "INSERT INTO season SET ?";
-      let seasonData = {
-        user_id: req.user.id,
+      let sqlString: string = "INSERT INTO season SET ?";
+      let seasonData: SeasonObject = {
+        user_id: req.user?.id,
         name: challongeData.tournament.name,
         start_date: new Date(challongeData.tournament.created_at),
         is_challonge: true,
         challonge_svg: challongeData.tournament.live_image_url,
         challonge_url: tournamentId
       };
-      const insertSeason = await db.query(sqlString, seasonData);
+      const insertSeason: RowDataPacket[] = await db.query(sqlString, seasonData);
       // Check if teams were already in the call and add them to the database.
       if (req.body[0]?.import_teams && challongeData.tournament.participants) {
         sqlString = "INSERT INTO team (user_id, name, tag, challonge_team_id) VALUES ?";
-        let teamArray = [];
-        challongeData.tournament.participants.forEach(async team => {
+        let teamArray: Array<Array<Object>> = [];
+        challongeData.tournament.participants.forEach(async (team: { participant: { display_name: string; id: Object; }; }) => {
           teamArray.push([
-            req.user.id,
+            req.user!.id,
             team.participant.display_name.substring(0, 40),
             team.participant.display_name.substring(0, 40),
             team.participant.id
@@ -630,6 +637,7 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
       res.json({
         message: "Challonge season imported successfully!",
         chal_res: challongeData.tournament.created_at,
+        //@ts-ignore
         id: insertSeason.insertId,
       });
     }
@@ -637,7 +645,7 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
     
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 

@@ -67,6 +67,7 @@
   },
   "dependencies": {
     "@node-steam/id": "^1.2.0",
+    "@rmp135/sql-ts": "^2.2.0",
     "aes-js": "^3.1.2",
     "bcrypt": "^5.1.1",
     "compare-versions": "^6.1.0",
@@ -86,7 +87,7 @@
     "http-errors": "~2.0.0",
     "jszip": "^3.10.1",
     "morgan": "^1.10.0",
-    "mysql2": "^3.9.8",
+    "mysql2": "^3.14.0",
     "node-fetch": "^3.3.2",
     "passport": "^0.6.0",
     "passport-local": "^1.0.0",
