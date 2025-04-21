@@ -36,6 +36,7 @@ class ServerRcon {
     try {
       await this.rcon.connect();
       const response = await this.rcon.send(commandString);
+      console.log(response);
       this.rcon.disconnect();
       return response;
     } catch (error) {
@@ -119,7 +120,7 @@ class ServerRcon {
         return false;
       }
       let serverResponse: string = await this.execute("status");
-      let serverVersion: string | undefined  = serverResponse.match(/(?<=version \: ).*(?=\/)/)?.toString();
+      let serverVersion: string | undefined = serverResponse.match(/(?<=\/)\d+/)?.toString();
       let response = await fetch(
         `https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001/?appid=730&version=${serverVersion}&format=json`
       );
