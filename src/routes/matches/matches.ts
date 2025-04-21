@@ -23,6 +23,7 @@ import { compare } from "compare-versions";
 import { MatchJSON } from "../../types/matches/MatchJson.js";
 import { MatchData } from "../../types/matches/MatchData.js";
 import { TeamData } from "../../types/teams/TeamData.js";
+import { RowDataPacket } from "mysql2";
 
 
 /**
@@ -363,8 +364,8 @@ import { TeamData } from "../../types/teams/TeamData.js";
  */
 router.get("/", async (req, res, next) => {
   try {
-    let isAscending = req.query?.asc == null ? false : req.query.asc;
-    let sql =
+    let isAscending: boolean = req.query?.asc == null ? false : req.query.asc as unknown as boolean;
+    let sql: string =
       "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, mtch.team1_score, " +
       "mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, mtch.team1_string, mtch.team2_string, " +
       "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, " +
@@ -374,7 +375,7 @@ router.get("/", async (req, res, next) => {
       "OR cancelled IS NULL " +
       "GROUP BY mtch.id " +
       "ORDER BY id DESC";
-    const matches = await db.query(sql);
+    const matches: RowDataPacket[] = await db.query(sql);
     if (!matches.length) {
       res.status(404).json({ message: "No matches found." });
       return;
@@ -1667,7 +1668,7 @@ async function build_team_dict(team: TeamData, teamNumber: number, matchData: Ma
     }
   }
   let teamData: TeamData = {
-    id: team.id.toString(),
+    id: team.id?.toString(),
     name: team.name,
     tag: team.tag,
     flag: team.flag != null ? team.flag.toUpperCase() : "",

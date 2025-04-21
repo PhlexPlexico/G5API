@@ -22,6 +22,9 @@ import { generate } from "randomstring";
 import { writeFile, unlink } from "fs";
 
 import fetch from "node-fetch";
+import { RowDataPacket } from "mysql2";
+import { TeamData } from "../types/teams/TeamData.js";
+import { AuthData } from "../types/teams/AuthData.js";
 
 /**
  * @swagger
@@ -106,7 +109,7 @@ import fetch from "node-fetch";
  */
 router.get("/", async (req, res) => {
   try {
-    let sql =
+    let sql: string =
       "SELECT usr.name as owner, t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
       "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
       "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": ', ta.captain, ', \"coach\": ', ta.coach, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
@@ -115,7 +118,7 @@ router.get("/", async (req, res) => {
       "ON usr.id = t.user_id " +
       "GROUP BY t.id " +
       "ORDER BY t.id DESC";
-    const teams = await db.query(sql);
+    const teams: RowDataPacket[] = await db.query(sql);
     // Check this and return a 404 if we don't exist.
     if (teams[0] == null) {
       res.status(404).json({ message: "No teams found in the system." });
@@ -130,7 +133,7 @@ router.get("/", async (req, res) => {
     res.json({ teams });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -160,7 +163,7 @@ router.get("/", async (req, res) => {
  */
 router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
   try {
-    let sql =
+    let sql: string =
       "SELECT usr.name as owner, t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
       "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
       "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": ', ta.captain, ', \"coach\": ', ta.coach, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
@@ -170,10 +173,10 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
       "WHERE t.user_id = ? " +
       "GROUP BY t.id " + 
       "ORDER BY t.id DESC";
-    const teams = await db.query(sql, req.user.id);
+    const teams: RowDataPacket[] = await db.query(sql, [req.user?.id]);
     // Check this and return a 404 if we don't exist.
     if (teams[0] == null) {
-      res.status(404).json({ message: "No teams found for " + req.user.name });
+      res.status(404).json({ message: "No teams found for " + req.user?.name });
       return;
     }
     for (let row in teams) {
@@ -185,7 +188,7 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
     res.json({ teams });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -221,8 +224,8 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
  */
 router.get("/:team_id", async (req, res) => {
   try {
-    let teamID = req.params.team_id;
-    let sql =
+    let teamID: number = parseInt(req.params.team_id);
+    let sql: string =
       "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
       "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
       "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": ', ta.captain, ', \"coach\": ', ta.coach, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
@@ -230,9 +233,7 @@ router.get("/:team_id", async (req, res) => {
       "ON t.id = ta.team_id " +
       "WHERE t.id = ? " +
       "GROUP BY t.id";
-    let team = await db.query(sql, teamID);
-    // Oddly enough, if a team doesn't exist, it still returns null!
-    // Check this and return a 404 if we don't exist.
+    let team: RowDataPacket[] = await db.query(sql, [teamID]);
     if (team[0] == null) {
       res.status(404).json({ message: "No team found for id " + teamID });
       return;
@@ -247,7 +248,7 @@ router.get("/:team_id", async (req, res) => {
     res.json({ team });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -283,11 +284,11 @@ router.get("/:team_id", async (req, res) => {
  */
 router.get("/:team_id/basic", async (req, res) => {
   try {
-    let teamID = req.params.team_id;
-    let sql =
+    let teamID: number = parseInt(req.params.team_id);
+    let sql: string =
       "SELECT t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, '' as auth_name " +
       "FROM team t WHERE t.id = ?";
-    let team = await db.query(sql, teamID);
+    let team: RowDataPacket[] = await db.query(sql, [teamID]);
     // Oddly enough, if a team doesn't exist, it still returns null!
     // Check this and return a 404 if we don't exist.
     if (team[0] == null) {
@@ -298,7 +299,7 @@ router.get("/:team_id/basic", async (req, res) => {
     res.json({ team });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -331,15 +332,15 @@ router.get("/:team_id/basic", async (req, res) => {
  *         $ref: '#/components/responses/Error'
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res) => {
-  let userID = req.user.id;
-  let teamName = req.body[0].name;
-  let flag = req.body[0].flag;
-  let logo = req.body[0].logo_file;
-  let logoName = null;
-  let auths = req.body[0].auth_name;
-  let tag = req.body[0].tag;
-  let public_team = req.body[0].public_team;
-  let teamID = null;
+  let userID: number = req.user!.id;
+  let teamName: string = req.body[0].name;
+  let flag: string = req.body[0].flag;
+  let logo: string = req.body[0].logo_file;
+  let logoName: string | null = null;
+  let auths: Array<AuthData> = req.body[0].auth_name;
+  let tag: string = req.body[0].tag;
+  let public_team: number = req.body[0].public_team;
+  let teamID: number | null = null;
   if (logo) {
     // Generate a 5 character logo "name".
     logoName = generate({
@@ -347,7 +348,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
       charset: "alphanumeric",
     });
     if (logo.includes("data:image/png;base64")) {
-      let base64Data = logo.replace(/^data:image\/png;base64,/, "");
+      let base64Data: string = logo.replace(/^data:image\/png;base64,/, "");
       writeFile(
         "public/img/logos/" + logoName + ".png",
         base64Data,
@@ -357,8 +358,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
         }
       );
     } else {
-      let base64Data = Buffer.from(logo).toString('base64').replace(/^data:image\/([\w+]+);base64,([\s\S]+)/, "");
-      let baseImg = img(Buffer.from(base64Data, 'base64').toString());
+      let base64Data: string = Buffer.from(logo).toString('base64').replace(/^data:image\/([\w+]+);base64,([\s\S]+)/, "");
+      let baseImg: any = img(Buffer.from(base64Data, 'base64').toString());
       writeFile(
         "public/img/logos/" + logoName + ".svg",
         baseImg.base64,
@@ -370,7 +371,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
     }
     
   }
-  let newTeam = [
+  let newTeam: Array<TeamData> = [
     {
       user_id: userID,
       name: teamName,
@@ -380,11 +381,11 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
       public_team: public_team,
     },
   ];
-  let sql =
+  let sql: string =
     "INSERT INTO team (user_id, name, flag, logo, tag, public_team) VALUES ?";
 
   try {
-    const insertTeam = await db.query(sql, [
+    const insertTeam: RowDataPacket[] = await db.query(sql, [
       newTeam.map((item) => [
         item.user_id,
         item.name,
@@ -394,13 +395,14 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
         item.public_team,
       ]),
     ]);
+    //@ts-ignore
     teamID = insertTeam.insertId;
     sql =
       "INSERT INTO team_auth_names (team_id, auth, name, captain, coach) VALUES (?, ?, ?, ?, ?)";
     for (let key in auths) {
-      let isCaptain = auths[key].captain == null ? 0 : auths[key].captain;
-      let isCoach = auths[key].coach == null ? 0 : auths[key].coach;
-      let usersSteamId = await Utils.getSteamPID(key);
+      let isCaptain: number = auths[key].captain == null ? 0 : auths[key].captain;
+      let isCoach: number = auths[key].coach == null ? 0 : auths[key].coach;
+      let usersSteamId: string = await Utils.getSteamPID(key);
       await db.query(sql, [
         teamID,
         usersSteamId,
@@ -412,7 +414,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
     res.json({ message: "Team successfully inserted.", id: teamID });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -453,12 +455,13 @@ router.post("/", Utils.ensureAuthenticated, async (req, res) => {
  *         $ref: '#/components/responses/Error'
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res) => {
-  let checkUserSql = "SELECT * FROM team WHERE id = ?";
-  const checkUser = await db.query(checkUserSql, [req.body[0].id]);
+  let checkUserSql: string = "SELECT * FROM team WHERE id = ?";
+  const checkUser: RowDataPacket[] = await db.query(checkUserSql, [req.body[0].id]);
   if (checkUser[0] == null) {
     res.status(404).json({ message: "Team does not exist." });
     return;
   } else if (
+    req.user &&
     checkUser[0].user_id != req.user.id &&
     !Utils.superAdminCheck(req.user)
   ) {
@@ -467,16 +470,16 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
       .json({ message: "User is not authorized to perform action." });
     return;
   }
-  let teamID = req.body[0].id;
-  let teamName = req.body[0].name;
-  let teamFlag = req.body[0].flag;
-  let teamLogo = req.body[0].logo_file;
-  let logoName = null;
-  let teamAuths = req.body[0].auth_name;
-  let teamTag = req.body[0].tag;
-  let publicTeam = req.body[0].public_team;
-  let userId = req.body[0].user_id;
-  let updateTeam = {
+  let teamID: number = req.body[0].id;
+  let teamName: string = req.body[0].name;
+  let teamFlag: string = req.body[0].flag;
+  let teamLogo: string = req.body[0].logo_file;
+  let logoName: string | null = null;
+  let teamAuths: Array<AuthData> = req.body[0].auth_name;
+  let teamTag: string = req.body[0].tag;
+  let publicTeam: number = req.body[0].public_team;
+  let userId: number = req.body[0].user_id;
+  let updateTeam: TeamData = {
     user_id: userId,
     name: teamName,
     flag: teamFlag,
@@ -496,7 +499,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
       logoName = checkUser[0].logo;
     }
     if (teamLogo.includes("data:image/png;base64")) {
-      let base64Data = teamLogo.replace(/^data:image\/png;base64,/, "");
+      let base64Data: string = teamLogo.replace(/^data:image\/png;base64,/, "");
       writeFile(
         "public/img/logos/" + logoName + ".png",
         base64Data,
@@ -506,8 +509,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
         }
       );
     } else if (teamLogo.includes("data:image/svg+xml;base64")) {
-      let base64Data = Buffer.from(teamLogo).toString('base64').replace(/^data:image\/([\w+]+);base64,([\s\S]+)/, "");
-      let baseImg = img(Buffer.from(base64Data, 'base64').toString());
+      let base64Data: string = Buffer.from(teamLogo).toString('base64').replace(/^data:image\/([\w+]+);base64,([\s\S]+)/, "");
+      let baseImg: any = img(Buffer.from(base64Data, 'base64').toString());
       writeFile(
         "public/img/logos/" + logoName + ".svg",
         baseImg.base64,
@@ -519,32 +522,33 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
     }
     updateTeam.logo = logoName;
   }
-  updateTeam = await db.buildUpdateStatement(updateTeam);
+  updateTeam = await db.buildUpdateStatement(updateTeam) as TeamData;
   if (!Object.keys(updateTeam)) {
     res.status(412).json({ message: "No update data has been provided." });
     return;
   }
-  let sql = "UPDATE team SET ? WHERE id=?";
+  let sql: string = "UPDATE team SET ? WHERE id=?";
   try {
     await db.query(sql, [updateTeam, teamID]);
     sql =
       "UPDATE team_auth_names SET name = ?, captain = ?, coach = ? WHERE auth = ? AND team_id = ?";
     for (let key in teamAuths) {
-      let isCaptain =
+      let isCaptain: number =
         teamAuths[key].captain == null ? 0 : teamAuths[key].captain;
-      let isCoach =
+      let isCoach: number =
         teamAuths[key].coach == null ? 0 : teamAuths[key].coach;
-      let usersSteamId = await Utils.getSteamPID(key);
-      let updateTeamAuth = await db.query(sql, [
+      let usersSteamId: string = await Utils.getSteamPID(key);
+      let updateTeamAuth: RowDataPacket[] = await db.query(sql, [
         teamAuths[key].name,
         isCaptain,
         isCoach,
         usersSteamId,
         teamID
       ]);
+      //@ts-ignore
       if (updateTeamAuth.affectedRows < 1) {
         // Insert a new auth if it doesn't exist. Technically "updating a team".
-        let insertSql =
+        let insertSql: string =
           "INSERT INTO team_auth_names (team_id, auth, name, captain, coach) VALUES (?, ?, ?, ?, ?)";
         await db.query(insertSql, [
           teamID,
@@ -558,7 +562,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
     res.json({ message: "Team successfully updated" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -600,13 +604,14 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
  *         $ref: '#/components/responses/Error'
  */
 router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
-  let teamID = req.body[0].team_id;
-  let checkUserSql = "SELECT * FROM team WHERE id = ?";
-  const checkUser = await db.query(checkUserSql, [teamID]);
+  let teamID: number = req.body[0].team_id;
+  let checkUserSql: string = "SELECT * FROM team WHERE id = ?";
+  const checkUser: RowDataPacket[] = await db.query(checkUserSql, [teamID]);
   if (checkUser[0] == null) {
     res.status(404).json({ message: "Team does not exist." });
     return;
   } else if (
+    req.user &&
     checkUser[0].user_id != req.user.id &&
     !Utils.superAdminCheck(req.user)
   ) {
@@ -615,14 +620,14 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
       .json({ message: "User is not authorized to perform action." });
     return;
   } else if (req.body[0].steam_id != null) {
-    let deleteSql =
+    let deleteSql: string =
       "DELETE FROM team_auth_names WHERE auth = ? AND team_id = ?";
-    let steamAuth = req.body[0].steam_id;
+    let steamAuth: string = req.body[0].steam_id;
     try {
       await db.query(deleteSql, [steamAuth, teamID]);
       res.json({ message: "Team member deleted successfully!" });
     } catch (err) {
-      res.status(500).json({ message: err.toString() });
+      res.status(500).json({ message: (err as Error).toString() });
     }
   } else {
     try {
@@ -650,13 +655,13 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
           );
         } catch (ignored) {}
       }
-      let deleteTeamAuthSql = "DELETE FROM team_auth_names WHERE team_id = ?";
-      let deleteTeamsql = "DELETE FROM team WHERE id = ?";
-      await db.query(deleteTeamAuthSql, teamID);
-      await db.query(deleteTeamsql, teamID);
+      let deleteTeamAuthSql: string = "DELETE FROM team_auth_names WHERE team_id = ?";
+      let deleteTeamsql: string = "DELETE FROM team WHERE id = ?";
+      await db.query(deleteTeamAuthSql, [teamID]);
+      await db.query(deleteTeamsql, [teamID]);
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: err.toString() });
+      res.status(500).json({ message: (err as Error).toString() });
       return;
     }
     res.json({ message: "Team has been deleted successfully!" });
@@ -694,10 +699,10 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
  */
 router.get("/:team_id/recent/", async (req, res) => {
   try {
-    let teamId = req.params.team_id;
-    let recentLimit = 
+    let teamId: number = parseInt(req.params.team_id);
+    let recentLimit: number = 
       req.query.limit == null ? 5 : Number(req.query.limit);
-    let sql =
+    let sql: string =
       "SELECT rec_matches.id, " +
       "rec_matches.user_id, " +
       "rec_matches.team1_id, " +
@@ -709,11 +714,11 @@ router.get("/:team_id/recent/", async (req, res) => {
       "(rec_matches.team1_id = ? OR rec_matches.team2_id = ?) " +
       "AND rec_matches.cancelled = 0 " +
       "ORDER BY rec_matches.id DESC LIMIT ?";
-    let matches = await db.query(sql, [teamId, teamId, teamId, recentLimit]);
+    let matches: RowDataPacket[] = await db.query(sql, [teamId, teamId, teamId, recentLimit]);
     res.json({ matches });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -755,14 +760,14 @@ router.get("/:team_id/recent/", async (req, res) => {
  */
 router.get("/:team_id/result/:match_id", async (req, res) => {
   try {
-    let myScore = 0;
-    let otherTeamScore = 0;
-    let matchId = req.params.match_id;
-    let teamId = req.params.team_id;
-    let matchSql = "SELECT * FROM `match` WHERE id = ?";
-    let statusString = "";
-    let otherName = "";
-    const curMatch = await db.query(matchSql, [matchId]);
+    let myScore: number = 0;
+    let otherTeamScore: number = 0;
+    let matchId: number = parseInt(req.params.match_id);
+    let teamId: number = parseInt(req.params.team_id);
+    let matchSql: string = "SELECT * FROM `match` WHERE id = ?";
+    let statusString: string = "";
+    let otherName: string = "";
+    const curMatch: RowDataPacket[] = await db.query(matchSql, [matchId]);
     if (curMatch.length < 1) {
       res.status(404).json({ result: "Team did not participate in match." });
       return;
@@ -784,9 +789,9 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
     }
     // If match is a bo1, just get the map score.
     if (curMatch[0].max_maps == 1) {
-      let mapSql =
+      let mapSql: string =
         "SELECT team1_score, team2_score FROM map_stats WHERE match_id = ? LIMIT 1";
-      const mapStatBo1 = await db.query(mapSql, [matchId]);
+      const mapStatBo1: RowDataPacket[] = await db.query(mapSql, [matchId]);
       if (mapStatBo1.length > 0) {
         if (curMatch[0].team1_id == teamId) {
           myScore = mapStatBo1[0].team1_score;
@@ -820,7 +825,7 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
     res.json({ result: statusString });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -859,12 +864,12 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
 router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
 
   try {
-    let userID = req.user.id;
-    const userInfo = await db.query("SELECT challonge_api_key FROM user WHERE id = ?", [userID]);
-    let challongeAPIKey = Utils.decrypt(userInfo[0].challonge_api_key);
-    let tournamentId = req.body[0].tournament_id;
-    let challongeResponse = await fetch("https://api.challonge.com/v1/tournaments/" + tournamentId + "/participants.json?api_key=" + challongeAPIKey);
-    let challongeData = await challongeResponse.json();
+    let userID: number = req.user!.id;
+    const userInfo: RowDataPacket[] = await db.query("SELECT challonge_api_key FROM user WHERE id = ?", [userID]);
+    let challongeAPIKey: string | undefined | null = Utils.decrypt(userInfo[0].challonge_api_key);
+    let tournamentId: string = req.body[0].tournament_id;
+    let challongeResponse: any = await fetch("https://api.challonge.com/v1/tournaments/" + tournamentId + "/participants.json?api_key=" + challongeAPIKey);
+    let challongeData: any = await challongeResponse.json();
     if (!challongeData) {
       throw "No teams found for Tournament " + tournamentId + "."
     }
@@ -872,10 +877,10 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
     if (!challongeAPIKey) {
       throw "No challonge API key provided for user.";
     }
-    let teamArray = [];
-    challongeData.forEach(async team => {
+    let teamArray: Array<any> = [];
+    challongeData.forEach(async (team: { participant: { display_name: string; id: any; }; }) => {
       teamArray.push([
-        req.user.id,
+        req.user?.id,
         team.participant.display_name.substring(0, 40),
         team.participant.display_name.substring(0, 40),
         team.participant.id
@@ -887,7 +892,7 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.toString() });
+    res.status(500).json({ message: (err as Error).toString() });
   }
 });
 
@@ -897,7 +902,7 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
  * @memberof module:routes/teams
  * @param {Object} idList - An object list of steam IDs.
  */
-const getTeamImages = async (idList, getImage = true) => {
+const getTeamImages = async (idList: any, getImage = true) => {
   for (let steamId of Object.keys(idList)) {
     if (!getImage) {
       if (idList[steamId] == "") {
@@ -918,10 +923,10 @@ const getTeamImages = async (idList, getImage = true) => {
  * @memberof module:routes/teams
  * @param {String} data - The base64 stripped of its header.
  */
-const img = (data) => {
+const img: any = (data: any) => {
   var reg = /^data:image\/([\w+]+);base64,([\s\S]+)/;
   var match = data.match(reg);
-  var baseType = {
+  var baseType: any = {
     jpeg: 'jpg'
   };
 
