@@ -11,6 +11,8 @@ import {db} from "../services/db.js";
 
 import Utils from "../utility/utils.js";
 import { User } from "../types/User.js"
+import { RowDataPacket } from "mysql2";
+import { MapObject } from "../types/maps/MapObject.js";
 /* Swagger shared definitions */
 
 /**
@@ -73,9 +75,9 @@ import { User } from "../types/User.js"
  */
 router.get("/", async (req, res) => {
   try {
-    let sql =
+    let sql: string =
       "SELECT * FROM map_list";
-    const maplist = await db.query(sql);
+    const maplist: RowDataPacket[] = await db.query(sql);
     res.json({ maplist });
   } catch (err) {
     console.error(err);
@@ -112,9 +114,9 @@ router.get("/", async (req, res) => {
  */
 router.get("/:user_id", async (req, res, next) => {
   try {
-    let sql =
+    let sql: string =
       "SELECT * FROM map_list WHERE user_id = ?";
-    const maplist = await db.query(sql, [req.params.user_id]);
+    const maplist: RowDataPacket[] = await db.query(sql, [req.params.user_id]);
     if (maplist[0] != null)
       res.json({ maplist });
     else
@@ -154,9 +156,9 @@ router.get("/:user_id", async (req, res, next) => {
  */
 router.get("/:user_id/enabled", async (req, res, next) => {
   try {
-    let sql =
+    let sql: string =
       "SELECT * FROM map_list WHERE user_id = ? AND enabled = true";
-    const maplist = await db.query(sql, [req.params.user_id]);
+    const maplist: RowDataPacket[] = await db.query(sql, [req.params.user_id]);
     if (maplist[0] != null)
       res.json({ maplist });
     else
@@ -202,7 +204,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       ? true
       : req.body[0].enabled;
     let newMapID: number;
-    let insertSet: Object = {
+    let insertSet: MapObject = {
       user_id: userID,
       map_name: req.body[0].map_name,
       map_display_name: req.body[0].map_display_name,
@@ -210,9 +212,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
     }
     insertSet = await db.buildUpdateStatement(insertSet);
     // Check if user is allowed to create?
-    let sql =
+    let sql: string =
       "INSERT INTO map_list SET ?";
-    let newMap = await db.query(sql, [insertSet]);
+    let newMap: RowDataPacket[] = await db.query(sql, [insertSet]);
     //@ts-ignore
     newMapID = newMap.insertId;
     res.json({ message: "MapList created successfully.", id: newMapID });
@@ -261,19 +263,19 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   }
   try {
-    let userID = req.user!.id;
-    let mapListId = req.body[0].id;
-    let enabled = req.body[0].enabled == null
+    let userID: number = req.user!.id;
+    let mapListId: number = parseInt(req.body[0].id);
+    let enabled: boolean = req.body[0].enabled == null
       ? true
       : req.body[0].enabled;
-    let insertSet: Object = {
+    let insertSet: MapObject = {
       map_name: req.body[0].map_name,
       map_display_name: req.body[0].map_display_name,
       enabled: enabled
     }
     insertSet = await db.buildUpdateStatement(insertSet);
     // Check if user is allowed to create?
-    let sql =
+    let sql: string =
       "UPDATE map_list SET ? WHERE id = ? AND user_id = ?";
     await db.query(sql, [insertSet, mapListId, userID]);
     res.json({ message: "Map updated successfully." });
@@ -322,10 +324,10 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res, next) => {
     return;
   }
   try {
-    let userID = req.user!.id;
-    let mapListId = req.body[0].id;
+    let userID: number = req.user!.id;
+    let mapListId: number = parseInt(req.body[0].id);
     // Check if user is allowed to create?
-    let sql =
+    let sql: string =
       "DELETE FROM map_list WHERE id = ? AND user_id = ?";
     await db.query(sql, [mapListId, userID]);
     res.json({ message: "Map deleted successfully." });

@@ -408,7 +408,7 @@ import { Response } from "express-serve-static-core";
     let playerString: string = `event: playerstatextras\ndata: ${JSON.stringify(playerstats)}\n\n`
     
     // Need to name the function in order to remove it!
-    const playerStreamStats = async () => {
+    const playerStreamStats: (() => Promise<void>) = async () => {
       playerstats = await db.query(sql, [matchID]);
       playerstats = playerstats.map(v => Object.assign({}, v));
       playerString = `event: playerstatextras\ndata: ${JSON.stringify(playerstats)}\n\n`

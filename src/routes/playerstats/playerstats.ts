@@ -502,7 +502,7 @@ router.get("/match/:match_id", async (req, res, next) => {
     let playerString: string = `event: playerstats\ndata: ${JSON.stringify(playerstats)}\n\n`
     
     // Need to name the function in order to remove it!
-    const playerStreamStats = async () => {
+    const playerStreamStats: (() => Promise<void>) = async () => {
       playerstats = await db.query(sql, [matchID]);
       playerstats = playerstats.map(v => Object.assign({}, v));
       playerString = `event: playerstats\ndata: ${JSON.stringify(playerstats)}\n\n`

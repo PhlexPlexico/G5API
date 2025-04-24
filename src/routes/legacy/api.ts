@@ -117,6 +117,12 @@ import Utils from "../../utility/utils.js";
 import { Request, ParamsDictionary } from "express-serve-static-core";
 import { ParsedQs } from "qs";
 import { RowDataPacket } from "mysql2";
+import { MatchData } from "../../types/matches/MatchData.js";
+import { MatchPauseData } from "../../types/matches/MatchPauseData.js";
+import { MapStats } from "../../types/mapstats/MapStats.js";
+import { VetoSideObject } from "../../types/vetoes/VetoSideObject.js";
+import { VetoObject } from "../../types/vetoes/VetoObject.js";
+import { PlayerDatabaseObject } from "../../types/playerstats/PlayerDatabaseObject.js";
 
 /** A function to check for the API key in the request headers or body.
  * @const
@@ -184,7 +190,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     let matchFinalized = true;
     // Database calls.
     let sql = "SELECT * FROM `match` WHERE id = ?";
-    const matchValues = await db.query(sql, [matchID]);
+    const matchValues: RowDataPacket[] = await db.query(sql, [matchID]);
 
     // Additional check here to see if we are cancelled through /cancel or not.
     if (
@@ -228,7 +234,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
       }
     }
 
-    let updateStmt: Object = {
+    let updateStmt: MatchData = {
       winner: teamIdWinner,
       forfeit: forfeit,
       team1_score: team1Score,
@@ -240,7 +246,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
       cancelled: cancelled
     };
     updateStmt = await db.buildUpdateStatement(updateStmt);
-    let updateSql = "UPDATE `match` SET ? WHERE id = ?";
+    let updateSql: string = "UPDATE `match` SET ? WHERE id = ?";
     await db.query(updateSql, [updateStmt, matchID]);
     // Set the server to not be in use.
     await db.query("UPDATE game_server SET in_use = 0 WHERE id = ?", [
@@ -251,10 +257,10 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     if (matchValues[0].is_pug != null && matchValues[0].is_pug == 1) {
       let mapStatIdSql =
         "SELECT id FROM map_stats WHERE match_id = ? ORDER BY map_number desc";
-      const finalMapStat = await db.query(mapStatIdSql, [matchID]);
-      let newMapStat;
+      const finalMapStat: RowDataPacket[] = await db.query(mapStatIdSql, [matchID]);
+      let newMapStat: RowDataPacket[];
       if (!finalMapStat.length) {
-        let newMapStatStmt = {
+        let newMapStatStmt: MatchData = {
           start_time: new Date().toISOString().slice(0, 19).replace("T", " "),
           end_time: new Date().toISOString().slice(0, 19).replace("T", " "),
           winner: null,
@@ -347,8 +353,8 @@ router.post("/:match_id/pause/", basicRateLimit, async (req, res, next) => {
       return;
     }
     // Database calls.
-    let sql = "SELECT * FROM `match` WHERE id = ?";
-    const matchValues = await db.query(sql, [matchID]);
+    let sql: string = "SELECT * FROM `match` WHERE id = ?";
+    const matchValues: RowDataPacket[] = await db.query(sql, [matchID]);
 
     if (
       matchValues[0].end_time == null &&
@@ -359,14 +365,14 @@ router.post("/:match_id/pause/", basicRateLimit, async (req, res, next) => {
     await check_api_key(matchValues[0].api_key, keyCheck(req), matchFinalized);
 
     sql = "SELECT * FROM match_pause WHERE match_id = ?";
-    const pauseCheck = await db.query(sql, [matchID]);
-    let teamName;
+    const pauseCheck: RowDataPacket[] = await db.query(sql, [matchID]);
+    let teamName: string;
     if (teamPaused == "team1") teamName = matchValues[0].team1_string;
     else if (teamPaused == "team2") teamName = matchValues[0].team2_string;
     else teamName = "Admin";
     if (!pauseCheck.length) {
       sql = "INSERT INTO match_pause SET ?";
-      let insertSet: Object = {
+      let insertSet: MatchPauseData = {
         match_id: matchID,
         pause_type: pauseType,
         team_paused: teamName,
@@ -376,7 +382,7 @@ router.post("/:match_id/pause/", basicRateLimit, async (req, res, next) => {
       await db.query(sql, [insertSet]);
     } else {
       sql = "UPDATE match_pause SET ? WHERE match_id = ?";
-      let updateSet: Object = {
+      let updateSet: MatchPauseData = {
         pause_type: pauseType,
         team_paused: teamName,
         paused: true
@@ -461,7 +467,7 @@ router.post("/:match_id/unpause/", basicRateLimit, async (req, res, next) => {
     else teamName = "Admin";
     if (!pauseCheck.length) {
       sql = "INSERT INTO match_pause SET ?";
-      let insertSet: Object = {
+      let insertSet: MatchPauseData = {
         match_id: matchID,
         team_paused: teamName,
         paused: false
@@ -470,7 +476,7 @@ router.post("/:match_id/unpause/", basicRateLimit, async (req, res, next) => {
       await db.query(sql, [insertSet]);
     } else {
       sql = "UPDATE match_pause SET ? WHERE match_id = ?";
-      let updateSet: Object = {
+      let updateSet: MatchPauseData = {
         pause_type: null,
         team_paused: teamName,
         paused: false
@@ -540,8 +546,8 @@ router.post(
       let versionNumber: string | null = req.body.version_number == null ? null : req.body.version_number;
       // Data manipulation inside function.
       let startTime: string = new Date().toISOString().slice(0, 19).replace("T", " ");
-      let updateStmt: Object = {};
-      let insertStmt: Object = {};
+      let updateStmt: MapStats | MatchData = {};
+      let insertStmt: MapStats | MatchData = {};
       let updateSql: string;
       let insertSql: string;
       let matchFinalized = true;
@@ -581,7 +587,7 @@ router.post(
 
       // Get or create mapstats.
       sql = "SELECT * FROM map_stats WHERE match_id = ? AND map_number = ?";
-      const mapStats = await db.query(sql, [matchID, mapNumber]);
+      const mapStats: RowDataPacket[] = await db.query(sql, [matchID, mapNumber]);
       if (mapStats.length > 0) {
         updateStmt = {
           map_number: mapNumber,
@@ -669,7 +675,7 @@ router.post(
       let team1Score: number = req.body.team1score;
       let team2Score: number = req.body.team2score;
       // Data manipulation inside function.
-      let updateStmt: Object = {};
+      let updateStmt: MapStats = {};
       let updateSql: string;
       let matchFinalized: boolean = true;
       if (matchID === null || mapNumber === null) {
@@ -777,7 +783,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     let pickOrBan: string | null =
       req.body.pick_or_veto == null ? null : req.body.pick_or_veto;
     // Data manipulation inside function.
-    let insertStmt: object = {};
+    let insertStmt: VetoObject;
     let insertSql: string;
     let teamID: number;
     let teamNameString: string;
@@ -804,13 +810,13 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
     else teamNameString = teamName[0].name;
     // Insert into veto now.
     insertStmt = {
-      match_id: matchID,
+      match_id: +matchID!,
       team_name: teamNameString,
-      map: mapBan,
-      pick_or_veto: pickOrBan,
+      map: mapBan!,
+      pick_or_veto: pickOrBan!,
     };
     // Remove any values that may not be updated.
-    insertStmt = await db.buildUpdateStatement(insertStmt);
+    insertStmt = await db.buildUpdateStatement(insertStmt) as VetoObject;
     insertSql = "INSERT INTO veto SET ?";
     await db.query(insertSql, [insertStmt]);
     GlobalEmitter.emit("vetoUpdate");
@@ -873,7 +879,7 @@ router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) 
     let sideChosen: string | null =
       req.body.side == null ? null : req.body.side;
     // Data manipulation inside function.
-    let insertStmt: Object = {};
+    let insertStmt: VetoSideObject;
     let insertSql: string;
     let teamBanID: number = 0;
     let teamPickID: number = 0;
@@ -904,11 +910,11 @@ router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) 
     }
 
     sql = "SELECT name FROM team WHERE ID = ?";
-    const teamPickMapName = await db.query(sql, [teamBanID]);
+    const teamPickMapName: RowDataPacket[] = await db.query(sql, [teamBanID]);
     if (teamPickMapName[0] == null) teamPickMapNameString = "Default";
     else teamPickMapNameString = teamPickMapName[0].name;
 
-    const teamPickSideName = await db.query(sql, [teamPickID]);
+    const teamPickSideName: RowDataPacket[] = await db.query(sql, [teamPickID]);
     if (teamPickSideName[0] == null) teamPickSideNameString = "Default";
     else teamPickSideNameString = teamPickSideName[0].name;
 
@@ -919,14 +925,14 @@ router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) 
 
     // Insert into veto_side now.
     insertStmt = {
-      match_id: matchID,
+      match_id: +matchID!,
       veto_id: vetoID,
       team_name: teamPickSideNameString,
-      map: mapBan,
-      side: sideChosen,
+      map: mapBan!,
+      side: sideChosen!,
     };
     // Remove any values that may not be updated.
-    insertStmt = await db.buildUpdateStatement(insertStmt);
+    insertStmt = await db.buildUpdateStatement(insertStmt) as VetoSideObject;
     insertSql = "INSERT INTO veto_side SET ?";
     await db.query(insertSql, [insertStmt]);
     GlobalEmitter.emit("vetoSideUpdate");
@@ -989,7 +995,7 @@ router.post(
       let mapNum: string | null = req.params.map_number == null ? null : req.params.map_number;
       let demoFile: string | null = req.body.demoFile == null ? null : req.body.demoFile;
       // Data manipulation inside function.
-      let updateStmt: Object = {};
+      let updateStmt: MapStats;
       let updateSql: string;
       // Database calls.
       let sql: string = "SELECT * FROM `match` WHERE id = ?";
@@ -1197,7 +1203,7 @@ router.post(
       let team2Score: number | null = null;
 
       // Data manipulation inside function.
-      let updateStmt: Object = {};
+      let updateStmt: MapStats = {};
       let updateSql: string;
       let mapEndTime: string = new Date().toISOString().slice(0, 19).replace("T", " ");
       let matchFinalized: boolean = true;
@@ -1402,14 +1408,14 @@ router.post(
         : parseInt(req.body.util_damage);
 
       // Data manipulation inside function.
-      let updateStmt: Object = {};
+      let updateStmt: PlayerDatabaseObject;
       let updateSql: string;
       let matchFinalized: boolean = true;
       let playerTeamId: number | null = null;
 
       // Database calls.
-      let sql = "SELECT * FROM `match` WHERE id = ?";
-      const matchValues = await db.query(sql, [matchID]);
+      let sql: string = "SELECT * FROM `match` WHERE id = ?";
+      const matchValues: RowDataPacket[] = await db.query(sql, [matchID]);
       if (
         matchValues[0].end_time == null &&
         (matchValues[0].cancelled == null || matchValues[0].cancelled == 0)
@@ -1440,7 +1446,7 @@ router.post(
       else if (playerTeam === "team2") playerTeamId = matchValues[0].team2_id;
 
       updateStmt = {
-        match_id: matchID,
+        match_id: matchID!,
         map_id: mapStatValues[0].id,
         team_id: playerTeamId,
         steam_id: steamId,
@@ -1479,7 +1485,7 @@ router.post(
         mvp: playerMvp
       };
       // Remove any values that may not be updated.
-      updateStmt = await db.buildUpdateStatement(updateStmt);
+      updateStmt = await db.buildUpdateStatement(updateStmt) as PlayerDatabaseObject;
 
       if (playerStatValues.length < 1) {
         updateSql = "INSERT INTO player_stats SET ?";

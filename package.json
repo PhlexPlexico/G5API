@@ -1,6 +1,6 @@
 {
   "name": "g5api",
-  "version": "2.0.2.5",
+  "version": "2.1.0.0",
   "private": true,
   "type": "module",
   "licenses": [
@@ -67,7 +67,6 @@
   },
   "dependencies": {
     "@node-steam/id": "^1.2.0",
-    "@rmp135/sql-ts": "^2.2.0",
     "aes-js": "^3.1.2",
     "bcrypt": "^5.1.1",
     "compare-versions": "^6.1.0",

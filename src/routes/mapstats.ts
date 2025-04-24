@@ -205,7 +205,7 @@ router.get("/:match_id", async (req, res, next) => {
     let mapStatString: string = `event: mapstats\ndata: ${JSON.stringify(mapstats)}\n\n`
     
     // Need to name the function in order to remove it!
-    const mapStatStreamStats = async () => {
+    const mapStatStreamStats: (() => Promise<void>) = async () => {
       mapstats = await db.query(sql, [matchID]);
       mapstats = mapstats.map(v => Object.assign({}, v));
       mapStatString = `event: mapstats\ndata: ${JSON.stringify(mapstats)}\n\n`
@@ -280,7 +280,7 @@ router.get("/:match_id/:map_number/stream", async (req, res, next) => {
     let mapStatString: string = `event: mapstats\ndata: ${JSON.stringify(mapstats[0])}\n\n`
     
     // Need to name the function in order to remove it!
-    const mapStatStreamStats = async () => {
+    const mapStatStreamStats: (() => Promise<void>) = async () => {
       mapstats = await db.query(sql, [matchID]);
       mapstats = mapstats.map(v => Object.assign({}, v));
       mapStatString = `event: mapstats\ndata: ${JSON.stringify(mapstats)}\n\n`

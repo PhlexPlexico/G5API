@@ -84,7 +84,7 @@ import { Player } from "../types/leaderboard/Player.js";
   */
  router.get("/", async (req, res) => {
    try {
-     let leaderboard = await getTeamLeaderboard();
+     let leaderboard: TeamStanding[] = await getTeamLeaderboard();
      res.json({ leaderboard });
    } catch (err) {
      console.error(err);
@@ -114,7 +114,7 @@ import { Player } from "../types/leaderboard/Player.js";
   */
  router.get("/players", async (req, res) => {
    try {
-     let leaderboard = await getPlayerLeaderboard();
+     let leaderboard: Player[] = await getPlayerLeaderboard();
      res.json({ leaderboard });
    } catch (err) {
      console.error(err);
@@ -144,7 +144,7 @@ import { Player } from "../types/leaderboard/Player.js";
   */
  router.get("/players/pug", async (req, res) => {
    try {
-     let leaderboard = await getPlayerLeaderboard(null, true);
+     let leaderboard: Player[] = await getPlayerLeaderboard(null, true);
      res.json({ leaderboard });
    } catch (err) {
      console.error(err);
@@ -179,8 +179,8 @@ import { Player } from "../types/leaderboard/Player.js";
   */
  router.get("/players/:season_id", async (req, res) => {
    try {
-     let seasonId: number = +req.params.season_id;
-     let leaderboard = await getPlayerLeaderboard(seasonId);
+     let seasonId: number = parseInt(req.params.season_id);
+     let leaderboard: Player[] = await getPlayerLeaderboard(seasonId);
      res.json({ leaderboard });
    } catch (err) {
      console.error(err);
@@ -215,7 +215,7 @@ import { Player } from "../types/leaderboard/Player.js";
   */
  router.get("/:season_id", async (req, res) => {
    try {
-     let seasonId = +req.params.season_id;
+     let seasonId = parseInt(req.params.season_id);
      let leaderboard = await getTeamLeaderboard(seasonId);
      res.json({ leaderboard });
    } catch (err) {

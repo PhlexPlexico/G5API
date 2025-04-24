@@ -176,7 +176,7 @@ router.get("/:match_id/stream", async (req, res, next) => {
     let vetoEventString: string = `event: vetosidedata\ndata: ${JSON.stringify(vetoes)}\n\n`
 
     // Need to name the function in order to remove it!
-    const vetoStreamData = async () => {
+    const vetoStreamData: (() => Promise<void>) = async () => {
       vetoes = await db.query(sql, [matchId]);
       vetoes = vetoes.map(v => Object.assign({}, v));
       vetoEventString = `event: vetosidedata\ndata: ${JSON.stringify(vetoes)}\n\n`

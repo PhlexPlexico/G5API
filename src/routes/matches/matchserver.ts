@@ -16,6 +16,10 @@ import GameServer from "../../utility/serverrcon.js";
 import config from "config";
 
 import { existsSync, readdir } from "fs";
+import { AccessMessage } from "../../types/mapstats/AccessMessage.js";
+import { RowDataPacket } from "mysql2";
+import { MapStats } from "../../types/mapstats/MapStats.js";
+import { MatchData } from "../../types/matches/MatchData.js";
 
 /**
  * @swagger
@@ -59,7 +63,7 @@ router.get(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let errMessage = await Utils.getUserMatchAccess(
+      let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user!,
         false
@@ -72,23 +76,23 @@ router.get(
           .status(412)
           .json({ message: "Winner number invalid. Please provide 1 or 2." });
       } else {
-        let currentMatchInfo =
+        let currentMatchInfo: string =
           "SELECT server_id, team1_id, team2_id, is_pug FROM `match` WHERE id = ?";
-        const matchRow = await db.query(
+        const matchRow: RowDataPacket[] = await db.query(
           currentMatchInfo,
           [req.params.match_id]
         );
-        let teamIdWinner =
+        let teamIdWinner: number =
           req.params.winner_id == "1"
             ? matchRow[0].team1_id
             : matchRow[0].team2_id;
-        let mapStatSql =
+        let mapStatSql: string =
           "SELECT id FROM map_stats WHERE match_id=? AND map_number=0";
-        const mapStat = await db.query(mapStatSql, [
+        const mapStat: RowDataPacket[] = await db.query(mapStatSql, [
           req.params.match_id,
         ]);
-        let mapStatId;
-        let newStatStmt = {
+        let mapStatId: RowDataPacket[];
+        let newStatStmt: MapStats = {
           start_time: new Date().toISOString().slice(0, 19).replace("T", " "),
           end_time: new Date().toISOString().slice(0, 19).replace("T", " "),
           winner: teamIdWinner,
@@ -96,7 +100,7 @@ router.get(
           team2_score: req.params.winner_id == "2" ? 16 : 0,
           match_id: req.params.match_id,
         };
-        let matchUpdateStmt = {
+        let matchUpdateStmt: MatchData = {
           team1_score: req.params.winner_id == "1" ? 1 : 0,
           team2_score: req.params.winner_id == "2" ? 1 : 0,
           start_time: new Date().toISOString().slice(0, 19).replace("T", " "),
@@ -109,8 +113,8 @@ router.get(
           mapStatSql =
             "UPDATE map_stats SET ? WHERE match_id=? AND map_number=0";
         }
-        let matchSql = "UPDATE `match` SET ? WHERE id=?";
-        let serverUpdateSql = "UPDATE game_server SET in_use=0 WHERE id=?";
+        let matchSql: string = "UPDATE `match` SET ? WHERE id=?";
+        let serverUpdateSql: string = "UPDATE game_server SET in_use=0 WHERE id=?";
         if (!mapStat.length) {
           mapStatId = await db.query(mapStatSql, [newStatStmt]);
         }
@@ -134,16 +138,7 @@ router.get(
               teamIdWinner == 1 ? matchRow[0].team1_id : matchRow[0].team2_id
             );
         }
-        let getServerSQL =
-          "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
-        const serverRow = await db.query(getServerSQL, [
-          matchRow[0].server_id,
-        ]);
-        let serverUpdate = new GameServer(
-          serverRow[0].ip_string,
-          serverRow[0].port,
-          serverRow[0].rcon_password
-        );
+        let serverUpdate: GameServer = await getGameServer(req.params.match_id);
         if (!serverUpdate.endGet5Match()) {
           console.log(
             "Error attempting to stop match on game server side. Will continue."
@@ -194,7 +189,7 @@ router.get(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let errMessage = await Utils.getUserMatchAccess(
+      let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user!,
         true
@@ -204,26 +199,26 @@ router.get(
         return;
       } else {
 
-        let currentMatchInfo =
+        let currentMatchInfo: string =
           "SELECT server_id, team1_id, team2_id, is_pug FROM `match` WHERE id = ?";
-        const matchRow = await db.query(
+        const matchRow: RowDataPacket[] = await db.query(
           currentMatchInfo,
           [req.params.match_id]
         );
-        let mapStatSql =
+        let mapStatSql: string =
           "SELECT id FROM map_stats WHERE match_id=? AND map_number=0";
-        const mapStat = await db.query(mapStatSql, [
+        const mapStat: RowDataPacket[] = await db.query(mapStatSql, [
           req.params.match_id,
         ]);
-        let mapStatId;
-        let newStatStmt = {
+        let mapStatId: RowDataPacket[];
+        let newStatStmt: MapStats = {
           end_time: new Date().toISOString().slice(0, 19).replace("T", " "),
           winner: null,
           team1_score: 0,
           team2_score: 0,
           match_id: req.params.match_id,
         };
-        let matchUpdateStmt = {
+        let matchUpdateStmt: MatchData = {
           team1_score: 0,
           team2_score: 0,
           end_time: new Date().toISOString().slice(0, 19).replace("T", " "),
@@ -236,8 +231,8 @@ router.get(
           mapStatSql =
             "UPDATE map_stats SET ? WHERE match_id=? AND map_number=0";
         }
-        let matchSql = "UPDATE `match` SET ? WHERE id=?";
-        let serverUpdateSql = "UPDATE game_server SET in_use=0 WHERE id=?";
+        let matchSql: string = "UPDATE `match` SET ? WHERE id=?";
+        let serverUpdateSql: string = "UPDATE game_server SET in_use=0 WHERE id=?";
         if (!mapStat.length) {
           mapStatId = await db.query(mapStatSql, [newStatStmt]);
         }
@@ -262,17 +257,8 @@ router.get(
           );
         }
         // Let the server cancel the match first, or attempt to?
-        let getServerSQL =
-          "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
         if (matchRow[0].server_id != null) {
-          const serverRow = await db.query(getServerSQL, [
-            matchRow[0].server_id,
-          ]);
-          let serverUpdate = new GameServer(
-            serverRow[0].ip_string,
-            serverRow[0].port,
-            serverRow[0].rcon_password
-          );
+          let serverUpdate: GameServer = await getGameServer(req.params.match_id);
           if (!serverUpdate.endGet5Match()) {
             console.log(
               "Error attempting to stop match on game server side. Will continue."
@@ -324,7 +310,7 @@ router.get(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let errMessage = await Utils.getUserMatchAccess(
+      let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user!,
         true
@@ -333,28 +319,28 @@ router.get(
         res.status(errMessage.status).json({ message: errMessage.message });
         return;
       } else {
-        let currentMatchInfo =
+        let currentMatchInfo: string =
           "SELECT server_id, team1_id, team2_id, is_pug, api_key FROM `match` WHERE id = ?";
-        const matchRow = await db.query(
+        const matchRow: RowDataPacket[] = await db.query(
           currentMatchInfo,
           [req.params.match_id]
         );
-        let mapStatSql =
+        let mapStatSql: string =
           "SELECT id FROM map_stats WHERE match_id=?";
-        const mapStat = await db.query(mapStatSql, [
+        const mapStat: RowDataPacket[] = await db.query(mapStatSql, [
           req.params.match_id,
         ]);
-        let playerStatSql =
+        let playerStatSql: string =
           "SELECT id FROM player_stats WHERE match_id=?";
-        const playerStats = await db.query(playerStatSql, [
+        const playerStats: RowDataPacket[] = await db.query(playerStatSql, [
           req.params.match_id,
         ]);
-        let vetoSql =
+        let vetoSql: string =
           "SELECT id FROM veto WHERE match_id=?";
-        const vetoData = await db.query(vetoSql, [
+        const vetoData: RowDataPacket[] = await db.query(vetoSql, [
           req.params.match_id,
         ]);
-        let matchUpdateStmt = {
+        let matchUpdateStmt: MatchData = {
           start_time: new Date().toISOString().slice(0, 19).replace("T", " "),
           cancelled: 0,
           end_time: null
@@ -372,17 +358,8 @@ router.get(
           await db.query(vetoSql, [req.params.match_id]);
         }
         // Let the server cancel the match first, or attempt to?
-        let getServerSQL =
-          "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
         if (matchRow[0].server_id != null) {
-          const serverRow = await db.query(getServerSQL, [
-            matchRow[0].server_id,
-          ]);
-          let serverUpdate = new GameServer(
-            serverRow[0].ip_string,
-            serverRow[0].port,
-            serverRow[0].rcon_password
-          );
+          let serverUpdate: GameServer = await getGameServer(req.params.match_id);
           if (!await serverUpdate.endGet5Match()) {
             console.log(
               "Error attempting to stop match on game server side. Will continue."
@@ -395,7 +372,7 @@ router.get(
             "/config",
             matchRow[0].api_key
           );
-          let matchSql = "UPDATE `match` SET ? WHERE id=?";
+          let matchSql: string = "UPDATE `match` SET ? WHERE id=?";
           await db.query(matchSql, [
             matchUpdateStmt,
             req.params.match_id,
@@ -457,7 +434,7 @@ router.put(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let errMessage = await Utils.getUserMatchAccess(
+      let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user!,
         true,
@@ -467,15 +444,15 @@ router.put(
         res.status(errMessage.status).json({ message: errMessage.message });
         return;
       } else {
-        let strRconCommand = req.body[0].rcon_command;
-        let currentMatchInfo = "SELECT server_id FROM `match` WHERE id = ?";
-        let getServerSQL =
-          "SELECT ip_string, port, rcon_password, user_id FROM game_server WHERE id=?";
-        const matchServerId = await db.query(
+        let strRconCommand: string = req.body[0].rcon_command;
+        let currentMatchInfo: string = "SELECT server_id FROM `match` WHERE id = ?";
+        let getServerSQL: string =
+          "SELECT user_id FROM game_server WHERE id=?";
+        const matchServerId: RowDataPacket[] = await db.query(
           currentMatchInfo,
           [req.params.match_id]
         );
-        const serverRow = await db.query(getServerSQL, [
+        const serverRow: RowDataPacket[] = await db.query(getServerSQL, [
           matchServerId[0].server_id,
         ]);
         if (
@@ -488,13 +465,9 @@ router.put(
             .json({ message: "User is not authorized to perform action." });
           return;
         }
-        let serverUpdate = new GameServer(
-          serverRow[0].ip_string,
-          serverRow[0].port,
-          serverRow[0].rcon_password
-        );
+        let serverUpdate: GameServer = await getGameServer(req.params.match_id);
         try {
-          let rconResponse = await serverUpdate.sendRconCommand(
+          let rconResponse: string = await serverUpdate.sendRconCommand(
             strRconCommand
           );
           res.json({
@@ -555,7 +528,7 @@ router.get(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let errMessage = await Utils.getUserMatchAccess(
+      let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user!,
         true
@@ -564,22 +537,8 @@ router.get(
         res.status(errMessage.status).json({ message: errMessage.message });
         return;
       } else {
-        let currentMatchInfo = "SELECT server_id FROM `match` WHERE id = ?";
-        const matchServerId = await db.query(
-          currentMatchInfo,
-          [req.params.match_id]
-        );
-        let getServerSQL =
-          "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
-        const serverRow = await db.query(getServerSQL, [
-          matchServerId[0].server_id,
-        ]);
-        let serverUpdate = new GameServer(
-          serverRow[0].ip_string,
-          serverRow[0].port,
-          serverRow[0].rcon_password
-        );
-        let rconResponse = await serverUpdate.pauseMatch();
+        let serverUpdate: GameServer = await getGameServer(req.params.match_id);
+        let rconResponse: boolean = await serverUpdate.pauseMatch();
         if (rconResponse) {
           res.json({ message: "Match paused." });
         } else {
@@ -631,7 +590,7 @@ router.get(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let errMessage = await Utils.getUserMatchAccess(
+      let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user!,
         true
@@ -640,23 +599,8 @@ router.get(
         res.status(errMessage.status).json({ message: errMessage.message });
         return;
       } else {
-        let currentMatchInfo = "SELECT server_id FROM `match` WHERE id = ?";
-        const matchServerId = await db.query(
-          currentMatchInfo,
-          [req.params.match_id]
-        );
-        let getServerSQL =
-          "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
-        const serverRow = await db.query(getServerSQL, [
-          matchServerId[0].server_id,
-        ]);
-        let serverUpdate = new GameServer(
-          serverRow[0].ip_string,
-          serverRow[0].port,
-          serverRow[0].rcon_password
-        );
-
-        let rconResponse = await serverUpdate.unpauseMatch();
+        let serverUpdate: GameServer = await getGameServer(req.params.match_id);
+        let rconResponse: boolean = await serverUpdate.unpauseMatch();
         if (rconResponse) {
           res.json({ message: "Match unpaused." });
         } else {
@@ -726,7 +670,7 @@ router.put(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let errMessage = await Utils.getUserMatchAccess(
+      let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user!,
         true
@@ -735,24 +679,10 @@ router.put(
         res.status(errMessage.status).json({ message: errMessage.message });
         return;
       } else {
-        let currentMatchInfo = "SELECT server_id FROM `match` WHERE id = ?";
-        const matchServerId = await db.query(
-          currentMatchInfo,
-          [req.params.match_id]
-        );
-        let getServerSQL =
-          "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
-        const serverRow = await db.query(getServerSQL, [
-          matchServerId[0].server_id,
-        ]);
-        let serverUpdate = new GameServer(
-          serverRow[0].ip_string,
-          serverRow[0].port,
-          serverRow[0].rcon_password
-        );
-        let steamID = await Utils.getSteamPID(req.body[0].steam_id);
-        let teamId = req.body[0].team_id;
-        let nickName = req.body[0].nickname;
+        let serverUpdate: GameServer = await getGameServer(req.params.match_id);
+        let steamID: string = await Utils.getSteamPID(req.body[0].steam_id);
+        let teamId: string = req.body[0].team_id;
+        let nickName: string = req.body[0].nickname;
         if (teamId != "team1" && teamId != "team2") {
           res
             .status(400)
@@ -760,7 +690,7 @@ router.put(
           return;
         }
         try {
-          let rconResponse = await serverUpdate.addUser(
+          let rconResponse: string = await serverUpdate.addUser(
             teamId,
             steamID,
             nickName
@@ -833,7 +763,7 @@ router.put(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let errMessage = await Utils.getUserMatchAccess(
+      let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user!,
         true
@@ -842,23 +772,9 @@ router.put(
         res.status(errMessage.status).json({ message: errMessage.message });
         return;
       } else {
-        let currentMatchInfo = "SELECT server_id FROM `match` WHERE id = ?";
-        const matchServerId = await db.query(
-          currentMatchInfo,
-          [req.params.match_id]
-        );
-        let getServerSQL =
-          "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
-        const serverRow = await db.query(getServerSQL, [
-          matchServerId[0].server_id,
-        ]);
-        let serverUpdate = new GameServer(
-          serverRow[0].ip_string,
-          serverRow[0].port,
-          serverRow[0].rcon_password
-        );
-        let steamID = await Utils.getSteamPID(req.body[0].steam_id);
-        let teamId = req.body[0].team_id;
+        let serverUpdate: GameServer = await getGameServer(req.params.match_id);
+        let steamID: string = await Utils.getSteamPID(req.body[0].steam_id);
+        let teamId: string = req.body[0].team_id;
         if (teamId != "team1" && teamId != "team2") {
           res
             .status(400)
@@ -866,7 +782,7 @@ router.put(
           return;
         }
         try {
-          let rconResponse = await serverUpdate.addCoach(
+          let rconResponse: string = await serverUpdate.addCoach(
             teamId,
             steamID
           );
@@ -935,7 +851,7 @@ router.put(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let errMessage = await Utils.getUserMatchAccess(
+      let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user!,
         true
@@ -944,24 +860,10 @@ router.put(
         res.status(errMessage.status).json({ message: errMessage.message });
         return;
       } else {
-        let currentMatchInfo = "SELECT server_id FROM `match` WHERE id = ?";
-        const matchServerId = await db.query(
-          currentMatchInfo,
-          [req.params.match_id]
-        );
-        let getServerSQL =
-          "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
-        const serverRow = await db.query(getServerSQL, [
-          matchServerId[0].server_id,
-        ]);
-        let serverUpdate = new GameServer(
-          serverRow[0].ip_string,
-          serverRow[0].port,
-          serverRow[0].rcon_password
-        );
-        let steamID = await Utils.getSteamPID(req.body[0].steam_id);
+        let serverUpdate: GameServer = await getGameServer(req.params.match_id);
+        let steamID: string = await Utils.getSteamPID(req.body[0].steam_id);
         try {
-          let rconResponse = await serverUpdate.addUser("spec", steamID);
+          let rconResponse: string = await serverUpdate.addUser("spec", steamID);
           res.json({
             message: "User added to spectator successfully.",
             response: rconResponse,
@@ -1027,7 +929,7 @@ router.put(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let errMessage = await Utils.getUserMatchAccess(
+      let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user!,
         true
@@ -1036,24 +938,10 @@ router.put(
         res.status(errMessage.status).json({ message: errMessage.message });
         return;
       } else {
-        let currentMatchInfo = "SELECT server_id FROM `match` WHERE id = ?";
-        const matchServerId = await db.query(
-          currentMatchInfo,
-          [req.params.match_id]
-        );
-        let getServerSQL =
-          "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
-        const serverRow = await db.query(getServerSQL, [
-          matchServerId[0].server_id,
-        ]);
-        let serverUpdate = new GameServer(
-          serverRow[0].ip_string,
-          serverRow[0].port,
-          serverRow[0].rcon_password
-        );
-        let steamID = await Utils.getSteamPID(req.body[0].steam_id);
+        let serverUpdate: GameServer = await getGameServer(req.params.match_id);
+        let steamID: string = await Utils.getSteamPID(req.body[0].steam_id);
         try {
-          let rconResponse = await serverUpdate.removeUser(steamID);
+          let rconResponse: string = await serverUpdate.removeUser(steamID);
           res.json({
             message: "User removed from match successfully.",
             response: rconResponse,
@@ -1108,7 +996,7 @@ router.get(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let errMessage = await Utils.getUserMatchAccess(
+      let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user!,
         true
@@ -1117,23 +1005,9 @@ router.get(
         res.status(errMessage.status).json({ message: errMessage.message });
         return;
       } else {
-        let currentMatchInfo = "SELECT server_id FROM `match` WHERE id = ?";
-        const matchServerId = await db.query(
-          currentMatchInfo,
-          [req.params.match_id]
-        );
-        let getServerSQL =
-          "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
-        const serverRow = await db.query(getServerSQL, [
-          matchServerId[0].server_id,
-        ]);
-        let serverUpdate = new GameServer(
-          serverRow[0].ip_string,
-          serverRow[0].port,
-          serverRow[0].rcon_password
-        );
+        let serverUpdate: GameServer = await getGameServer(req.params.match_id);
         try {
-          let rconResponse = await serverUpdate.getBackups();
+          let rconResponse: string = await serverUpdate.getBackups();
           res.json({ message: "Backups retrieved.", response: rconResponse });
         } catch (err) {
           res
@@ -1198,7 +1072,7 @@ router.post(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let errMessage = await Utils.getUserMatchAccess(
+      let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user!,
         true
@@ -1207,21 +1081,7 @@ router.post(
         res.status(errMessage.status).json({ message: errMessage.message });
         return;
       } else {
-        let currentMatchInfo = "SELECT server_id FROM `match` WHERE id = ?";
-        const matchServerId = await db.query(
-          currentMatchInfo,
-          [req.params.match_id]
-        );
-        let getServerSQL =
-          "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
-        const serverRow = await db.query(getServerSQL, [
-          matchServerId[0].server_id,
-        ]);
-        let serverUpdate = new GameServer(
-          serverRow[0].ip_string,
-          serverRow[0].port,
-          serverRow[0].rcon_password
-        );
+        let serverUpdate: GameServer = await getGameServer(req.params.match_id);
         if (req.body[0].backup_name == null) {
           res
             .status(412)
@@ -1229,7 +1089,7 @@ router.post(
           return;
         }
         try {
-          let rconResponse = await serverUpdate.restoreBackup(
+          let rconResponse: string = await serverUpdate.restoreBackup(
             req.body[0].backup_name
           );
           res.json({ message: "Restored backup.", response: rconResponse });
@@ -1299,7 +1159,7 @@ router.post(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let errMessage = await Utils.getUserMatchAccess(
+      let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user!,
         true
@@ -1308,16 +1168,16 @@ router.post(
         res.status(errMessage.status).json({ message: errMessage.message });
         return;
       } else {
-        let newServerId = req.body[0].server_id;
-        let currentMatchInfo = "SELECT server_id FROM `match` WHERE id = ?";
-        let newServerInfo =
+        let newServerId: number = parseInt(req.body[0].server_id);
+        let currentMatchInfo: string = "SELECT server_id FROM `match` WHERE id = ?";
+        let newServerInfo: string =
           "SELECT id, user_id, ip_string, port, rcon_password, public_server FROM game_server WHERE id = ?";
-        let configString = req.body[0].backup_file;
-        const matchServerId = await db.query(
+        let configString: string = req.body[0].backup_file;
+        const matchServerId: RowDataPacket[] = await db.query(
           currentMatchInfo,
           [req.params.match_id]
         );
-        const newServerRow = await db.query(newServerInfo, [
+        const newServerRow: RowDataPacket[] = await db.query(newServerInfo, [
           newServerId
         ]);
         // Check to see if new server row matches for access purposes.
@@ -1335,14 +1195,14 @@ router.post(
             .json({ message: "Backup name invalid." });
           return;
         }
-        let serverUpdate = new GameServer(
+        let serverUpdate: GameServer = new GameServer(
           newServerRow[0].ip_string,
           newServerRow[0].port,
           newServerRow[0].rcon_password
         );
         try {
           if (await serverUpdate.isGet5Available()) {
-            let rconResponse = await serverUpdate.restoreBackupFromURL(
+            let rconResponse: string = await serverUpdate.restoreBackupFromURL(
               config.get("server.apiURL") + `/backups/${req.params.match_id}/${configString}`
             );
             currentMatchInfo = "UPDATE `match` SET server_id = ? WHERE id = ?";
@@ -1406,7 +1266,7 @@ router.get(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
-      let errMessage = await Utils.getUserMatchAccess(
+      let errMessage: AccessMessage | null = await Utils.getUserMatchAccess(
         req.params.match_id,
         req.user!,
         true
@@ -1438,5 +1298,23 @@ router.get(
     }
   }
 );
+
+async function getGameServer(match_id: string): Promise<GameServer> {
+  let currentMatchInfo: string = "SELECT server_id FROM `match` WHERE id = ?";
+  const matchServerId: RowDataPacket[] = await db.query(
+    currentMatchInfo,
+    [match_id]
+  );
+  let getServerSQL: string =
+    "SELECT ip_string, port, rcon_password FROM game_server WHERE id=?";
+  const serverRow: RowDataPacket[] = await db.query(getServerSQL, [
+    matchServerId[0].server_id,
+  ]);
+  return new GameServer(
+    serverRow[0].ip_string,
+    serverRow[0].port,
+    serverRow[0].rcon_password
+  );
+}
 
 export default router;
