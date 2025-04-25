@@ -30,6 +30,8 @@ import {db} from "../services/db.js";
 import { RowDataPacket } from 'mysql2';
 import { NextFunction, Request, Response } from 'express';
 import { Get5_Player } from '../types/Get5_Player.js';
+import { User } from "../types/User.js"
+import { AccessMessage } from '../types/mapstats/AccessMessage.js';
 
 class Utils {
   /** Function to get an HLTV rating for a user.
@@ -72,7 +74,7 @@ class Utils {
         (KillRating + 0.7 * SurvivalRating + RoundsWithMultipleKillsRating) /
         2.7;
 
-      return rating.toFixed(2);
+      return +rating.toFixed(2);
     } catch (err) {
       console.error("HELPER getRating Failed -- " + err);
       return 0;
@@ -153,7 +155,8 @@ class Utils {
             id: ourUser[0].id,
             small_image: ourUser[0].small_image,
             medium_image: ourUser[0].medium_image,
-            large_image: ourUser[0].large_image
+            large_image: ourUser[0].large_image,
+            api_key: apiKey.split(":")[1]
           };
           req.user = curUser;
           return next();
@@ -289,9 +292,9 @@ class Utils {
     user: User,
     onlyAdmin: boolean = false,
     serverCheck: boolean = false
-  ) {
+  ): Promise<AccessMessage | null> {
     try {
-      let retMessage: object | null = null;
+      let retMessage: AccessMessage | null;
 
       retMessage = await this.getUserMatchAccessNoFinalize(
         matchid,
@@ -333,12 +336,12 @@ class Utils {
     user: User,
     onlyAdmin: boolean = false,
     serverCheck: boolean = false
-  ) {
+  ): Promise<AccessMessage | null> {
     try {
       let adminCheck: boolean = onlyAdmin
         ? this.adminCheck(user)
         : this.superAdminCheck(user);
-      let retMessage: object | null = null;
+      let retMessage: AccessMessage | null = null;
       retMessage = await this.checkIfMatchExists(matchid);
 
       if (retMessage != null) return retMessage;
@@ -383,14 +386,14 @@ class Utils {
    * @param {String|Number} matchid - The ID of a match
    * @returns An object containing the HTTP error, followed by a message.
    */
-  static async checkIfMatchExists(matchid: string | number) {
+  static async checkIfMatchExists(matchid: string | number): Promise<AccessMessage | null> {
     try {
       if (matchid == null) {
         return { status: 400, message: "Match ID Not Provided" };
       }
 
-      let currentMatchInfo = "SELECT id FROM `match` WHERE id = ?";
-      const matchRow = await db.query(currentMatchInfo, [matchid]);
+      let currentMatchInfo: string = "SELECT id FROM `match` WHERE id = ?";
+      const matchRow: RowDataPacket[] = await db.query(currentMatchInfo, [matchid]);
       if (!matchRow.length) {
         return { status: 404, message: "No match found." };
       }
@@ -416,7 +419,7 @@ class Utils {
     map_id: number,
     team1_id: number,
     team2_id: number,
-    winner: number,
+    winner: number | null,
     deleteTeams = true
   ) {
     let teamAuthSql: string =
