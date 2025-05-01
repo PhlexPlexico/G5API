@@ -590,6 +590,24 @@ class Utils {
       await db.query(sqlString, insUpdStatement);
     }
   }
+
+  public static addChallongeTeamAuthsToArray: (teamId: number, custom_field_response: { key: string; value: string; }) => Promise<void> = async (teamId: number, custom_field_response: { key: string, value: string }) => {
+    let teamAuthArray: Array<Array<any>> = [];
+    let key: keyof typeof custom_field_response;
+    for (key in custom_field_response) {
+      let value: string = custom_field_response[key];
+      let firstPlayer: boolean = true;
+      if (value !== null) {
+        let isCaptain: boolean = firstPlayer;
+        firstPlayer = false;
+        teamAuthArray.push([teamId, value, +isCaptain, '']);
+      }
+    }
+    if (teamAuthArray.length > 0) {
+      let sqlString: string = "INSERT INTO team_auth_names (team_id, auth, captain, name) VALUES ?";
+      await db.query(sqlString, [teamAuthArray]);
+    }
+  }
 }
 
 
