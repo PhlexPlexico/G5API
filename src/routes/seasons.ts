@@ -624,15 +624,18 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
       if (req.body[0]?.import_teams && challongeData.tournament.participants) {
         sqlString = "INSERT INTO team (user_id, name, tag, challonge_team_id) VALUES ?";
         let teamArray: Array<Array<Object>> = [];
-        challongeData.tournament.participants.forEach(async (team: { participant: { display_name: string; id: Object; }; }) => {
+        challongeData.tournament.participants.forEach(async (team: { participant: { display_name: string; id: Object, custom_field_response: { key: string, value: string }; }; }) => {
           teamArray.push([
             req.user!.id,
             team.participant.display_name.substring(0, 40),
             team.participant.display_name.substring(0, 40),
             team.participant.id
           ]);
+          const teamInfo: RowDataPacket[] = await db.query(sqlString, [teamArray]);
+          //@ts-ignore
+          await Utils.addChallongeTeamAuthsToArray(teamInfo.insertId!, team.participant.custom_field_response);
         });
-        await db.query(sqlString, [teamArray]);
+        
       }
       res.json({
         message: "Challonge season imported successfully!",
