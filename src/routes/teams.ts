@@ -879,9 +879,7 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
       throw "No challonge API key provided for user.";
     }
     let teamArray: Array<Array<any>> = [];
-    let teamAuthArray: Array<Array<any>> = [];
-    let teamId: number | null = null;
-    challongeData.forEach(async (team: { participant: { display_name: string; id: any, custom_field_response: Array<Object>; }; }) => {
+    challongeData.forEach(async (team: { participant: { display_name: string; id: any, custom_field_response: {key: string, value: string}; }; }) => {
       teamArray.push([
         req.user?.id,
         team.participant.display_name.substring(0, 40),
@@ -891,34 +889,14 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
 
       const teamInfo: RowDataPacket[] = await db.query(sqlString, [teamArray]);
       //@ts-ignore
-      teamID = teamInfo.insertId;
-      challongeData.custom_field_response.forEach(async (keyVal: {key: string, value: string}) => {
-        let firstPlayer: boolean = true;
-        if (keyVal.value) {
-          let isCaptain: boolean = firstPlayer;
-          firstPlayer = false;
-          teamAuthArray.push([teamId, keyVal.value, +isCaptain]);
-        }
-      });
-    });
-    
-    if (teamAuthArray.length > 0) {
-      sqlString = "INSERT INTO team_auth_names (team_id, auth, captain) VALUES ?";
-      await db.query(sqlString, [teamAuthArray]);
-    }
+      await Utils.addChallongeTeamAuthsToArray(teamInfo.insertId!, team.participant.custom_field_response);
+    });  
     
 
     res.json({
       message: "Challonge teams imported successfully!"
     });
-    challongeData.forEach(async (team: { participant: { display_name: string; id: any, custom_field_response: Array<any>; }; }) => {
-      teamArray.push([
-        req.user?.id,
-        team.participant.display_name.substring(0, 40),
-        team.participant.display_name.substring(0, 40),
-        team.participant.id
-      ]);
-    });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: (err as Error).toString() });
@@ -972,5 +950,6 @@ const img: any = (data: any) => {
     base64: match[2]
   };
 }
+
 
 export default router;
