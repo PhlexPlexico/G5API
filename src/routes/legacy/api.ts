@@ -139,7 +139,7 @@ const keyCheck = (request: Request<ParamsDictionary, any, any, ParsedQs, Record<
  *
  * /match/:match_id/finish:
  *   post:
- *     description: Finalizes the match. Called from the G5WS plugin.
+ *     description: Finalizes the match.
  *     produces:
  *       - application/json
  *     requestBody:

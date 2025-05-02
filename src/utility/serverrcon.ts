@@ -76,13 +76,13 @@ class ServerRcon {
         if (compare(get5Version, "0.13.1", ">=")) {
           return true;
         } else {
-          console.log("Either get5 or G5WS plugin is missing.");
+          console.log("Either get5, MatchZy, or PugSharp plugin is missing.");
           return false;
         }
       }
       let get5JsonStatus = await JSON.parse(get5Status);
       if (get5JsonStatus.gamestate != 0) {
-        console.log("Server already has a get5 match setup.");
+        console.log("Server already has a match setup.");
         return false;
       } else {
         return true;
