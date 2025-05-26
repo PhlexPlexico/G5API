@@ -519,7 +519,7 @@ class QueueService {
     }
   }
 
-  async deleteQueue(queueId: string, requestingUserSteamId: string): Promise<boolean> {
+  async deleteQueue(queueId: string, requestingUserSteamId: string, canDelete: boolean | number): Promise<boolean> {
     try {
       const queueKey = `queue:${queueId}`;
       const ownerSteamId = await this.redisClient.hGet(queueKey, "ownerSteamId");
@@ -527,7 +527,7 @@ class QueueService {
         console.warn(`Queue ${queueId} not found for deletion attempt by ${requestingUserSteamId}.`);
         return false;
       }
-      if (requestingUserSteamId !== ownerSteamId) {
+      if (!canDelete) {
         console.warn(`User ${requestingUserSteamId} attempted to delete queue ${queueId} owned by ${ownerSteamId}. Permission denied.`);
         return false;
       }

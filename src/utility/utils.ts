@@ -26,9 +26,10 @@ const steam = new SteamAPI(config.get("server.steamAPIKey"));
  */
 import { ID } from "@node-steam/id";
 
-import {db} from "../services/db.js";
+import { db } from "../services/db.js";
 import { RowDataPacket } from 'mysql2';
 import { NextFunction, Request, Response } from 'express';
+import passport from 'passport';
 import { Get5_Player } from '../types/Get5_Player.js';
 import { User } from "../types/User.js"
 import { AccessMessage } from '../types/mapstats/AccessMessage.js';
@@ -163,9 +164,33 @@ class Utils {
         }
       }
     }
-    if (req.isAuthenticated()) {
+
+    const isAuthenticated = req.isAuthenticated();
+    if (isAuthenticated) {
       return next();
     }
+
+    // If not authenticated, and in test environment, try to authenticate with mock.
+    if (process.env.NODE_ENV === 'test') {
+      return passport.authenticate('steam', { session: true }, (err: any, user: Express.User, info: any) => {
+
+        if (err) {
+          return next(err);
+        }
+        if (!user) {
+          return res.redirect("/auth/steam");
+        }
+        // Manually log in the user to establish the session
+        req.logIn(user, (loginErr) => {
+          if (loginErr) {
+            return next(loginErr);
+          }
+          return next();
+        });
+      })(req, res, next); // Immediately invoke the middleware function
+    }
+
+    // Original behavior for non-test environments or if test auth fails to produce a user
     res.redirect("/auth/steam");
   }
 

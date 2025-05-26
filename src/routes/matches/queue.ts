@@ -723,7 +723,7 @@ router.delete('/:queueId', Utils.ensureAuthenticated, async (req: Request, res: 
             return res.status(403).json({ message: 'Forbidden: You do not have permission to delete this queue.' });
         }
 
-        const success = await queueService.deleteQueue(queueId, requestingUserSteamId);
+        const success = await queueService.deleteQueue(queueId, requestingUserSteamId, canDelete);
         if (success) {
             res.status(200).json({ message: 'Queue deleted successfully.' });
         } else {

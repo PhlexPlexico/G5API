@@ -64,7 +64,7 @@
     "test:user": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.users.config.cjs",
     "test:vetoes": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.vetoes.config.cjs",
     "test:vetosides": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.vetosides.config.cjs",
-    "test:queues": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.queuesapi.config.cjs"
+    "test:queues": "NODE_ENV=test && NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.queuesapi.config.cjs"
   },
   "dependencies": {
     "@node-steam/id": "^1.2.0",
