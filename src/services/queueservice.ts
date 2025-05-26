@@ -1,6 +1,7 @@
 import config from "config";
 import { createClient, RedisClientType } from "redis";
 import { v4 as uuidv4 } from 'uuid';
+import { EventEmitter } from 'events';
 
 // Wordlists for CS-themed queue ID generation
 import { CS_ADJECTIVES_1, CS_ADJECTIVES_2, CS_NOUNS } from '../utility/csWordlists.js';
@@ -9,15 +10,20 @@ import { CS_ADJECTIVES_1, CS_ADJECTIVES_2, CS_NOUNS } from '../utility/csWordlis
 import { Queue } from '../types/queues/Queue.js';
 import { PickPhaseDetails } from '../types/queues/PickPhaseDetails.js';
 import { PickPhaseState } from '../types/queues/PickPhaseState.js';
+import { VetoDetails } from '../types/queues/VetoDetails.js';
+
+const DEFAULT_MAP_POOL = ['de_dust2', 'de_mirage', 'de_inferno', 'de_nuke', 'de_overpass', 'de_vertigo', 'de_ancient'];
 
 class QueueService {
   private redisClient: RedisClientType<any, any, any>;
   private userQueueCreationLimit: number;
   private defaultQueueCapacity: number;
+  private emitter: EventEmitter;
 
   constructor(redisUrl?: string) {
     const actualRedisUrl = redisUrl || config.get("server.redisUrl");
     this.redisClient = createClient({ url: actualRedisUrl });
+    this.emitter = new EventEmitter();
 
     this.userQueueCreationLimit = config.get<number>('server.userQueueCreationLimit');
     this.defaultQueueCapacity = config.get<number>('server.defaultQueueCapacity');
@@ -29,6 +35,10 @@ class QueueService {
     this.redisClient.connect().catch(err => {
       console.error("Failed to connect to Redis:", err);
     });
+  }
+
+  public getEventsEmitter(): EventEmitter {
+    return this.emitter;
   }
 
   private async _generateQueueId(retryCount = 0): Promise<string> {
@@ -60,21 +70,21 @@ class QueueService {
     return generatedId;
   }
 
-  private async _findUserServer(ownerSteamId: string, queueId: string): Promise<string | null> {
-    console.log(`[Server Allocation] Attempting to find a free server for user ${ownerSteamId} for queue ${queueId}.`);
+  private async _findUserServer(ownerSteamId: string, queueId: string, pickedMap: string): Promise<string | null> {
+    console.log(`[Server Allocation] Attempting to find a free server for user ${ownerSteamId}, queue ${queueId}, map ${pickedMap}.`);
     return null;
   }
 
-  private async _findPublicServer(queueId: string): Promise<string | null> {
-    console.log(`[Server Allocation] Attempting to find a public server for queue ${queueId}.`);
+  private async _findPublicServer(queueId: string, pickedMap: string): Promise<string | null> {
+    console.log(`[Server Allocation] Attempting to find a public server for queue ${queueId}, map ${pickedMap}.`);
     return null;
   }
 
-  private async _setupDockerizedServer(queueId: string): Promise<string | null> {
-    console.log(`[Docker Placeholder] Initiating Dockerized CS2 server setup for queue ${queueId}.`);
+  private async _setupDockerizedServer(queueId: string, pickedMap: string): Promise<string | null> {
+    console.log(`[Docker Placeholder] Initiating Dockerized CS2 server setup for queue ${queueId} with map ${pickedMap}.`);
     console.log("[Docker Placeholder] Step 1: Check if Docker is available (simulated: yes).");
     console.log("[Docker Placeholder] Step 2: Pull CS2 server image (simulated: joedwards32/cs2).");
-    console.log(`[Docker Placeholder] Step 3: Run Docker image for queue ${queueId} with MatchZy (simulated).`);
+    console.log(`[Docker Placeholder] Step 3: Run Docker image for queue ${queueId} on map ${pickedMap} with MatchZy (simulated).`);
     const simulatedServerIp = "127.0.0.1";
     const simulatedPort = "27015";
     console.log(`[Docker Placeholder] Simulated server IP: ${simulatedServerIp}:${simulatedPort}`);
@@ -125,10 +135,45 @@ class QueueService {
       transaction.sAdd(activeQueuesKey, queueId);
       await transaction.exec();
       console.log(`Event: queue_created id <${queueId}> owner <${ownerSteamId}> capacity <${queueCapacity}>`);
+      this.emitter.emit('queue_event', { type: 'queue_created', queueId: newQueue.id, data: newQueue });
       return newQueue;
     } catch (error) {
       console.error(`Error creating queue for ${ownerSteamId}:`, error);
       return null;
+    }
+  }
+
+  async updateQueueCapacity(queueId: string, newCapacity: number): Promise<{ success: boolean, message?: string, status?: number }> {
+    const queueKey = `queue:${queueId}`;
+    try {
+      const queueExists = await this.redisClient.exists(queueKey);
+      if (!queueExists) {
+        return { success: false, message: 'Queue not found.', status: 404 };
+      }
+
+      const currentStatus = await this.redisClient.hGet(queueKey, "status");
+      if (currentStatus !== 'waiting') {
+        return { success: false, message: `Queue capacity can only be updated if in 'waiting' state. Current state: ${currentStatus}`, status: 409 };
+      }
+
+      if (!Number.isInteger(newCapacity) || newCapacity <= 0) {
+        return { success: false, message: 'Capacity must be a positive integer.', status: 400 };
+      }
+
+      const queueMembersKey = `queue:${queueId}:members`;
+      const currentMemberCount = await this.redisClient.sCard(queueMembersKey);
+      if (currentMemberCount > newCapacity) {
+        return { success: false, message: `New capacity (${newCapacity}) cannot be less than current member count (${currentMemberCount}).`, status: 409 };
+      }
+
+      await this.redisClient.hSet(queueKey, "capacity", newCapacity.toString());
+      console.log(`Event: queue_capacity_updated id <${queueId}> new_capacity <${newCapacity}>`);
+      this.emitter.emit('queue_event', { type: 'queue_capacity_updated', queueId: queueId, data: { newCapacity: newCapacity } });
+      return { success: true, message: 'Queue capacity updated successfully.' };
+
+    } catch (error) {
+      console.error(`Error updating capacity for queue ${queueId}:`, error);
+      return { success: false, message: 'Server error updating queue capacity.', status: 500 };
     }
   }
 
@@ -155,7 +200,9 @@ class QueueService {
       const added = await this.redisClient.sAdd(queueMembersKey, playerSteamId);
       if (added) {
         console.log(`Event: player_joined queue <${queueId}> player <${playerSteamId}>`);
-        const newMemberCount = await this.redisClient.sCard(queueMembersKey);
+        const members = await this.redisClient.sMembers(queueMembersKey);
+        this.emitter.emit('queue_event', { type: 'player_joined', queueId: queueId, data: { playerSteamId: playerSteamId, members: members } });
+        const newMemberCount = members.length; // Use length of fetched members
         if (newMemberCount >= capacity) {
           console.log(`Queue <${queueId}> is now full with ${newMemberCount} members (capacity: ${capacity}). Triggering pop logic.`);
           await this._popQueue(queueId, capacity);
@@ -163,6 +210,9 @@ class QueueService {
         return true;
       } else {
         console.log(`Player ${playerSteamId} is already a member of queue ${queueId}.`);
+        // Emit event even if player was already in queue, as client might want to know about the attempt or refresh state.
+        const members = await this.redisClient.sMembers(queueMembersKey);
+        this.emitter.emit('queue_event', { type: 'player_joined', queueId: queueId, data: { playerSteamId: playerSteamId, members: members } });
         return true;
       }
     } catch (error) {
@@ -183,6 +233,7 @@ class QueueService {
       if (players.length < 2) {
         console.error(`Queue ${queueId} cannot select two captains from less than 2 players (${players.length}).`);
         await this.redisClient.hSet(queueKey, 'status', 'error_not_enough_players_for_captains');
+        this.emitter.emit('queue_event', { type: 'queue_status_changed', queueId: queueId, data: { status: 'error_not_enough_players_for_captains' } });
         return;
       }
       const mainQueueData = await this.redisClient.hGetAll(queueKey);
@@ -190,6 +241,7 @@ class QueueService {
       if (!originalOwnerSteamId) {
         console.error(`Critical error: ownerSteamId not found for queue ${queueId} during pop. Aborting pop.`);
         await this.redisClient.hSet(queueKey, 'status', 'error_popping');
+        this.emitter.emit('queue_event', { type: 'queue_status_changed', queueId: queueId, data: { status: 'error_popping' } });
         return;
       }
       const shuffledPlayers = [...players].sort(() => 0.5 - Math.random());
@@ -220,10 +272,16 @@ class QueueService {
       }
       await this.redisClient.hSet(poppedQueueDetailsKey, redisPoppedQueueDetails);
       console.log(`Event: queue_popped queue ${queueId} capacity ${capacity}. Captains: ${captain1}, ${captain2}. Players: ${players.join(', ')}. Original owner: ${originalOwnerSteamId}`);
+      this.emitter.emit('queue_event', {
+        type: 'queue_status_changed',
+        queueId: queueId,
+        data: { status: 'picking', captain1: captain1, captain2: captain2, allPlayers: players, originalOwnerSteamId: originalOwnerSteamId, capacity: capacity }
+      });
     } catch (error) {
       console.error(`Error popping queue ${queueId}:`, error);
       try {
         await this.redisClient.hSet(`queue:${queueId}`, 'status', 'error_popping');
+        this.emitter.emit('queue_event', { type: 'queue_status_changed', queueId: queueId, data: { status: 'error_popping' } });
       } catch (setError) {
         console.error(`Failed to set queue ${queueId} status to error_popping:`, setError);
       }
@@ -279,69 +337,67 @@ class QueueService {
       picksMade++;
 
       const totalPlayersToPick = capacity - 2;
-      let currentQueueFinalStatus: Queue['status'] = 'in_progress';
-      let serverIp: string | null = null;
+      // Server allocation is removed from here
 
       const pickPhaseStateForReturn: PickPhaseState = {
         captain1, team1Name, team1Picks, captain2, team2Name, team2Picks,
         availablePlayers, nextPicker, picksMade, capacity, totalPlayersToPick,
-        status: 'picking',
-        serverIp: null
+        status: 'picking', // Status remains 'picking' until map veto and server allocation complete
+        serverIp: null // Server IP will be set after map veto
       };
 
       if (picksMade >= totalPlayersToPick || availablePlayers.length === 0) {
         pickPhaseStateForReturn.nextPicker = "picking_complete";
-        nextPicker = "picking_complete";
+        nextPicker = "picking_complete"; // Update local nextPicker for saving to Redis
         console.log(`Event: teams_finalized for queue ${queueId}. Team1: ${team1Picks.join(', ')}, Team2: ${team2Picks.join(', ')}`);
 
-        if (originalOwnerSteamId) {
-          serverIp = await this._findUserServer(originalOwnerSteamId, queueId);
-        } else {
-          console.error(`[Server Allocation] Original owner SteamID not found in popped_queue details for queue ${queueId}. Cannot search for user server.`);
+        // Validate original_owner_steam_id from popped details before creating VetoDetails
+        const ownerIdFromPoppedDetails = details.original_owner_steam_id;
+        if (!ownerIdFromPoppedDetails) {
+          console.error(`Critical: original_owner_steam_id is missing in popped_queue details for queue ${queueId}. Cannot initialize veto.`);
+          return { state: null, error: 'Internal server error: Missing critical queue ownership data required for map veto initialization.', status: 500 };
         }
 
-        if (!serverIp) {
-          serverIp = await this._findPublicServer(queueId);
-        }
+        // Initialize Veto Process
+        const vetoInitiatorSteamId = captain2; // Captain 2 starts map veto
+        const initialVetoDetails: VetoDetails = {
+          queueId: queueId,
+          mapPool: DEFAULT_MAP_POOL,
+          availableMapsToBan: [...DEFAULT_MAP_POOL],
+          bansTeam1: [],
+          bansTeam2: [],
+          captain1SteamId: captain1,
+          captain2SteamId: captain2,
+          vetoInitiatorSteamId: vetoInitiatorSteamId,
+          nextVetoerSteamId: vetoInitiatorSteamId,
+          originalOwnerSteamId: ownerIdFromPoppedDetails,
+          vetoBanOrder: [
+            { captainSteamId: captain2, bansToMake: 2 },
+            { captainSteamId: captain1, bansToMake: 3 },
+            { captainSteamId: captain2, bansToMake: 1 }
+          ],
+          currentVetoStageIndex: 0,
+          bansMadeThisStage: 0,
+          pickedMap: null,
+          status: 'awaiting_captain_start',
+          log: [{ timestamp: Date.now(), actor: 'system', action: 'info', message: `Veto initialized. ${captain2} (Captain 2) to ban first.` }]
+          // serverIp will be added later
+        };
+        await this._saveVetoDetails(queueId, initialVetoDetails);
 
-        const updatesToPoppedDetails: Partial<PickPhaseDetails> = {};
+        // Emit event indicating teams are finalized and map veto is next.
+        // No server IP or final queue status change here yet.
+        this.emitter.emit('queue_event', { type: 'teams_finalized', queueId: queueId, data: { ...pickPhaseStateForReturn, nextStep: 'map_veto' } });
 
-        if (serverIp) {
-          console.log(`[Server Allocation] Server ${serverIp} allocated for queue ${queueId}.`);
-          currentQueueFinalStatus = 'in_progress_server_assigned';
-          await this.redisClient.hSet(mainQueueKey, { status: currentQueueFinalStatus, server_ip: serverIp });
-          updatesToPoppedDetails.server_ip = serverIp;
-          pickPhaseStateForReturn.serverIp = serverIp;
-        } else {
-          console.log(`[Server Allocation] No existing server found. Attempting Docker server setup for ${queueId}.`);
-          const dockerServerIp = await this._setupDockerizedServer(queueId);
-          if (dockerServerIp) {
-            console.log(`[Server Allocation] Docker server successfully provisioned: ${dockerServerIp} for queue ${queueId}.`);
-            currentQueueFinalStatus = 'in_progress_server_assigned';
-            await this.redisClient.hSet(mainQueueKey, { status: currentQueueFinalStatus, server_ip: dockerServerIp });
-            updatesToPoppedDetails.server_ip = dockerServerIp;
-            pickPhaseStateForReturn.serverIp = dockerServerIp;
-            serverIp = dockerServerIp;
-          } else {
-            console.log(`[Server Allocation] Docker server setup failed for queue ${queueId}. Manual intervention required.`);
-            currentQueueFinalStatus = 'error_server_allocation_failed';
-            await this.redisClient.hSet(mainQueueKey, 'status', currentQueueFinalStatus);
-          }
-        }
-        pickPhaseStateForReturn.status = currentQueueFinalStatus;
-
-        if (Object.keys(updatesToPoppedDetails).length > 0) {
-          const redisUpdates: Record<string, string> = {};
-          for (const [key, value] of Object.entries(updatesToPoppedDetails)) {
-            if (value !== undefined) redisUpdates[key] = String(value);
-          }
-          if (redisUpdates.server_ip) await this.redisClient.hSet(poppedQueueDetailsKey, { server_ip: redisUpdates.server_ip });
-        }
+        // No direct status change to in_progress_server_assigned or error_server_allocation_failed here.
+        // No hSet on mainQueueKey for status or server_ip here.
+        // No hSet on poppedQueueDetailsKey for server_ip here.
+        pickPhaseStateForReturn.status = 'veto'; // Indicate that the next phase is veto for the pickPhaseState return
 
       } else {
         pickPhaseStateForReturn.nextPicker = (requestingUserSteamId === captain1) ? captain2 : captain1;
-        nextPicker = pickPhaseStateForReturn.nextPicker;
-        pickPhaseStateForReturn.status = 'picking';
+        nextPicker = pickPhaseStateForReturn.nextPicker; // Update local nextPicker for saving
+        pickPhaseStateForReturn.status = 'picking'; // Status remains picking
       }
 
       await this.redisClient.hSet(poppedQueueDetailsKey, {
@@ -353,7 +409,7 @@ class QueueService {
       });
 
       console.log(`Event: player_picked queue <${queueId}> captain <${requestingUserSteamId}> picked <${playerToPickSteamId}>`);
-
+      this.emitter.emit('queue_event', { type: 'player_picked', queueId: queueId, data: pickPhaseStateForReturn });
       return { state: pickPhaseStateForReturn };
 
     } catch (error) {
@@ -384,6 +440,8 @@ class QueueService {
       const removed = await this.redisClient.sRem(queueMembersKey, playerSteamId);
       if (removed) {
         console.log(`Event: player_left queue <${queueId}> player <${playerSteamId}>`);
+        const members = await this.redisClient.sMembers(queueMembersKey);
+        this.emitter.emit('queue_event', { type: 'player_left', queueId: queueId, data: { playerSteamId: playerSteamId, members: members } });
         return true;
       } else {
         console.log(`Player ${playerSteamId} not found in queue ${queueId}.`);
@@ -487,12 +545,208 @@ class QueueService {
       transaction.hIncrBy(userQueuesCountKey, ownerSteamId, -1);
       await transaction.exec();
       console.log(`Event: queue_deleted id <${queueId}> requested_by <${requestingUserSteamId}>`);
+      this.emitter.emit('queue_event', { type: 'queue_deleted', queueId: queueId, data: { deletedBy: requestingUserSteamId } });
       return true;
     } catch (error) {
       console.error(`Error deleting queue ${queueId} by user ${requestingUserSteamId}:`, error);
       return false;
     }
   }
+
+  private async _saveVetoDetails(queueId: string, vetoDetails: VetoDetails): Promise<void> {
+    const vetoKey = `veto:${queueId}:details`;
+    const detailsToSave: Record<string, string> = {
+      queueId: vetoDetails.queueId,
+      mapPool: JSON.stringify(vetoDetails.mapPool),
+      availableMapsToBan: JSON.stringify(vetoDetails.availableMapsToBan),
+      bansTeam1: JSON.stringify(vetoDetails.bansTeam1),
+      bansTeam2: JSON.stringify(vetoDetails.bansTeam2),
+      captain1SteamId: vetoDetails.captain1SteamId,
+      captain2SteamId: vetoDetails.captain2SteamId,
+      vetoInitiatorSteamId: vetoDetails.vetoInitiatorSteamId,
+      originalOwnerSteamId: vetoDetails.originalOwnerSteamId, // Save originalOwnerSteamId
+      nextVetoerSteamId: vetoDetails.nextVetoerSteamId || '',
+      vetoBanOrder: JSON.stringify(vetoDetails.vetoBanOrder),
+      currentVetoStageIndex: vetoDetails.currentVetoStageIndex.toString(),
+      bansMadeThisStage: vetoDetails.bansMadeThisStage.toString(),
+      pickedMap: vetoDetails.pickedMap || '',
+      status: vetoDetails.status,
+      log: JSON.stringify(vetoDetails.log),
+      serverIp: vetoDetails.serverIp || '', // Save serverIp
+    };
+    await this.redisClient.hSet(vetoKey, detailsToSave);
+    console.log(`Veto details saved for queue ${queueId}`);
+  }
+
+  private _parseVetoDetails(redisData: Record<string, string>): VetoDetails | null {
+    if (!redisData || Object.keys(redisData).length === 0) return null;
+    try {
+      return {
+        queueId: redisData.queueId,
+        mapPool: JSON.parse(redisData.mapPool || '[]'),
+        availableMapsToBan: JSON.parse(redisData.availableMapsToBan || '[]'),
+        bansTeam1: JSON.parse(redisData.bansTeam1 || '[]'),
+        bansTeam2: JSON.parse(redisData.bansTeam2 || '[]'),
+        captain1SteamId: redisData.captain1SteamId,
+        captain2SteamId: redisData.captain2SteamId,
+        vetoInitiatorSteamId: redisData.vetoInitiatorSteamId,
+        originalOwnerSteamId: redisData.originalOwnerSteamId, // Parse originalOwnerSteamId
+        nextVetoerSteamId: redisData.nextVetoerSteamId === '' ? null : redisData.nextVetoerSteamId,
+        vetoBanOrder: JSON.parse(redisData.vetoBanOrder || '[]'),
+        currentVetoStageIndex: parseInt(redisData.currentVetoStageIndex, 10),
+        bansMadeThisStage: parseInt(redisData.bansMadeThisStage, 10),
+        pickedMap: redisData.pickedMap === '' ? null : redisData.pickedMap,
+        status: redisData.status as VetoDetails['status'],
+        log: JSON.parse(redisData.log || '[]'),
+        serverIp: redisData.serverIp === '' ? undefined : redisData.serverIp // Parse serverIp
+      };
+    } catch (error) {
+      console.error(`Error parsing VetoDetails for queue ${redisData.queueId}:`, error);
+      return null;
+    }
+  }
+
+  async getVetoDetails(queueId: string): Promise<VetoDetails | null> {
+    const vetoKey = `veto:${queueId}:details`;
+    try {
+      const redisData = await this.redisClient.hGetAll(vetoKey);
+      if (!redisData || Object.keys(redisData).length === 0) {
+        return null;
+      }
+      return this._parseVetoDetails(redisData);
+    } catch (error) {
+      console.error(`Error fetching veto details for queue ${queueId}:`, error);
+      return null;
+    }
+  }
+
+  async startVeto(queueId: string, requestingUserSteamId: string): Promise<{ success: boolean, message: string, status?: number, vetoDetails?: VetoDetails }> {
+    try {
+      const vetoDetails = await this.getVetoDetails(queueId);
+      if (!vetoDetails) {
+        return { success: false, message: 'Veto details not found for this queue.', status: 404 };
+      }
+
+      if (requestingUserSteamId !== vetoDetails.captain1SteamId && requestingUserSteamId !== vetoDetails.captain2SteamId) {
+        return { success: false, message: 'Forbidden: Only captains can start the veto.', status: 403 };
+      }
+
+      if (vetoDetails.status !== 'awaiting_captain_start') {
+        return { success: false, message: `Veto cannot be started. Current status: ${vetoDetails.status}.`, status: 409 };
+      }
+
+      vetoDetails.status = 'in_progress';
+      vetoDetails.log.push({ timestamp: Date.now(), actor: requestingUserSteamId, action: 'info', message: 'Veto process started.' });
+
+      await this._saveVetoDetails(queueId, vetoDetails);
+      this.emitter.emit('queue_event', { type: 'veto_started', queueId: queueId, data: vetoDetails });
+
+      return { success: true, message: 'Veto process started successfully.', vetoDetails: vetoDetails };
+
+    } catch (error) {
+      console.error(`Error starting veto for queue ${queueId} by user ${requestingUserSteamId}:`, error);
+      return { success: false, message: 'Server error starting veto process.', status: 500 };
+    }
+  }
+
+  async recordMapBan(queueId: string, captainSteamId: string, mapName: string): Promise<{ success: boolean, message: string, status?: number, vetoDetails?: VetoDetails }> {
+    try {
+      let vetoDetails = await this.getVetoDetails(queueId);
+      if (!vetoDetails) {
+        return { success: false, message: 'Veto details not found for this queue.', status: 404 };
+      }
+
+      if (vetoDetails.status !== 'in_progress') {
+        return { success: false, message: `Map cannot be banned. Veto status is: ${vetoDetails.status}.`, status: 409 };
+      }
+
+      if (vetoDetails.nextVetoerSteamId !== captainSteamId) {
+        return { success: false, message: 'Forbidden: It is not your turn to ban a map.', status: 403 };
+      }
+
+      if (!vetoDetails.availableMapsToBan.includes(mapName)) {
+        return { success: false, message: `Map '${mapName}' is not available for banning.`, status: 400 };
+      }
+
+      // Record the ban
+      if (captainSteamId === vetoDetails.captain1SteamId) {
+        vetoDetails.bansTeam1.push(mapName);
+      } else {
+        vetoDetails.bansTeam2.push(mapName);
+      }
+      vetoDetails.availableMapsToBan = vetoDetails.availableMapsToBan.filter(m => m !== mapName);
+      vetoDetails.bansMadeThisStage++;
+      vetoDetails.log.push({ timestamp: Date.now(), actor: captainSteamId, action: 'ban', map: mapName, message: `banned ${mapName}.` });
+
+      // Veto Logic
+      const currentStage = vetoDetails.vetoBanOrder[vetoDetails.currentVetoStageIndex];
+      if (vetoDetails.bansMadeThisStage < currentStage.bansToMake) {
+        // Current stage continues, nextVetoerSteamId remains the same
+      } else {
+        // Current stage's bans are complete
+        vetoDetails.currentVetoStageIndex++;
+        vetoDetails.bansMadeThisStage = 0;
+
+        if (vetoDetails.currentVetoStageIndex < vetoDetails.vetoBanOrder.length) {
+          // More ban stages left
+          vetoDetails.nextVetoerSteamId = vetoDetails.vetoBanOrder[vetoDetails.currentVetoStageIndex].captainSteamId;
+        } else {
+          // All ban stages complete
+          vetoDetails.status = 'completed';
+          vetoDetails.nextVetoerSteamId = null; // Veto complete
+          if (vetoDetails.availableMapsToBan.length === 1) {
+            vetoDetails.pickedMap = vetoDetails.availableMapsToBan[0];
+            vetoDetails.log.push({ timestamp: Date.now(), actor: 'system', action: 'pick', map: vetoDetails.pickedMap, message: `Map automatically picked: ${vetoDetails.pickedMap}.` });
+
+            // Server Allocation Logic
+            let serverIp: string | null = null;
+            const ownerForServerSearch = vetoDetails.originalOwnerSteamId || vetoDetails.captain1SteamId; // Fallback if originalOwnerSteamId is missing
+
+            serverIp = await this._findUserServer(ownerForServerSearch, queueId, vetoDetails.pickedMap);
+            if (!serverIp) {
+              serverIp = await this._findPublicServer(queueId, vetoDetails.pickedMap);
+            }
+            if (!serverIp) {
+              serverIp = await this._setupDockerizedServer(queueId, vetoDetails.pickedMap);
+            }
+
+            let finalQueueStatus: Queue['status'];
+            const mainQueueKey = `queue:${queueId}`;
+            if (serverIp) {
+              finalQueueStatus = 'in_progress_server_assigned';
+              vetoDetails.serverIp = serverIp;
+              await this.redisClient.hSet(mainQueueKey, { status: finalQueueStatus, server_ip: serverIp, picked_map: vetoDetails.pickedMap });
+              vetoDetails.log.push({ timestamp: Date.now(), actor: 'system', action: 'info', serverIp: serverIp, message: `Server allocated: ${serverIp} for map ${vetoDetails.pickedMap}.` });
+            } else {
+              finalQueueStatus = 'error_server_allocation_failed';
+              await this.redisClient.hSet(mainQueueKey, { status: finalQueueStatus, picked_map: vetoDetails.pickedMap });
+              vetoDetails.log.push({ timestamp: Date.now(), actor: 'system', action: 'info', message: `Server allocation failed for map ${vetoDetails.pickedMap}.` });
+            }
+
+            await this._saveVetoDetails(queueId, vetoDetails); // Save VetoDetails with serverIp and log
+
+            this.emitter.emit('queue_event', { type: 'map_picked', queueId: queueId, data: { pickedMap: vetoDetails.pickedMap, serverIp: vetoDetails.serverIp, status: finalQueueStatus, vetoDetails: vetoDetails } });
+            this.emitter.emit('queue_event', { type: 'queue_status_changed', queueId: queueId, data: { status: finalQueueStatus, serverIp: vetoDetails.serverIp, pickedMap: vetoDetails.pickedMap } });
+
+          } else {
+            console.warn(`Veto completed for queue ${queueId}, but ${vetoDetails.availableMapsToBan.length} maps remain. Expected 1.`);
+            vetoDetails.log.push({ timestamp: Date.now(), actor: 'system', action: 'info', message: `Veto completed. ${vetoDetails.availableMapsToBan.length} maps remain. Manual pick may be required.` });
+            // No server allocation if map isn't uniquely determined
+          }
+        }
+      }
+
+      await this._saveVetoDetails(queueId, vetoDetails); // Save intermediate veto progress
+      this.emitter.emit('queue_event', { type: 'map_banned', queueId: queueId, data: { bannedBy: captainSteamId, mapName: mapName, vetoDetails: vetoDetails } });
+
+      return { success: true, message: `Map '${mapName}' banned successfully.`, vetoDetails: vetoDetails };
+
+    } catch (error) {
+      console.error(`Error recording map ban for queue ${queueId} by captain ${captainSteamId}:`, error);
+      return { success: false, message: 'Server error recording map ban.', status: 500 };
+    }
+  }
+
 
   async disconnect(): Promise<void> {
     if (this.redisClient && this.redisClient.isOpen) {
