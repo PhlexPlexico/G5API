@@ -11,7 +11,9 @@
     "uploadDemos": false,
     "localLoginEnabled": true,
     "redisUrl": "redis://:super_secure@localhost:6379",
-    "redisTTL": 86400
+    "redisTTL": 86400,
+    "userQueueCreationLimit": 5,
+    "defaultQueueCapacity": 10
   },
   "test": {
     "driver": "mysql",

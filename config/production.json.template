@@ -11,7 +11,9 @@
     "uploadDemos": $UPLOADDEMOS,
     "localLoginEnabled": $LOCALLOGINS,
     "redisUrl": "$REDISURL",
-    "redisTTL": $REDISTTL
+    "redisTTL": $REDISTTL,
+    "userQueueCreationLimit": "USERQUEUECREATIONLIMIT",
+    "defaultQueueCapacity": "DEFAULT_QUEUE_CAPACITY"
   },
   "production": {
     "driver": "mysql",

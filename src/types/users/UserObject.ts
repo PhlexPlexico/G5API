@@ -1,4 +1,5 @@
 export interface UserObject { 
+    id?: number,
     steam_id?: string,
     name?: string,
     admin?: number,
