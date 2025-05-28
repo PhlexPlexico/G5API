@@ -1,7 +1,9 @@
 // JULES_VERIFICATION_TEST_COMMENT_20240315_100500
+// JULES_VERIFICATION_TEST_COMMENT_20240315_100500
 import { jest } from '@jest/globals';
 import supertest from 'supertest';
 import { createClient } from 'redis';
+import GlobalEmitter from '../src/utility/emitter.js'; // Import GlobalEmitter
 import passport from 'passport';
 import MockStrategy from '../src/utility/mockstrategy.js'; // Assuming path to mockStrategy
 import app from '../app.js'; // Assuming Express app is exported from here
@@ -11,6 +13,7 @@ const request = supertest(app);
 
 // Mock Users
 const USER_REGULAR = { steam_id: 'user_regular_steam_id', username: 'RegularUser', admin: false, super_admin: false };
+const USER_BAD_ACTOR = { steam_id: 'user_bad_actor_steam_id', username: 'BadActor', admin: false, super_admin: false };
 const USER_OWNER = { steam_id: 'user_owner_steam_id', username: 'QueueOwner', admin: false, super_admin: false };
 const USER_ADMIN = { steam_id: 'user_admin_steam_id', username: 'AdminUser', admin: true, super_admin: false };
 const USER_SUPER_ADMIN = { steam_id: 'user_super_admin_steam_id', username: 'SuperAdminUser', admin: false, super_admin: true }; // super_admin implies admin in some checks
@@ -31,7 +34,6 @@ const loginAs = (userToLogin) => { // Renamed parameter for clarity
 
 const getQueueFromRedis = async (queueId) => {
     if (!queueServiceInstance) { // Fallback if direct service instance not available for testing
-        const testRedisUrl = process.env.TEST_REDIS_URL || 'redis://:super_secure@localhost:6379/1'; // Use a dedicated test DB
          return null; // Cannot directly get without service instance properly configured for test
     }
     return queueServiceInstance.getQueueDetails(queueId);
@@ -42,18 +44,19 @@ const getVetoDetailsFromRedis = async (queueId) => {
         console.error("QueueService instance not available for getVetoDetailsFromRedis");
         return null;
     }
+
     // QueueService's getVetoDetails method already parses the details
-    return queueServiceInstance.getVetoDetails(queueId); 
+    return queueServiceInstance.getVetoDetails(queueId);
 };
 
 const createQueueViaAPI = async (user, capacity = 10) => {
     loginAs(user);
     const response = await request
         .post('/queues')
-        .send([{ capacity: capacity }]) // Corrected: API expects an array: req.body[0].capacity
+        .send([{ capacity: capacity }])
         .set('Accept', 'application/json');
     if (response.status === 201) {
-        return response.body; // The created queue object
+        return response.body;
     }
     console.error('Error creating queue via API for test setup:', response.body, user);
     return null;
@@ -62,7 +65,7 @@ const createQueueViaAPI = async (user, capacity = 10) => {
 
 describe('Queue API Tests', () => {
     beforeAll(async () => {
-        const testRedisUrl = process.env.TEST_REDIS_URL || 'redis://:super_secure@localhost:6379/1'; // Use a dedicated test DB
+        const testRedisUrl = process.env.TEST_REDIS_URL || 'redis://:super_secure@localhost:6379'; // Use a dedicated test DB
         redisClient = createClient({ url: testRedisUrl });
         await redisClient.connect();
         
@@ -111,43 +114,11 @@ describe('Queue API Tests', () => {
 
     beforeEach(async () => {
         if (redisClient && redisClient.isOpen) {
-        console.log('[Test Cleanup] Attempting to clear Redis data...');
-        
-        const queueKeys = await redisClient.keys('queue:*');
-        if (queueKeys.length > 0) {
-        console.log(`[Test Cleanup] Deleting queue keys: ${queueKeys.join(', ')}`);
-        await redisClient.del(queueKeys);
-        }
-        
-        const userOwnedQueuesKeys = await redisClient.keys('user:*:owned_queues');
-        if (userOwnedQueuesKeys.length > 0) {
-        console.log(`[Test Cleanup] Deleting user owned queues keys: ${userOwnedQueuesKeys.join(', ')}`);
-        const delOwnedQueuesCount = await redisClient.del(userOwnedQueuesKeys);
-        console.log(`[Test Cleanup] Result of deleting 'queues:active': ${delOwnedQueuesCount}`);
-        }
-        
-        console.log("[Test Cleanup] Attempting to delete 'user:queues:counts' hash...");
-        const delUserCountsResult = await redisClient.del('user:queues:counts');
-        console.log(`[Test Cleanup] Result of deleting 'user:queues:counts': ${delUserCountsResult}`); // Should be 1 if key existed
-        
-        console.log("[Test Cleanup] Attempting to delete 'queues:active' set...");
-        const delActiveQueuesResult = await redisClient.del('queues:active');
-        console.log(`[Test Cleanup] Result of deleting 'queues:active': ${delActiveQueuesResult}`);
-        
-        const vetoKeys = await redisClient.keys('veto:*');
-        if (vetoKeys.length > 0) {
-        console.log(`[Test Cleanup] Deleting veto keys: ${vetoKeys.join(', ')}`);
-        await redisClient.del(vetoKeys);
-        }
-        
-        const poppedKeys = await redisClient.keys('popped_queue:*');
-        if (poppedKeys.length > 0) {
-        console.log(`[Test Cleanup] Deleting popped_queue keys: ${poppedKeys.join(', ')}`);
-        await redisClient.del(poppedKeys);
-        }
-        console.log('[Test Cleanup] Redis data clearing attempt complete.');
-        } else {
-        console.log('[Test Cleanup] Redis client not open or not available in beforeEach.');
+            
+            const allKeys = await redisClient.keys('*');
+            if (allKeys.length > 0) {
+                await redisClient.del(allKeys);
+            }
         }
     });
 
@@ -224,9 +195,10 @@ describe('Queue API Tests', () => {
             const newCapacity = 12;
             const response = await request
                 .put(`/queues/${testQueue.id}`)
-                .send({ capacity: newCapacity });
+                .send([{ capacity: newCapacity }]);
             expect(response.status).toBe(200);
             const updatedQueue = await getQueueFromRedis(testQueue.id);
+            console.log(`"updated" capacity: ${updatedQueue.capacity}, requested capacity: ${newCapacity}`);
             expect(updatedQueue.capacity).toBe(newCapacity);
         });
 
@@ -235,7 +207,7 @@ describe('Queue API Tests', () => {
             const newCapacity = 12;
             const response = await request
                 .put(`/queues/${testQueue.id}`)
-                .send({ capacity: newCapacity });
+                .send([{ capacity: newCapacity }]);
             expect(response.status).toBe(200);
             const updatedQueue = await getQueueFromRedis(testQueue.id);
             expect(updatedQueue.capacity).toBe(newCapacity);
@@ -246,7 +218,7 @@ describe('Queue API Tests', () => {
             const newCapacity = 12;
             const response = await request
                 .put(`/queues/${testQueue.id}`)
-                .send({ capacity: newCapacity });
+                .send([{ capacity: newCapacity }]);
             expect(response.status).toBe(403);
         });
 
@@ -254,7 +226,7 @@ describe('Queue API Tests', () => {
             loginAs(USER_OWNER);
             const response = await request
                 .put(`/queues/non_existent_queue_id`)
-                .send({ capacity: 12 });
+                .send([{ capacity: 12 }]);
             expect(response.status).toBe(404);
         });
 
@@ -267,7 +239,7 @@ describe('Queue API Tests', () => {
             loginAs(USER_OWNER);
             const response = await request
                 .put(`/queues/${testQueue.id}`)
-                .send({ capacity: 12 });
+                .send([{ capacity: 12 }]);
             expect(response.status).toBe(409); // Service method returns 409 for wrong state
         });
 
@@ -275,7 +247,7 @@ describe('Queue API Tests', () => {
             loginAs(USER_OWNER);
             const response = await request
                 .put(`/queues/${testQueue.id}`)
-                .send({ capacity: 1 }); // Current members: 2
+                .send([{ capacity: 1 }]); // Current members: 2
             expect(response.status).toBe(409);
         });
 
@@ -283,7 +255,7 @@ describe('Queue API Tests', () => {
             loginAs(USER_OWNER);
             const response = await request
                 .put(`/queues/${testQueue.id}`)
-                .send({ capacity: 0 });
+                .send([{ capacity: 0 }]);
             expect(response.status).toBe(400);
         });
         
@@ -291,14 +263,14 @@ describe('Queue API Tests', () => {
             loginAs(USER_OWNER);
             const response = await request
                 .put(`/queues/${testQueue.id}`)
-                .send({ capacity: -1 });
+                .send([{ capacity: -1 }]);
             expect(response.status).toBe(400);
         });
          test('Test Case 7 (Invalid Capacity - non-integer): Attempt to update capacity to 10.5 -> Expect 400 Bad Request', async () => {
             loginAs(USER_OWNER);
             const response = await request
                 .put(`/queues/${testQueue.id}`)
-                .send({ capacity: 10.5 });
+                .send([{ capacity: 10.5 }]);
             expect(response.status).toBe(400);
         });
     });
@@ -377,7 +349,7 @@ describe('Queue API Tests', () => {
         describe('POST /queues/:queueId/veto/start', () => {
             test('Test Case 1 (Success): Captain 1 starts veto -> Expect 200 OK', async () => {
                 loginAs(USER_CAPTAIN1_MOCK);
-                const response = await request.post(`/queues/${testQueueFull.id}/veto/start`);
+                const response = await request.post(`/queues/${testQueueFull.id}/veto`);
                 expect(response.status).toBe(200);
                 expect(response.body.message).toContain('Veto process started successfully');
                 const updatedVetoDetails = await getVetoDetailsFromRedis(testQueueFull.id);
@@ -386,7 +358,7 @@ describe('Queue API Tests', () => {
             
             test('Test Case 1b (Success): Captain 2 starts veto -> Expect 200 OK', async () => {
                 loginAs(USER_CAPTAIN2_MOCK);
-                const response = await request.post(`/queues/${testQueueFull.id}/veto/start`);
+                const response = await request.post(`/queues/${testQueueFull.id}/veto`);
                 expect(response.status).toBe(200);
                  expect(response.body.message).toContain('Veto process started successfully');
                 const updatedVetoDetails = await getVetoDetailsFromRedis(testQueueFull.id);
@@ -394,16 +366,16 @@ describe('Queue API Tests', () => {
             });
 
             test('Test Case 2 (Not a Captain): Regular user attempts to start -> Expect 403 Forbidden', async () => {
-                loginAs(USER_REGULAR); // USER_REGULAR is not captain1 or captain2 in this context
-                const response = await request.post(`/queues/${testQueueFull.id}/veto/start`);
+                loginAs(USER_BAD_ACTOR); // USER_REGULAR is not captain1 or captain2 in this context
+                const response = await request.post(`/queues/${testQueueFull.id}/veto`);
                 expect(response.status).toBe(403);
             });
 
             test('Test Case 3 (Already Started): Captain attempts to start again -> Expect 409 Conflict', async () => {
                 loginAs(USER_CAPTAIN1_MOCK);
-                await request.post(`/queues/${testQueueFull.id}/veto/start`); // Start it once
+                await request.post(`/queues/${testQueueFull.id}/veto`); // Start it once
                 
-                const response = await request.post(`/queues/${testQueueFull.id}/veto/start`); // Try again
+                const response = await request.post(`/queues/${testQueueFull.id}/veto`); // Try again
                 expect(response.status).toBe(409);
             });
 
@@ -412,7 +384,7 @@ describe('Queue API Tests', () => {
                 expect(newQueue).not.toBeNull();
 
                 loginAs(USER_OWNER); // Try to start veto for this new, un-popped queue
-                const response = await request.post(`/queues/${newQueue.id}/veto/start`);
+                const response = await request.post(`/queues/${newQueue.id}/veto`);
                 expect(response.status).toBe(404); // Veto details not found
             });
         });
@@ -425,7 +397,7 @@ describe('Queue API Tests', () => {
             beforeEach(async () => {
                 // Ensure veto is started before each ban test by one of the captains
                 loginAs(USER_CAPTAIN1_MOCK); // Captain 1 starts it
-                const startResponse = await request.post(`/queues/${testQueueFull.id}/veto/start`);
+                const startResponse = await request.post(`/queues/${testQueueFull.id}/veto`);
                 expect(startResponse.status).toBe(200);
                 const vetoState = await getVetoDetailsFromRedis(testQueueFull.id);
                 expect(vetoState.status).toBe('in_progress');
@@ -437,7 +409,7 @@ describe('Queue API Tests', () => {
                 // Stage 1: Captain 2 (vetoInitiator) bans 2 maps
                 // Ban 1 (C2)
                 loginAs(USER_CAPTAIN2_MOCK);
-                let banResponse = await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[0] }); // Ban de_dust2
+                let banResponse = await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[0] }]); // Ban de_dust2
                 expect(banResponse.status).toBe(200);
                 currentVetoDetails = banResponse.body.vetoDetails;
                 expect(currentVetoDetails.bansTeam2).toContain(DEFAULT_MAP_POOL_TEST[0]);
@@ -446,12 +418,12 @@ describe('Queue API Tests', () => {
 
                 // Attempt ban by C1 (not their turn)
                 loginAs(USER_CAPTAIN1_MOCK);
-                const wrongTurnRes = await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[1] });
+                const wrongTurnRes = await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[1] }]);
                 expect(wrongTurnRes.status).toBe(403);
 
                 // Ban 2 (C2)
                 loginAs(USER_CAPTAIN2_MOCK);
-                banResponse = await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[1] }); // Ban de_mirage
+                banResponse = await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[1] }]); // Ban de_mirage
                 expect(banResponse.status).toBe(200);
                 currentVetoDetails = banResponse.body.vetoDetails;
                 expect(currentVetoDetails.bansTeam2).toContain(DEFAULT_MAP_POOL_TEST[1]);
@@ -460,21 +432,21 @@ describe('Queue API Tests', () => {
                 // Stage 2: Captain 1 bans 3 maps
                 // Ban 3 (C1)
                 loginAs(USER_CAPTAIN1_MOCK);
-                banResponse = await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[2] }); // Ban de_inferno
+                banResponse = await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[2] }]); // Ban de_inferno
                 expect(banResponse.status).toBe(200);
                 currentVetoDetails = banResponse.body.vetoDetails;
                 expect(currentVetoDetails.bansTeam1).toContain(DEFAULT_MAP_POOL_TEST[2]);
                 expect(currentVetoDetails.nextVetoerSteamId).toBe(captain1SteamId);
 
                 // Ban 4 (C1)
-                banResponse = await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[3] }); // Ban de_nuke
+                banResponse = await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[3] }]); // Ban de_nuke
                 expect(banResponse.status).toBe(200);
                 currentVetoDetails = banResponse.body.vetoDetails;
                 expect(currentVetoDetails.bansTeam1).toContain(DEFAULT_MAP_POOL_TEST[3]);
                 expect(currentVetoDetails.nextVetoerSteamId).toBe(captain1SteamId);
                 
                 // Ban 5 (C1)
-                banResponse = await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[4] }); // Ban de_overpass
+                banResponse = await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[4] }]); // Ban de_overpass
                 expect(banResponse.status).toBe(200);
                 currentVetoDetails = banResponse.body.vetoDetails;
                 expect(currentVetoDetails.bansTeam1).toContain(DEFAULT_MAP_POOL_TEST[4]);
@@ -483,7 +455,7 @@ describe('Queue API Tests', () => {
                 // Stage 3: Captain 2 bans 1 map
                 // Ban 6 (C2)
                 loginAs(USER_CAPTAIN2_MOCK);
-                banResponse = await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[5] }); // Ban de_vertigo
+                banResponse = await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[5] }]); // Ban de_vertigo
                 expect(banResponse.status).toBe(200);
                 currentVetoDetails = banResponse.body.vetoDetails;
                 expect(currentVetoDetails.bansTeam2).toContain(DEFAULT_MAP_POOL_TEST[5]);
@@ -518,10 +490,10 @@ describe('Queue API Tests', () => {
             test('Error Case: Attempt to ban a non-available map', async () => {
                 // C2's turn (after C1 started veto). C2 bans de_dust2.
                 loginAs(USER_CAPTAIN2_MOCK);
-                await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[0] }); // Ban de_dust2
+                await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[0] }]); // Ban de_dust2
                 
                 // C2 attempts to ban de_dust2 again
-                const banAgainResponse = await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[0] });
+                const banAgainResponse = await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[0] }]);
                 expect(banAgainResponse.status).toBe(400); // Map not available
             });
 
@@ -529,14 +501,14 @@ describe('Queue API Tests', () => {
                 // Veto is 'in_progress' due to beforeEach. Let's complete it first.
                 // Simulate completion by performing all bans quickly
                 loginAs(USER_CAPTAIN2_MOCK); // C2 bans 2
-                await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[0] });
-                await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[1] });
+                await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[0] }]);
+                await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[1] }]);
                 loginAs(USER_CAPTAIN1_MOCK); // C1 bans 3
-                await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[2] });
-                await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[3] });
-                await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[4] });
+                await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[2] }]);
+                await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[3] }]);
+                await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[4] }]);
                 loginAs(USER_CAPTAIN2_MOCK); // C2 bans 1
-                await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[5] });
+                await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[5] }]);
 
                 // Veto is now 'completed'
                 const completedVetoDetails = await getVetoDetailsFromRedis(testQueueFull.id);
@@ -544,7 +516,7 @@ describe('Queue API Tests', () => {
 
                 // Attempt ban
                 loginAs(USER_CAPTAIN1_MOCK); // Try as C1
-                const banResponse = await request.post(`/queues/${testQueueFull.id}/veto/ban`).send({ mapName: DEFAULT_MAP_POOL_TEST[6] }); // map7 is picked, try to ban it
+                const banResponse = await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[6] }]); // map7 is picked, try to ban it
                 expect(banResponse.status).toBe(409); // Veto not in progress
             });
         });
@@ -555,27 +527,8 @@ describe('Queue API Tests', () => {
         let emitterSpy; // Declare emitterSpy here, scoped to this describe block
 
         beforeEach(() => {
-            // Ensure queueServiceInstance is available and is the correct instance used by the app.
-            // This was part of the initial setup description for the test file.
-            // Assuming 'queueServiceInstance' is correctly defined and initialized in an outer scope 
-            // (e.g., in the main beforeAll or passed/imported appropriately if app structure demands)
-            // and it's the instance the Express app uses.
-
-            if (queueServiceInstance && typeof queueServiceInstance.getEventsEmitter === 'function') {
-                const eventEmitter = queueServiceInstance.getEventsEmitter();
-                if (eventEmitter && typeof eventEmitter.emit === 'function') {
-                    emitterSpy = jest.spyOn(eventEmitter, 'emit');
-                } else {
-                    // Log an error or throw if the emitter isn't valid, to make debugging easier.
-                    console.error("ERROR in SSE beforeEach: Could not get a valid event emitter from queueServiceInstance.");
-                    // Optionally, throw an error to halt tests if this setup is critical for all SSE tests.
-                    // throw new Error("SSE spy setup failed: Invalid event emitter from queueServiceInstance.");
-                }
-            } else {
-                console.error("ERROR in SSE beforeEach: queueServiceInstance or its getEventsEmitter method is not available.");
-                // Optionally, throw an error.
-                // throw new Error("SSE spy setup failed: queueServiceInstance is not available or doesn't have getEventsEmitter.");
-            }
+            // Spy directly on the GlobalEmitter
+            emitterSpy = jest.spyOn(GlobalEmitter, 'emit');
         });
 
         afterEach(() => {
@@ -589,7 +542,7 @@ describe('Queue API Tests', () => {
             const USER_JOINER = { steam_id: 'user_joiner_steam_id', username: 'JoinerUser', admin: false, super_admin: false };
 
             beforeEach(async () => {
-                testQueue = await createQueueViaAPI(USER_OWNER, 2); // Capacity 2 for simplicity
+                testQueue = await createQueueViaAPI(USER_OWNER, 3); // Capacity 3 for simplicity, don't want to automatically start picking phase.
                 expect(testQueue).not.toBeNull();
             });
 
@@ -598,6 +551,7 @@ describe('Queue API Tests', () => {
                 const response = await request.put(`/queues/${testQueue.id}/join`);
                 expect(response.status).toBe(200);
 
+                console.log('[Test Player Joins] emitterSpy calls:', JSON.stringify(emitterSpy.mock.calls, null, 2));
                 expect(emitterSpy).toHaveBeenCalledWith('queue_event', 
                     expect.objectContaining({
                         type: 'player_joined',
@@ -620,6 +574,8 @@ describe('Queue API Tests', () => {
                 const leaveResponse = await request.put(`/queues/${testQueue.id}/leave`);
                 expect(leaveResponse.status).toBe(200);
                 
+                console.log(`[Test player_left] leaveResponse status: ${leaveResponse.status}, body: ${JSON.stringify(leaveResponse.body)}`);
+                console.log('[Test player_left] emitterSpy calls:', JSON.stringify(emitterSpy.mock.calls, null, 2));
                 expect(emitterSpy).toHaveBeenCalledWith('queue_event',
                     expect.objectContaining({
                         type: 'player_left',
@@ -694,9 +650,11 @@ describe('Queue API Tests', () => {
             test('Update capacity -> Verifies "queue_capacity_updated" event', async () => {
                 loginAs(USER_OWNER);
                 const newCapacity = 12;
-                const response = await request.put(`/queues/${testQueue.id}`).send({ capacity: newCapacity });
+                const response = await request.put(`/queues/${testQueue.id}`).send([{ capacity: newCapacity }]);
                 expect(response.status).toBe(200);
 
+                console.log(`[Test queue_capacity_updated] response status: ${response.status}, body: ${JSON.stringify(response.body)}`);
+                console.log('[Test queue_capacity_updated] emitterSpy calls:', JSON.stringify(emitterSpy.mock.calls, null, 2));
                 expect(emitterSpy).toHaveBeenCalledWith('queue_event',
                     expect.objectContaining({
                         type: 'queue_capacity_updated',
@@ -765,7 +723,7 @@ describe('Queue API Tests', () => {
                 const pickingCaptain = nextPickerSteamId === captain1SteamId ? USER_CAPTAIN1_MOCK_SSE : USER_CAPTAIN2_MOCK_SSE;
 
                 loginAs(pickingCaptain);
-                const pickResponse = await request.post(`/queues/${testQueueFull.id}/pick`).send({ playerSteamId: playerToPick });
+                const pickResponse = await request.post(`/queues/${testQueueFull.id}/pick`).send([{ playerSteamId: playerToPick }]);
                 expect(pickResponse.status).toBe(200);
                 
                 expect(emitterSpy).toHaveBeenCalledWith('queue_event',
@@ -791,7 +749,7 @@ describe('Queue API Tests', () => {
                 let playerToPick = availableToPick[0];
                 let pickingCaptain = nextPickerSteamId === captain1SteamId ? USER_CAPTAIN1_MOCK_SSE : USER_CAPTAIN2_MOCK_SSE;
                 loginAs(pickingCaptain);
-                await request.post(`/queues/${testQueueFull.id}/pick`).send({ playerSteamId: playerToPick });
+                await request.post(`/queues/${testQueueFull.id}/pick`).send([{ playerSteamId: playerToPick }]);
                 emitterSpy.mockClear();
 
                 // Pick 2 (last pick)
@@ -802,7 +760,7 @@ describe('Queue API Tests', () => {
                 pickingCaptain = nextPickerSteamId === captain1SteamId ? USER_CAPTAIN1_MOCK_SSE : USER_CAPTAIN2_MOCK_SSE;
                 
                 loginAs(pickingCaptain);
-                const pickResponse = await request.post(`/queues/${testQueueFull.id}/pick`).send({ playerSteamId: playerToPick });
+                const pickResponse = await request.post(`/queues/${testQueueFull.id}/pick`).send([{ playerSteamId: playerToPick }]);
                 expect(pickResponse.status).toBe(200);
 
                 expect(emitterSpy).toHaveBeenCalledWith('queue_event',
@@ -845,7 +803,7 @@ describe('Queue API Tests', () => {
             });
 
             test('Captain starts veto -> Verifies "veto_started" event', async () => {
-                loginAs(cap1);
+                loginAs(cap1); // Corrected: Was USER_CAPTAIN1_MOCK, should be cap1
                 const response = await request.post(`/queues/${testQueueVetoReady.id}/veto/start`);
                 expect(response.status).toBe(200);
 
@@ -862,11 +820,11 @@ describe('Queue API Tests', () => {
             });
 
             test('Captain bans a map -> Verifies "map_banned" event', async () => {
-                loginAs(cap1); // Start veto
+                loginAs(cap1); // Corrected: Was USER_CAPTAIN1_MOCK, should be cap1 (to start)
                 await request.post(`/queues/${testQueueVetoReady.id}/veto/start`);
                 emitterSpy.mockClear();
 
-                loginAs(cap2); // Captain2's turn to ban
+                loginAs(cap2); // Corrected: Was USER_CAPTAIN2_MOCK, should be cap2 (for banning)
                 const vetoDetails = await getVetoDetailsFromRedis(testQueueVetoReady.id);
                 const mapToBan = vetoDetails.availableMapsToBan[0];
                 
@@ -890,18 +848,18 @@ describe('Queue API Tests', () => {
             });
 
             test('Last ban completes, map picked -> Verifies "map_picked" and "queue_status_changed"', async () => {
-                loginAs(cap1); // C1 starts
+                loginAs(cap1); // Corrected: Was USER_CAPTAIN1_MOCK, C1 starts
                 await request.post(`/queues/${testQueueVetoReady.id}/veto/start`);
                 
                 const vetoDetailsInitial = await getVetoDetailsFromRedis(testQueueVetoReady.id);
                 const mapPool = vetoDetailsInitial.mapPool; // Should be 7 maps
 
                 // C2 (cap2) bans 2 maps
-                loginAs(cap2);
+                loginAs(cap2); // Corrected: Was USER_CAPTAIN2_MOCK
                 await request.post(`/queues/${testQueueVetoReady.id}/veto/ban`).send({ mapName: mapPool[0] });
                 await request.post(`/queues/${testQueueVetoReady.id}/veto/ban`).send({ mapName: mapPool[1] });
                 // C1 (cap1) bans 3 maps
-                loginAs(cap1);
+                loginAs(cap1); // Corrected: Was USER_CAPTAIN1_MOCK
                 await request.post(`/queues/${testQueueVetoReady.id}/veto/ban`).send({ mapName: mapPool[2] });
                 await request.post(`/queues/${testQueueVetoReady.id}/veto/ban`).send({ mapName: mapPool[3] });
                 await request.post(`/queues/${testQueueVetoReady.id}/veto/ban`).send({ mapName: mapPool[4] });
@@ -909,7 +867,7 @@ describe('Queue API Tests', () => {
                 emitterSpy.mockClear(); // Clear before the final ban
 
                 // C2 (cap2) bans 1 map (this is the last ban, map gets picked)
-                loginAs(cap2);
+                loginAs(cap2); // Corrected: Was USER_CAPTAIN2_MOCK
                 const finalBanResponse = await request.post(`/queues/${testQueueVetoReady.id}/veto/ban`).send({ mapName: mapPool[5] });
                 expect(finalBanResponse.status).toBe(200);
                 const pickedMap = mapPool[6];
@@ -953,6 +911,8 @@ describe('Queue API Tests', () => {
                 const response = await request.delete(`/queues/${testQueue.id}`);
                 expect(response.status).toBe(200);
 
+                console.log(`[Test queue_deleted] response status: ${response.status}, body: ${JSON.stringify(response.body)}`);
+                console.log('[Test queue_deleted] emitterSpy calls:', JSON.stringify(emitterSpy.mock.calls, null, 2));
                 expect(emitterSpy).toHaveBeenCalledWith('queue_event',
                     expect.objectContaining({
                         type: 'queue_deleted',

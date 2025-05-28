@@ -183,10 +183,7 @@ const router = Router();
 // It's better to pass redisUrl from config, or let QueueService handle it internally if it can access config
 const queueService = new QueueService(config.get("server.redisUrl") || '');
 
-// Placeholder for event emitter if needed for SSE.
-// For now, SSE is handled with a simple heartbeat.
-// import { EventEmitter } from 'events';
-// const queueEvents = new EventEmitter();
+import GlobalEmitter from "../../utility/emitter.js";
 
 /**
  * @swagger
@@ -440,6 +437,7 @@ router.put('/:queueId/leave', Utils.ensureAuthenticated, async (req: Request, re
             res.status(200).json({ message: 'Successfully left the queue.' });
         } else {
             const queue = await queueService.getQueueDetails(queueId);
+            console.log(`[Queue Leave Route] ${JSON.stringify(queue)}`);
             if (!queue) {
                 return res.status(404).json({ message: 'Queue not found or player not in queue.' });
             }
@@ -514,8 +512,7 @@ router.post('/', Utils.ensureAuthenticated, async (req: Request, res: Response) 
             return res.status(401).json({ message: 'User not authenticated properly.' });
         }
         const steamId = user.steam_id;
-        const { capacity } = req.body[0]?.capacity;
-
+        const { capacity } = req.body[0];
         const newQueue = await queueService.createQueue(steamId, capacity);
         if (newQueue) {
             res.status(201).json(newQueue);
@@ -619,7 +616,7 @@ router.post('/:queueId/pick', Utils.ensureAuthenticated, async (req: Request, re
         }
         const requestingUserSteamId = user.steam_id;
         const { queueId } = req.params;
-        const { playerSteamId: playerToPickSteamId } = req.body;
+        const { playerSteamId: playerToPickSteamId } = req.body[0];
 
         if (!playerToPickSteamId) {
             return res.status(400).json({ message: 'playerSteamId is required in the request body.' });
@@ -835,7 +832,7 @@ router.put('/:queueId', Utils.ensureAuthenticated, async (req: Request, res: Res
         }
         const requestingUserSteamId = user.steam_id;
         const { queueId } = req.params;
-        const { capacity: newCapacity } = req.body;
+        const { capacity: newCapacity } = req.body[0];
 
         if (typeof newCapacity !== 'number' || !Number.isInteger(newCapacity) || newCapacity <= 0) {
             return res.status(400).json({ message: 'Capacity must be a positive integer.' });
@@ -912,7 +909,6 @@ router.get('/:queueId/events', async (req: Request, res: Response) => {
 
         res.write('event: connected\ndata: You are connected to queue events.\n\n');
 
-        const emitter = queueService.getEventsEmitter();
 
         const queueEventListener = (eventDetails: any) => {
             if (eventDetails.queueId === queueId) {
@@ -920,7 +916,7 @@ router.get('/:queueId/events', async (req: Request, res: Response) => {
             }
         };
 
-        emitter.on('queue_event', queueEventListener);
+        GlobalEmitter.on('queue_event', queueEventListener);
 
         const heartbeatInterval = setInterval(() => {
             res.write(':heartbeat\n\n');
@@ -928,9 +924,15 @@ router.get('/:queueId/events', async (req: Request, res: Response) => {
 
         req.on('close', () => {
             clearInterval(heartbeatInterval);
-            emitter.off('queue_event', queueEventListener);
+            GlobalEmitter.off('queue_event', queueEventListener);
             res.end();
             console.log(`SSE connection closed for queue ${queueId}`);
+        });
+
+        req.on('disconnect', () => {
+            clearInterval(heartbeatInterval);
+            GlobalEmitter.off('queue_event', queueEventListener);
+            res.end();
         });
 
     } catch (error) {
@@ -1006,7 +1008,7 @@ router.get('/:queueId/veto', Utils.ensureAuthenticated, async (req: Request, res
 
 /**
  * @swagger
- * /queues/{queueId}/veto/start:
+ * /queues/{queueId}/veto:
  *   post:
  *     summary: Start the map veto process for a queue
  *     tags: [Queues, Veto]
@@ -1074,7 +1076,7 @@ router.get('/:queueId/veto', Utils.ensureAuthenticated, async (req: Request, res
  *                   type: string
  *                   example: "Server error starting veto."
  */
-router.post('/:queueId/veto/start', Utils.ensureAuthenticated, async (req: Request, res: Response) => {
+router.post('/:queueId/veto', Utils.ensureAuthenticated, async (req: Request, res: Response) => {
     try {
         const user = req.user as CustomUser;
         if (!user || !user.steam_id) {
@@ -1100,8 +1102,8 @@ router.post('/:queueId/veto/start', Utils.ensureAuthenticated, async (req: Reque
 
 /**
  * @swagger
- * /queues/{queueId}/veto/ban:
- *   post:
+ * /queues/{queueId}/veto:
+ *   put:
  *     summary: Record a map ban during the veto process
  *     tags: [Queues, Veto]
  *     security:
@@ -1191,7 +1193,7 @@ router.post('/:queueId/veto/start', Utils.ensureAuthenticated, async (req: Reque
  *                   type: string
  *                   example: "Server error banning map."
  */
-router.post('/:queueId/veto/ban', Utils.ensureAuthenticated, async (req: Request, res: Response) => {
+router.put('/:queueId/veto', Utils.ensureAuthenticated, async (req: Request, res: Response) => {
     try {
         const user = req.user as CustomUser;
         if (!user || !user.steam_id) {
@@ -1199,7 +1201,7 @@ router.post('/:queueId/veto/ban', Utils.ensureAuthenticated, async (req: Request
         }
         const captainSteamId = user.steam_id;
         const { queueId } = req.params;
-        const { mapName } = req.body;
+        const { mapName } = req.body[0];
 
         if (!mapName || typeof mapName !== 'string') {
             return res.status(400).json({ message: 'mapName is required in the request body and must be a string.' });
