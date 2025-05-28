@@ -402,7 +402,7 @@ describe('Queue API Tests', () => {
         });
         
         describe('POST /queues/:queueId/veto/ban (Full Veto Sequence)', () => {
-            const DEFAULT_MAP_POOL_TEST = ['de_dust2', 'de_mirage', 'de_inferno', 'de_nuke', 'de_overpass', 'de_vertigo', 'de_ancient'];
+            const DEFAULT_MAP_POOL_TEST = ['de_dust2', 'de_mirage', 'de_inferno', 'de_nuke', 'de_anubis', 'de_vertigo', 'de_ancient'];
             // This assumes DEFAULT_MAP_POOL in QueueService is the same or tests will fail.
             // For more robust tests, this could be fetched from the /veto endpoint first.
 
@@ -458,7 +458,7 @@ describe('Queue API Tests', () => {
                 expect(currentVetoDetails.nextVetoerSteamId).toBe(captain1SteamId);
                 
                 // Ban 5 (C1)
-                banResponse = await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[4] }]); // Ban de_overpass
+                banResponse = await request.put(`/queues/${testQueueFull.id}/veto`).send([{ mapName: DEFAULT_MAP_POOL_TEST[4] }]); // Ban de_anubis
                 expect(banResponse.status).toBe(200);
                 currentVetoDetails = banResponse.body.vetoDetails;
                 expect(currentVetoDetails.bansTeam1).toContain(DEFAULT_MAP_POOL_TEST[4]);

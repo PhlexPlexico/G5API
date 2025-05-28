@@ -13,7 +13,7 @@ import { PickPhaseDetails } from '../types/queues/PickPhaseDetails.js';
 import { PickPhaseState } from '../types/queues/PickPhaseState.js';
 import { VetoDetails } from '../types/queues/VetoDetails.js';
 
-const DEFAULT_MAP_POOL = ['de_dust2', 'de_mirage', 'de_inferno', 'de_nuke', 'de_overpass', 'de_vertigo', 'de_ancient'];
+const DEFAULT_MAP_POOL = ['de_dust2', 'de_mirage', 'de_inferno', 'de_nuke', 'de_anubis', 'de_vertigo', 'de_ancient'];
 
 class QueueService {
   private redisClient: RedisClientType<any, any, any>;
