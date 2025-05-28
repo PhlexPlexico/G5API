@@ -437,7 +437,6 @@ router.put('/:queueId/leave', Utils.ensureAuthenticated, async (req: Request, re
             res.status(200).json({ message: 'Successfully left the queue.' });
         } else {
             const queue = await queueService.getQueueDetails(queueId);
-            console.log(`[Queue Leave Route] ${JSON.stringify(queue)}`);
             if (!queue) {
                 return res.status(404).json({ message: 'Queue not found or player not in queue.' });
             }
@@ -926,7 +925,6 @@ router.get('/:queueId/events', async (req: Request, res: Response) => {
             clearInterval(heartbeatInterval);
             GlobalEmitter.off('queue_event', queueEventListener);
             res.end();
-            console.log(`SSE connection closed for queue ${queueId}`);
         });
 
         req.on('disconnect', () => {

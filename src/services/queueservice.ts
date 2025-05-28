@@ -67,29 +67,29 @@ class QueueService {
   }
 
   private async _findUserServer(ownerSteamId: string, queueId: string, pickedMap: string): Promise<string | null> {
-    console.log(`[Server Allocation] Attempting to find a free server for user ${ownerSteamId}, queue ${queueId}, map ${pickedMap}.`);
+    console.debug(`[Server Allocation] Attempting to find a free server for user ${ownerSteamId}, queue ${queueId}, map ${pickedMap}.`);
     return null;
   }
 
   private async _findPublicServer(queueId: string, pickedMap: string): Promise<string | null> {
-    console.log(`[Server Allocation] Attempting to find a public server for queue ${queueId}, map ${pickedMap}.`);
+    console.debug(`[Server Allocation] Attempting to find a public server for queue ${queueId}, map ${pickedMap}.`);
     return null;
   }
 
   private async _setupDockerizedServer(queueId: string, pickedMap: string): Promise<string | null> {
-    console.log(`[Docker Placeholder] Initiating Dockerized CS2 server setup for queue ${queueId} with map ${pickedMap}.`);
-    console.log("[Docker Placeholder] Step 1: Check if Docker is available (simulated: yes).");
-    console.log("[Docker Placeholder] Step 2: Pull CS2 server image (simulated: joedwards32/cs2).");
-    console.log(`[Docker Placeholder] Step 3: Run Docker image for queue ${queueId} on map ${pickedMap} with MatchZy (simulated).`);
+    console.debug(`[Docker Placeholder] Initiating Dockerized CS2 server setup for queue ${queueId} with map ${pickedMap}.`);
+    console.debug("[Docker Placeholder] Step 1: Check if Docker is available (simulated: yes).");
+    console.debug("[Docker Placeholder] Step 2: Pull CS2 server image (simulated: joedwards32/cs2).");
+    console.debug(`[Docker Placeholder] Step 3: Run Docker image for queue ${queueId} on map ${pickedMap} with MatchZy (simulated).`);
     const simulatedServerIp = "127.0.0.1";
     const simulatedPort = "27015";
-    console.log(`[Docker Placeholder] Simulated server IP: ${simulatedServerIp}:${simulatedPort}`);
+    console.debug(`[Docker Placeholder] Simulated server IP: ${simulatedServerIp}:${simulatedPort}`);
     return `${simulatedServerIp}:${simulatedPort}`;
   }
 
 
   async createQueue(ownerSteamId: string, capacity?: number): Promise<Queue | null> {
-    const queueCapacity = capacity === undefined ? this.defaultQueueCapacity : capacity;
+    let queueCapacity: number = capacity === undefined ? this.defaultQueueCapacity : capacity;
 
     try {
       const userQueuesCountKey = "user:queues:counts";
@@ -100,6 +100,9 @@ class QueueService {
       if (currentQueueCount >= this.userQueueCreationLimit) {
         console.warn(`User ${ownerSteamId} has reached their queue creation limit of ${this.userQueueCreationLimit}.`);
         return null;
+      } else if (queueCapacity < 2) {
+        console.warn(`User ${ownerSteamId} attempted to create a queue with capacity < 2. Defaulting to ${this.defaultQueueCapacity}.`);
+        queueCapacity = this.defaultQueueCapacity;
       }
 
       // _generateQueueId now handles uniqueness and fallback
@@ -130,7 +133,6 @@ class QueueService {
       transaction.sAdd(userOwnedQueuesKey, queueId);
       transaction.sAdd(activeQueuesKey, queueId);
       await transaction.exec();
-      // console.log(`Event: queue_created id <${queueId}> owner <${ownerSteamId}> capacity <${queueCapacity}>`);
       GlobalEmitter.emit('queue_event', { type: 'queue_created', queueId: newQueue.id, data: newQueue });
       return newQueue;
     } catch (error) {
@@ -163,8 +165,6 @@ class QueueService {
       }
 
       await this.redisClient.hSet(queueKey, "capacity", newCapacity.toString());
-      // console.log(`Event: queue_capacity_updated id <${queueId}> new_capacity <${newCapacity}>`);
-      console.log(`[QueueService updateQueueCapacity] About to emit queue_capacity_updated for queue ${queueId}. Success status: true`);
       GlobalEmitter.emit('queue_event', { type: 'queue_capacity_updated', queueId: queueId, data: { newCapacity: newCapacity } });
       return { success: true, message: 'Queue capacity updated successfully.' };
 
@@ -191,12 +191,11 @@ class QueueService {
       const capacity = parseInt(capacityStr || "0", 10);
       const currentMemberCount = await this.redisClient.sCard(queueMembersKey);
       if (currentMemberCount >= capacity) {
-        console.log(`Queue ${queueId} is full. Cannot add player ${playerSteamId}.`);
+        console.warn(`Queue ${queueId} is full. Cannot add player ${playerSteamId}.`);
         return false;
       }
       const added = await this.redisClient.sAdd(queueMembersKey, playerSteamId);
       if (added) {
-        // console.log(`Event: player_joined queue <${queueId}> player <${playerSteamId}>`);
         const members = await this.redisClient.sMembers(queueMembersKey);
         GlobalEmitter.emit('queue_event', { type: 'player_joined', queueId: queueId, data: { playerSteamId: playerSteamId, members: members } });
         const newMemberCount = members.length; // Use length of fetched members
@@ -205,7 +204,6 @@ class QueueService {
         }
         return true;
       } else {
-        console.log(`Player ${playerSteamId} is already a member of queue ${queueId}.`);
         // Emit event even if player was already in queue, as client might want to know about the attempt or refresh state.
         const members = await this.redisClient.sMembers(queueMembersKey);
         GlobalEmitter.emit('queue_event', { type: 'player_joined', queueId: queueId, data: { playerSteamId: playerSteamId, members: members } });
@@ -271,7 +269,6 @@ class QueueService {
 
       // Add a self-check read immediately after writing
       const selfCheckData = await this.redisClient.hGetAll(poppedQueueDetailsKey);
-      console.log(`Event: queue_popped queue ${queueId} capacity ${capacity}. Captains: ${captain1}, ${captain2}. Players: ${players.join(', ')}. Original owner: ${originalOwnerSteamId}`);
       GlobalEmitter.emit('queue_event', {
         type: 'internal_queue_picking_initiated', // Changed type
         queueId: queueId,
@@ -371,11 +368,9 @@ class QueueService {
         status: 'picking', // Status remains 'picking' until map veto and server allocation complete
         serverIp: null // Server IP will be set after map veto
       };
-      console.log(`[QueueService pickPlayerInQueue] picksMade: ${picksMade} availablePlayers.length: ${availablePlayers.length}`);
       if (picksMade >= totalPlayersToPick || availablePlayers.length === 0) {
         pickPhaseStateForReturn.nextPicker = "picking_complete";
         nextPicker = "picking_complete"; // Update local nextPicker for saving to Redis
-        // console.log(`Event: teams_finalized for queue ${queueId}. Team1: ${team1Picks.join(', ')}, Team2: ${team2Picks.join(', ')}`);
 
         // Validate original_owner_steam_id from popped details before creating VetoDetails
         const ownerIdFromPoppedDetails = details.original_owner_steam_id;
@@ -407,7 +402,6 @@ class QueueService {
         picks_made: picksMade.toString()
       });
 
-      // console.log(`Event: player_picked queue <${queueId}> captain <${requestingUserSteamId}> picked <${playerToPickSteamId}>`);
       GlobalEmitter.emit('queue_event', { type: 'player_picked', queueId: queueId, data: pickPhaseStateForReturn });
       return { state: pickPhaseStateForReturn };
 
@@ -438,13 +432,11 @@ class QueueService {
       }
       const removed = await this.redisClient.sRem(queueMembersKey, playerSteamId);
       if (removed) {
-        // console.log(`Event: player_left queue <${queueId}> player <${playerSteamId}>`);
         const members = await this.redisClient.sMembers(queueMembersKey);
-        console.log(`[QueueService removePlayerFromQueue] About to emit player_left for queue ${queueId}, player ${playerSteamId}. Removed status: ${removed}`);
         GlobalEmitter.emit('queue_event', { type: 'player_left', queueId: queueId, data: { playerSteamId: playerSteamId, members: members } });
         return true;
       } else {
-        console.log(`Player ${playerSteamId} not found in queue ${queueId}.`);
+        console.debug(`Player ${playerSteamId} not found in queue ${queueId}.`);
         return false;
       }
     } catch (error) {
@@ -458,7 +450,6 @@ class QueueService {
       const queueKey = `queue:${queueId}`;
       const queueData = await this.redisClient.hGetAll(queueKey);
       if (!queueData || Object.keys(queueData).length === 0) {
-        console.log(`Queue details not found for queueId: ${queueId}`);
         return null;
       }
       const members = await this.redisClient.sMembers(`queue:${queueId}:members`);
@@ -545,7 +536,6 @@ class QueueService {
       transaction.sRem(userOwnedQueuesKey, queueId);
       transaction.hIncrBy(userQueuesCountKey, ownerSteamId, -1);
       await transaction.exec();
-      // console.log(`Event: queue_deleted id <${queueId}> requested_by <${requestingUserSteamId}>`);
       GlobalEmitter.emit('queue_event', { type: 'queue_deleted', queueId: queueId, data: { deletedBy: requestingUserSteamId } });
       return true;
     } catch (error) {
@@ -751,7 +741,6 @@ class QueueService {
   async disconnect(): Promise<void> {
     if (this.redisClient && this.redisClient.isOpen) {
       await this.redisClient.disconnect();
-      console.log("Redis client disconnected.");
     }
   }
 }
