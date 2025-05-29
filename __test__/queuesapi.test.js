@@ -19,6 +19,8 @@ const USER_CAPTAIN2_MOCK = { steam_id: 'captain2_steam_id', username: 'CaptainTw
 const USER_REGULAR = { steam_id: 'user_regular_steam_id', username: 'RegularUser', admin: false, super_admin: false };
 const USER_BAD_ACTOR = { steam_id: 'user_bad_actor_steam_id', username: 'BadActor', admin: false, super_admin: false };
 const USER_OWNER = { steam_id: 'user_owner_steam_id', username: 'QueueOwner', admin: false, super_admin: false };
+const USER_PLAYER3_SSE = { steam_id: 'player3_sse_steam_id', username: 'Player3SSE', admin: false, super_admin: false };
+const USER_PLAYER4_SSE = { steam_id: 'player4_sse_steam_id', username: 'Player4SSE', admin: false, super_admin: false };
 const USER_ADMIN = { steam_id: 'user_admin_steam_id', username: 'AdminUser', admin: true, super_admin: false };
 const USER_SUPER_ADMIN = { steam_id: 'user_super_admin_steam_id', username: 'SuperAdminUser', admin: false, super_admin: true }; // super_admin implies admin in some checks
 
@@ -53,11 +55,15 @@ const getVetoDetailsFromRedis = async (queueId) => {
     return queueServiceInstance.getVetoDetails(queueId);
 };
 
-const createQueueViaAPI = async (user, capacity = 10) => {
+const createQueueViaAPI = async (user, capacity = 10, teamSelectionMethod) => {
     loginAs(user);
+    const payload = { capacity };
+    if (teamSelectionMethod) {
+        payload.teamSelectionMethod = teamSelectionMethod;
+    }
     const response = await request
         .post('/queues')
-        .send([{ capacity: capacity }])
+        .send([payload]) // Send as an array with one object
         .set('Accept', 'application/json');
     if (response.status === 201) {
         return response.body;
@@ -120,6 +126,7 @@ describe('Queue API Tests', () => {
     });
 
   let mysqlTestPool; // Pool for test-specific MySQL queries
+  let emitterSpy; // Moved emitterSpy declaration here
 
     beforeEach(async () => {
         if (redisClient && redisClient.isOpen) {
@@ -129,9 +136,211 @@ describe('Queue API Tests', () => {
                 await redisClient.del(allKeys);
             }
         }
+        // Initialize emitterSpy here for all tests within 'Queue API Tests'
+        emitterSpy = jest.spyOn(GlobalEmitter, 'emit');
     });
 
-    // --- Phase 1: CRUD and Authorization Tests ---
+    afterEach(() => {
+        // Restore emitterSpy here after each test
+        if (emitterSpy) {
+            emitterSpy.mockRestore();
+        }
+    });
+
+    // --- Phase 1: CRUD, Authorization, and Team Selection Method Tests ---
+
+    describe('Queue Creation with Team Selection Method', () => {
+        test('Test Case 1: Create queue with teamSelectionMethod: "random"', async () => {
+            const queue = await createQueueViaAPI(USER_OWNER, 10, 'random');
+            expect(queue).not.toBeNull();
+            expect(queue.teamSelectionMethod).toBe('random');
+            const queueDetailsFromRedis = await getQueueFromRedis(queue.id);
+            expect(queueDetailsFromRedis.teamSelectionMethod).toBe('random');
+        });
+
+        test('Test Case 2: Create queue with teamSelectionMethod: "captains"', async () => {
+            const queue = await createQueueViaAPI(USER_OWNER, 10, 'captains');
+            expect(queue).not.toBeNull();
+            expect(queue.teamSelectionMethod).toBe('captains');
+            const queueDetailsFromRedis = await getQueueFromRedis(queue.id);
+            expect(queueDetailsFromRedis.teamSelectionMethod).toBe('captains');
+        });
+
+        test('Test Case 3: Create queue with no explicit teamSelectionMethod (defaults to "captains")', async () => {
+            const queue = await createQueueViaAPI(USER_OWNER, 10); // No method specified
+            expect(queue).not.toBeNull();
+            expect(queue.teamSelectionMethod).toBe('captains'); // Default behavior
+            const queueDetailsFromRedis = await getQueueFromRedis(queue.id);
+            expect(queueDetailsFromRedis.teamSelectionMethod).toBe('captains');
+        });
+    });
+
+    describe('Team Selection Method: "random" - Pop Behavior and Events', () => {
+        let randomQueue;
+        const playersForRandomQueue = [USER_OWNER, USER_REGULAR, USER_PLAYER3_SSE, USER_PLAYER4_SSE]; // 4 players
+
+        beforeEach(async () => {
+            // Create queue with teamSelectionMethod: 'random' by USER_OWNER
+            randomQueue = await createQueueViaAPI(USER_OWNER, playersForRandomQueue.length, 'random');
+            expect(randomQueue).not.toBeNull();
+            expect(randomQueue.teamSelectionMethod).toBe('random');
+            emitterSpy.mockClear();
+
+            // Add other players to fill the queue
+            for (let i = 1; i < playersForRandomQueue.length; i++) { // Start from 1 as owner is already in
+                loginAs(playersForRandomQueue[i]);
+                const joinResponse = await request.put(`/queues/${randomQueue.id}/join`);
+                expect(joinResponse.status).toBe(200); // Ensure join is successful
+            }
+            // Queue should have popped by now
+        });
+
+        test('Pop Behavior: Random team assignment, status "veto", correct Redis details, and event emission', async () => {
+            // 1. Verify queue status is 'veto'
+            const queueState = await getQueueFromRedis(randomQueue.id);
+            expect(queueState.status).toBe('veto');
+
+            // 2. Verify popped_queue details
+            const poppedDetailsKey = `popped_queue:${randomQueue.id}:details`;
+            const poppedDetails = await redisClient.hGetAll(poppedDetailsKey);
+            expect(poppedDetails).toBeDefined();
+            expect(JSON.parse(poppedDetails.available_players)).toEqual([]);
+            expect(poppedDetails.next_picker).toBe("picking_complete");
+
+            const team1Picks = JSON.parse(poppedDetails.team1_picks);
+            const team2Picks = JSON.parse(poppedDetails.team2_picks);
+            const allPickedPlayers = [...team1Picks, ...team2Picks].sort();
+            const originalPlayerIds = playersForRandomQueue.map(p => p.steam_id).sort();
+            expect(allPickedPlayers).toEqual(originalPlayerIds);
+
+            // Check team sizes (for 4 players, should be 2 vs 2)
+            expect(team1Picks.length).toBe(playersForRandomQueue.length / 2);
+            expect(team2Picks.length).toBe(playersForRandomQueue.length / 2);
+
+            expect(poppedDetails.captain1).toBe(team1Picks[0]); // Assuming first player in list is captain
+            expect(poppedDetails.captain2).toBe(team2Picks[0]); // Assuming first player in list is captain
+
+            // 3. Verify veto details are created
+            const vetoDetails = await getVetoDetailsFromRedis(randomQueue.id);
+            expect(vetoDetails).not.toBeNull();
+            expect(vetoDetails.status).toBe('awaiting_captain_start');
+            expect(vetoDetails.captain1SteamId).toBe(poppedDetails.captain1);
+            expect(vetoDetails.captain2SteamId).toBe(poppedDetails.captain2);
+
+            // 4. Spy on emitter
+            expect(emitterSpy).toHaveBeenCalledWith('queue_event',
+                expect.objectContaining({
+                    type: 'teams_randomly_assigned',
+                    queueId: randomQueue.id,
+                    data: expect.objectContaining({
+                        status: 'veto',
+                        captain1: poppedDetails.captain1,
+                        team1Players: expect.arrayContaining(team1Picks),
+                        captain2: poppedDetails.captain2,
+                        team2Players: expect.arrayContaining(team2Picks),
+                    })
+                })
+            );
+            expect(emitterSpy).not.toHaveBeenCalledWith('queue_event',
+                expect.objectContaining({ type: 'internal_queue_picking_initiated' })
+            );
+             expect(emitterSpy).not.toHaveBeenCalledWith('queue_event',
+                expect.objectContaining({ type: 'player_picked' })
+            );
+        });
+
+        test('No Picking Phase: Attempt to use /pick endpoint for "random" queue -> Expect 400/409', async () => {
+            // Queue is already in 'veto' state after popping in beforeEach
+            loginAs(playersForRandomQueue[0]); // Login as one of the captains (or any player)
+            const response = await request
+                .post(`/queues/${randomQueue.id}/pick`)
+                .send([{ playerSteamId: playersForRandomQueue[1].steam_id }]); // Try to pick someone
+
+            // Expecting 400 because QueueService.pickPlayerInQueue returns:
+            // { state: null, error: 'Queue is not in picking phase.', status: 400 }
+            // Or 409 if the status check happens at the route level before service.
+            // Based on current QueueService, it's 400.
+            expect(response.status).toBe(400);
+            expect(response.body.message).toContain('Queue is not in picking phase.');
+        });
+    });
+
+
+    describe('Team Selection Method: "captains" (explicit) - Pop Behavior and Events', () => {
+        let captainsQueue;
+        const playersForCaptainsQueue = [USER_OWNER, USER_REGULAR, USER_PLAYER3_SSE, USER_PLAYER4_SSE]; // 4 players
+
+        beforeEach(async () => {
+            captainsQueue = await createQueueViaAPI(USER_OWNER, playersForCaptainsQueue.length, 'captains');
+            expect(captainsQueue).not.toBeNull();
+            expect(captainsQueue.teamSelectionMethod).toBe('captains');
+            emitterSpy.mockClear();
+
+            for (let i = 1; i < playersForCaptainsQueue.length; i++) {
+                loginAs(playersForCaptainsQueue[i]);
+                await request.put(`/queues/${captainsQueue.id}/join`);
+            }
+        });
+
+        test('Pop Behavior: Enters "picking" state, correct Redis details, and event emission', async () => {
+            const queueState = await getQueueFromRedis(captainsQueue.id);
+            expect(queueState.status).toBe('picking');
+
+            const poppedDetailsKey = `popped_queue:${captainsQueue.id}:details`;
+            const poppedDetails = await redisClient.hGetAll(poppedDetailsKey);
+            expect(poppedDetails).toBeDefined();
+            expect(JSON.parse(poppedDetails.available_players).length).toBe(playersForCaptainsQueue.length - 2);
+            expect(poppedDetails.next_picker).toBe(poppedDetails.captain1); // Captain 1 picks first by default
+
+            expect(emitterSpy).toHaveBeenCalledWith('queue_event',
+                expect.objectContaining({
+                    type: 'internal_queue_picking_initiated',
+                    queueId: captainsQueue.id,
+                    data: expect.objectContaining({
+                        status: 'picking',
+                        captain1: poppedDetails.captain1,
+                        captain2: poppedDetails.captain2,
+                    })
+                })
+            );
+            expect(emitterSpy).not.toHaveBeenCalledWith('queue_event',
+                expect.objectContaining({ type: 'teams_randomly_assigned' })
+            );
+        });
+
+        test('Picking Phase: Captains can pick players', async () => {
+            const poppedDetailsKey = `popped_queue:${captainsQueue.id}:details`;
+            let poppedData = await redisClient.hGetAll(poppedDetailsKey);
+            let captain1 = poppedData.captain1;
+            let captain2 = poppedData.captain2;
+            let availablePlayers = JSON.parse(poppedData.available_players);
+            
+            // Captain 1 picks
+            loginAs({ steam_id: captain1 });
+            let playerToPick = availablePlayers[0];
+            let pickResponse = await request.post(`/queues/${captainsQueue.id}/pick`).send([{ playerSteamId: playerToPick }]);
+            expect(pickResponse.status).toBe(200);
+            expect(emitterSpy).toHaveBeenCalledWith('queue_event', expect.objectContaining({ type: 'player_picked' }));
+            
+            emitterSpy.mockClear();
+
+            // Captain 2 picks (last player)
+            poppedData = await redisClient.hGetAll(poppedDetailsKey); // Refresh details
+            availablePlayers = JSON.parse(poppedData.available_players);
+            playerToPick = availablePlayers[0];
+            loginAs({ steam_id: captain2 });
+            pickResponse = await request.post(`/queues/${captainsQueue.id}/pick`).send([{ playerSteamId: playerToPick }]);
+            expect(pickResponse.status).toBe(200);
+            
+            expect(emitterSpy).toHaveBeenCalledWith('queue_event', expect.objectContaining({ type: 'player_picked' }));
+            expect(emitterSpy).toHaveBeenCalledWith('queue_event', expect.objectContaining({ type: 'teams_finalized' }));
+            
+            const finalQueueState = await getQueueFromRedis(captainsQueue.id);
+             // Status should be 'veto' after picking is complete for 'captains' mode
+            expect(finalQueueState.status).toBe('veto');
+        });
+    });
+
 
     describe('DELETE /queues/:queueId Authorization', () => {
         let queueCreatedByOwner;
@@ -535,19 +744,9 @@ describe('Queue API Tests', () => {
     });
 
     // --- Phase 3: SSE Event Tests (Placeholders) ---
+    // emitterSpy is now initialized and restored at the top level of 'Queue API Tests'
+    // No need for separate beforeEach/afterEach for emitterSpy in this describe block
     describe('SSE Event Verification via Emitter Spying', () => {
-        let emitterSpy; // Declare emitterSpy here, scoped to this describe block
-
-        beforeEach(() => {
-            // Spy directly on the GlobalEmitter
-            emitterSpy = jest.spyOn(GlobalEmitter, 'emit');
-        });
-
-        afterEach(() => {
-            if (emitterSpy) { // Add a check here
-                emitterSpy.mockRestore();
-            }
-        });
 
         describe('PUT /queues/:queueId/join and /leave Events', () => {
             let testQueue;
@@ -673,9 +872,9 @@ describe('Queue API Tests', () => {
 
 
             beforeEach(async () => {
-                // Create a queue with capacity 4 by USER_OWNER
+            // Create a queue with capacity 4 by USER_OWNER, teamSelectionMethod 'captains' for these tests
                 loginAs(USER_OWNER);
-                testQueueFull = await createQueueViaAPI(USER_OWNER, 4); // Owner is player 1
+            testQueueFull = await createQueueViaAPI(USER_OWNER, 4, 'captains'); // Owner is player 1
                 expect(testQueueFull).not.toBeNull();
 
                 // Player 2 joins (USER_REGULAR)
@@ -782,11 +981,11 @@ describe('Queue API Tests', () => {
             let cap1, cap2; // Mock users for captains
 
             beforeEach(async () => {
-                // Setup similar to Map Veto tests (Phase 2)
                 loginAs(USER_OWNER); 
-                testQueueVetoReady = await createQueueViaAPI(USER_OWNER, 2);
+            // Using 'captains' for simplicity, could be 'random' too if it correctly sets up veto
+            testQueueVetoReady = await createQueueViaAPI(USER_OWNER, 2, 'captains'); 
                 loginAs(USER_REGULAR);
-                await request.put(`/queues/${testQueueVetoReady.id}/join`); // Pops the queue
+            await request.put(`/queues/${testQueueVetoReady.id}/join`); 
 
                 const poppedDetails = await redisClient.hGetAll(`popped_queue:${testQueueVetoReady.id}:details`);
                 cap1 = { ...USER_CAPTAIN1_MOCK, steam_id: poppedDetails.captain1 };
@@ -894,7 +1093,7 @@ describe('Queue API Tests', () => {
         describe('DELETE /queues/:queueId Event', () => {
             let testQueue;
             beforeEach(async () => {
-                testQueue = await createQueueViaAPI(USER_OWNER, 10);
+            testQueue = await createQueueViaAPI(USER_OWNER, 10, 'captains'); // Specify method for clarity
                 expect(testQueue).not.toBeNull();
                 emitterSpy.mockClear();
             });

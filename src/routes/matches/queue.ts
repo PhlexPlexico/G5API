@@ -474,6 +474,11 @@ router.put('/:queueId/leave', Utils.ensureAuthenticated, async (req: Request, re
  *                 type: integer
  *                 description: Optional capacity for the queue. Defaults to server setting.
  *                 example: 10
+ *               teamSelectionMethod:
+ *                 type: string
+ *                 enum: [random, captains]
+ *                 description: Optional team selection method. Defaults to 'captains'.
+ *                 example: 'random'
  *     responses:
  *       201:
  *         description: Queue created successfully. The owner is automatically added as the first member.
@@ -511,8 +516,8 @@ router.post('/', Utils.ensureAuthenticated, async (req: Request, res: Response) 
             return res.status(401).json({ message: 'User not authenticated properly.' });
         }
         const steamId = user.steam_id;
-        const { capacity } = req.body[0];
-        const newQueue = await queueService.createQueue(steamId, capacity);
+        const { capacity, teamSelectionMethod } = req.body[0] || {}; // Use || {} to avoid error if body is empty
+        const newQueue = await queueService.createQueue(steamId, capacity, teamSelectionMethod);
         if (newQueue) {
             res.status(201).json(newQueue);
         } else {

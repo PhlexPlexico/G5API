@@ -7,4 +7,5 @@ export interface Queue {
     members: string[];
     server_ip?: string;
     picked_map?: string; // Optional: The map that was picked in the veto
+    teamSelectionMethod: 'random' | 'captains'
 }

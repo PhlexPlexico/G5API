@@ -88,8 +88,9 @@ class QueueService {
   }
 
 
-  async createQueue(ownerSteamId: string, capacity?: number): Promise<Queue | null> {
+  async createQueue(ownerSteamId: string, capacity?: number, teamSelectionMethod?: 'random' | 'captains'): Promise<Queue | null> {
     let queueCapacity: number = capacity === undefined ? this.defaultQueueCapacity : capacity;
+    const currentTeamSelectionMethod = teamSelectionMethod || 'captains';
 
     try {
       const userQueuesCountKey = "user:queues:counts";
@@ -115,7 +116,8 @@ class QueueService {
         capacity: queueCapacity,
         createdAt: Date.now(),
         status: 'waiting',
-        members: [ownerSteamId]
+        members: [ownerSteamId],
+        teamSelectionMethod: currentTeamSelectionMethod
       };
 
       const queueMembersKey = `queue:${queueId}:members`;
@@ -127,6 +129,7 @@ class QueueService {
         capacity: newQueue.capacity.toString(),
         createdAt: newQueue.createdAt.toString(),
         status: newQueue.status,
+        teamSelectionMethod: newQueue.teamSelectionMethod as 'random' | 'captains',
       });
       transaction.sAdd(queueMembersKey, ownerSteamId);
       transaction.hIncrBy(userQueuesCountKey, ownerSteamId, 1);
@@ -224,83 +227,133 @@ class QueueService {
         console.error(`Queue ${queueId} pop triggered with ${players.length} members, less than capacity ${capacity}. Aborting pop.`);
         return;
       }
-      if (players.length < 2) {
-        console.error(`Queue ${queueId} cannot select two captains from less than 2 players (${players.length}).`);
-        await this.redisClient.hSet(queueKey, 'status', 'error_not_enough_players_for_captains');
-        GlobalEmitter.emit('queue_event', { type: 'queue_status_changed', queueId: queueId, data: { status: 'error_not_enough_players_for_captains' } });
-        return;
-      }
+
       const mainQueueData = await this.redisClient.hGetAll(queueKey);
       const originalOwnerSteamId = mainQueueData.ownerSteamId;
+      const teamSelectionMethod = mainQueueData.teamSelectionMethod || 'captains';
+
       if (!originalOwnerSteamId) {
         console.error(`Critical error: ownerSteamId not found for queue ${queueId} during pop. Aborting pop.`);
         await this.redisClient.hSet(queueKey, 'status', 'error_popping');
         GlobalEmitter.emit('queue_event', { type: 'queue_status_changed', queueId: queueId, data: { status: 'error_popping' } });
         return;
       }
-      const shuffledPlayers = [...players].sort(() => 0.5 - Math.random());
-      const captain1 = shuffledPlayers[0];
-      const captain2 = shuffledPlayers[1];
-      await this.redisClient.hSet(queueKey, 'status', 'picking');
+
+      let captain1: string;
+      let captain2: string;
+      let poppedQueueDetailsData: PickPhaseDetails;
       const poppedQueueDetailsKey = `popped_queue:${queueId}:details`;
-      const poppedQueueDetailsData: PickPhaseDetails = {
-        all_players: JSON.stringify(players),
-        available_players: JSON.stringify(players.filter(p => p !== captain1 && p !== captain2)),
-        captain1: captain1,
-        captain2: captain2,
-        team1_name: `${captain1}'s Team`,
-        team2_name: `${captain2}'s Team`,
-        team1_picks: JSON.stringify([captain1]),
-        team2_picks: JSON.stringify([captain2]),
-        next_picker: captain1,
-        original_queue_id: queueId,
-        original_owner_steam_id: originalOwnerSteamId,
-        capacity: capacity.toString(),
-        picks_made: "0"
-      };
+      const shuffledPlayers = [...players].sort(() => 0.5 - Math.random());
+
+      if (teamSelectionMethod === 'random') {
+        await this.redisClient.hSet(queueKey, 'status', 'veto'); // Teams are formed, next is veto
+
+        const midPoint = Math.ceil(players.length / 2);
+        const team1Players = shuffledPlayers.slice(0, midPoint);
+        const team2Players = shuffledPlayers.slice(midPoint);
+
+        captain1 = team1Players[0]; // First player of team1 is captain
+        captain2 = team2Players[0]; // First player of team2 is captain
+
+        poppedQueueDetailsData = {
+          all_players: JSON.stringify(players),
+          available_players: JSON.stringify([]), // No players left to pick
+          captain1: captain1,
+          captain2: captain2,
+          team1_name: "Team Alpha", // Or generate a name like `${captain1}'s Team Alpha`
+          team2_name: "Team Bravo",   // Or generate a name like `${captain2}'s Team Bravo`
+          team1_picks: JSON.stringify(team1Players),
+          team2_picks: JSON.stringify(team2Players),
+          next_picker: "picking_complete",
+          original_queue_id: queueId,
+          original_owner_steam_id: originalOwnerSteamId,
+          capacity: capacity.toString(),
+          picks_made: players.length.toString() // All players are "picked"
+        };
+
+        GlobalEmitter.emit('queue_event', {
+          type: 'teams_randomly_assigned',
+          queueId: queueId,
+          data: {
+            status: 'veto', // Or 'picking_complete' leading to veto
+            captain1: captain1,
+            team1Players: team1Players,
+            captain2: captain2,
+            team2Players: team2Players,
+            allPlayers: players,
+            originalOwnerSteamId: originalOwnerSteamId,
+            capacity: capacity
+          }
+        });
+
+      } else { // 'captains' method (default)
+        if (players.length < 2) {
+          console.error(`Queue ${queueId} (captains mode) cannot select two captains from less than 2 players (${players.length}).`);
+          await this.redisClient.hSet(queueKey, 'status', 'error_not_enough_players_for_captains');
+          GlobalEmitter.emit('queue_event', { type: 'queue_status_changed', queueId: queueId, data: { status: 'error_not_enough_players_for_captains' } });
+          return;
+        }
+        captain1 = shuffledPlayers[0];
+        captain2 = shuffledPlayers[1];
+        await this.redisClient.hSet(queueKey, 'status', 'picking');
+
+        poppedQueueDetailsData = {
+          all_players: JSON.stringify(players),
+          available_players: JSON.stringify(players.filter(p => p !== captain1 && p !== captain2)),
+          captain1: captain1,
+          captain2: captain2,
+          team1_name: `${captain1}'s Team`,
+          team2_name: `${captain2}'s Team`,
+          team1_picks: JSON.stringify([captain1]),
+          team2_picks: JSON.stringify([captain2]),
+          next_picker: captain1,
+          original_queue_id: queueId,
+          original_owner_steam_id: originalOwnerSteamId,
+          capacity: capacity.toString(),
+          picks_made: "0"
+        };
+
+        GlobalEmitter.emit('queue_event', {
+          type: 'internal_queue_picking_initiated',
+          queueId: queueId,
+          data: { status: 'picking', captain1: captain1, captain2: captain2, allPlayers: players, originalOwnerSteamId: originalOwnerSteamId, capacity: capacity }
+        });
+      }
+
       const redisPoppedQueueDetails: Record<string, string> = {};
       for (const [key, value] of Object.entries(poppedQueueDetailsData)) {
         if (value !== undefined) {
           redisPoppedQueueDetails[key] = String(value);
         }
       }
-
       await this.redisClient.hSet(poppedQueueDetailsKey, redisPoppedQueueDetails);
 
-      // Add a self-check read immediately after writing
-      const selfCheckData = await this.redisClient.hGetAll(poppedQueueDetailsKey);
-      GlobalEmitter.emit('queue_event', {
-        type: 'internal_queue_picking_initiated', // Changed type
+      // Initialize Veto Process (common to both methods)
+      const vetoInitiatorSteamId = captain2; // Captain 2 (from either method) starts map veto
+      const initialVetoDetails: VetoDetails = {
         queueId: queueId,
-        data: { status: 'picking', captain1: captain1, captain2: captain2, allPlayers: players, originalOwnerSteamId: originalOwnerSteamId, capacity: capacity }
-      });
-
-      // Initialize Veto Process
-        const vetoInitiatorSteamId = captain2; // Captain 2 starts map veto
-        const initialVetoDetails: VetoDetails = {
-          queueId: queueId,
-          mapPool: DEFAULT_MAP_POOL,
-          availableMapsToBan: [...DEFAULT_MAP_POOL],
-          bansTeam1: [],
-          bansTeam2: [],
-          captain1SteamId: captain1,
-          captain2SteamId: captain2,
-          vetoInitiatorSteamId: vetoInitiatorSteamId,
-          nextVetoerSteamId: vetoInitiatorSteamId,
-          originalOwnerSteamId: originalOwnerSteamId,
-          vetoBanOrder: [
-            { captainSteamId: captain2, bansToMake: 2 },
-            { captainSteamId: captain1, bansToMake: 3 },
-            { captainSteamId: captain2, bansToMake: 1 }
-          ],
-          currentVetoStageIndex: 0,
-          bansMadeThisStage: 0,
-          pickedMap: null,
-          status: 'awaiting_captain_start',
-          log: [{ timestamp: Date.now(), actor: 'system', action: 'info', message: `Veto initialized. ${captain2} (Captain 2) to ban first.` }]
-          // serverIp will be added later
-        };
-        await this._saveVetoDetails(queueId, initialVetoDetails);
+        mapPool: DEFAULT_MAP_POOL,
+        availableMapsToBan: [...DEFAULT_MAP_POOL],
+        bansTeam1: [],
+        bansTeam2: [],
+        captain1SteamId: captain1, // Captain1 from either method
+        captain2SteamId: captain2, // Captain2 from either method
+        vetoInitiatorSteamId: vetoInitiatorSteamId,
+        nextVetoerSteamId: vetoInitiatorSteamId,
+        originalOwnerSteamId: originalOwnerSteamId,
+        vetoBanOrder: [
+          { captainSteamId: captain2, bansToMake: 2 },
+          { captainSteamId: captain1, bansToMake: 3 },
+          { captainSteamId: captain2, bansToMake: 1 }
+        ],
+        currentVetoStageIndex: 0,
+        bansMadeThisStage: 0,
+        pickedMap: null,
+        status: 'awaiting_captain_start',
+        log: [{ timestamp: Date.now(), actor: 'system', action: 'info', message: `Veto initialized. ${captain2} (Captain 2) to ban first.` }]
+        // serverIp will be added later
+      };
+      await this._saveVetoDetails(queueId, initialVetoDetails);
 
     } catch (error) {
       console.error(`Error popping queue ${queueId}:`, error);
@@ -387,6 +440,7 @@ class QueueService {
         // No hSet on mainQueueKey for status or server_ip here.
         // No hSet on poppedQueueDetailsKey for server_ip here.
         pickPhaseStateForReturn.status = 'veto'; // Indicate that the next phase is veto for the pickPhaseState return
+        await this.redisClient.hSet(mainQueueKey, 'status', 'veto');
 
       } else {
         pickPhaseStateForReturn.nextPicker = (requestingUserSteamId === captain1) ? captain2 : captain1;
@@ -461,7 +515,8 @@ class QueueService {
         status: queueData.status as Queue['status'],
         members: members || [],
         server_ip: queueData.server_ip,
-        picked_map: queueData.picked_map
+        picked_map: queueData.picked_map,
+        teamSelectionMethod: queueData.teamSelectionMethod as 'random' | 'captains'
       };
     } catch (error) {
       console.error(`Error fetching details for queue ${queueId}:`, error);
