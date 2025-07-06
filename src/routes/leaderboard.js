@@ -500,5 +500,192 @@
    }
    return allPlayers;
  };
+
+  /** Function to get the current player leaderboard standings by team in a season, or all time.
+  * @function
+  * @memberof module:routes/leaderboard
+  * @param {string} [teamId=null] - Team ID to filter.
+  * @param {string} [seasonId=null] - Season ID to filter.
+  */
+ const getTeamsPlayerLeaderboard = async (teamId = null, seasonId = null, pug = false) => {
+  let allPlayers = [];
+  let playerStats;
+  /* Logic:
+   * 1. Get all player values where match is not cancelled or forfeit.
+   * 2. Grab raw values, and calculate things like HSP and KDR for each user. Get names and cache 'em even.
+   * 3. Insert into list of objects for each user.
+   */
+  let playerStatSql =
+    `SELECT  steam_id, name, sum(kills) as kills,
+    sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
+    sum(k2) as k2, sum(k3) as k3,
+    sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
+    sum(v2) as v2, sum(v3) as v3, sum(v4) as v4,
+    sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba,
+    sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps,
+    sum(knife_kills) as knifekills, sum(friendlies_flashed) as fflash,
+    sum(enemies_flashed) as eflash, sum(util_damage) as utildmg
+    FROM    player_stats
+    WHERE   team_id = ? &&
+    match_id IN (
+        SELECT  id
+        FROM    \`match\`
+        WHERE   cancelled=0
+        AND     is_pug=` +
+    pug +
+    `
+    )
+    GROUP BY steam_id, name`;
+  let playerStatSqlSeasons =
+    `SELECT  steam_id, name, sum(kills) as kills,
+    sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
+    sum(k2) as k2, sum(k3) as k3,
+    sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
+    sum(v2) as v2, sum(v3) as v3, sum(v4) as v4,
+    sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba,
+    sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps,
+    sum(knife_kills) as knifekills, sum(friendlies_flashed) as fflash,
+    sum(enemies_flashed) as eflash, sum(util_damage) as utildmg
+    FROM    player_stats
+    WHERE   team_id = ? &&
+    match_id IN (
+        SELECT  id
+        FROM    \`match\`
+        WHERE   cancelled=0
+        AND season_id = ?
+        AND     is_pug=` +
+    pug +
+    `
+    )
+    GROUP BY steam_id, name`;
+  let winSql = `SELECT COUNT(*) AS wins FROM \`match\` mtch 
+    JOIN player_stats pstat ON mtch.id = pstat.match_id 
+    WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?
+    AND is_pug = ?`;
+  if (pug) {
+    winSql = `SELECT COUNT(*) AS wins FROM \`match\` mtch 
+    JOIN player_stats pstat ON mtch.id = pstat.match_id 
+    WHERE pstat.steam_id = ? AND pstat.winner = 1 
+    AND is_pug = ?`;
+  }
+  let winSqlSeasons = `SELECT COUNT(*) AS wins FROM \`match\` mtch 
+    JOIN player_stats pstat ON mtch.id = pstat.match_id 
+    WHERE pstat.team_id = mtch.winner and pstat.steam_id = ?
+    AND mtch.season_id = ? AND is_pug = ?`;
+  let numWins;
+  if (!seasonId) playerStats = await db.query(playerStatSql, [teamId]);
+  else playerStats = await db.query(playerStatSqlSeasons, [teamId, seasonId]);
+  for (let player of playerStats) {
+    // Players can have multiple names. Avoid collision by combining everything, then performing averages.
+    if (!allPlayers.some((el) => el.steamId === player.steam_id)) {
+      if (!seasonId) numWins = await db.query(winSql, [player.steam_id, pug]);
+      else
+        numWins = await db.query(winSqlSeasons, [
+          player.steam_id,
+          seasonId,
+          pug,
+        ]);
+      allPlayers.push({
+        steamId: player.steam_id,
+        name:
+          player.name == null
+            ? await Utils.getSteamName(player.steam_id)
+            : player.name.replace('/"/g', '\\"'),
+        kills: parseFloat(player.kills),
+        deaths: parseFloat(player.deaths),
+        assists: parseFloat(player.assists),
+        k1: parseFloat(player.k1),
+        k2: parseFloat(player.k2),
+        k3: parseFloat(player.k3),
+        k4: parseFloat(player.k4),
+        k5: parseFloat(player.k5),
+        v1: parseFloat(player.v1),
+        v2: parseFloat(player.v2),
+        v3: parseFloat(player.v3),
+        v4: parseFloat(player.v4),
+        v5: parseFloat(player.v5),
+        trp: parseFloat(player.trp),
+        fba: parseFloat(player.fba),
+        total_damage: parseFloat(player.dmg),
+        hsk: parseFloat(player.hsk),
+        hsp:
+          parseFloat(player.kills) === 0
+            ? 0
+            : (
+                (parseFloat(player.hsk) / parseFloat(player.kills)) *
+                100
+              ).toFixed(2),
+        average_rating: Utils.getRating(
+          parseFloat(player.kills),
+          parseFloat(player.trp),
+          parseFloat(player.deaths),
+          parseFloat(player.k1),
+          parseFloat(player.k2),
+          parseFloat(player.k3),
+          parseFloat(player.k4),
+          parseFloat(player.k5)
+        ),
+        wins: numWins[0].wins,
+        total_maps: player.totalMaps,
+        enemies_flashed: parseFloat(player.eflash),
+        friendlies_flashed: parseFloat(player.fflash),
+        util_damage: parseFloat(player.utildmg),
+      });
+    } else {
+      let collisionPlayer = allPlayers.find((user) => {
+        return user.steamId === player.steam_id;
+      });
+      // Update name, or concat name?
+      if (player.name == "")
+        collisionPlayer.name = (collisionPlayer.name + "/" + player.name)
+          .replace(/\/+$/, "")
+          .replace('/"/g', '\\"');
+      else
+        collisionPlayer.name = player.name
+          .replace(/\/+$/, "")
+          .replace('/"/g', '\\"');
+      collisionPlayer.kills += parseFloat(player.kills);
+      collisionPlayer.deaths += parseFloat(player.deaths);
+      collisionPlayer.assists += parseFloat(player.assists);
+      collisionPlayer.k1 += parseFloat(player.k1);
+      collisionPlayer.k2 += parseFloat(player.k2);
+      collisionPlayer.k3 += parseFloat(player.k3);
+      collisionPlayer.k4 += parseFloat(player.k4);
+      collisionPlayer.k5 += parseFloat(player.k5);
+      collisionPlayer.v1 += parseFloat(player.v1);
+      collisionPlayer.v2 += parseFloat(player.v2);
+      collisionPlayer.v3 += parseFloat(player.v3);
+      collisionPlayer.v4 += parseFloat(player.v4);
+      collisionPlayer.v5 += parseFloat(player.v5);
+      collisionPlayer.trp += parseFloat(player.trp);
+      collisionPlayer.fba += parseFloat(player.fba);
+      collisionPlayer.hsk += parseFloat(player.hsk);
+      collisionPlayer.total_damage += parseFloat(player.dmg);
+      collisionPlayer.total_maps += parseFloat(player.totalMaps);
+      collisionPlayer.hsp =
+        parseFloat(collisionPlayer.kills) === 0
+          ? 0
+          : (
+              (parseFloat(collisionPlayer.hsk) /
+                parseFloat(collisionPlayer.kills)) *
+              100
+            ).toFixed(2);
+      collisionPlayer.average_rating = Utils.getRating(
+        parseFloat(collisionPlayer.kills),
+        parseFloat(collisionPlayer.trp),
+        parseFloat(collisionPlayer.k1),
+        parseFloat(collisionPlayer.k2),
+        parseFloat(collisionPlayer.k3),
+        parseFloat(collisionPlayer.k4),
+        parseFloat(collisionPlayer.k5)
+      );
+      collisionPlayer.enemies_flashed += parseFloat(player.eflash);
+      collisionPlayer.friendlies_flashed += parseFloat(player.fflash);
+      collisionPlayer.util_damage += parseFloat(player.utildmg);
+    }
+  }
+  return allPlayers;
+};
+
  export default router;
  
