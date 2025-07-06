@@ -89,6 +89,83 @@
      res.status(500).json({ message: err.toString() });
    }
  });
+
+ /**
+  * @swagger
+  *
+  * /leaderboard/teams/:teamid:
+  *   get:
+  *     description: teams leaderboard for players
+  *     produces:
+  *       - application/json
+  *     parameters:
+  *       - name: team_id
+  *         required: true
+  *         schema:
+  *          type: string
+  *     tags:
+  *       - leaderboard
+  *     responses:
+  *       200:
+  *         description: Leaderboard
+  *         content:
+  *           application/json:
+  *             schema:
+  *               $ref: '#/components/schemas/SimpleResponse'
+  *       500:
+  *         $ref: '#/components/responses/Error'
+  */
+ router.get("/teams/:team_id", async (req, res) => {
+  try {
+    let teamId = req.params.team_id;
+    let leaderboard = await getTeamsPlayerLeaderboard(teamId);
+    res.json({ leaderboard });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err });
+  }
+});
+
+/**
+  * @swagger
+  *
+  * /leaderboard/teams/:teamid/:seasonid:
+  *   get:
+  *     description: teams leaderboard for players by season_id
+  *     produces:
+  *       - application/json
+  *     parameters:
+  *       - name: team_id
+  *         required: true
+  *         schema:
+  *          type: string
+  *      - name: season_id
+  *        required: true
+  *        schema:
+  *         type: string
+  *     tags:
+  *       - leaderboard
+  *     responses:
+  *       200:
+  *         description: Leaderboard
+  *         content:
+  *           application/json:
+  *             schema:
+  *               $ref: '#/components/schemas/SimpleResponse'
+  *       500:
+  *         $ref: '#/components/responses/Error'
+  */
+router.get("/teams/:team_id/:season_id", async (req, res) => {
+  try {
+    let teamId = req.params.team_id;
+    let seasonId = req.params.season_id;
+    let leaderboard = await getTeamsPlayerLeaderboard(teamId, seasonId);
+    res.json({ leaderboard });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err });
+  }
+});
  
  /**
   * @swagger
