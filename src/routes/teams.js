@@ -192,6 +192,61 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
 /**
  * @swagger
  *
+ * /teams/myteams:
+ *   get:
+ *     description: Set of teams from the logged in user.
+ *     produces:
+ *       - application/json
+ *     tags:
+ *       - teams
+ *     responses:
+ *       200:
+ *         description: Set of teams from the logged in user within the system.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/TeamData'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.get("/public", Utils.ensureAuthenticated, async (req, res) => {
+  try {
+    let sql =
+      "SELECT usr.name as owner, t.id, t.user_id, t.name, t.flag, t.logo, t.tag, t.public_team, " +
+      "CONCAT('{', GROUP_CONCAT( DISTINCT CONCAT('\"',ta.auth, '\"', ': " +
+      "{ \"name\": ', CAST(JSON_QUOTE(ta.name) AS CHAR CHARACTER SET utf8mb4), ', \"captain\": ', ta.captain, ', \"coach\": ', ta.coach, '}') ORDER BY ta.captain desc, ta.id  SEPARATOR ', '), '}') as auth_name " +
+      "FROM team t LEFT OUTER JOIN team_auth_names ta " +
+      "ON t.id = ta.team_id  JOIN user usr " + 
+      "ON usr.id = t.user_id " +
+      "WHERE t.public_team = 1 " +
+      "GROUP BY t.id " + 
+      "ORDER BY t.id DESC";
+    const teams = await db.query(sql);
+    // Check this and return a 404 if we don't exist.
+    if (teams[0] == null) {
+      res.status(404).json({ message: "No public teams found " });
+      return;
+    }
+    for (let row in teams) {
+      if (teams[row].auth_name != null) {
+        teams[row].auth_name = JSON.parse(teams[row].auth_name);
+        teams[row].auth_name = await getTeamImages(teams[row].auth_name, false);
+      }
+    }
+    res.json({ teams });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
  * /teams/:team_id:
  *   get:
  *     description: Returns a provided teams info.
