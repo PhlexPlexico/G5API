@@ -16,17 +16,16 @@ exports.setup = function (options, seedLink) {
 };
 
 exports.up = function (db, callback) {
-  return db.addColumn("match_bomb_plants", "bomb_time_remaining", {
-    type: "int",
-    length: 10,
-    notNull: true,
-    defaultValue: 0
-  });
+  return db.runSql(
+    "ALTER TABLE match_bomb_plants MODIFY COLUMN bomb_time_remaining int(10) NOT NULL DEFAULT 0;"
+  );
 };
 
 exports.down = function (db, callback) {
-  return db.removeColumn("match_bomb_plants", "bomb_time_remaining");
+  return db.runSql(
+    "ALTER TABLE match_bomb_plants MODIFY COLUMN bomb_time_remaining int(10) NOT NULL DEFAULT 0;"
+  );
 };
 exports._meta = {
-  version: 27
+  version: 27,
 };
