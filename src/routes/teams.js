@@ -192,7 +192,7 @@ router.get("/myteams", Utils.ensureAuthenticated, async (req, res) => {
 /**
  * @swagger
  *
- * /teams/myteams:
+ * /teams/public:
  *   get:
  *     description: Set of teams from the logged in user.
  *     produces:
