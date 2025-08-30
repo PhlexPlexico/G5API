@@ -120,10 +120,19 @@ class ServerRcon {
         return false;
       }
       let serverResponse: string = await this.execute("status");
-      let serverVersion: string | undefined = serverResponse.match(/(?<=\/)\d+/)?.toString();
+
+      let match = serverResponse.match(/\/(\d+)/);
+      let serverVersion: string | undefined = match?.[1];
+
+      if (!serverVersion) {
+        throw new Error("Failed to extract server version from response.");
+      }
+
       let response = await fetch(
         `https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001/?appid=730&version=${serverVersion}&format=json`
       );
+
+      
       let data: SteamApiResponse = await response.json() as SteamApiResponse;
       if (!data.response.up_to_date) {
         console.log(
