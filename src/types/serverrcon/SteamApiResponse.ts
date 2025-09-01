@@ -3,7 +3,7 @@ export interface SteamApiResponse {
         success: boolean
         up_to_date: boolean
         version_is_listable: boolean
-        required_version: boolean
+        required_version?: boolean
         message?: string
     }
 }
