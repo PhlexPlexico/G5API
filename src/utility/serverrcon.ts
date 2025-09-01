@@ -36,7 +36,7 @@ class ServerRcon {
     try {
       await this.rcon.connect();
       const response = await this.rcon.send(commandString);
-      console.log(response);
+      console.debug(response);
       this.rcon.disconnect();
       return response;
     } catch (error) {
@@ -120,8 +120,9 @@ class ServerRcon {
         return false;
       }
       let serverResponse: string = await this.execute("status");
-
+      console.log(`SERVER RESPONSE FROM THE status CALL\n${serverResponse}`);
       let match = serverResponse.match(/\/(\d+)/);
+      console.log(`MATCHED GROUP (/\\/(\\d+)/) IS THE FOLLOWING\n ${match}`);
       let serverVersion: string | undefined = match?.[1];
 
       if (!serverVersion) {
