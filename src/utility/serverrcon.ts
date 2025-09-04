@@ -36,7 +36,6 @@ class ServerRcon {
     try {
       await this.rcon.connect();
       const response = await this.rcon.send(commandString);
-      console.debug(response);
       this.rcon.disconnect();
       return response;
     } catch (error) {
@@ -102,7 +101,7 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      let get5Status = await this.execute("status");
+      let get5Status = await this.execute("net_public_adr");
       return get5Status != "";
     } catch (err) {
       console.error("Error on game server: " + (err as Error).toString());
@@ -120,10 +119,7 @@ class ServerRcon {
         return false;
       }
       let serverResponse: string = await this.execute("status");
-      console.log(`SERVER RESPONSE FROM THE status CALL\n${serverResponse}`);
-      let match = serverResponse.match(/\/(\d+)/);
-      console.log(`MATCHED GROUP (/\\/(\\d+)/) IS THE FOLLOWING\n ${match}`);
-      let serverVersion: string | undefined = match?.[1];
+      let serverVersion = serverResponse.match(/(?<=\/)\d+/)?.toString();
 
       if (!serverVersion) {
         throw new Error("Failed to extract server version from response.");
