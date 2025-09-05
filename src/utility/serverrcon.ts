@@ -119,7 +119,7 @@ class ServerRcon {
         return false;
       }
       let serverResponse: string = await this.execute("status");
-      let serverVersion = serverResponse.match(/(?<=\/)\d+/)?.toString();
+      let serverVersion: string | undefined = serverResponse.match(/(?<=\/)\d+/)?.toString();
 
       if (!serverVersion) {
         throw new Error("Failed to extract server version from response.");
