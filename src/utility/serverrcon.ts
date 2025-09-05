@@ -36,7 +36,6 @@ class ServerRcon {
     try {
       await this.rcon.connect();
       const response = await this.rcon.send(commandString);
-      console.log(response);
       this.rcon.disconnect();
       return response;
     } catch (error) {
@@ -102,7 +101,7 @@ class ServerRcon {
       if (process.env.NODE_ENV === "test") {
         return false;
       }
-      let get5Status = await this.execute("status");
+      let get5Status = await this.execute("net_public_adr");
       return get5Status != "";
     } catch (err) {
       console.error("Error on game server: " + (err as Error).toString());
@@ -121,9 +120,16 @@ class ServerRcon {
       }
       let serverResponse: string = await this.execute("status");
       let serverVersion: string | undefined = serverResponse.match(/(?<=\/)\d+/)?.toString();
+
+      if (!serverVersion) {
+        throw new Error("Failed to extract server version from response.");
+      }
+
       let response = await fetch(
         `https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001/?appid=730&version=${serverVersion}&format=json`
       );
+
+      
       let data: SteamApiResponse = await response.json() as SteamApiResponse;
       if (!data.response.up_to_date) {
         console.log(
