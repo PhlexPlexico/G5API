@@ -48,7 +48,7 @@ import { MatchData } from "../../types/matches/MatchData.js";
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               $ref: '#/components/schemas/SimpleResponseStatus'
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
@@ -406,11 +406,13 @@ router.get(
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              rcon_command:
- *                type: string
- *                description: The rcon command that the user has sent in.
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                rcon_command:
+ *                  type: string
+ *                  description: The rcon command that the user has sent in.
  *     tags:
  *       - matches
  *     responses:
@@ -419,7 +421,7 @@ router.get(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               $ref: '#/components/schemas/SimpleResponseStatus'
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
@@ -635,18 +637,20 @@ router.get(
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              steam_id:
- *                type: string
- *                description: The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
- *              team_id:
- *                type: string
- *                description: Either the first or second team in the match, team1 or team2.
- *              nickname:
- *                type: string
- *                description: Optional nickname for the user being added into the match.
- *                required: false
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                steam_id:
+ *                  type: string
+ *                  description: The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
+ *                team_id:
+ *                  type: string
+ *                  description: Either the first or second team in the match, team1 or team2.
+ *                nickname:
+ *                  type: string
+ *                  description: Optional nickname for the user being added into the match.
+ *                  required: false
  *     tags:
  *       - matches
  *     responses:
@@ -655,7 +659,7 @@ router.get(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               $ref: '#/components/schemas/SimpleResponseStatus'
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
@@ -732,14 +736,16 @@ router.put(
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              steam_id:
- *                type: string
- *                description: The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
- *              team_id:
- *                type: string
- *                description: Either the first or second team in the match, team1 or team2.
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                steam_id:
+ *                  type: string
+ *                  description: The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
+ *                team_id:
+ *                  type: string
+ *                  description: Either the first or second team in the match, team1 or team2.
  *     tags:
  *       - matches
  *     responses:
@@ -748,7 +754,7 @@ router.put(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               $ref: '#/components/schemas/SimpleResponseStatus'
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
@@ -823,11 +829,13 @@ router.put(
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              user_id:
- *                type: string
- *                description: The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                steam_id:
+ *                  type: string
+ *                  description: The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
  *     tags:
  *       - matches
  *     responses:
@@ -836,7 +844,7 @@ router.put(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               $ref: '#/components/schemas/SimpleResponseStatus'
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
@@ -901,11 +909,13 @@ router.put(
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              steam_id:
- *                type: string
- *                description: The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                steam_id:
+ *                  type: string
+ *                  description: The formatted Steam ID of a user. Can be url, steam64, ID3, vanity URL.
  *     tags:
  *       - matches
  *     responses:
@@ -914,7 +924,7 @@ router.put(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               $ref: '#/components/schemas/SimpleResponseStatus'
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
@@ -1042,11 +1052,13 @@ router.get(
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              backup_name:
- *                type: string
- *                description: Filename of the backup located on the game server.
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                backup_name:
+ *                  type: string
+ *                  description: Filename of the backup located on the game server.
  *     tags:
  *       - matches
  *     responses:
@@ -1055,7 +1067,7 @@ router.get(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               $ref: '#/components/schemas/SimpleResponseStatus'
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:
@@ -1126,14 +1138,16 @@ router.post(
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              server_id:
- *                type: integer
- *                description: The ID of the server that you wish to restore to.
- *              backup_file:
- *                type: string
- *                description: The name of the backup file. This can be retrieved via a GET.
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                server_id:
+ *                  type: integer
+ *                  description: The ID of the server that you wish to restore to.
+ *                backup_file:
+ *                  type: string
+ *                  description: The name of the backup file. This can be retrieved via a GET.
  *     tags:
  *       - matches
  *     responses:
@@ -1142,7 +1156,7 @@ router.post(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SimpleResponse'
+ *               $ref: '#/components/schemas/SimpleResponseStatus'
  *       401:
  *         $ref: '#/components/responses/MatchFinished'
  *       404:

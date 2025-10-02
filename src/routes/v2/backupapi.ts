@@ -44,12 +44,6 @@ const router: Router = Router();
  *       - v2
  *     parameters:
  *      - in: header
- *        name: Get5-FileName
- *        description: Name of the backup file coming from the game server.
- *        schema:
- *          type: string
- *        required: true
- *      - in: header
  *        name: Get5-MapNumber
  *        description: Zero-indexed map number in the series.
  *        schema:
@@ -80,7 +74,14 @@ const router: Router = Router();
  *             format: binary
  *     responses:
  *       200:
- *         $ref: '#/components/responses/Success'
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:

@@ -24,11 +24,84 @@ import { Player } from "../types/leaderboard/Player.js";
   *
   * components:
   *   schemas:
+  *     Player:
+  *       type: object
+  *       properties:
+  *          steamId:
+  *            type: string
+  *          name:
+  *            type: string
+  *          kills:
+  *            type: integer
+  *          deaths:
+  *            type: integer
+  *          assists:
+  *            type: integer
+  *          k1:
+  *            type: integer
+  *          k2:
+  *            type: integer
+  *          k3:
+  *            type: integer
+  *          k4:
+  *            type: integer
+  *          k5:
+  *            type: integer
+  *          v1:
+  *            type: integer
+  *          v2:
+  *            type: integer
+  *          v3:
+  *            type: integer
+  *          v4:
+  *            type: integer
+  *          v5:
+  *            type: integer
+  *          trp:
+  *            type: integer
+  *          fba:
+  *            type: integer
+  *          total_damage:
+  *            type: integer
+  *          hsk:
+  *            type: integer
+  *          hsp:
+  *            type: number
+  *          average_rating:
+  *            type: number
+  *          wins:
+  *            type: integer
+  *          total_maps:
+  *            type: integer
+  *          enemies_flashed:
+  *            type: integer
+  *          friendlies_flashed:
+  *            type: integer
+  *          util_damage:
+  *            type: integer
+  *     TeamStanding:
+  *       type: object
+  *       properties:
+  *         name:
+  *           type: string
+  *         wins:
+  *           type: integer
+  *         losses:
+  *           type: integer
+  *         rounddiff:
+  *           type: integer
   *     SimpleResponse:
   *       type: object
   *       properties:
   *         message:
   *           type: string
+  *     SimpleResponseStatus:
+  *      type: object
+  *      properties:
+  *        message:
+  *         type: string
+  *        status:
+  *        type: integer
   *   responses:
   *     BadRequest:
   *       description: Bad request, information not provided.
@@ -61,7 +134,7 @@ import { Player } from "../types/leaderboard/Player.js";
   *           schema:
   *             $ref: '#/components/schemas/SimpleResponse'
   */
- 
+
  /**
   * @swagger
   *
@@ -78,7 +151,12 @@ import { Player } from "../types/leaderboard/Player.js";
   *         content:
   *           application/json:
   *             schema:
-  *               $ref: '#/components/schemas/SimpleResponse'
+  *               type: object
+  *               properties:
+  *                 leaderboard:
+  *                   type: array
+  *                   items:
+  *                     $ref: '#/components/schemas/TeamStanding'
   *       500:
   *         $ref: '#/components/responses/Error'
   */
@@ -108,7 +186,12 @@ import { Player } from "../types/leaderboard/Player.js";
   *         content:
   *           application/json:
   *             schema:
-  *               $ref: '#/components/schemas/SimpleResponse'
+  *               type: object
+  *               properties:
+  *                 leaderboard:
+  *                   type: array
+  *                   items:
+  *                     $ref: '#/components/schemas/Player'
   *       500:
   *         $ref: '#/components/responses/Error'
   */
@@ -138,7 +221,12 @@ import { Player } from "../types/leaderboard/Player.js";
   *         content:
   *           application/json:
   *             schema:
-  *               $ref: '#/components/schemas/SimpleResponse'
+  *               type: object
+  *               properties:
+  *                 leaderboard:
+  *                   type: array
+  *                   items:
+  *                     $ref: '#/components/schemas/Player'
   *       500:
   *         $ref: '#/components/responses/Error'
   */
@@ -173,7 +261,12 @@ import { Player } from "../types/leaderboard/Player.js";
   *         content:
   *           application/json:
   *             schema:
-  *               $ref: '#/components/schemas/SimpleResponse'
+  *               type: object
+  *               properties:
+  *                 leaderboard:
+  *                   type: array
+  *                   items:
+  *                     $ref: '#/components/schemas/TeamStanding'
   *       500:
   *         $ref: '#/components/responses/Error'
   */

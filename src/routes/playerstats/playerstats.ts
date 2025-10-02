@@ -168,9 +168,12 @@ import { PlayerDatabaseObject } from "../../types/playerstats/PlayerDatabaseObje
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PlayerStats'
+ *               type: object
+ *               properties:
+ *                 playerStats:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PlayerStats'
  *       400:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -207,8 +210,11 @@ router.get("/", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: integer
- *               description: Unique count of players who have played matches.
+ *               type: object
+ *               properties:
+ *                 count:
+ *                   type: integer
+ *                   description: Unique count of players who have played matches.
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -250,9 +256,12 @@ router.get("/unique", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PlayerStats'
+ *               type: object
+ *               properties:
+ *                 playerstats:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PlayerStats'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -295,9 +304,10 @@ router.get("/:steam_id", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PlayerStats'
+ *               type: object
+ *               properties:
+ *                 playerstats:
+ *                   $ref: '#/components/schemas/PlayerStats'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -339,9 +349,10 @@ router.get("/:steam_id/pug", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PlayerStats'
+ *               type: object
+ *               properties:
+ *                 playerstats:
+ *                   $ref: '#/components/schemas/PlayerStats'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -387,9 +398,10 @@ router.get("/:steam_id/official", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PlayerStats'
+ *               type: object
+ *               properties:
+ *                 playerstats:
+ *                   $ref: '#/components/schemas/PlayerStats'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -432,9 +444,12 @@ router.get("/:steam_id/official", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PlayerStats'
+ *               type: object
+ *               properties:
+ *                 playerstats:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PlayerStats'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -548,9 +563,12 @@ router.get("/match/:match_id", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/MatchData'
+ *               type: object
+ *               properties:
+ *                 matches:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MatchData'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -592,10 +610,15 @@ router.get("/match/:match_id", async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            $ref: '#/components/schemas/PlayerStats'
- *            api_key:
- *              type: string
- *              description: API key of the match being updated.
+ *            type: array
+ *            items:
+ *              allOf:
+ *                - $ref: '#/components/schemas/PlayerStats'
+ *                - type: object
+ *                  properties:
+ *                    api_key:
+ *                      type: string
+ *                      description: API key of the match being updated.
  *     tags:
  *       - playerstats
  *     responses:
@@ -721,7 +744,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            $ref: '#/components/schemas/PlayerStats'
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/PlayerStats'
  *     tags:
  *       - playerstats
  *     responses:
@@ -865,10 +890,12 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              match_id:
- *                type: integer
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                match_id:
+ *                  type: integer
  *     tags:
  *       - playerstats
  *     responses:

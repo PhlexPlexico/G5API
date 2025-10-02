@@ -84,7 +84,14 @@ const router: Router = Router();
  *             format: binary
  *     responses:
  *       200:
- *         $ref: '#/components/responses/Success'
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:

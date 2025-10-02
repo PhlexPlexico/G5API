@@ -75,9 +75,12 @@ import { SeasonCvarObject } from "../types/seasons/SeasonCvarObject.js";
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/SeasonData'
+ *               type: object
+ *               properties:
+ *                 seasons:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/SeasonData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -123,9 +126,12 @@ router.get("/", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/SeasonData'
+ *               type: object
+ *               properties:
+ *                 seasons:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/SeasonData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -172,9 +178,12 @@ router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/SeasonData'
+ *               type: object
+ *               properties:
+ *                 seasons:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/SeasonData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -301,9 +310,14 @@ router.get(
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/MatchData'
+ *               type: object
+ *               properties:
+ *                 matches:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MatchData'
+ *                 season:
+ *                   $ref: '#/components/schemas/SeasonData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -505,11 +519,13 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              season_id:
- *                type: integer
- *                required: true
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                season_id:
+ *                  type: integer
+ *                  required: true
  *     tags:
  *       - seasons
  *     responses:

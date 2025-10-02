@@ -99,9 +99,12 @@ import { AuthData } from "../types/teams/AuthData.js";
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/TeamData'
+ *               type: object
+ *               properties:
+ *                 teams:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/TeamData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -153,9 +156,12 @@ router.get("/", async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/TeamData'
+ *               type: object
+ *               properties:
+ *                 teams:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/TeamData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -579,14 +585,16 @@ router.put("/", Utils.ensureAuthenticated, async (req, res) => {
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              team_id:
- *                type: integer
- *                required: true
- *              steam_id:
- *                type: string
- *                required: false
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                team_id:
+ *                  type: integer
+ *                  required: true
+ *                steam_id:
+ *                  type: string
+ *                  required: false
  *     tags:
  *       - teams
  *     responses:
@@ -689,9 +697,12 @@ router.delete("/", Utils.ensureAuthenticated, async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                    $ref: '#/components/schemas/MatchData'
+ *               type: object
+ *               properties:
+ *                 matches:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MatchData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
