@@ -79,9 +79,12 @@ import { GameServerObject } from "../types/servers/GameServerObject.js";
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/ServerData'
+ *               type: object
+ *               properties:
+ *                 servers:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ServerData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -130,8 +133,11 @@ router.get("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: integer
- *               description: Count of all public servers.
+ *               type: object
+ *               properties:
+ *                 servers:
+ *                   type: integer
+ *                   description: Count of all public servers.
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -165,9 +171,12 @@ router.get("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/ServerData'
+ *               type: object
+ *               properties:
+ *                 servers:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ServerData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -221,9 +230,12 @@ router.get("/available", Utils.ensureAuthenticated, async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/ServerData'
+ *               type: object
+ *               properties:
+ *                 servers:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ServerData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -593,11 +605,13 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              server_id:
- *                type: integer
- *                required: true
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                server_id:
+ *                  type: integer
+ *                  required: true
  *     tags:
  *       - servers
  *     responses:

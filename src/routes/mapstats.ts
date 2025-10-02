@@ -91,9 +91,12 @@ import { AccessMessage } from "../types/mapstats/AccessMessage.js";
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/MapStatsData'
+ *               type: object
+ *               properties:
+ *                 mapstats:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MapStatsData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -135,9 +138,12 @@ router.get("/", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/MapStatsData'
+ *               type: object
+ *               properties:
+ *                 mapstats:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MapStatsData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -180,9 +186,10 @@ router.get("/:match_id", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/MapStatsData'
+ *               type: object
+ *               properties:
+ *                 mapstat:
+ *                   $ref: '#/components/schemas/MapStatsData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -525,10 +532,12 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              map_stats_id:
- *                type: integer
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                map_stats_id:
+ *                  type: integer
  *     tags:
  *       - mapstats
  *     responses:

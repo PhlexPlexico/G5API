@@ -251,7 +251,6 @@ class Utils {
   static async getSteamName(auth64: string) {
     try {
       let summaryInfo = await steam.getUserSummary(auth64);
-      // @ts-expect-error
       return summaryInfo.nickname;
     } catch {
       return null;
@@ -269,7 +268,6 @@ class Utils {
   static async getSteamImage(auth64: string) {
     try {
       let summaryInfo = await steam.getUserSummary(auth64);
-      // @ts-expect-error
       return summaryInfo.avatar.medium;
     } catch {
       return null;

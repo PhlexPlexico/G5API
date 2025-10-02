@@ -355,9 +355,12 @@ import { AccessMessage } from "../../types/mapstats/AccessMessage.js";
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/MatchData'
+ *               type: object
+ *               properties:
+ *                 matches:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MatchData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -416,9 +419,12 @@ router.get("/", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/MatchData'
+ *               type: object
+ *               properties:
+ *                 matches:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MatchData'
  *       404:
  *         $ref: '#/components/responses/MatchesNotFound'
  *       500:
@@ -627,9 +633,12 @@ router.get("/:match_id/stream", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/MatchPauseObject'
+ *               type: object
+ *               properties:
+ *                 matchPauseInfo:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MatchPauseObject'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -749,8 +758,10 @@ router.get("/:match_id/paused", async (req, res, next) => {
  *             schema:
  *                type: object
  *                properties:
- *                  match:
- *                    $ref: '#/components/schemas/BombInfo'
+ *                   bombInfo:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/BombInfo'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -885,9 +896,12 @@ router.get("/:match_id/bombs", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/MatchData'
+ *               type: object
+ *               properties:
+ *                 matches:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MatchData'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -940,9 +954,12 @@ router.get("/limit/:limiter", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/MatchData'
+ *               type: object
+ *               properties:
+ *                 matches:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MatchData'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -1552,12 +1569,14 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              match_id:
- *                type: integer
- *              all_cancelled:
- *                type: boolean
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                match_id:
+ *                  type: integer
+ *                all_cancelled:
+ *                  type: boolean
  *     tags:
  *       - matches
  *     responses:

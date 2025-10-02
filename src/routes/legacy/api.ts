@@ -142,6 +142,13 @@ const keyCheck = (request: Request<ParamsDictionary, any, any, ParsedQs, Record<
  *     description: Finalizes the match. Called from the G5WS plugin.
  *     produces:
  *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         in: path
+ *         description: The ID of the match.
+ *         required: true
+ *         schema:
+ *           type: integer
  *     requestBody:
  *      required: true
  *      content:
@@ -150,17 +157,20 @@ const keyCheck = (request: Request<ParamsDictionary, any, any, ParsedQs, Record<
  *            type: object
  *            properties:
  *              key:
- *                type: integer
+ *                type: string
  *                description: The API key given from the game server to compare.
  *              winner:
  *                type: string
  *                description: The string for which team won the match. team1 or team2.
  *              forfeit:
- *                type: integer
+ *                type: boolean
  *                description: Optional if a team has forfeit a match.
- *              match_id:
+ *              team1score:
  *                type: integer
- *                description: The given match ID from the path.
+ *                description: The score for team 1.
+ *              team2score:
+ *                type: integer
+ *                description: The score for team 2.
  *
  *     tags:
  *       - legacy
@@ -168,9 +178,9 @@ const keyCheck = (request: Request<ParamsDictionary, any, any, ParsedQs, Record<
  *       200:
  *         description: Success.
  *         content:
- *             text/plain:
- *                schema:
- *                  type: string
+ *             application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -308,6 +318,13 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
  *     description: Updates the database value if a match is paused from in-game.
  *     produces:
  *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         in: path
+ *         description: The ID of the match.
+ *         required: true
+ *         schema:
+ *           type: integer
  *     requestBody:
  *      required: true
  *      content:
@@ -316,7 +333,7 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
  *            type: object
  *            properties:
  *              key:
- *                type: integer
+ *                type: string
  *                description: The API key given from the game server to compare.
  *              pause_type:
  *                type: string
@@ -324,9 +341,6 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
  *              team_paused:
  *                type: string
  *                description: Which team has paused the game.
- *              match_id:
- *                type: integer
- *                description: The given match ID from the path.
  *
  *     tags:
  *       - legacy
@@ -334,9 +348,9 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
  *       200:
  *         description: Success.
  *         content:
- *             text/plain:
- *                schema:
- *                  type: string
+ *             application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -407,6 +421,13 @@ router.post("/:match_id/pause/", basicRateLimit, async (req, res, next) => {
  *     description: Updates the database value if a match is unpaused from in-game.
  *     produces:
  *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         in: path
+ *         description: The ID of the match.
+ *         required: true
+ *         schema:
+ *           type: integer
  *     requestBody:
  *      required: true
  *      content:
@@ -415,14 +436,11 @@ router.post("/:match_id/pause/", basicRateLimit, async (req, res, next) => {
  *            type: object
  *            properties:
  *              key:
- *                type: integer
+ *                type: string
  *                description: The API key given from the game server to compare.
  *              team_unpaused:
  *                type: string
  *                description: Which team has unpaused the game.
- *              match_id:
- *                type: integer
- *                description: The given match ID from the path.
  *
  *     tags:
  *       - legacy
@@ -430,9 +448,9 @@ router.post("/:match_id/pause/", basicRateLimit, async (req, res, next) => {
  *       200:
  *         description: Success.
  *         content:
- *             text/plain:
- *                schema:
- *                  type: string
+ *             application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -501,6 +519,19 @@ router.post("/:match_id/unpause/", basicRateLimit, async (req, res, next) => {
  *     description: Begin a map within a match series.
  *     produces:
  *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         in: path
+ *         description: The ID of the match.
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - name: map_number
+ *         in: path
+ *         description: The map number being played.
+ *         required: true
+ *         schema:
+ *           type: integer
  *     requestBody:
  *      required: true
  *      content:
@@ -509,17 +540,14 @@ router.post("/:match_id/unpause/", basicRateLimit, async (req, res, next) => {
  *            type: object
  *            properties:
  *              key:
- *                type: integer
+ *                type: string
  *                description: The API key given from the game server to compare.
- *              map_number:
- *                type: integer
- *                description: The given map number to start.
  *              mapname:
  *                type: string
  *                description: The given map name to update in the map stats object.
- *              match_id:
- *                type: integer
- *                description: The given match ID from the path.
+ *              version_number:
+ *                type: string
+ *                description: The version number of the plugin.
  *
  *     tags:
  *       - legacy
@@ -527,9 +555,9 @@ router.post("/:match_id/unpause/", basicRateLimit, async (req, res, next) => {
  *       200:
  *         description: Success.
  *         content:
- *             text/plain:
- *                schema:
- *                  type: string
+ *             application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -628,6 +656,19 @@ router.post(
  *     description: Update a match with the score.
  *     produces:
  *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         in: path
+ *         description: The ID of the match.
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - name: map_number
+ *         in: path
+ *         description: The map number being played.
+ *         required: true
+ *         schema:
+ *           type: integer
  *     requestBody:
  *      required: true
  *      content:
@@ -636,20 +677,14 @@ router.post(
  *            type: object
  *            properties:
  *              key:
- *                type: integer
+ *                type: string
  *                description: The API key given from the game server to compare.
- *              team1_score:
+ *              team1score:
  *                type: integer
  *                description: The score for team1.
- *              team2_score:
+ *              team2score:
  *                type: integer
  *                description: The score for team2.
- *              match_id:
- *                type: integer
- *                description: The given match ID from the path.
- *              map_number:
- *                type: integer
- *                description: The given map number from the URI path.
  *
  *     tags:
  *       - legacy
@@ -657,9 +692,9 @@ router.post(
  *       200:
  *         description: Success.
  *         content:
- *             text/plain:
- *                schema:
- *                  type: string
+ *             application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -739,6 +774,13 @@ router.post(
  *     description: Route serving to update the vetos in the database.
  *     produces:
  *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         in: path
+ *         description: The ID of the match.
+ *         required: true
+ *         schema:
+ *           type: integer
  *     requestBody:
  *      required: true
  *      content:
@@ -747,7 +789,7 @@ router.post(
  *            type: object
  *            properties:
  *              key:
- *                type: integer
+ *                type: string
  *                description: The API key given from the game server to compare.
  *              teamString:
  *                type: string
@@ -755,9 +797,6 @@ router.post(
  *              map:
  *                type: string
  *                description: The map the team has picked or banned.
- *              match_id:
- *                type: integer
- *                description: The given match ID from the path.
  *              pick_or_veto:
  *                type: string
  *                description: The action taken upon the team.
@@ -768,9 +807,9 @@ router.post(
  *       200:
  *         description: Success.
  *         content:
- *             text/plain:
- *                schema:
- *                  type: string
+ *             application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -835,6 +874,13 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
  *     description: Route serving to update the side selection from vetoes into the database.
  *     produces:
  *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         in: path
+ *         description: The ID of the match.
+ *         required: true
+ *         schema:
+ *           type: integer
  *     requestBody:
  *      required: true
  *      content:
@@ -843,7 +889,7 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
  *            type: object
  *            properties:
  *              key:
- *                type: integer
+ *                type: string
  *                description: The API key given from the game server to compare.
  *              teamString:
  *                type: string
@@ -851,9 +897,6 @@ router.post("/:match_id/vetoUpdate", basicRateLimit, async (req, res, next) => {
  *              map:
  *                type: string
  *                description: The map the team has picked or banned.
- *              match_id:
- *                type: integer
- *                description: The given match ID from the path.
  *              side:
  *                type: string
  *                description: Which side the team has chosen.
@@ -946,11 +989,24 @@ router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) 
 /**
  * @swagger
  *
- *  /:match_id/map/:map_number/demo:
+ *  /match/:match_id/map/:map_number/demo:
  *   post:
  *     description: Route serving to update the demo link per map.
  *     produces:
  *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         in: path
+ *         description: The ID of the match.
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - name: map_number
+ *         in: path
+ *         description: The map number being played.
+ *         required: true
+ *         schema:
+ *           type: integer
  *     requestBody:
  *      required: true
  *      content:
@@ -959,17 +1015,11 @@ router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) 
  *            type: object
  *            properties:
  *              key:
- *                type: integer
+ *                type: string
  *                description: The API key given from the game server to compare.
- *              map_number:
- *                type: integer
- *                description: The map id of a given match.
  *              demoFile:
  *                type: string
  *                description: The URL for a demo file in string form.
- *              match_id:
- *                type: integer
- *                description: The given match ID from the path.
  *
  *     tags:
  *       - legacy
@@ -977,9 +1027,9 @@ router.post("/:match_id/vetoSideUpdate", basicRateLimit, async (req, res, next) 
  *       200:
  *         description: Success.
  *         content:
- *             text/plain:
- *                schema:
- *                  type: string
+ *            application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -1033,7 +1083,7 @@ router.post(
 /**
  * @swagger
  *
- *  /:match_id/map/:map_number/demo/upload/:
+ *   /match/:match_id/map/:map_number/demo/upload:
  *   put:
  *     description: Route serving to upload the demo file from the game server.
  *     parameters:
@@ -1059,12 +1109,8 @@ router.post(
  *      content:
  *        application/octet-stream:
  *          schema:
- *            type: object
- *            properties:
- *              key:
- *                demoFile:
- *                  type: file
- *                  description: Demo file in octet stream form.
+ *           type: string
+ *           format: binary
  *
  *     tags:
  *       - legacy
@@ -1072,9 +1118,9 @@ router.post(
  *       200:
  *         description: Success.
  *         content:
- *             text/plain:
- *                schema:
- *                  type: string
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -1157,11 +1203,24 @@ router.put(
  *   post:
  *     description: Route serving to finish a map within a series.
  *     produces:
- *       - text/plain
+ *       - application/json
+ *     parameters:
+ *       - name: match_id
+ *         in: path
+ *         description: The ID of the match.
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - name: map_number
+ *         in: path
+ *         description: The map number being played.
+ *         required: true
+ *         schema:
+ *           type: integer
  *     requestBody:
  *      required: true
  *      content:
- *        text/plain:
+ *        application/json:
  *          schema:
  *            type: object
  *            properties:
@@ -1171,12 +1230,6 @@ router.put(
  *              winner:
  *                type: string
  *                description: The string representation of the winner, usually team1 or team2.
- *              map_number:
- *                type: integer
- *                description: The map id of a given match.
- *              match_id:
- *                type: integer
- *                description: The given match ID from the path.
  *
  *     tags:
  *       - legacy
@@ -1184,9 +1237,9 @@ router.put(
  *       200:
  *         description: Success.
  *         content:
- *             text/plain:
- *                schema:
- *                  type: string
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -1288,11 +1341,30 @@ router.post(
  *   post:
  *     description: Route serving to update a players stats within a match.
  *     produces:
- *       - text/plain
+ *        - application/json
+ *     parameters:
+ *       - name: match_id
+ *         in: path
+ *         description: The ID of the match.
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - name: map_number
+ *         in: path
+ *         description: The map number being played.
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - name: steam_id
+ *         in: path
+ *         description: The steam ID of the player.
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *      required: true
  *      content:
- *        text/plain:
+ *        application/json:
  *          schema:
  *            $ref: '#/components/schemas/PlayerStats'
  *
@@ -1302,9 +1374,9 @@ router.post(
  *       200:
  *         description: Success.
  *         content:
- *             text/plain:
- *                schema:
- *                  type: string
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -1511,7 +1583,7 @@ router.post(
 /**
  * @swagger
  *
- *  /:match_id/map/:map_number/backup:
+ *  /match/:match_id/map/:map_number/round/:round_number/backup:
  *   post:
  *     description: Route serving to upload the latest round backup to the server.
  *     parameters:
@@ -1525,6 +1597,10 @@ router.post(
  *         schema:
  *           type: integer
  *         required: true
+ *       - in: path
+ *         name: round_number
+ *         schema:
+ *           type: integer
  *       - in: header
  *         name: key
  *         schema:
@@ -1542,12 +1618,8 @@ router.post(
  *      content:
  *        application/octet-stream:
  *          schema:
- *            type: object
- *            properties:
- *              key:
- *                backupFile:
- *                  type: file
- *                  description: The latest backup cfg file from the game server.
+ *            type: string
+ *            format: binary
  *
  *     tags:
  *       - legacy

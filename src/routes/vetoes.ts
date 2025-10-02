@@ -65,9 +65,12 @@ import { VetoObject } from "../types/vetoes/VetoObject.js";
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/VetoData'
+ *               type: object
+ *               properties:
+ *                 vetoes:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/VetoData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -109,9 +112,12 @@ router.get("/", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/VetoData'
+ *               type: object
+ *               properties:
+ *                 vetoes:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/VetoData'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -373,12 +379,14 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              match_id:
- *                type: integer
- *                description: Match ID
- *                required: true
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                match_id:
+ *                  type: integer
+ *                  description: Match ID
+ *                  required: true
  *     tags:
  *       - vetoes
  *     responses:

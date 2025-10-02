@@ -67,9 +67,12 @@ import { MapObject } from "../types/maps/MapObject.js";
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Maps'
+ *               type: object
+ *               properties:
+ *                 maplist:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Maps'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -106,9 +109,12 @@ router.get("/", async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Maps'
+ *               type: object
+ *               properties:
+ *                 maplist:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Maps'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -182,7 +188,9 @@ router.get("/:user_id/enabled", async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            $ref: '#/components/schemas/NewMap'
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/NewMap'
  *     tags:
  *       - maps
  *     responses:
@@ -238,7 +246,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            $ref: '#/components/schemas/NewMap'
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/NewMap'
  *     tags:
  *       - maps
  *     responses:
@@ -299,7 +309,9 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            $ref: '#/components/schemas/NewMap'
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/NewMap'
  *     tags:
  *       - maps
  *     responses:

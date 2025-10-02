@@ -210,10 +210,10 @@ passport.use('local-register',
           capitalization: "uppercase",
         });
         sql = "INSERT INTO user SET ?";
-        let steamName: String = await Utils.getSteamName(req.body.steam_id);
+        let steamName: String | null = await Utils.getSteamName(req.body.steam_id);
         let newUser: Object = {
           steam_id: req.body.steam_id,
-          name: steamName,
+          name: steamName!,
           admin: isAdmin,
           super_admin: isSuperAdmin,
           created_at: new Date().toISOString().slice(0, 19).replace("T", " "),

@@ -108,7 +108,7 @@ import { Response } from "express-serve-static-core";
 /**
  * @swagger
  *
- * /playerstatsextra/extra:
+ * /playerstatsextra/:
  *   get:
  *     description: Route serving to get all extra player statistics.
  *     produces:
@@ -121,9 +121,12 @@ import { Response } from "express-serve-static-core";
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PlayerStatsExtras'
+ *               type: object
+ *               properties:
+ *                 playerStatExtra:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PlayerStatsExtras'
  *       400:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -165,9 +168,12 @@ import { Response } from "express-serve-static-core";
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PlayerStatsExtras'
+ *               type: object
+ *               properties:
+ *                 extrastats:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PlayerStatsExtras'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -216,9 +222,12 @@ import { Response } from "express-serve-static-core";
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PlayerStatsExtras'
+ *               type: object
+ *               properties:
+ *                 extrastats:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PlayerStatsExtras'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -255,9 +264,12 @@ import { Response } from "express-serve-static-core";
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PlayerStatsExtras'
+ *               type: object
+ *               properties:
+ *                 extrastats:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PlayerStatsExtras'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -298,9 +310,12 @@ import { Response } from "express-serve-static-core";
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PlayerStatsExtras'
+ *               type: object
+ *               properties:
+ *                 extrastats:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PlayerStatsExtras'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -338,9 +353,12 @@ import { Response } from "express-serve-static-core";
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PlayerStatsExtra'
+ *               type: object
+ *               properties:
+ *                 extrastats:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PlayerStatsExtras'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -446,10 +464,15 @@ import { Response } from "express-serve-static-core";
  *      content:
  *        application/json:
  *          schema:
- *            $ref: '#/components/schemas/PlayerStatsExtra'
- *            api_key:
- *              type: string
- *              description: API key of the match being updated.
+ *            type: array
+ *            items:
+ *              allOf:
+ *                - $ref: '#/components/schemas/PlayerStatsExtras'
+ *                - type: object
+ *                  properties:
+ *                    api_key:
+ *                      type: string
+ *                      description: API key of the match being updated.
  *     tags:
  *       - playerstats
  *     responses:
@@ -563,7 +586,9 @@ import { Response } from "express-serve-static-core";
  *      content:
  *        application/json:
  *          schema:
- *            $ref: '#/components/schemas/PlayerStatsExtra'
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/PlayerStatsExtras'
  *     tags:
  *       - playerstats
  *     responses:
@@ -692,10 +717,12 @@ import { Response } from "express-serve-static-core";
  *      content:
  *        application/json:
  *          schema:
- *            type: object
- *            properties:
- *              match_id:
- *                type: integer
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                match_id:
+ *                  type: integer
  *     tags:
  *       - playerstats
  *     responses:

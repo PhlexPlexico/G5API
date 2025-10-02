@@ -91,9 +91,12 @@ import { UserObject } from "../types/users/UserObject.js";
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/NewUser'
+ *               type: object
+ *               properties:
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/NewUser'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
@@ -183,7 +186,9 @@ router.get("/:user_id", async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            $ref: '#/components/schemas/NewUser'
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/NewUser'
  *     tags:
  *       - users
  *     responses:
@@ -259,7 +264,9 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  *      content:
  *        application/json:
  *          schema:
- *            $ref: '#/components/schemas/NewUser'
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/NewUser'
  *     tags:
  *       - users
  *     responses:
@@ -436,9 +443,12 @@ router.get("/:user_id/steam", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/MatchData'
+ *               type: object
+ *               properties:
+ *                 matches:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MatchData'
  *       500:
  *         $ref: '#/components/responses/Error'
  */
