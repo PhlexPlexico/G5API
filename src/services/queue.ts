@@ -8,7 +8,7 @@ const redis = createClient({ url: config.get("server.redisUrl"), });
 const DEFAULT_TTL_SECONDS: number = config.get("server.queueTTL") == 0 ? 3600 : config.get("server.queueTTL");
 
 export class QueueService {
-  async createQueue(ttlSeconds = DEFAULT_TTL_SECONDS, ownerId?: string, maxPlayers: number = 10): Promise<QueueDescriptor> {
+  static async createQueue(ownerId?: string, maxPlayers: number = 10, isPrivate: boolean = false, ttlSeconds: number = DEFAULT_TTL_SECONDS): Promise<QueueDescriptor> {
     let slug: string;
     let key: string;
     let attempts: number = 0;
@@ -35,7 +35,7 @@ export class QueueService {
       expiresAt,
       ownerId,
       maxSize: maxPlayers,
-      isPrivate: false
+      isPrivate: isPrivate
     };
 
     await redis.sAdd('queues', slug);
@@ -45,17 +45,17 @@ export class QueueService {
     return descriptor;
   }
 
-  async deleteQueue(
+  static async deleteQueue(
     slug: string,
-    requesterSteamId: string,
-    role: 'user' | 'admin' | 'super_admin'
+    requestorSteamId: string,
+    role: string = "user"
   ): Promise<void> {
     const key = `queue:${slug}`;
     const metaKey = `queue-meta:${slug}`;
     const meta = await getQueueMetaOrThrow(slug);
 
     // Permission check
-    const isOwner = meta.ownerId === requesterSteamId;
+    const isOwner = meta.ownerId === requestorSteamId;
     const isAdmin = role === 'admin' || role === 'super_admin';
 
     if (!isOwner && !isAdmin) {
@@ -68,23 +68,13 @@ export class QueueService {
     await redis.sRem('queues', slug); // Remove from global queue list
   }
 
-  async addUserToQueue(
+  static async addUserToQueue(
     slug: string,
     steamId: string,
-    requesterSteamId: string,
-    role: 'user' | 'admin' | 'super_admin'
   ): Promise<void> {
     const key = `queue:${slug}`;
     const meta = await getQueueMetaOrThrow(slug);
 
-    // Permission check
-    if (
-      role === 'user' &&
-      steamId !== requesterSteamId &&
-      meta.ownerId !== requesterSteamId
-    ) {
-      throw new Error('You do not have permission to add other users to this queue.');
-    }
 
     const currentUsers = await redis.lRange(key, 0, -1);
     const alreadyInQueue = currentUsers.some((item: string) => {
@@ -110,11 +100,11 @@ export class QueueService {
     await redis.rPush(key, JSON.stringify(item));
   }
 
-  async removeUserFromQueue(
+  static async removeUserFromQueue(
     slug: string,
     steamId: string,
-    requesterSteamId: string,
-    role: 'user' | 'admin' | 'super_admin'
+    requestorSteamId: string,
+    role: string = "user"
   ): Promise<boolean> {
     const key = `queue:${slug}`;
     const meta = await getQueueMetaOrThrow(slug);
@@ -122,8 +112,8 @@ export class QueueService {
     // Permission check
     if (
       role === 'user' &&
-      steamId !== requesterSteamId &&
-      meta.ownerId !== requesterSteamId
+      steamId !== requestorSteamId &&
+      meta.ownerId !== requestorSteamId
     ) {
       throw new Error('You do not have permission to remove other users from this queue.');
     }
@@ -140,16 +130,15 @@ export class QueueService {
     return false;
   }
 
-  async listUsersInQueue(slug: string): Promise<QueueItem[]> {
+  static async listUsersInQueue(slug: string, role: string = "user", requestorSteamId: string): Promise<QueueItem[]> {
     const key = `queue:${slug}`;
-    const exists = await redis.exists(key);
-    if (!exists) throw new Error(`Queue ${slug} does not exist or has expired.`);
+    const meta = await getQueueMetaOrThrow(slug);
 
     const rawItems = await redis.lRange(key, 0, -1);
     return rawItems.map((item: string) => JSON.parse(item));
   }
 
-  async listQueues(requesterSteamId: string, role: 'user' | 'admin' | 'super_admin'): Promise<QueueDescriptor[]> {
+  static async listQueues(requestorSteamId: string, role: string = "user"): Promise<QueueDescriptor[]> {
     const slugs = await redis.sMembers('queues');
     const descriptors: QueueDescriptor[] = [];
 
@@ -159,12 +148,20 @@ export class QueueService {
 
       const meta: QueueDescriptor = JSON.parse(metaRaw);
 
-      if (role === 'admin' || role === 'super_admin' || meta.ownerId === requesterSteamId) {
+      if (role === 'admin' || role === 'super_admin' || meta.ownerId === requestorSteamId || meta.isPrivate === false) {
         descriptors.push(meta);
       }
     }
 
     return descriptors;
+  }
+
+  static async getQueue(slug: string, role: string, requestorSteamId: string): Promise<QueueDescriptor> {
+    const meta = await getQueueMetaOrThrow(slug);
+    if (role === 'admin' || role === 'super_admin' || meta.ownerId === requestorSteamId || meta.isPrivate === false) {
+      return meta;
+    }
+    throw new Error('You do not have permission to remove other users from this queue.');
   }
 
 }
