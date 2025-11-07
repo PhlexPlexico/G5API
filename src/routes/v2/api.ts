@@ -79,11 +79,11 @@ const basicRateLimit = rateLimit({
  *         description: Success.
  *         content:
  *             application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   message:
+ *                     type: string
  *       401:
  *         $ref: '#/components/responses/Error'
  */
