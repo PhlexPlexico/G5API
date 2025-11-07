@@ -11,7 +11,8 @@
     "uploadDemos": $UPLOADDEMOS,
     "localLoginEnabled": $LOCALLOGINS,
     "redisUrl": "$REDISURL",
-    "redisTTL": $REDISTTL
+    "redisTTL": $REDISTTL,
+    "queueTTL": $QUEUETTL
   },
   "production": {
     "driver": "mysql",
