@@ -329,10 +329,20 @@ router.put('/:slug', Utils.ensureAuthenticated, async (req, res) => {
   const action: string = req.body[0].action ? req.body[0].action : 'join';
 
   try {
+    let currentQueueCount: number = await QueueService.getCurrentQueuePlayerCount(slug);
+    let maxQueueCount: number = await QueueService.getCurrentQueueMaxCount(slug);
     if (action === 'join') {
       await QueueService.addUserToQueue(slug, req.user?.steam_id!);
+      if (currentQueueCount == maxQueueCount) {
+        // TODO: Add in logic to create teams, or create a new queue with users' steam IDs and queue ID
+        // to get ready to shuffle teams.
+      }
     } else if (action === 'leave') {
       await QueueService.removeUserFromQueue(slug, req.user?.steam_id!, req.user?.steam_id!);
+      if (currentQueueCount == 0) {
+        // If no users are left in the queue, delete it.
+        await QueueService.deleteQueue(slug, req.user?.steam_id!, 'admin');
+      }
     } else {
       return res.status(400).json({ error: 'Invalid action. Must be "join" or "leave".' });
     }
