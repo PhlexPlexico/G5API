@@ -3,7 +3,7 @@
  * resourcePath: /queue
  * description: Express API router for queue management in G5API.
  */
-
+import config from "config";
 import { Router } from 'express';
 import Utils from "../utility/utils.js";
 import { QueueService } from "../services/queue.js";
@@ -20,10 +20,6 @@ const router = Router();
  *      type: object
  *      properties:
  *        name:
- *          type: string
- *          description: Human-readable name of the queue
- *          example: "Support Queue"
- *        slug:
  *          type: string
  *          description: Unique identifier for the queue
  *          example: "support-queue-abc123"
@@ -142,7 +138,7 @@ router.get('/:slug', async (req, res) => {
     res.status(200).json(queue);
   } catch (error: Error | any) {
     console.error('Error fetching queue:', error);
-    if (error.message.includes('not found')) {
+    if (error.message.includes('does not exist')) {
       return res.status(404).json({ error: 'Queue not found.' });
     }
     res.status(500).json({ error: 'Failed to fetch queue.' });
@@ -260,8 +256,8 @@ router.post('/', Utils.ensureAuthenticated, async (req, res) => {
   const isPrivate: boolean = req.body[0].private ? true : false;
 
   try {
-    await QueueService.createQueue(req.user?.steam_id!, maxPlayers, isPrivate);
-    res.json({ message: "Queue created successfully!" });
+    const descriptor = await QueueService.createQueue(req.user?.steam_id!, maxPlayers, isPrivate);
+    res.json({ message: "Queue created successfully!", url: `${config.get("server.apiURL")}/queue/${descriptor.name}` });
   } catch (error) {
     console.error('Error creating queue:', error);
     res.status(500).json({ error: 'Failed to create queue.' });
@@ -330,7 +326,7 @@ router.post('/', Utils.ensureAuthenticated, async (req, res) => {
  */
 router.put('/:slug', Utils.ensureAuthenticated, async (req, res) => {
   const slug: string = req.params.slug;
-  const action: string = req.body.action ? req.body.action : 'join';
+  const action: string = req.body[0].action ? req.body[0].action : 'join';
 
   try {
     if (action === 'join') {
