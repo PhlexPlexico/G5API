@@ -8,11 +8,14 @@ const redis = createClient({ url: config.get("server.redisUrl"), });
 const DEFAULT_TTL_SECONDS: number = config.get("server.queueTTL") == 0 ? 3600 : config.get("server.queueTTL");
 
 export class QueueService {
+  
   static async createQueue(ownerId?: string, maxPlayers: number = 10, isPrivate: boolean = false, ttlSeconds: number = DEFAULT_TTL_SECONDS): Promise<QueueDescriptor> {
     let slug: string;
     let key: string;
     let attempts: number = 0;
-
+    if (redis.isOpen === false) {
+      await redis.connect();
+    }
     do {
       slug = Utils.generateSlug();
       key = `queue:${slug}`;
@@ -30,7 +33,6 @@ export class QueueService {
 
     const descriptor: QueueDescriptor = {
       name: slug,
-      slug,
       createdAt,
       expiresAt,
       ownerId,
@@ -139,6 +141,9 @@ export class QueueService {
   }
 
   static async listQueues(requestorSteamId: string, role: string = "user"): Promise<QueueDescriptor[]> {
+    if (redis.isOpen === false) {
+      await redis.connect();
+    }
     const slugs = await redis.sMembers('queues');
     const descriptors: QueueDescriptor[] = [];
 
@@ -167,11 +172,12 @@ export class QueueService {
 }
 
 async function getQueueMetaOrThrow(slug: string): Promise<QueueDescriptor> {
-  const key = `queue:${slug}`;
+  if (redis.isOpen === false) {
+    await redis.connect();
+  }
   const metaKey = `queue-meta:${slug}`;
-
-  const exists = await redis.exists(key);
-  if (!exists) {
+  const members = await redis.sMembers('queues');
+  if (!members.includes(slug)) {
     throw new Error(`Queue ${slug} does not exist or has expired.`);
   }
 
