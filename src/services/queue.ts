@@ -9,7 +9,7 @@ const DEFAULT_TTL_SECONDS: number = config.get("server.queueTTL") == 0 ? 3600 : 
 
 export class QueueService {
   
-  static async createQueue(ownerId?: string, maxPlayers: number = 10, isPrivate: boolean = false, ttlSeconds: number = DEFAULT_TTL_SECONDS): Promise<QueueDescriptor> {
+  static async createQueue(ownerId: string, maxPlayers: number = 10, isPrivate: boolean = false, ttlSeconds: number = DEFAULT_TTL_SECONDS): Promise<QueueDescriptor> {
     let slug: string;
     let key: string;
     let attempts: number = 0;
@@ -37,12 +37,15 @@ export class QueueService {
       expiresAt,
       ownerId,
       maxSize: maxPlayers,
-      isPrivate: isPrivate
+      isPrivate: isPrivate,
+      currentPlayers: 1
     };
 
     await redis.sAdd('queues', slug);
     await redis.expire(key, ttlSeconds);
     await redis.set(`queue-meta:${slug}`, JSON.stringify(descriptor), { EX: ttlSeconds });
+
+    await this.addUserToQueue(slug, ownerId);
 
     return descriptor;
   }
@@ -100,6 +103,7 @@ export class QueueService {
     };
 
     await redis.rPush(key, JSON.stringify(item));
+    meta.currentPlayers += 1;
   }
 
   static async removeUserFromQueue(
@@ -125,6 +129,7 @@ export class QueueService {
       const parsed = JSON.parse(item);
       if (parsed.steamId === steamId) {
         await redis.lRem(key, 1, item);
+        meta.currentPlayers -= 1;
         return true;
       }
     }
@@ -167,6 +172,16 @@ export class QueueService {
       return meta;
     }
     throw new Error('You do not have permission to remove other users from this queue.');
+  }
+
+  static async getCurrentQueuePlayerCount(slug: string): Promise<number> {
+    const meta = await getQueueMetaOrThrow(slug);
+    return meta.currentPlayers;
+  }
+
+  static async getCurrentQueueMaxCount(slug: string): Promise<number> {
+    const meta = await getQueueMetaOrThrow(slug);
+    return meta.maxSize;
   }
 
 }
