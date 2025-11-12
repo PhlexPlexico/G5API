@@ -334,8 +334,14 @@ router.put('/:slug', Utils.ensureAuthenticated, async (req, res) => {
     if (action === 'join') {
       await QueueService.addUserToQueue(slug, req.user?.steam_id!);
       if (currentQueueCount == maxQueueCount) {
-        // TODO: Add in logic to create teams, or create a new queue with users' steam IDs and queue ID
-        // to get ready to shuffle teams.
+        // Queue is full — create teams and persist them.
+        try {
+          const result = await QueueService.createTeamsFromQueue(slug);
+          return res.status(200).json({ success: true, teams: result.teams });
+        } catch (err) {
+          console.error('Error creating teams from queue:', err);
+          // Fall through to return success=true but without teams
+        }
       }
     } else if (action === 'leave') {
       await QueueService.removeUserFromQueue(slug, req.user?.steam_id!, req.user?.steam_id!);
