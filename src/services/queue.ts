@@ -3,6 +3,7 @@ import Utils from "../utility/utils.js";
 import { QueueDescriptor } from "../types/queues/QueueDescriptor.js"
 import { QueueItem } from "../types/queues/QueueItem.js";
 import { createClient } from "redis";
+import { db } from "./db.js";
 
 const redis = createClient({ url: config.get("server.redisUrl"), });
 const DEFAULT_TTL_SECONDS: number = config.get("server.queueTTL") == 0 ? 3600 : config.get("server.queueTTL");
@@ -182,6 +183,202 @@ export class QueueService {
   static async getCurrentQueueMaxCount(slug: string): Promise<number> {
     const meta = await getQueueMetaOrThrow(slug);
     return meta.maxSize;
+  }
+
+  // Normalize player ratings helper
+  static normalizePlayerRatings(players: QueueItem[]): QueueItem[] {
+    const knownRatings = players
+      .map((p) => p.hltvRating)
+      .filter((r) => typeof r === 'number') as number[];
+    let fallbackRating = 1.0;
+    if (knownRatings.length > 0) {
+      knownRatings.sort((a, b) => a - b);
+      const mid = Math.floor(knownRatings.length / 2);
+      fallbackRating = knownRatings.length % 2 === 0
+        ? (knownRatings[mid - 1] + knownRatings[mid]) / 2
+        : knownRatings[mid];
+    }
+
+    return players.map((p) => {
+      if (typeof p.hltvRating === 'number') return { ...p, hltvRating: p.hltvRating };
+      const jitter = (Math.random() - 0.5) * 0.1 * fallbackRating;
+      return { ...p, hltvRating: fallbackRating + jitter };
+    });
+  }
+
+  /**
+   * Create two teams from the queue for the given slug.
+   * - Uses the first `maxSize` players in the queue
+   * - Attempts to balance teams by `hltvRating` while keeping randomness
+   * - Stores result in `queue-teams:<slug>` and removes selected players from the queue
+   * - Team name is `team_<CAPTAIN>` where CAPTAIN is the first member's steamId
+   */
+  static async createTeamsFromQueue(slug: string): Promise<{ teams: { name: string; members: QueueItem[] }[] }> {
+    const key = `queue:${slug}`;
+    const meta = await getQueueMetaOrThrow(slug);
+
+    // Ensure redis connected
+    if (redis.isOpen === false) {
+      await redis.connect();
+    }
+
+    const rawItems = await redis.lRange(key, 0, -1);
+    if (!rawItems || rawItems.length === 0) {
+      throw new Error(`Queue ${slug} is empty.`);
+    }
+
+    const maxPlayers = meta.maxSize || rawItems.length;
+
+    if (rawItems.length < maxPlayers) {
+      throw new Error(`Not enough players in queue to form teams. Have ${rawItems.length}, need ${maxPlayers}.`);
+    }
+
+    // Take the first N entries (FIFO semantics)
+    const selectedRaw = rawItems.slice(0, maxPlayers);
+    const players: QueueItem[] = selectedRaw.map((r) => JSON.parse(r));
+
+    // Compute a robust fallback for missing ratings: use median of known ratings
+    const knownRatings = players
+      .map((p) => p.hltvRating)
+      .filter((r) => typeof r === 'number') as number[];
+    let fallbackRating = 1.0;
+    if (knownRatings.length > 0) {
+      knownRatings.sort((a, b) => a - b);
+      const mid = Math.floor(knownRatings.length / 2);
+      fallbackRating = knownRatings.length % 2 === 0
+        ? (knownRatings[mid - 1] + knownRatings[mid]) / 2
+        : knownRatings[mid];
+    }
+
+  // Normalize ratings so every player has a numeric rating using helper
+  const normPlayers = QueueService.normalizePlayerRatings(players);
+
+  // Sort players by rating descending (strongest first)
+  normPlayers.sort((a: QueueItem, b: QueueItem) => (b.hltvRating! - a.hltvRating!));
+
+    // Greedy assignment with small randomness to avoid deterministic splits
+    const teamA: QueueItem[] = [];
+    const teamB: QueueItem[] = [];
+    let sumA = 0;
+    let sumB = 0;
+    const flipProb = 0.10; // 10% chance to flip assignment to add randomness
+
+    const targetSizeA = Math.ceil(maxPlayers / 2);
+    const targetSizeB = Math.floor(maxPlayers / 2);
+
+    for (const p of normPlayers) {
+      // If one team is already full, push to the other
+      if (teamA.length >= targetSizeA) {
+        teamB.push(p);
+        sumB += p.hltvRating!;
+        continue;
+      }
+      if (teamB.length >= targetSizeB) {
+        teamA.push(p);
+        sumA += p.hltvRating!;
+        continue;
+      }
+
+      // Normally assign to the team with smaller total rating
+      let assignToA = sumA <= sumB;
+
+      // small random flip
+      if (Math.random() < flipProb) assignToA = !assignToA;
+
+      if (assignToA) {
+        teamA.push(p);
+        sumA += p.hltvRating!;
+      } else {
+        teamB.push(p);
+        sumB += p.hltvRating!;
+      }
+    }
+
+    // Final size-adjustment (move lowest-rated if needed)
+    while (teamA.length > targetSizeA) {
+      // move lowest-rated from A to B
+      teamA.sort((a, b) => a.hltvRating! - b.hltvRating!);
+      const moved = teamA.shift()!;
+      sumA -= moved.hltvRating!;
+      teamB.push(moved);
+      sumB += moved.hltvRating!;
+    }
+    while (teamB.length > targetSizeB) {
+      teamB.sort((a, b) => a.hltvRating! - b.hltvRating!);
+      const moved = teamB.shift()!;
+      sumB -= moved.hltvRating!;
+      teamA.push(moved);
+      sumA += moved.hltvRating!;
+    }
+
+    // Captain is first user in each team array
+    const captainA = teamA[0];
+    const captainB = teamB[0];
+
+    const teams = [
+      { name: `team_${captainA?.steamId ?? 'A'}`, members: teamA },
+      { name: `team_${captainB?.steamId ?? 'B'}`, members: teamB },
+    ];
+
+    // Persist teams to database (team + team_auth_names)
+    // Resolve queue owner to internal user_id if present
+    let ownerUserId: number | null = 0;
+    try {
+      if (meta.ownerId) {
+        const ownerRows = await db.query('SELECT id FROM user WHERE steam_id = ?', [meta.ownerId]);
+        if (ownerRows && ownerRows.length > 0 && ownerRows[0].id) {
+          ownerUserId = ownerRows[0].id;
+        }
+      }
+    } catch (err) {
+      // fallback to 0 (system) if DB lookup fails
+      ownerUserId = 0;
+    }
+
+    for (const t of teams) {
+      const teamInsert = await db.query("INSERT INTO team (user_id, name, flag, logo, tag, public_team) VALUES ?", [[[
+        ownerUserId || 0,
+        t.name,
+        null,
+        null,
+        null,
+        0
+      ]]]);
+      // @ts-ignore insertId from RowDataPacket
+      const insertedTeamId = (teamInsert as any).insertId || null;
+      if (insertedTeamId) {
+        // prepare team_auth_names bulk insert
+        const authRows: Array<Array<any>> = [];
+        for (let i = 0; i < t.members.length; i++) {
+          const member = t.members[i];
+          const isCaptain = i === 0 ? 1 : 0;
+          authRows.push([insertedTeamId, member.steamId, '', isCaptain, 0]);
+        }
+        if (authRows.length > 0) {
+          await db.query("INSERT INTO team_auth_names (team_id, auth, name, captain, coach) VALUES ?", [authRows]);
+        }
+      }
+    }
+
+    // Store teams in Redis and remove selected players from queue
+    const teamsKey = `queue-teams:${slug}`;
+    // TTL based on remaining queue meta TTL
+    const remainingSeconds = Math.max(1, Math.floor((meta.expiresAt - Date.now()) / 1000));
+
+    await redis.set(teamsKey, JSON.stringify({ teams }), { EX: remainingSeconds });
+
+    // Remove selected players from queue list and update meta
+    for (const raw of selectedRaw) {
+      // remove one occurrence
+      await redis.lRem(key, 1, raw);
+      meta.currentPlayers -= 1;
+    }
+
+    // Persist updated meta and expire
+    await redis.set(`queue-meta:${slug}`, JSON.stringify(meta), { EX: remainingSeconds });
+    await redis.expire(key, remainingSeconds);
+
+    return { teams };
   }
 
 }
