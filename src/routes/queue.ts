@@ -194,16 +194,12 @@ router.get('/:slug', async (req, res) => {
 router.get('/:slug/players', Utils.ensureAuthenticated, async (req, res) => {
   const slug: string = req.params.slug;
   const requestorSteamId = req.user?.steam_id;
-  let role: string = 'user';
   if (!requestorSteamId) {
     return res.status(401).json({ error: 'Unauthorized: Steam ID missing.' });
   }
-  
-  if (req.user?.admin) role = 'admin';
-  else if (req.user?.super_admin) role = 'super_admin';
 
   try {
-    const users = await QueueService.listUsersInQueue(slug, role, requestorSteamId);
+    const users = await QueueService.listUsersInQueue(slug);
     res.status(200).json(users);
   } catch (error) {
     console.error('Error listing users in queue:', error);
@@ -256,7 +252,7 @@ router.post('/', Utils.ensureAuthenticated, async (req, res) => {
   const isPrivate: boolean = req.body[0].private ? true : false;
 
   try {
-    const descriptor = await QueueService.createQueue(req.user?.steam_id!, maxPlayers, isPrivate);
+    const descriptor = await QueueService.createQueue(req.user?.steam_id!, req.user?.name!, maxPlayers, isPrivate);
     res.json({ message: "Queue created successfully!", url: `${config.get("server.apiURL")}/queue/${descriptor.name}` });
   } catch (error) {
     console.error('Error creating queue:', error);
@@ -326,20 +322,25 @@ router.post('/', Utils.ensureAuthenticated, async (req, res) => {
  */
 router.put('/:slug', Utils.ensureAuthenticated, async (req, res) => {
   const slug: string = req.params.slug;
-  const action: string = req.body[0].action ? req.body[0].action : 'join';
+  const action: string = req.body[0]?.action ? req.body[0].action : 'join';
 
   try {
     let currentQueueCount: number = await QueueService.getCurrentQueuePlayerCount(slug);
     let maxQueueCount: number = await QueueService.getCurrentQueueMaxCount(slug);
     if (action === 'join') {
-      await QueueService.addUserToQueue(slug, req.user?.steam_id!);
+      await QueueService.addUserToQueue(slug, req.user?.steam_id!, req.user?.name!);
+      currentQueueCount++;
       if (currentQueueCount == maxQueueCount) {
         // Queue is full — create teams and persist them.
+        // Create match from queue
         try {
-          const result = await QueueService.createTeamsFromQueue(slug);
-          return res.status(200).json({ success: true, teams: result.teams });
+          const teamIds = await QueueService.createTeamsFromQueue(slug);
+          console.log('Created teams from full queue:', teamIds);
+          const matchId = await QueueService.createMatchFromQueue(slug, teamIds);
+          return res.status(200).json({ success: true, matchId: matchId, message: 'Match created successfully from full queue.' });
         } catch (err) {
-          console.error('Error creating teams from queue:', err);
+          console.error('Error creating teams or match from queue:', err);
+          res.status(500).json({ error: `Failed to create teams or match from queue.` });
           // Fall through to return success=true but without teams
         }
       }
