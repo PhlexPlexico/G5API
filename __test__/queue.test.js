@@ -39,8 +39,8 @@ describe('Queue routes', () => {
     // Now trigger team creation from the service (would normally be called by the route once full)
     const result = await QueueService.createTeamsFromQueue(slug);
     expect(result).toBeDefined();
-    expect(Array.isArray(result.teams)).toBe(true);
-    expect(result.teams.length).toBe(2);
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBe(2);
 
     // Check DB for created teams; there should be at least 2 inserted with team_auth_names
     const teams = await db.query('SELECT id FROM team WHERE name LIKE ?', [`team_%`]);

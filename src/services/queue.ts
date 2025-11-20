@@ -64,7 +64,6 @@ export class QueueService {
     slug: string,
     teamIds: number[]
   ): Promise<number | null> {
-    const key = `queue:${slug}`;
     const meta = await getQueueMetaOrThrow(slug);
     // Generate API key for the match (used when preparing the server)
     const apiKey = generate({ length: 24, capitalization: "uppercase" });
@@ -86,7 +85,7 @@ export class QueueService {
     try {
       if (ownerUserId && ownerUserId > 0) {
         const rows: RowDataPacket[] = await db.query("SELECT map_name FROM map_list WHERE user_id = ? ORDER BY id", [ownerUserId]);
-        if (!rows.length) {
+        if (rows.length) {
           mapPool = rows.map((r: any) => r.map_name).filter(Boolean);
         }
       }
@@ -499,7 +498,6 @@ export class QueueService {
     // Resolve queue owner to internal user_id if present
     let ownerUserId: number | null = await getUserIdFromMetaSlug(slug);
     
-    console.log('ownerUserId:', ownerUserId);
     const teamIds: number[] = [];
     for (const t of teams) {
       const teamInsert = await db.query("INSERT INTO team (user_id, name, flag, logo, tag, public_team) VALUES ?", [[[
@@ -526,7 +524,6 @@ export class QueueService {
         }
       }
     }  
-
     return teamIds;
   }
 
