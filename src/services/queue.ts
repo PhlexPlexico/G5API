@@ -1,16 +1,20 @@
 import config from "config";
+import { RowDataPacket } from "mysql2";
 import Utils from "../utility/utils.js";
 import { QueueDescriptor } from "../types/queues/QueueDescriptor.js"
 import { QueueItem } from "../types/queues/QueueItem.js";
 import { createClient } from "redis";
 import { db } from "./db.js";
+import GameServer from "../utility/serverrcon.js";
+import GlobalEmitter from "../utility/emitter.js";
+import { generate } from "randomstring";
 
 const redis = createClient({ url: config.get("server.redisUrl"), });
 const DEFAULT_TTL_SECONDS: number = config.get("server.queueTTL") == 0 ? 3600 : config.get("server.queueTTL");
 
 export class QueueService {
   
-  static async createQueue(ownerId: string, maxPlayers: number = 10, isPrivate: boolean = false, ttlSeconds: number = DEFAULT_TTL_SECONDS): Promise<QueueDescriptor> {
+  static async createQueue(ownerId: string, nickname: string, maxPlayers: number = 10, isPrivate: boolean = false, ttlSeconds: number = DEFAULT_TTL_SECONDS): Promise<QueueDescriptor> {
     let slug: string;
     let key: string;
     let attempts: number = 0;
@@ -46,9 +50,178 @@ export class QueueService {
     await redis.expire(key, ttlSeconds);
     await redis.set(`queue-meta:${slug}`, JSON.stringify(descriptor), { EX: ttlSeconds });
 
-    await this.addUserToQueue(slug, ownerId);
+    await this.addUserToQueue(slug, ownerId, nickname);
 
     return descriptor;
+  }
+
+  /**
+   * Create a match record for a queue after teams have been created.
+   * - Picks an available server (owned by user or public) and marks it in_use
+   * - Uses the owner's `map_list` if present, otherwise falls back to default CS2 pool
+   */
+  static async createMatchFromQueue(
+    slug: string,
+    teamIds: number[]
+  ): Promise<number | null> {
+    const key = `queue:${slug}`;
+    const meta = await getQueueMetaOrThrow(slug);
+    // Generate API key for the match (used when preparing the server)
+    const apiKey = generate({ length: 24, capitalization: "uppercase" });
+
+    // Default CS2 map pool
+    const defaultCs2Maps = [
+      'de_inferno',
+      'de_ancient',
+      'de_mirage',
+      'de_nuke',
+      'de_anubis',
+      'de_dust2',
+      'de_vertigo'
+    ];
+
+    // Try to load user's map_list if available
+    let mapPool: string[] = [];
+    let ownerUserId: number | null = await getUserIdFromMetaSlug(slug);
+    try {
+      if (ownerUserId && ownerUserId > 0) {
+        const rows: RowDataPacket[] = await db.query("SELECT map_name FROM map_list WHERE user_id = ? ORDER BY id", [ownerUserId]);
+        if (!rows.length) {
+          mapPool = rows.map((r: any) => r.map_name).filter(Boolean);
+        }
+      }
+    } catch (err) {
+      mapPool = [];
+    }
+    console.log("Map pool for user", ownerUserId, ":", mapPool);
+    if (!mapPool || mapPool.length === 0) mapPool = defaultCs2Maps;
+
+    // Build base match object
+    const baseMatch: any = {
+      user_id: ownerUserId || 0,
+      team1_id: teamIds[0] || null,
+      team2_id: teamIds[1] || null,
+      start_time: new Date(),
+      max_maps: 1,
+      title: `[PUG] ${slug}`,
+      skip_veto: 0,
+      veto_mappool: mapPool.join(' '),
+      private_match: meta.isPrivate ? 1 : 0,
+      enforce_teams: 1,
+      is_pug: 1,
+      api_key: apiKey,
+      min_player_ready: meta.maxSize/2
+    };
+
+    // Fetch candidate servers (include connection info)
+    /*let candidates: RowDataPacket[] = [];
+    try {
+      if (ownerUserId && ownerUserId > 0) {
+        candidates = await db.query(
+          "SELECT id, ip_string, port, rcon_password FROM game_server WHERE (public_server=1 OR user_id = ?) AND in_use=0",
+          [ownerUserId]
+        );
+      } else {
+        candidates = await db.query(
+          "SELECT id, ip_string, port, rcon_password FROM game_server WHERE public_server=1 AND in_use=0"
+        );
+      }
+    } catch (err) {
+      candidates = [];
+    }
+    console.log(`Found ${candidates.length} candidates servers for match from queue ${slug}.`);
+
+    // Try available game servers (disabled for now). If one found then prepare match on it.
+    for (const cand of candidates) {
+      try {
+        const newServer: GameServer = new GameServer(cand.ip_string, cand.port, cand.rcon_password);
+
+        // Check basic server readiness before any DB insert
+        const alive = await newServer.isServerAlive();
+        const get5av = await newServer.isGet5Available().catch(() => false);
+        if (!alive || !get5av) {
+          // server not suitable, try next candidate
+          (GlobalEmitter as any).emit('match:creating', { matchId, serverId: cand.id, teams: teamIds, slug, message: 'Server not alive or not available' });
+          continue;
+        }
+
+        // Server looks usable — insert the match and then attempt to prepare it
+        const insertSet = await db.buildUpdateStatement({ ...baseMatch, server_id: cand.id }) as any;
+        const insertRes: any = await db.query("INSERT INTO `match` SET ?", [insertSet]);
+        const matchId = (insertRes as any).insertId;
+
+        // mark server in use
+        await db.query("UPDATE game_server SET in_use = 1 WHERE id = ?", [cand.id]);
+
+        // update plugin version on match if we can
+        try {
+          const get5Version: string = await newServer.getGet5Version();
+          await db.query("UPDATE `match` SET plugin_version = ? WHERE id = ?", [get5Version, matchId]);
+        } catch (err) {
+          // ignore version retrieval errors
+        }
+
+        // attempt to prepare match on server
+        try {
+          const prepared = await newServer.prepareGet5Match(
+            config.get("server.apiURL") + "/matches/" + matchId + "/config",
+            apiKey
+          );
+
+          if (!prepared) {
+            // cleanup match and free server
+            await db.query("DELETE FROM match_spectator WHERE match_id = ?", [matchId]);
+            await db.query("DELETE FROM match_cvar WHERE match_id = ?", [matchId]);
+            await db.query("DELETE FROM `match` WHERE id = ?", [matchId]);
+            await db.query("UPDATE game_server SET in_use = 0 WHERE id = ?", [cand.id]);
+            continue; // try next candidate
+          }
+
+          // success: emit event and return
+          (GlobalEmitter as any).emit('match:created', { matchId, serverId: cand.id, teams: teamIds, slug });
+          return matchId;
+        } catch (errPrepare) {
+          // prepare failed — cleanup and continue
+          try {
+            await db.query("DELETE FROM match_spectator WHERE match_id = ?", [matchId]);
+            await db.query("DELETE FROM match_cvar WHERE match_id = ?", [matchId]);
+            await db.query("DELETE FROM `match` WHERE id = ?", [matchId]);
+            await db.query("UPDATE game_server SET in_use = 0 WHERE id = ?", [cand.id]);
+          } catch (cleanupErr) {
+            // ignore cleanup errors
+          }
+          continue;
+        }
+      } catch (err: any) {
+        // On any error, try to cleanup and continue
+        try {
+          if (err && err.insertId) {
+            const mid = err.insertId;
+            await db.query("DELETE FROM match_spectator WHERE match_id = ?", [mid]);
+            await db.query("DELETE FROM match_cvar WHERE match_id = ?", [mid]);
+            await db.query("DELETE FROM `match` WHERE id = ?", [mid]);
+          }
+        } catch (e) {
+          // ignore cleanup errors
+        }
+        continue;
+      }
+    }*/
+
+    // Remove the queue from Redis, including global queue.
+    await this.deleteQueue(slug, meta.ownerId!);
+
+    // No game server found, create match without server.
+    try {
+      const insertSet = await db.buildUpdateStatement({ ...baseMatch, server_id: null }) as any;
+      const insertRes: any = await db.query("INSERT INTO `match` SET ?", [insertSet]);
+      const matchId = (insertRes as any).insertId;
+      (GlobalEmitter as any).emit('match:created', { matchId, serverId: null, teams: teamIds, slug });
+      return matchId;
+    } catch (err) {
+      console.error("createMatchFromQueue final insert failed:", err);
+      return null;
+    }
   }
 
   static async deleteQueue(
@@ -77,6 +250,7 @@ export class QueueService {
   static async addUserToQueue(
     slug: string,
     steamId: string,
+    name: string
   ): Promise<void> {
     const key = `queue:${slug}`;
     const meta = await getQueueMetaOrThrow(slug);
@@ -100,11 +274,12 @@ export class QueueService {
     const item: QueueItem = {
       steamId,
       timestamp: Date.now(),
-      hltvRating: hltvRating ?? undefined
+      hltvRating: hltvRating ?? undefined,
+      nickname: name
     };
-
-    await redis.rPush(key, JSON.stringify(item));
     meta.currentPlayers += 1;
+    await redis.rPush(key, JSON.stringify(item));
+    
   }
 
   static async removeUserFromQueue(
@@ -138,9 +313,10 @@ export class QueueService {
     return false;
   }
 
-  static async listUsersInQueue(slug: string, role: string = "user", requestorSteamId: string): Promise<QueueItem[]> {
+  static async listUsersInQueue(slug: string): Promise<QueueItem[]> {
     const key = `queue:${slug}`;
-    const meta = await getQueueMetaOrThrow(slug);
+    // Use this to throw an error if something happens
+    await getQueueMetaOrThrow(slug);
 
     const rawItems = await redis.lRange(key, 0, -1);
     return rawItems.map((item: string) => JSON.parse(item));
@@ -210,10 +386,9 @@ export class QueueService {
    * Create two teams from the queue for the given slug.
    * - Uses the first `maxSize` players in the queue
    * - Attempts to balance teams by `hltvRating` while keeping randomness
-   * - Stores result in `queue-teams:<slug>` and removes selected players from the queue
    * - Team name is `team_<CAPTAIN>` where CAPTAIN is the first member's steamId
    */
-  static async createTeamsFromQueue(slug: string): Promise<{ teams: { name: string; members: QueueItem[] }[] }> {
+  static async createTeamsFromQueue(slug: string): Promise<number[]> {
     const key = `queue:${slug}`;
     const meta = await getQueueMetaOrThrow(slug);
 
@@ -235,7 +410,7 @@ export class QueueService {
 
     // Take the first N entries (FIFO semantics)
     const selectedRaw = rawItems.slice(0, maxPlayers);
-    const players: QueueItem[] = selectedRaw.map((r) => JSON.parse(r));
+    const players: QueueItem[] = selectedRaw.map((r: string) => JSON.parse(r) as QueueItem);
 
     // Compute a robust fallback for missing ratings: use median of known ratings
     const knownRatings = players
@@ -316,28 +491,19 @@ export class QueueService {
     const captainB = teamB[0];
 
     const teams = [
-      { name: `team_${captainA?.steamId ?? 'A'}`, members: teamA },
-      { name: `team_${captainB?.steamId ?? 'B'}`, members: teamB },
+      { name: `team_${captainA?.nickname ?? 'A'}`, members: teamA },
+      { name: `team_${captainB?.nickname ?? 'B'}`, members: teamB },
     ];
 
     // Persist teams to database (team + team_auth_names)
     // Resolve queue owner to internal user_id if present
-    let ownerUserId: number | null = 0;
-    try {
-      if (meta.ownerId) {
-        const ownerRows = await db.query('SELECT id FROM user WHERE steam_id = ?', [meta.ownerId]);
-        if (ownerRows && ownerRows.length > 0 && ownerRows[0].id) {
-          ownerUserId = ownerRows[0].id;
-        }
-      }
-    } catch (err) {
-      // fallback to 0 (system) if DB lookup fails
-      ownerUserId = 0;
-    }
-
+    let ownerUserId: number | null = await getUserIdFromMetaSlug(slug);
+    
+    console.log('ownerUserId:', ownerUserId);
+    const teamIds: number[] = [];
     for (const t of teams) {
       const teamInsert = await db.query("INSERT INTO team (user_id, name, flag, logo, tag, public_team) VALUES ?", [[[
-        ownerUserId || 0,
+        ownerUserId,
         t.name,
         null,
         null,
@@ -347,6 +513,7 @@ export class QueueService {
       // @ts-ignore insertId from RowDataPacket
       const insertedTeamId = (teamInsert as any).insertId || null;
       if (insertedTeamId) {
+        teamIds.push(insertedTeamId);
         // prepare team_auth_names bulk insert
         const authRows: Array<Array<any>> = [];
         for (let i = 0; i < t.members.length; i++) {
@@ -358,29 +525,30 @@ export class QueueService {
           await db.query("INSERT INTO team_auth_names (team_id, auth, name, captain, coach) VALUES ?", [authRows]);
         }
       }
-    }
+    }  
 
-    // Store teams in Redis and remove selected players from queue
-    const teamsKey = `queue-teams:${slug}`;
-    // TTL based on remaining queue meta TTL
-    const remainingSeconds = Math.max(1, Math.floor((meta.expiresAt - Date.now()) / 1000));
-
-    await redis.set(teamsKey, JSON.stringify({ teams }), { EX: remainingSeconds });
-
-    // Remove selected players from queue list and update meta
-    for (const raw of selectedRaw) {
-      // remove one occurrence
-      await redis.lRem(key, 1, raw);
-      meta.currentPlayers -= 1;
-    }
-
-    // Persist updated meta and expire
-    await redis.set(`queue-meta:${slug}`, JSON.stringify(meta), { EX: remainingSeconds });
-    await redis.expire(key, remainingSeconds);
-
-    return { teams };
+    return teamIds;
   }
 
+}
+
+async function getUserIdFromMetaSlug(slug: string): Promise<number | null> {
+  const meta = await getQueueMetaOrThrow(slug);
+  let ownerUserId: number | null = 0;
+  if (!meta.ownerId) return null;
+  
+  try {
+    if (meta.ownerId) {
+      const ownerRows = await db.query('SELECT id FROM user WHERE steam_id = ?', [meta.ownerId]);
+      if (ownerRows.length) {
+        ownerUserId = ownerRows[0].id;
+      }
+    }
+  } catch (err) {
+    // fallback to 0 (system) if DB lookup fails
+    ownerUserId = 0;
+  }
+  return ownerUserId;
 }
 
 async function getQueueMetaOrThrow(slug: string): Promise<QueueDescriptor> {
