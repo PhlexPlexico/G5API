@@ -582,6 +582,7 @@ import { Player } from "../types/leaderboard/Player.js";
        collisionPlayer!.average_rating = Utils.getRating(
          collisionPlayer!.kills,
          collisionPlayer!.trp,
+         collisionPlayer!.deaths,
          collisionPlayer!.k1,
          collisionPlayer!.k2,
          collisionPlayer!.k3,
