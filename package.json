@@ -68,7 +68,7 @@
   "dependencies": {
     "@node-steam/id": "^1.2.0",
     "aes-js": "^3.1.2",
-    "bcrypt": "^5.1.1",
+    "bcrypt": "^6.0.0",
     "compare-versions": "^6.1.0",
     "config": "^3.3.11",
     "connect-redis": "^7.1.1",
