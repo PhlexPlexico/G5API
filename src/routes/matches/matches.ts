@@ -1133,7 +1133,7 @@ router.get("/:match_id/config", async (req, res, next) => {
     });
     sql = "SELECT * FROM match_spectator WHERE match_id=?";
     matchSpecs = await db.query(sql, [matchID]);
-    let newSpecs: { [key: string]: any } = [];
+    let newSpecs: { [key: string]: any } = {};
     matchSpecs.forEach((row) => {
       newSpecs[row.auth] = row.spectator_name == null ? "" : row.spectator_name;
     });
