@@ -4549,9 +4549,9 @@ swagger-ui-express@^5.0.0:
     swagger-ui-dist ">=5.0.0"
 
 systeminformation@^5.7:
-  version "5.28.8"
-  resolved "https://registry.yarnpkg.com/systeminformation/-/systeminformation-5.28.8.tgz#b6b835f92b243200e69f124faf9e17f1523c2900"
-  integrity sha512-W2rXK+tTIoa1svfOEfhKPzJTw2OnoJ2XS57CftQkzvwt9Hj7RC2pfHKFAk8cHH+UkDAlGMW9Sf31kdOu5PZNIA==
+  version "5.31.1"
+  resolved "https://registry.yarnpkg.com/systeminformation/-/systeminformation-5.31.1.tgz#5f88aa1db7470af87b6288baf1738603cafd1c4a"
+  integrity sha512-6pRwxoGeV/roJYpsfcP6tN9mep6pPeCtXbUOCdVa0nme05Brwcwdge/fVNhIZn2wuUitAKZm4IYa7QjnRIa9zA==
 
 test-exclude@^6.0.0:
   version "6.0.0"
