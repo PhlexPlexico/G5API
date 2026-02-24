@@ -197,7 +197,7 @@ import { Player } from "../types/leaderboard/Player.js";
   */
  router.get("/teams/:team_id", async (req, res) => {
   try {
-    let teamId = req.params.team_id;
+    let teamId = Number(req.params.team_id);
     let leaderboard = await getTeamsPlayerLeaderboard(teamId);
     res.json({ leaderboard });
   } catch (err) {
@@ -237,8 +237,8 @@ import { Player } from "../types/leaderboard/Player.js";
   */
 router.get("/teams/:team_id/:season_id", async (req, res) => {
   try {
-    let teamId = req.params.team_id;
-    let seasonId = req.params.season_id;
+    let teamId = Number(req.params.team_id);
+    let seasonId = Number(req.params.season_id);
     let leaderboard = await getTeamsPlayerLeaderboard(teamId, seasonId);
     res.json({ leaderboard });
   } catch (err) {
@@ -680,8 +680,8 @@ router.get("/teams/:team_id/:season_id", async (req, res) => {
   * @param {string} [teamId=null] - Team ID to filter.
   * @param {string} [seasonId=null] - Season ID to filter.
   */
- const getTeamsPlayerLeaderboard = async (teamId = null, seasonId = null, pug = false) => {
-  let allPlayers = [];
+ const getTeamsPlayerLeaderboard = async (teamId: number | null = null, seasonId: number | null = null, pug: boolean = false) => {
+  let allPlayers: any[] = [];
   let playerStats;
   /* Logic:
    * 1. Get all player values where match is not cancelled or forfeit.

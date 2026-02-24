@@ -148,6 +148,7 @@ router.post("/", async (req: Request, res: Response) => {
     zip
       .generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
       .then((buf) => {
+        // @ts-ignore
         writeFile("public/demos/" + demoFilename.replace(".dem", ".zip"), buf, "binary", function (err) {
           if (err) {
             console.error(err);

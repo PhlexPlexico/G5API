@@ -117,8 +117,8 @@ class Utils {
       if (source === null) return;
 
       let byteSource = utils.utf8.toBytes(source);
-      let IV = randomBytes(16);
-      let key = utils.utf8.toBytes(config.get("server.dbKey"));
+      let IV = new Uint8Array(randomBytes(16));
+      let key = new Uint8Array(utils.utf8.toBytes(config.get("server.dbKey")));
       let aesCbc = new ModeOfOperation.ofb(key, IV);
       let encryptedBytes = aesCbc.encrypt(byteSource);
       let encryptedHex = utils.hex.fromBytes(encryptedBytes);
@@ -250,8 +250,13 @@ class Utils {
    */
   static async getSteamName(auth64: string) {
     try {
-      let summaryInfo = await steam.getUserSummary(auth64);
-      return summaryInfo.nickname;
+      const summaryInfo = await steam.getUserSummary(auth64);
+      
+      const user = Array.isArray(summaryInfo)
+        ? summaryInfo[0]
+        : summaryInfo;
+
+      return user?.nickname ?? null;
     } catch {
       return null;
     }
@@ -267,8 +272,12 @@ class Utils {
    */
   static async getSteamImage(auth64: string) {
     try {
-      let summaryInfo = await steam.getUserSummary(auth64);
-      return summaryInfo.avatar.medium;
+      const summaryInfo = await steam.getUserSummary(auth64);
+
+      // steamapi renvoie toujours un tableau :
+      const user = Array.isArray(summaryInfo) ? summaryInfo[0] : summaryInfo;
+
+      return user?.avatar?.medium ?? null;
     } catch {
       return null;
     }

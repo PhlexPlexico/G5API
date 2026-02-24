@@ -248,8 +248,11 @@ router.get("/public", Utils.ensureAuthenticated, async (req, res) => {
     }
     res.json({ teams });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.toString() });
+    if (err instanceof Error) {
+        res.status(500).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: String(err) });
+      } 
   }
 });
 

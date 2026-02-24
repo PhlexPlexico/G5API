@@ -4,6 +4,13 @@ import fetch from "node-fetch";
 import { compare } from "compare-versions";
 import { SteamApiResponse } from "../types/serverrcon/SteamApiResponse.js";
 
+interface SteamVersionResponse {
+  response: {
+      up_to_date: boolean;
+      required_version: number;
+    };
+}
+
 /**
  * Creates a new server object to run various tasks.
  * @class
@@ -125,7 +132,7 @@ class ServerRcon {
       let response = await fetch(
         `https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001/?appid=730&version=${serverVersion}&format=json`
       );
-      let data = await response.json();
+      let data = await response.json() as SteamVersionResponse;
       if (!data.response.up_to_date) {
         console.log(
           `Server is not up to date! Current version: ${serverVersion} - Latest version: ${data.response.required_version}`

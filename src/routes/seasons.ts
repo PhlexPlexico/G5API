@@ -339,7 +339,11 @@ router.get(
       }
       res.json(team[0]);
     } catch (err) {
-      res.status(500).json({ message: err.toString() });
+      if (err instanceof Error) {
+          res.status(500).json({ message: err.message });
+        } else {
+          res.status(500).json({ message: String(err) });
+        }
     }
   }
 );

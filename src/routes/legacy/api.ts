@@ -1177,6 +1177,7 @@ router.put(
         .then((buf) => {
           writeFile(
             "public/demos/" + mapStatValues[0].demoFile,
+      // @ts-ignore
             buf,
             "binary",
             function (err) {
