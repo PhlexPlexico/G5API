@@ -133,7 +133,7 @@ router.post("/", async (req: Request, res: Response) => {
     );
     let minuteDifference = Math.floor(timeDifference / 1000 / 60);
     let updateStmt: object;
-    if (minuteDifference > 8) {
+    if (minuteDifference > 30) {
       return res.status(401).json({ message: "Demo can no longer be uploaded." });
     }
 
