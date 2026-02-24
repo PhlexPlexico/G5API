@@ -92,8 +92,8 @@ router.get(
           start_time: new Date().toISOString().slice(0, 19).replace("T", " "),
           end_time: new Date().toISOString().slice(0, 19).replace("T", " "),
           winner: teamIdWinner,
-          team1_score: req.params.winner_id == 1 ? 16 : 0,
-          team2_score: req.params.winner_id == 2 ? 16 : 0,
+          team1_score: req.params.winner_id == 1 ? 13 : 0,
+          team2_score: req.params.winner_id == 2 ? 13 : 0,
           match_id: req.params.match_id,
         };
         let matchUpdateStmt = {
