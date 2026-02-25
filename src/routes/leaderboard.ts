@@ -219,10 +219,10 @@ import { Player } from "../types/leaderboard/Player.js";
   *         required: true
   *         schema:
   *          type: string
-  *      - name: season_id
-  *        required: true
-  *        schema:
-  *         type: string
+  *       - name: season_id
+  *         required: true
+  *         schema:
+  *          type: string
   *     tags:
   *       - leaderboard
   *     responses:
