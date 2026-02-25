@@ -44,7 +44,7 @@ import GlobalEmitter from "../../utility/emitter.js";
  */
 const basicRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 180,
+  max: 999999,
   message: "Too many requests from this IP. Please try again in an hour.",
   keyGenerator: async (req) => {
     try {
@@ -70,7 +70,7 @@ const basicRateLimit = rateLimit({
  */
 const updateMapRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 1000,
+  max: 999999,
   message: "Too many requests from this IP. Please try again in an hour.",
   keyGenerator: async (req) => {
     try {
@@ -92,7 +92,7 @@ const updateMapRateLimit = rateLimit({
  */
 const playerStatRateLimit = rateLimit({
   windowMs: 60 * 1000,
-  max: 100,
+  max: 999999,
   message: "Too many requests from this IP. Please try again in an hour.",
   keyGenerator: async (req) => {
     try {
