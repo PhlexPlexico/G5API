@@ -45,7 +45,7 @@ import { Get5_OnRoundEnd } from "../../types/map_flow/Get5_OnRoundEnd.js";
  */
 const basicRateLimit = rateLimit({
   windowMs: 30 * 30 * 1000, // 15 mins per 30k requests seems like a fair amount.
-  max: 30000,
+  max: 3000000,
   message: "Too many requests from this IP. Please try again in 15 minutes.",
   keyGenerator: async (req) => {
     try {
