@@ -61,7 +61,7 @@ class ServerRcon {
     }
     let get5Status = await this.execute("get5_status");
     if (get5Status.includes("Unknown command")) {
-      return "unknown";
+      return "0.15.0";
     }
     let get5JsonStatus = await JSON.parse(get5Status);
     return get5JsonStatus.plugin_version;
