@@ -96,13 +96,13 @@ router.get("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let sql: string;
     if (req.user && Utils.superAdminCheck(req.user)) {
       sql =
-        "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, usr.id as user_id, gs.flag, gs.gotv_port FROM game_server gs, user usr WHERE usr.id = gs.user_id";
+        "SELECT gs.id, gs.in_use, gs.ip_string, gs.port, gs.rcon_password, gs.display_name, gs.public_server, usr.name, usr.id as user_id, gs.flag, gs.gotv_port FROM game_server gs, user usr WHERE usr.id = gs.user_id ORDER BY SUBSTRING_INDEX(gs.display_name, ' ', 1), CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(gs.display_name, ' ', -1), '.', 1) AS UNSIGNED), CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(gs.display_name, '.', -1), ' ', 1) AS UNSIGNED)";
     } else if (req.user && Utils.adminCheck(req.user)) {
       sql =
-        "SELECT gs.id, gs.in_use, gs.display_name, gs.ip_string, gs.port, gs.public_server, usr.name, usr.id as user_id, gs.flag, gs.gotv_port  FROM game_server gs, user usr WHERE usr.id = gs.user_id";
+        "SELECT gs.id, gs.in_use, gs.display_name, gs.ip_string, gs.port, gs.public_server, usr.name, usr.id as user_id, gs.flag, gs.gotv_port  FROM game_server gs, user usr WHERE usr.id = gs.user_id ORDER BY SUBSTRING_INDEX(gs.display_name, ' ', 1), CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(gs.display_name, ' ', -1), '.', 1) AS UNSIGNED), CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(gs.display_name, '.', -1), ' ', 1) AS UNSIGNED)";
     } else {
       sql =
-        "SELECT gs.id, gs.in_use, gs.display_name, usr.name, gs.public_server, gs.flag FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id";
+        "SELECT gs.id, gs.in_use, gs.display_name, usr.name, gs.public_server, gs.flag FROM game_server gs, user usr WHERE gs.public_server=1 AND usr.id = gs.user_id ORDER BY SUBSTRING_INDEX(gs.display_name, ' ', 1), CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(gs.display_name, ' ', -1), '.', 1) AS UNSIGNED), CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(gs.display_name, '.', -1), ' ', 1) AS UNSIGNED)";
     }
     let servers: RowDataPacket[] = await db.query(sql);
     if (req.user && Utils.superAdminCheck(req.user)) {
