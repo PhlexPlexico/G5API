@@ -322,28 +322,98 @@ router.get(
   async (req, res, next) => {
     try {
       let sql =
-        "SELECT CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',team.name,'\"',': \"',ts.id,'\"')),'}') as teams " + 
+        "SELECT t.id, t.name, t.flag, t.logo, t.tag, t.public_team " +
         "FROM teams_seasons ts " +
-        "INNER JOIN team ON ts.teams_id = team.id " +
-        "WHERE ts.season_id = ?"
-      let team = await db.query(sql, [req.params.season_id]);
-      if (team[0].teams == null) {
+        "INNER JOIN team t ON ts.teams_id = t.id " +
+        "WHERE ts.season_id = ? " +
+        "ORDER BY t.name";
+      let teams: RowDataPacket[] = await db.query(sql, [req.params.season_id]);
+      if (!teams.length) {
         res.status(404).json({
           message: "No teams found for season id " + req.params.season_id + ".",
         });
         return;
       }
-      for (let row in team) {
-        if (team[row].teams == null) delete team[row].teams;
-        else team[row].teams = JSON.parse(team[row].teams);
-      }
-      res.json(team[0]);
+      res.json({ teams });
     } catch (err) {
       if (err instanceof Error) {
-          res.status(500).json({ message: err.message });
-        } else {
-          res.status(500).json({ message: String(err) });
-        }
+        res.status(500).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: String(err) });
+      }
+    }
+  }
+);
+
+router.post(
+  "/:season_id/teams",
+  Utils.ensureAuthenticated,
+  async (req, res, next) => {
+    try {
+      let seasonId: number = parseInt(req.params.season_id);
+      let seasonUserId: string = "SELECT user_id FROM season WHERE id = ?";
+      const seasonRow: RowDataPacket[] = await db.query(seasonUserId, [seasonId]);
+      if (!seasonRow.length) {
+        res.status(404).json({ message: "No season found." });
+        return;
+      }
+      if (
+        req.user &&
+        seasonRow[0].user_id != req.user.id &&
+        !Utils.superAdminCheck(req.user)
+      ) {
+        res.status(403).json({ message: "User is not authorized to perform action." });
+        return;
+      }
+      let teamIds: number[] = req.body.team_ids;
+      if (!Array.isArray(teamIds) || teamIds.length === 0) {
+        res.status(400).json({ message: "No team IDs provided." });
+        return;
+      }
+      let insertValues = teamIds.map((id: number) => [seasonId, id]);
+      let sql = "INSERT IGNORE INTO teams_seasons (season_id, teams_id) VALUES ?";
+      await db.query(sql, [insertValues]);
+      res.json({ message: "Teams added to season successfully!" });
+    } catch (err) {
+      if (err instanceof Error) {
+        res.status(500).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: String(err) });
+      }
+    }
+  }
+);
+
+router.delete(
+  "/:season_id/teams/:team_id",
+  Utils.ensureAuthenticated,
+  async (req, res, next) => {
+    try {
+      let seasonId: number = parseInt(req.params.season_id);
+      let teamId: number = parseInt(req.params.team_id);
+      let seasonUserId: string = "SELECT user_id FROM season WHERE id = ?";
+      const seasonRow: RowDataPacket[] = await db.query(seasonUserId, [seasonId]);
+      if (!seasonRow.length) {
+        res.status(404).json({ message: "No season found." });
+        return;
+      }
+      if (
+        req.user &&
+        seasonRow[0].user_id != req.user.id &&
+        !Utils.superAdminCheck(req.user)
+      ) {
+        res.status(403).json({ message: "User is not authorized to perform action." });
+        return;
+      }
+      let sql = "DELETE FROM teams_seasons WHERE season_id = ? AND teams_id = ?";
+      await db.query(sql, [seasonId, teamId]);
+      res.json({ message: "Team removed from season successfully!" });
+    } catch (err) {
+      if (err instanceof Error) {
+        res.status(500).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: String(err) });
+      }
     }
   }
 );
