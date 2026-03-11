@@ -33,7 +33,7 @@ describe('Queue routes', () => {
     const extraUsers = ['76561198025644195','76561198025644196','76561198025644197'];
     // Add users directly to the queue service to simulate distinct steam IDs (route uses req.user)
     for (const id of extraUsers) {
-      await QueueService.addUserToQueue(slug, id);
+      await QueueService.addUserToQueue(slug, id, 'TestUser');
     }
 
     // Now trigger team creation from the service (would normally be called by the route once full)
@@ -48,6 +48,69 @@ describe('Queue routes', () => {
     const teamId = teams[0].id;
     const auths = await db.query('SELECT auth FROM team_auth_names WHERE team_id = ?', [teamId]);
     expect(auths.length).toBeGreaterThan(0);
+  });
+
+  it('should list queues via GET /queue/', async () => {
+    const res = await request.get('/queue/').expect(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBeGreaterThanOrEqual(1);
+    const names = res.body.map((q) => q.name);
+    expect(names).toContain(global.__TEST_QUEUE_SLUG);
+  });
+
+  it('should get queue by slug via GET /queue/:slug', async () => {
+    const slug = global.__TEST_QUEUE_SLUG;
+    const res = await request.get(`/queue/${slug}`).expect(200);
+    expect(res.body.name).toBe(slug);
+    expect(res.body.maxSize).toBe(4);
+    expect(typeof res.body.currentPlayers).toBe('number');
+  });
+
+  it('should get queue players via GET /queue/:slug/players', async () => {
+    const slug = global.__TEST_QUEUE_SLUG;
+    const res = await request.get(`/queue/${slug}/players`).expect(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should reject duplicate join via PUT /queue/:slug with action join', async () => {
+    const slug = global.__TEST_QUEUE_SLUG;
+    const res = await request
+      .put(`/queue/${slug}`)
+      .set('Content-Type', 'application/json')
+      .send([{ action: 'join' }])
+      .expect(500);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('should leave queue and delete when last user via PUT leave', async () => {
+    const createRes = await request
+      .post('/queue/')
+      .set('Content-Type', 'application/json')
+      .send([{ maxPlayers: 2, private: false }])
+      .expect(200);
+    const leaveSlug = createRes.body.url.split('/').pop();
+    await request
+      .put(`/queue/${leaveSlug}`)
+      .set('Content-Type', 'application/json')
+      .send([{ action: 'leave' }])
+      .expect(200);
+    await request.get(`/queue/${leaveSlug}`).expect(404);
+  });
+
+  it('should delete queue via DELETE /queue/ with body slug', async () => {
+    const createRes = await request
+      .post('/queue/')
+      .set('Content-Type', 'application/json')
+      .send([{ maxPlayers: 5, private: false }])
+      .expect(200);
+    const deleteSlug = createRes.body.url.split('/').pop();
+    await request
+      .delete('/queue/')
+      .set('Content-Type', 'application/json')
+      .send([{ slug: deleteSlug }])
+      .expect(200);
+    await request.get(`/queue/${deleteSlug}`).expect(404);
   });
 
   describe('rating normalization', () => {
