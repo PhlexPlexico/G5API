@@ -29,6 +29,12 @@
   },
   "super_admins": {
     "steam_ids": "super_admins,go,here"
+  },
+  "dathost": {
+    "email": "",
+    "password": "",
+    "steam_game_server_login_token": "",
+    "shutdown_delay_seconds": 0
   }
 }
   

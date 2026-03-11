@@ -323,6 +323,10 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
     let updateUser: UserObject;
     // Let admins force update passwords in the event of issues.
     if (req.user && Utils.adminCheck(req.user)) {
+      let dathostAllowed: boolean | undefined;
+      if (req.body[0].dathost_allowed !== undefined) {
+        dathostAllowed = Boolean(req.body[0].dathost_allowed);
+      }
       updateUser = {
         admin: isAdmin,
         super_admin: isSuperAdmin,
@@ -332,7 +336,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
         large_image: largeImage,
         api_key: apiKey,
         password: password ? hashSync(password, 10) : null,
-        challonge_api_key: challongeApiKey
+        challonge_api_key: challongeApiKey,
+        ...(dathostAllowed !== undefined && { dathost_allowed: dathostAllowed })
       };
     } else if (req.user && req.user.steam_id == steamId || req.user!.id == userId) {
       if (req.body[0].force_reset) {

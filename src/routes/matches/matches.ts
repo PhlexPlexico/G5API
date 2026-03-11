@@ -8,7 +8,11 @@ import { Router } from "express";
 const router = Router();
 
 import { db } from "../../services/db.js";
-
+import {
+  createAndStartServer,
+  isDathostConfigured,
+  releaseManagedServer
+} from "../../services/dathost.js";
 import { generate } from "randomstring";
 
 import Utils from "../../utility/utils.js";
@@ -104,6 +108,9 @@ import { AccessMessage } from "../../types/mapstats/AccessMessage.js";
  *         ignore_server:
  *           type: boolean
  *           description: Boolean value representing whether to integrate a game server.
+ *         use_dathost:
+ *           type: boolean
+ *           description: If true, provision a game server on DatHost on the fly (requires dathost_allowed, no server_id).
  *         forfeit:
  *           type: boolean
  *           description: Whether the match was forfeited or not.
@@ -1178,6 +1185,69 @@ router.get("/:match_id/config", async (req, res, next) => {
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
+    // DatHost on-the-fly provisioning: require server_id null, user permission, and config.
+    if (req.body[0].use_dathost) {
+      if (req.body[0].server_id != null) {
+        res.status(400).json({
+          message: "use_dathost cannot be used together with server_id."
+        });
+        return;
+      }
+      const userRows: RowDataPacket[] = await db.query(
+        "SELECT dathost_allowed FROM user WHERE id = ?",
+        [req.user!.id]
+      );
+      if (!userRows[0]?.dathost_allowed) {
+        res.status(403).json({
+          message: "You do not have permission to use DatHost provisioning."
+        });
+        return;
+      }
+      if (!isDathostConfigured()) {
+        res.status(503).json({
+          message: "DatHost is not configured. Contact the administrator."
+        });
+        return;
+      }
+      const rconPassword = generate({ length: 16, capitalization: "uppercase" });
+      const steamToken = config.get<string>(
+        "dathost.steam_game_server_login_token"
+      );
+      let dathostResult: { id: string; ip: string; port: number; rcon: string };
+      try {
+        dathostResult = await createAndStartServer({
+          name: `G5-${Date.now()}`,
+          rcon: rconPassword,
+          steamGameServerLoginToken: steamToken || ""
+        });
+      } catch (e) {
+        console.error("DatHost createAndStartServer failed:", e);
+        res.status(502).json({
+          message:
+            "Failed to provision a game server on DatHost. Please try again or use a different server."
+        });
+        return;
+      }
+      const displayName = `DatHost-${dathostResult.id.slice(0, 8)}`;
+      const rconEncrypted = Utils.encrypt(dathostResult.rcon);
+      const insertServerSql =
+        "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server, flag, gotv_port, dathost_server_id, is_managed) VALUES (?,?,?,?,?,?,?,?,?,?)";
+      const insertServerResult = await db.query(insertServerSql, [
+        req.user!.id,
+        dathostResult.ip,
+        dathostResult.port,
+        rconEncrypted,
+        displayName,
+        0,
+        "",
+        null,
+        dathostResult.id,
+        1
+      ]);
+      const newServerId = (insertServerResult as any).insertId;
+      req.body[0].server_id = newServerId;
+    }
+
     // Check if server available, if we are given a server.
     let serverSql: string =
       "SELECT in_use, user_id, public_server FROM game_server WHERE id = ?";
@@ -1307,9 +1377,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           await db.query(sql, [insertMatch.insertId]);
           sql = "DELETE FROM `match` WHERE id = ?";
           await db.query(sql, [insertMatch.insertId]);
-
-          sql = "UPDATE game_server SET in_use = 0 WHERE id = ?";
-          await db.query(sql, [req.body[0].server_id]);
+          await releaseManagedServer(req.body[0].server_id);
           throw "Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.";
         }
       }
