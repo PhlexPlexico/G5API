@@ -113,7 +113,7 @@ export class QueueService {
     };
 
     // Fetch candidate servers (include connection info)
-    /*let candidates: RowDataPacket[] = [];
+    let candidates: RowDataPacket[] = [];
     try {
       if (ownerUserId && ownerUserId > 0) {
         candidates = await db.query(
@@ -130,29 +130,23 @@ export class QueueService {
     }
     console.log(`Found ${candidates.length} candidates servers for match from queue ${slug}.`);
 
-    // Try available game servers (disabled for now). If one found then prepare match on it.
     for (const cand of candidates) {
       try {
         const newServer: GameServer = new GameServer(cand.ip_string, cand.port, cand.rcon_password);
 
-        // Check basic server readiness before any DB insert
         const alive = await newServer.isServerAlive();
         const get5av = await newServer.isGet5Available().catch(() => false);
         if (!alive || !get5av) {
-          // server not suitable, try next candidate
-          (GlobalEmitter as any).emit('match:creating', { matchId, serverId: cand.id, teams: teamIds, slug, message: 'Server not alive or not available' });
+          (GlobalEmitter as any).emit('match:creating', { serverId: cand.id, teams: teamIds, slug, message: 'Server not alive or not available' });
           continue;
         }
 
-        // Server looks usable — insert the match and then attempt to prepare it
         const insertSet = await db.buildUpdateStatement({ ...baseMatch, server_id: cand.id }) as any;
         const insertRes: any = await db.query("INSERT INTO `match` SET ?", [insertSet]);
         const matchId = (insertRes as any).insertId;
 
-        // mark server in use
         await db.query("UPDATE game_server SET in_use = 1 WHERE id = ?", [cand.id]);
 
-        // update plugin version on match if we can
         try {
           const get5Version: string = await newServer.getGet5Version();
           await db.query("UPDATE `match` SET plugin_version = ? WHERE id = ?", [get5Version, matchId]);
@@ -160,7 +154,6 @@ export class QueueService {
           // ignore version retrieval errors
         }
 
-        // attempt to prepare match on server
         try {
           const prepared = await newServer.prepareGet5Match(
             config.get("server.apiURL") + "/matches/" + matchId + "/config",
@@ -168,19 +161,17 @@ export class QueueService {
           );
 
           if (!prepared) {
-            // cleanup match and free server
             await db.query("DELETE FROM match_spectator WHERE match_id = ?", [matchId]);
             await db.query("DELETE FROM match_cvar WHERE match_id = ?", [matchId]);
             await db.query("DELETE FROM `match` WHERE id = ?", [matchId]);
             await db.query("UPDATE game_server SET in_use = 0 WHERE id = ?", [cand.id]);
-            continue; // try next candidate
+            continue;
           }
 
-          // success: emit event and return
+          await this.deleteQueue(slug, meta.ownerId!);
           (GlobalEmitter as any).emit('match:created', { matchId, serverId: cand.id, teams: teamIds, slug });
           return matchId;
         } catch (errPrepare) {
-          // prepare failed — cleanup and continue
           try {
             await db.query("DELETE FROM match_spectator WHERE match_id = ?", [matchId]);
             await db.query("DELETE FROM match_cvar WHERE match_id = ?", [matchId]);
@@ -192,7 +183,6 @@ export class QueueService {
           continue;
         }
       } catch (err: any) {
-        // On any error, try to cleanup and continue
         try {
           if (err && err.insertId) {
             const mid = err.insertId;
@@ -205,16 +195,14 @@ export class QueueService {
         }
         continue;
       }
-    }*/
+    }
 
-    // Remove the queue from Redis, including global queue.
-    await this.deleteQueue(slug, meta.ownerId!);
-
-    // No game server found, create match without server.
+    // No game server found (or no candidates), create match without server.
     try {
       const insertSet = await db.buildUpdateStatement({ ...baseMatch, server_id: null }) as any;
       const insertRes: any = await db.query("INSERT INTO `match` SET ?", [insertSet]);
       const matchId = (insertRes as any).insertId;
+      await this.deleteQueue(slug, meta.ownerId!);
       (GlobalEmitter as any).emit('match:created', { matchId, serverId: null, teams: teamIds, slug });
       return matchId;
     } catch (err) {
@@ -276,9 +264,7 @@ export class QueueService {
       hltvRating: hltvRating ?? undefined,
       nickname: name
     };
-    meta.currentPlayers += 1;
     await redis.rPush(key, JSON.stringify(item));
-    
   }
 
   static async removeUserFromQueue(
@@ -304,7 +290,6 @@ export class QueueService {
       const parsed = JSON.parse(item);
       if (parsed.steamId === steamId) {
         await redis.lRem(key, 1, item);
-        meta.currentPlayers -= 1;
         return true;
       }
     }
@@ -330,9 +315,13 @@ export class QueueService {
 
     for (const slug of slugs) {
       const metaRaw = await redis.get(`queue-meta:${slug}`);
-      if (!metaRaw) continue;
+      if (!metaRaw) {
+        await redis.sRem('queues', slug);
+        continue;
+      }
 
       const meta: QueueDescriptor = JSON.parse(metaRaw);
+      meta.currentPlayers = await redis.lLen(`queue:${slug}`);
 
       if (role === 'admin' || role === 'super_admin' || meta.ownerId === requestorSteamId || meta.isPrivate === false) {
         descriptors.push(meta);
@@ -351,13 +340,38 @@ export class QueueService {
   }
 
   static async getCurrentQueuePlayerCount(slug: string): Promise<number> {
-    const meta = await getQueueMetaOrThrow(slug);
-    return meta.currentPlayers;
+    await getQueueMetaOrThrow(slug);
+    const key = `queue:${slug}`;
+    return await redis.lLen(key);
   }
 
   static async getCurrentQueueMaxCount(slug: string): Promise<number> {
     const meta = await getQueueMetaOrThrow(slug);
     return meta.maxSize;
+  }
+
+  private static readonly QUEUE_LOCK_TTL_MS = 10000;
+
+  static async tryAcquireQueueLock(slug: string): Promise<boolean> {
+    if (redis.isOpen === false) await redis.connect();
+    const key = `queue-lock:${slug}`;
+    const result = await redis.set(key, '1', { NX: true, PX: this.QUEUE_LOCK_TTL_MS });
+    return result != null;
+  }
+
+  static async releaseQueueLock(slug: string): Promise<void> {
+    await redis.del(`queue-lock:${slug}`);
+  }
+
+  static async deleteTeams(teamIds: number[]): Promise<void> {
+    for (const tid of teamIds) {
+      try {
+        await db.query("DELETE FROM team_auth_names WHERE team_id = ?", [tid]);
+        await db.query("DELETE FROM team WHERE id = ?", [tid]);
+      } catch (err) {
+        console.error("Error deleting team on rollback:", tid, err);
+      }
+    }
   }
 
   // Normalize player ratings helper

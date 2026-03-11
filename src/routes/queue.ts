@@ -325,30 +325,47 @@ router.put('/:slug', Utils.ensureAuthenticated, async (req, res) => {
   const action: string = req.body[0]?.action ? req.body[0].action : 'join';
 
   try {
-    let currentQueueCount: number = await QueueService.getCurrentQueuePlayerCount(slug);
-    let maxQueueCount: number = await QueueService.getCurrentQueueMaxCount(slug);
+    const maxQueueCount: number = await QueueService.getCurrentQueueMaxCount(slug);
     if (action === 'join') {
       await QueueService.addUserToQueue(slug, req.user?.steam_id!, req.user?.name!);
-      currentQueueCount++;
-      if (currentQueueCount == maxQueueCount) {
-        // Queue is full — create teams and persist them.
-        // Create match from queue
-        try {
-          const teamIds = await QueueService.createTeamsFromQueue(slug);
-          console.log('Created teams from full queue:', teamIds);
-          const matchId = await QueueService.createMatchFromQueue(slug, teamIds);
-          return res.status(200).json({ success: true, matchId: matchId, message: 'Match created successfully from full queue.' });
-        } catch (err) {
-          console.error('Error creating teams or match from queue:', err);
-          res.status(500).json({ error: `Failed to create teams or match from queue.` });
-          // Fall through to return success=true but without teams
+      const currentQueueCount = await QueueService.getCurrentQueuePlayerCount(slug);
+      if (currentQueueCount === maxQueueCount) {
+        const acquired = await QueueService.tryAcquireQueueLock(slug);
+        if (acquired) {
+          try {
+            const countAfterLock = await QueueService.getCurrentQueuePlayerCount(slug);
+            if (countAfterLock === maxQueueCount) {
+              const teamIds = await QueueService.createTeamsFromQueue(slug);
+              console.log('Created teams from full queue:', teamIds);
+              const matchId = await QueueService.createMatchFromQueue(slug, teamIds);
+              if (matchId != null) {
+                return res.status(200).json({ success: true, matchId, message: 'Match created successfully from full queue.' });
+              }
+              await QueueService.deleteTeams(teamIds);
+              res.status(500).json({ error: 'Failed to create match from queue.' });
+              return;
+            }
+          } catch (err) {
+            console.error('Error creating teams or match from queue:', err);
+            res.status(500).json({ error: 'Failed to create teams or match from queue.' });
+            return;
+          } finally {
+            await QueueService.releaseQueueLock(slug);
+          }
         }
       }
     } else if (action === 'leave') {
       await QueueService.removeUserFromQueue(slug, req.user?.steam_id!, req.user?.steam_id!);
-      if (currentQueueCount == 0) {
-        // If no users are left in the queue, delete it.
-        await QueueService.deleteQueue(slug, req.user?.steam_id!, 'admin');
+      const newCount = await QueueService.getCurrentQueuePlayerCount(slug);
+      if (newCount === 0) {
+        let role: string = 'user';
+        if (req.user?.admin) role = 'admin';
+        else if (req.user?.super_admin) role = 'super_admin';
+        try {
+          await QueueService.deleteQueue(slug, req.user?.steam_id!, role);
+        } catch (_) {
+          // Permission denied (e.g. not owner) or queue already gone; leave still succeeded
+        }
       }
     } else {
       return res.status(400).json({ error: 'Invalid action. Must be "join" or "leave".' });

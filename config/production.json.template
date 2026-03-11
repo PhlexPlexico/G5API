@@ -12,7 +12,8 @@
     "localLoginEnabled": $LOCALLOGINS,
     "redisUrl": "$REDISURL",
     "redisTTL": $REDISTTL,
-    "queueTTL": $QUEUETTL
+    "queueTTL": $QUEUETTL,
+    "serverPingTimeoutMs": $SERVERPINGTO
   },
   "production": {
     "driver": "mysql",
