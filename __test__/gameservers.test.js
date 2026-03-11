@@ -14,6 +14,26 @@ describe("Test the game server routes.", () => {
       .expect("Content-Type", /json/)
       .expect(200);
   });
+  it("Should return public server count via GET /servers/publiccount", () => {
+    return request
+      .get("/servers/publiccount")
+      .expect("Content-Type", /json/)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toHaveProperty("servers");
+        expect(typeof res.body.servers).toBe("number");
+      });
+  });
+  it("Should return available servers via GET /servers/available", () => {
+    return request
+      .get("/servers/available")
+      .expect("Content-Type", /json/)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toHaveProperty("servers");
+        expect(Array.isArray(res.body.servers)).toBe(true);
+      });
+  });
   it("Should setup a new server with the given values.", () => {
     let newServerData = [
       {

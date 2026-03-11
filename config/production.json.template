@@ -12,7 +12,8 @@
     "localLoginEnabled": $LOCALLOGINS,
     "redisUrl": "$REDISURL",
     "redisTTL": $REDISTTL,
-    "queueTTL": $QUEUETTL
+    "queueTTL": $QUEUETTL,
+    "serverPingTimeoutMs": $SERVERPINGTO
   },
   "production": {
     "driver": "mysql",
@@ -31,10 +32,13 @@
   "super_admins": {
     "steam_ids": "$SUPERADMINS"
   },
-  "dathost": {
-    "email": "$DATHOST_EMAIL",
-    "password": "$DATHOST_PASSWORD",
-    "steam_game_server_login_token": "$DATHOST_STEAM_TOKEN",
-    "shutdown_delay_seconds": 0
-  }
+  "defaultMaps": [
+    { "map_name": "de_inferno", "map_display_name": "Inferno" },
+    { "map_name": "de_ancient", "map_display_name": "Ancient" },
+    { "map_name": "de_mirage", "map_display_name": "Mirage" },
+    { "map_name": "de_nuke", "map_display_name": "Nuke" },
+    { "map_name": "de_anubis", "map_display_name": "Anubis" },
+    { "map_name": "de_dust2", "map_display_name": "Dust II" },
+    { "map_name": "de_vertigo", "map_display_name": "Vertigo" }
+  ]
 }
