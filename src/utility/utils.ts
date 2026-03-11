@@ -81,6 +81,43 @@ class Utils {
     }
   }
 
+/**
+ * Fetches HLTV rating for a user by Steam ID.
+ * @param steamId - The user's Steam ID
+ * @returns HLTV rating or null if not found
+ */
+static async getRatingFromSteamId(steamId: string): Promise<number | null> {
+  let playerStatSql =
+    `SELECT  steam_id, name, sum(kills) as kills,
+    sum(deaths) as deaths, sum(assists) as assists, sum(k1) as k1,
+    sum(k2) as k2, sum(k3) as k3,
+    sum(k4) as k4, sum(k5) as k5, sum(v1) as v1,
+    sum(v2) as v2, sum(v3) as v3, sum(v4) as v4,
+    sum(v5) as v5, sum(roundsplayed) as trp, sum(flashbang_assists) as fba,
+    sum(damage) as dmg, sum(headshot_kills) as hsk, count(id) as totalMaps,
+    sum(knife_kills) as knifekills, sum(friendlies_flashed) as fflash,
+    sum(enemies_flashed) as eflash, sum(util_damage) as utildmg
+    FROM    player_stats
+    WHERE steam_id = ? 
+      AND match_id IN (
+        SELECT  id
+        FROM    \`match\`
+        WHERE   cancelled = 0)`;
+  const user: RowDataPacket[] = await db.query(playerStatSql, [steamId]);;
+
+  if (!user.length) return null;
+
+  return this.getRating(parseFloat(user[0].kills),
+    parseFloat(user[0].trp),
+    parseFloat(user[0].deaths),
+    parseFloat(user[0].k1),
+    parseFloat(user[0].k2),
+    parseFloat(user[0].k3),
+    parseFloat(user[0].k4),
+    parseFloat(user[0].k5));
+}
+
+
   /** Inner function - Supports encryption and decryption for the database keys to get server RCON passwords.
    * @name decrypt
    * @function
@@ -591,6 +628,40 @@ class Utils {
     }
   }
 
+  /**
+   * Generates a Counter-Strike-style slug using themed adjectives and nouns,
+   * including weapon skins and knife types.
+   * Example: "clutch-karambit" or "dusty-dragonlore"
+   */
+  public static generateSlug(): string {
+    const adjectives = [
+      'dusty', 'silent', 'brutal', 'clutch', 'smoky', 'tactical', 'deadly', 'stealthy',
+      'eco', 'forceful', 'aggressive', 'defensive', 'sneaky', 'explosive', 'fraggy', 'nasty',
+      'quick', 'slow', 'noisy', 'clean', 'dirty', 'sharp', 'blind', 'lucky',
+      'fiery', 'cold', 'ghostly', 'venomous', 'royal'
+    ];
+
+    const nouns = [
+      // Weapons & gameplay
+      'ak47', 'deagle', 'bombsite', 'flashbang', 'knife', 'smoke', 'molotov', 'awp',
+      'nade', 'scout', 'pistol', 'rifle', 'mid', 'long', 'short', 'connector',
+      'ramp', 'hegrenade', 'tunnel', 'palace', 'apps', 'boost', 'peek', 'spray',
+
+      // Skins
+      'dragonlore', 'fireserpent', 'hyperbeast', 'fade', 'casehardened', 'redline',
+      'vulcan', 'asiimov', 'howl', 'bloodsport', 'phantomdisruptor', 'neonrider',
+
+      // Knives
+      'karambit', 'bayonet', 'butterfly', 'gutknife', 'falchion', 'shadowdaggers',
+      'huntsman', 'talon', 'ursus', 'paracord', 'nomad'
+    ];
+
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+
+    return `${adj}-${noun}`;
+  }
+
   public static addChallongeTeamAuthsToArray: (teamId: number, custom_field_response: { key: string; value: string; }) => Promise<void> = async (teamId: number, custom_field_response: { key: string, value: string }) => {
     let teamAuthArray: Array<Array<any>> = [];
     let key: keyof typeof custom_field_response;
@@ -608,6 +679,7 @@ class Utils {
       await db.query(sqlString, [teamAuthArray]);
     }
   }
+
 }
 
 
