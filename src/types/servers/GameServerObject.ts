@@ -7,5 +7,7 @@ export interface GameServerObject {
     display_name?: string,
     public_server?: number,
     flag?: string,
-    gotv_port?: number
+    gotv_port?: number,
+    dathost_server_id?: string | null,
+    is_managed?: boolean
 }

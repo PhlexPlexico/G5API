@@ -11,6 +11,45 @@ describe("Test the matches routes", () => {
     return request.get('/matches/')
       .expect(404);
   });
+  it('Should reject use_dathost when server_id is also provided (400).', () => {
+    return request
+      .post("/matches/")
+      .set("Content-Type", "application/json")
+      .set("Accept", "application/json")
+      .send([{
+        use_dathost: true,
+        server_id: 3,
+        team1_id: 4,
+        team2_id: 3,
+        max_maps: 1,
+        title: "Map {MAPNUMBER} of {MAXMAPS}",
+        veto_mappool: "de_dust2 de_mirage",
+        skip_veto: 0
+      }])
+      .expect(400)
+      .expect((result) => {
+        expect(result.body.message).toMatch(/use_dathost.*server_id/);
+      });
+  });
+  it('Should reject use_dathost when DatHost is not configured (503).', () => {
+    return request
+      .post("/matches/")
+      .set("Content-Type", "application/json")
+      .set("Accept", "application/json")
+      .send([{
+        use_dathost: true,
+        team1_id: 4,
+        team2_id: 3,
+        max_maps: 1,
+        title: "Map {MAPNUMBER} of {MAXMAPS}",
+        veto_mappool: "de_dust2 de_mirage",
+        skip_veto: 0
+      }])
+      .expect(503)
+      .expect((result) => {
+        expect(result.body.message).toMatch(/DatHost|not configured/);
+      });
+  });
   it('Should create a single match that is ready to be played with teams.', () => {
     // Min required data.
     let newMatchData = [
