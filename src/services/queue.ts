@@ -68,17 +68,6 @@ export class QueueService {
     // Generate API key for the match (used when preparing the server)
     const apiKey = generate({ length: 24, capitalization: "uppercase" });
 
-    // Default CS2 map pool
-    const defaultCs2Maps = [
-      'de_inferno',
-      'de_ancient',
-      'de_mirage',
-      'de_nuke',
-      'de_anubis',
-      'de_dust2',
-      'de_vertigo'
-    ];
-
     // Try to load user's map_list if available
     let mapPool: string[] = [];
     let ownerUserId: number | null = await getUserIdFromMetaSlug(slug);
@@ -93,7 +82,9 @@ export class QueueService {
       mapPool = [];
     }
     console.log("Map pool for user", ownerUserId, ":", mapPool);
-    if (!mapPool || mapPool.length === 0) mapPool = defaultCs2Maps;
+    if (!mapPool || mapPool.length === 0) {
+      mapPool = (config.get("defaultMaps") as { map_name: string }[]).map(m => m.map_name);
+    }
 
     // Build base match object
     const baseMatch: any = {
