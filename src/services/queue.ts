@@ -100,7 +100,8 @@ export class QueueService {
       enforce_teams: 1,
       is_pug: 1,
       api_key: apiKey,
-      min_player_ready: meta.maxSize/2
+      min_player_ready: meta.maxSize/2,
+      players_per_team: meta.maxSize/2
     };
 
     // Fetch candidate servers (include connection info)
@@ -160,6 +161,11 @@ export class QueueService {
           }
 
           await this.deleteQueue(slug, meta.ownerId!);
+          (GlobalEmitter as any).emit('queueUpdate', {
+            slug,
+            action: 'match_created',
+            match: { matchId, serverId: cand.id }
+          });
           (GlobalEmitter as any).emit('match:created', { matchId, serverId: cand.id, teams: teamIds, slug });
           return matchId;
         } catch (errPrepare) {
@@ -194,6 +200,11 @@ export class QueueService {
       const insertRes: any = await db.query("INSERT INTO `match` SET ?", [insertSet]);
       const matchId = (insertRes as any).insertId;
       await this.deleteQueue(slug, meta.ownerId!);
+      (GlobalEmitter as any).emit('queueUpdate', {
+        slug,
+        action: 'match_created',
+        match: { matchId, serverId: null }
+      });
       (GlobalEmitter as any).emit('match:created', { matchId, serverId: null, teams: teamIds, slug });
       return matchId;
     } catch (err) {
