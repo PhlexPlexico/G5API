@@ -11,7 +11,9 @@
     "uploadDemos": $UPLOADDEMOS,
     "localLoginEnabled": $LOCALLOGINS,
     "redisUrl": "$REDISURL",
-    "redisTTL": $REDISTTL
+    "redisTTL": $REDISTTL,
+    "queueTTL": $QUEUETTL,
+    "serverPingTimeoutMs": $SERVERPINGTO
   },
   "production": {
     "driver": "mysql",
@@ -29,5 +31,14 @@
   },
   "super_admins": {
     "steam_ids": "$SUPERADMINS"
-  }
+  },
+  "defaultMaps": [
+    { "map_name": "de_inferno", "map_display_name": "Inferno" },
+    { "map_name": "de_ancient", "map_display_name": "Ancient" },
+    { "map_name": "de_mirage", "map_display_name": "Mirage" },
+    { "map_name": "de_nuke", "map_display_name": "Nuke" },
+    { "map_name": "de_anubis", "map_display_name": "Anubis" },
+    { "map_name": "de_dust2", "map_display_name": "Dust II" },
+    { "map_name": "de_vertigo", "map_display_name": "Vertigo" }
+  ]
 }

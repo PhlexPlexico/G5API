@@ -25,6 +25,7 @@ import fetch from "node-fetch";
 import { RowDataPacket } from "mysql2";
 import { TeamData } from "../types/teams/TeamData.js";
 import { AuthData } from "../types/teams/AuthData.js";
+import { stringify } from "querystring";
 
 /**
  * @swagger
@@ -888,19 +889,25 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
     if (!challongeAPIKey) {
       throw "No challonge API key provided for user.";
     }
-    let teamArray: Array<any> = [];
-    challongeData.forEach(async (team: { participant: { display_name: string; id: any; }; }) => {
+    let teamArray: Array<Array<any>> = [];
+    challongeData.forEach(async (team: { participant: { display_name: string; id: any, custom_field_response: {key: string, value: string}; }; }) => {
       teamArray.push([
         req.user?.id,
         team.participant.display_name.substring(0, 40),
         team.participant.display_name.substring(0, 40),
         team.participant.id
       ]);
-    });
-    await db.query(sqlString, [teamArray]);
+
+      const teamInfo: RowDataPacket[] = await db.query(sqlString, [teamArray]);
+      //@ts-ignore
+      await Utils.addChallongeTeamAuthsToArray(teamInfo.insertId!, team.participant.custom_field_response);
+    });  
+    
+
     res.json({
       message: "Challonge teams imported successfully!"
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: (err as Error).toString() });
@@ -954,5 +961,6 @@ const img: any = (data: any) => {
     base64: match[2]
   };
 }
+
 
 export default router;
