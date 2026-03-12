@@ -1,8 +1,13 @@
+import config from "config";
 import Utils from "./utils.js";
 import { Rcon } from "dathost-rcon-client";
 import fetch from "node-fetch";
 import { compare } from "compare-versions";
 import { SteamApiResponse } from "../types/serverrcon/SteamApiResponse.js";
+
+const RCON_TIMEOUT_MS = config.has("server.serverPingTimeoutMs")
+  ? config.get<number>("server.serverPingTimeoutMs")
+  : 5000;
 
 /**
  * Creates a new server object to run various tasks.
@@ -33,14 +38,29 @@ class ServerRcon {
   }
 
   async execute(commandString: string): Promise<string> {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(`RCON timeout after ${RCON_TIMEOUT_MS}ms`)), RCON_TIMEOUT_MS);
+    });
+    const executePromise = (async () => {
+      try {
+        await this.rcon.connect();
+        const response = await this.rcon.send(commandString);
+        this.rcon.disconnect();
+        return response;
+      } catch (error) {
+        console.error("[RCON] Got error: " + error);
+        throw error;
+      }
+    })();
     try {
-      await this.rcon.connect();
-      const response = await this.rcon.send(commandString);
-      this.rcon.disconnect();
-      return response;
-    } catch (error) {
-      console.error("[RCON] Got error: " + error);
-      throw error;
+      return await Promise.race([executePromise, timeoutPromise]);
+    } catch (err) {
+      try {
+        this.rcon.disconnect();
+      } catch (_) {
+        // ignore disconnect errors on timeout
+      }
+      throw err;
     }
   }
 
@@ -75,13 +95,13 @@ class ServerRcon {
         if (compare(get5Version, "0.13.1", ">=")) {
           return true;
         } else {
-          console.log("Either get5 or G5WS plugin is missing.");
+          console.log("Either get5, MatchZy, or PugSharp plugin is missing.");
           return false;
         }
       }
       let get5JsonStatus = await JSON.parse(get5Status);
       if (get5JsonStatus.gamestate != 0) {
-        console.log("Server already has a get5 match setup.");
+        console.log("Server already has a match setup.");
         return false;
       } else {
         return true;
