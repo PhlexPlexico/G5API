@@ -1,4 +1,4 @@
-export interface UserObject { 
+export interface UserObject {
     steam_id?: string,
     name?: string,
     admin?: number,
@@ -9,4 +9,5 @@ export interface UserObject {
     api_key?: string | undefined | null,
     challonge_api_key?: string | undefined | null,
     password?: string | null | undefined,
+    dathost_allowed?: boolean,
 }
