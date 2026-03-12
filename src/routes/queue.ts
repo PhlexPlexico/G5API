@@ -7,8 +7,40 @@ import config from "config";
 import { Router } from 'express';
 import Utils from "../utility/utils.js";
 import { QueueService } from "../services/queue.js";
+import GlobalEmitter from "../utility/emitter.js";
 
 const router = Router();
+
+const getRequesterRole = (req: any): string => {
+  let role: string = 'user';
+  if (req.user?.admin) role = 'admin';
+  else if (req.user?.super_admin) role = 'super_admin';
+  return role;
+};
+
+const buildQueueState = async (slug: string): Promise<any> => {
+  try {
+    const users = await QueueService.listUsersInQueue(slug);
+    const queue = await QueueService.getQueue(slug, 'admin', '');
+    return {
+      slug,
+      queue: {
+        ...queue,
+        currentPlayers: users.length,
+      },
+      users,
+    };
+  } catch (error: any) {
+    if (
+      error?.message?.includes('does not exist') ||
+      error?.message?.includes('missing') ||
+      error?.message?.includes('not found')
+    ) {
+      return { slug, queue: null, users: [] };
+    }
+    throw error;
+  }
+};
 
 
 /**
@@ -142,6 +174,74 @@ router.get('/:slug', async (req, res) => {
       return res.status(404).json({ error: 'Queue not found.' });
     }
     res.status(500).json({ error: 'Failed to fetch queue.' });
+  }
+});
+
+/**
+* @swagger
+*
+* /queue/:slug/stream:
+*   get:
+*     description: Stream queue state changes for join/leave and match creation events.
+*     produces:
+*       - text/event-stream
+*     tags:
+*       - queue
+*     parameters:
+*       - name: slug
+*         in: path
+*         required: true
+*         schema:
+*           type: string
+*     responses:
+*       200:
+*         description: Queue state stream.
+*       500:
+*         $ref: '#/components/responses/Error'
+*/
+router.get('/:slug/stream', async (req, res) => {
+  const slug: string = req.params.slug;
+  try {
+    res.set({
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "Content-Type": "text/event-stream",
+      "X-Accel-Buffering": "no"
+    });
+    res.flushHeaders();
+
+    const writeState = async (matchEvent: any = null) => {
+      const snapshot = await buildQueueState(slug);
+      const payload = {
+        ...snapshot,
+        match: matchEvent?.matchId != null ? {
+          id: matchEvent.matchId,
+          serverId: matchEvent.serverId ?? null
+        } : null
+      };
+      res.write(`event: queue_state\ndata: ${JSON.stringify(payload)}\n\n`);
+    };
+
+    const onQueueUpdate = async (event: any) => {
+      if (!event || event.slug !== slug) return;
+      await writeState(event.match ?? null);
+    };
+
+    GlobalEmitter.on("queueUpdate", onQueueUpdate);
+    await writeState();
+
+    req.on("close", () => {
+      GlobalEmitter.removeListener("queueUpdate", onQueueUpdate);
+      res.end();
+    });
+    req.on("disconnect", () => {
+      GlobalEmitter.removeListener("queueUpdate", onQueueUpdate);
+      res.end();
+    });
+  } catch (error) {
+    console.error('Error streaming queue state:', error);
+    res.status(500).write(`event: error\ndata: ${(error as Error).toString()}\n\n`);
+    res.end();
   }
 });
 
@@ -329,6 +429,13 @@ router.put('/:slug', Utils.ensureAuthenticated, async (req, res) => {
     if (action === 'join') {
       await QueueService.addUserToQueue(slug, req.user?.steam_id!, req.user?.name!);
       const currentQueueCount = await QueueService.getCurrentQueuePlayerCount(slug);
+      GlobalEmitter.emit("queueUpdate", {
+        slug,
+        action: "join",
+        actorSteamId: req.user?.steam_id,
+        currentQueueCount,
+        maxQueueCount
+      });
       if (currentQueueCount === maxQueueCount) {
         const acquired = await QueueService.tryAcquireQueueLock(slug);
         if (acquired) {
@@ -358,15 +465,20 @@ router.put('/:slug', Utils.ensureAuthenticated, async (req, res) => {
       await QueueService.removeUserFromQueue(slug, req.user?.steam_id!, req.user?.steam_id!);
       const newCount = await QueueService.getCurrentQueuePlayerCount(slug);
       if (newCount === 0) {
-        let role: string = 'user';
-        if (req.user?.admin) role = 'admin';
-        else if (req.user?.super_admin) role = 'super_admin';
+        const role: string = getRequesterRole(req);
         try {
           await QueueService.deleteQueue(slug, req.user?.steam_id!, role);
         } catch (_) {
           // Permission denied (e.g. not owner) or queue already gone; leave still succeeded
         }
       }
+      GlobalEmitter.emit("queueUpdate", {
+        slug,
+        action: "leave",
+        actorSteamId: req.user?.steam_id,
+        currentQueueCount: newCount,
+        maxQueueCount
+      });
     } else {
       return res.status(400).json({ error: 'Invalid action. Must be "join" or "leave".' });
     }
@@ -424,9 +536,7 @@ router.put('/:slug', Utils.ensureAuthenticated, async (req, res) => {
     const slug: string = req.body[0].slug;
 
     try {
-      let role: string = 'user';
-      if (req.user?.admin) role = 'admin';
-      else if (req.user?.super_admin) role = 'super_admin';
+      const role: string = getRequesterRole(req);
       await QueueService.deleteQueue(slug, req.user?.steam_id!, role);
       res.status(200).json({ message: "The queue has successfully been deleted!", success: true });
     } catch (error: Error | any) {
