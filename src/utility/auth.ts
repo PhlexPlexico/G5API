@@ -13,6 +13,7 @@ import {db} from "../services/db.js";
 import { generate } from "randomstring";
 import Utils from "./utils.js";
 import User from "steamapi/dist/src/structures/User.js";
+import type { User as SessionUser } from "../types/User.js";
 
 passport.serializeUser((user, done) => {
   done(null, user);
@@ -117,7 +118,7 @@ async function returnStrategy(identifier: any, profile: any, done: any) {
         medium_image: profile.photos[1].value,
         large_image: profile.photos[2].value,
         api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key),
-      });
+      } as SessionUser);
     } catch (err) {
       console.log(profile.toString());
       console.log(
@@ -152,8 +153,8 @@ passport.use('local-login', new LocalStrategy(async (username, password, done) =
           small_image: curUser[0].small_image,
           medium_image: curUser[0].medium_image,
           large_image: curUser[0].large_image,
-          api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key)
-        });
+          api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key),
+        } as SessionUser);
       } else {
         return done(null, false, {message: "Invalid username or password."});
       }
@@ -225,8 +226,8 @@ passport.use('local-register',
           small_image: curUser[0].small_image,
           medium_image: curUser[0].medium_image,
           large_image: curUser[0].large_image,
-          api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key)
-        });
+          api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key),
+        } as SessionUser);
       }
     } catch (e) {
       console.error(e);

@@ -7,11 +7,12 @@ import { Router } from "express";
 
 const router = Router();
 
-import {db} from "../../services/db.js";
-
+import { db } from "../../services/db.js";
+import { releaseManagedServer } from "../../services/dathost.js";
 import Utils from "../../utility/utils.js";
 
 import GameServer from "../../utility/serverrcon.js";
+import GlobalEmitter from "../../utility/emitter.js";
 
 import config from "config";
 
@@ -114,7 +115,6 @@ router.get(
             "UPDATE map_stats SET ? WHERE match_id=? AND map_number=0";
         }
         let matchSql: string = "UPDATE `match` SET ? WHERE id=?";
-        let serverUpdateSql: string = "UPDATE game_server SET in_use=0 WHERE id=?";
         if (!mapStat.length) {
           mapStatId = await db.query(mapStatSql, [newStatStmt]);
         }
@@ -127,7 +127,6 @@ router.get(
           matchUpdateStmt,
           req.params.match_id,
         ]);
-        await db.query(serverUpdateSql, [matchRow[0].server_id]);
         if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
           await Utils.updatePugStats(
               req.params.match_id,
@@ -138,12 +137,20 @@ router.get(
               teamIdWinner == 1 ? matchRow[0].team1_id : matchRow[0].team2_id
             );
         }
-        let serverUpdate: GameServer = await getGameServer(req.params.match_id);
-        if (!serverUpdate.endGet5Match()) {
-          console.log(
-            "Error attempting to stop match on game server side. Will continue."
-          );
+        if (matchRow[0].server_id != null) {
+          try {
+            const serverUpdate: GameServer = await getGameServer(req.params.match_id);
+            if (!serverUpdate.endGet5Match()) {
+              console.log(
+                "Error attempting to stop match on game server side. Will continue."
+              );
+            }
+          } catch (e) {
+            console.log("Could not end match on server (e.g. managed server). Will continue.", e);
+          }
         }
+        await releaseManagedServer(matchRow[0].server_id);
+        GlobalEmitter.emit("matchUpdate");
         res.json({ message: "Match has been forfeitted successfully." });
         return;
       }
@@ -232,7 +239,6 @@ router.get(
             "UPDATE map_stats SET ? WHERE match_id=? AND map_number=0";
         }
         let matchSql: string = "UPDATE `match` SET ? WHERE id=?";
-        let serverUpdateSql: string = "UPDATE game_server SET in_use=0 WHERE id=?";
         if (!mapStat.length) {
           mapStatId = await db.query(mapStatSql, [newStatStmt]);
         }
@@ -245,7 +251,6 @@ router.get(
           matchUpdateStmt,
           req.params.match_id,
         ]);
-        await db.query(serverUpdateSql, [matchRow[0].server_id]);
         if (matchRow[0].is_pug != null && matchRow[0].is_pug == 1) {
           await Utils.updatePugStats(
             req.params.match_id,
@@ -256,15 +261,20 @@ router.get(
             null
           );
         }
-        // Let the server cancel the match first, or attempt to?
         if (matchRow[0].server_id != null) {
-          let serverUpdate: GameServer = await getGameServer(req.params.match_id);
-          if (!serverUpdate.endGet5Match()) {
-            console.log(
-              "Error attempting to stop match on game server side. Will continue."
-            );
+          try {
+            const serverUpdate: GameServer = await getGameServer(req.params.match_id);
+            if (!serverUpdate.endGet5Match()) {
+              console.log(
+                "Error attempting to stop match on game server side. Will continue."
+              );
+            }
+          } catch (e) {
+            console.log("Could not end match on server (e.g. managed server). Will continue.", e);
           }
         }
+        await releaseManagedServer(matchRow[0].server_id);
+        GlobalEmitter.emit("matchUpdate");
         res.json({ message: "Match has been cancelled successfully." });
         return;
       }
@@ -378,6 +388,7 @@ router.get(
             req.params.match_id,
           ]);
         }
+        GlobalEmitter.emit("matchUpdate");
         res.json({ message: "Match has been restarted successfully." });
         return;
       }

@@ -6,10 +6,15 @@
 import config from "config";
 import { Router } from 'express';
 import Utils from "../utility/utils.js";
-import { QueueService } from "../services/queue.js";
+import {
+  QueueService,
+  QueueOwnerDatHostConfigMissingError
+} from "../services/queue.js";
 import GlobalEmitter from "../utility/emitter.js";
 
 const router = Router();
+type QueueGame = "cs2" | "csgo";
+const DEFAULT_QUEUE_GAME: QueueGame = "cs2";
 
 const getRequesterRole = (req: any): string => {
   let role: string = 'user';
@@ -80,6 +85,12 @@ const buildQueueState = async (slug: string): Promise<any> => {
  *          nullable: true
  *          description: Optional flag for visibility
  *          example: false
+ *        game:
+ *          type: string
+ *          nullable: true
+ *          enum: [cs2, csgo]
+ *          description: Selected game for this queue.
+ *          example: cs2
  *  responses:
  *    NoSeasonData:
  *      description: No season data was provided.
@@ -337,6 +348,11 @@ router.get('/:slug/players', Utils.ensureAuthenticated, async (req, res) => {
  *                   description: Whether the queue is private or will be listed publically.
  *                   example: false
  *                   required: false
+ *                 game:
+ *                   type: string
+ *                   description: Game type for the queue.
+ *                   enum: [cs2, csgo]
+ *                   example: cs2
  *     responses:
  *       200:
  *         description: New season inserted successsfully.
@@ -348,11 +364,31 @@ router.get('/:slug/players', Utils.ensureAuthenticated, async (req, res) => {
  *         $ref: '#/components/responses/Error'
  */
 router.post('/', Utils.ensureAuthenticated, async (req, res) => {
-  const maxPlayers: number = req.body[0].maxPlayers;
-  const isPrivate: boolean = req.body[0].private ? true : false;
+  const payload = req.body?.[0] ?? {};
+  const maxPlayers: number = Number(payload.maxPlayers);
+  const isPrivate: boolean = payload.private ? true : false;
+  const requestedGame = payload.game;
+
+  if (!Number.isFinite(maxPlayers) || maxPlayers <= 0) {
+    return res.status(400).json({ error: "Invalid maxPlayers value." });
+  }
+
+  let game: QueueGame = DEFAULT_QUEUE_GAME;
+  if (requestedGame != null) {
+    if (requestedGame !== "cs2" && requestedGame !== "csgo") {
+      return res.status(400).json({ error: 'Invalid game. Must be "cs2" or "csgo".' });
+    }
+    game = requestedGame;
+  }
 
   try {
-    const descriptor = await QueueService.createQueue(req.user?.steam_id!, req.user?.name!, maxPlayers, isPrivate);
+    const descriptor = await QueueService.createQueue(
+      req.user?.steam_id!,
+      req.user?.name!,
+      maxPlayers,
+      isPrivate,
+      game
+    );
     res.json({ message: "Queue created successfully!", url: `${config.get("server.apiURL")}/queue/${descriptor.name}` });
   } catch (error) {
     console.error('Error creating queue:', error);
@@ -454,6 +490,13 @@ router.put('/:slug', Utils.ensureAuthenticated, async (req, res) => {
             }
           } catch (err) {
             console.error('Error creating teams or match from queue:', err);
+            if (err instanceof QueueOwnerDatHostConfigMissingError) {
+              res.status(412).json({
+                error:
+                  "Queue owner has not configured DatHost credentials. Ask the queue owner to configure DatHost in Settings."
+              });
+              return;
+            }
             res.status(500).json({ error: 'Failed to create teams or match from queue.' });
             return;
           } finally {

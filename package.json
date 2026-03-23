@@ -64,7 +64,8 @@
     "test:teams": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.teams.config.cjs",
     "test:user": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.users.config.cjs",
     "test:vetoes": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.vetoes.config.cjs",
-    "test:vetosides": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.vetosides.config.cjs"
+    "test:vetosides": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=10000 --detectOpenHandles --config ./jest_config/jest.vetosides.config.cjs",
+    "test:dathost": "NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=5000 --config ./jest_config/jest.dathost.config.cjs"
   },
   "dependencies": {
     "@node-steam/id": "^1.2.0",
