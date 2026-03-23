@@ -5,8 +5,8 @@
 import { isDathostConfigured, releaseManagedServer } from "../src/services/dathost.js";
 
 describe("DatHost service", () => {
-  it("isDathostConfigured returns false when dathost is not configured", () => {
-    expect(isDathostConfigured()).toBe(false);
+  it("isDathostConfigured returns false when user dathost is not configured", async () => {
+    await expect(isDathostConfigured(1)).resolves.toBe(false);
   });
 
   it("releaseManagedServer(null) resolves without throwing", async () => {

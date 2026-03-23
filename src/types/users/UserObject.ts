@@ -9,5 +9,4 @@ export interface UserObject {
     api_key?: string | undefined | null,
     challonge_api_key?: string | undefined | null,
     password?: string | null | undefined,
-    dathost_allowed?: boolean,
 }

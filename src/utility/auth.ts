@@ -118,7 +118,6 @@ async function returnStrategy(identifier: any, profile: any, done: any) {
         medium_image: profile.photos[1].value,
         large_image: profile.photos[2].value,
         api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key),
-        dathost_allowed: curUser[0].dathost_allowed,
       } as SessionUser);
     } catch (err) {
       console.log(profile.toString());
@@ -155,7 +154,6 @@ passport.use('local-login', new LocalStrategy(async (username, password, done) =
           medium_image: curUser[0].medium_image,
           large_image: curUser[0].large_image,
           api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key),
-          dathost_allowed: curUser[0].dathost_allowed,
         } as SessionUser);
       } else {
         return done(null, false, {message: "Invalid username or password."});
@@ -229,7 +227,6 @@ passport.use('local-register',
           medium_image: curUser[0].medium_image,
           large_image: curUser[0].large_image,
           api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key),
-          dathost_allowed: curUser[0].dathost_allowed,
         } as SessionUser);
       }
     } catch (e) {

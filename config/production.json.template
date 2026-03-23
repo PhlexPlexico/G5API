@@ -13,7 +13,8 @@
     "redisUrl": "$REDISURL",
     "redisTTL": $REDISTTL,
     "queueTTL": $QUEUETTL,
-    "serverPingTimeoutMs": $SERVERPINGTO
+    "serverPingTimeoutMs": $SERVERPINGTO,
+    "serverProvider": "$SERVERPROVIDER"
   },
   "production": {
     "driver": "mysql",

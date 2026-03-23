@@ -8,13 +8,36 @@ import { db } from "./db.js";
 import GameServer from "../utility/serverrcon.js";
 import GlobalEmitter from "../utility/emitter.js";
 import { generate } from "randomstring";
+import {
+  createAndStartServer,
+  isDathostConfigured,
+  getDathostConfig,
+  stopServer,
+  deleteServer
+} from "./dathost.js";
 
 const redis = createClient({ url: config.get("server.redisUrl"), });
 const DEFAULT_TTL_SECONDS: number = config.get("server.queueTTL") == 0 ? 3600 : config.get("server.queueTTL");
+type QueueGame = "cs2" | "csgo";
+const DEFAULT_QUEUE_GAME: QueueGame = "cs2";
+
+export class QueueOwnerDatHostConfigMissingError extends Error {
+  constructor() {
+    super("Queue owner has not configured DatHost credentials.");
+    this.name = "QueueOwnerDatHostConfigMissingError";
+  }
+}
 
 export class QueueService {
   
-  static async createQueue(ownerId: string, nickname: string, maxPlayers: number = 10, isPrivate: boolean = false, ttlSeconds: number = DEFAULT_TTL_SECONDS): Promise<QueueDescriptor> {
+  static async createQueue(
+    ownerId: string,
+    nickname: string,
+    maxPlayers: number = 10,
+    isPrivate: boolean = false,
+    game: QueueGame = DEFAULT_QUEUE_GAME,
+    ttlSeconds: number = DEFAULT_TTL_SECONDS
+  ): Promise<QueueDescriptor> {
     let slug: string;
     let key: string;
     let attempts: number = 0;
@@ -43,7 +66,8 @@ export class QueueService {
       ownerId,
       maxSize: maxPlayers,
       isPrivate: isPrivate,
-      currentPlayers: 1
+      currentPlayers: 1,
+      game: normalizeQueueGame(game)
     };
 
     await redis.sAdd('queues', slug);
@@ -57,18 +81,17 @@ export class QueueService {
 
   /**
    * Create a match record for a queue after teams have been created.
-   * - Picks an available server (owned by user or public) and marks it in_use
-   * - Uses the owner's `map_list` if present, otherwise falls back to default CS2 pool
+   * Behaviour depends on `server.serverProvider` config:
+   *   - "local": pick an available game_server from DB (existing flow)
+   *   - "dathost": provision a server on DatHost on the fly
    */
   static async createMatchFromQueue(
     slug: string,
     teamIds: number[]
   ): Promise<number | null> {
     const meta = await getQueueMetaOrThrow(slug);
-    // Generate API key for the match (used when preparing the server)
     const apiKey = generate({ length: 24, capitalization: "uppercase" });
 
-    // Try to load user's map_list if available
     let mapPool: string[] = [];
     let ownerUserId: number | null = await getUserIdFromMetaSlug(slug);
     try {
@@ -86,7 +109,6 @@ export class QueueService {
       mapPool = (config.get("defaultMaps") as { map_name: string }[]).map(m => m.map_name);
     }
 
-    // Build base match object
     const baseMatch: any = {
       user_id: ownerUserId || 0,
       team1_id: teamIds[0] || null,
@@ -104,7 +126,28 @@ export class QueueService {
       players_per_team: meta.maxSize/2
     };
 
-    // Fetch candidate servers (include connection info)
+    const provider: string = config.has("server.serverProvider")
+      ? (config.get("server.serverProvider") as string)
+      : "local";
+
+    if (provider === "dathost") {
+      return this.createMatchWithDathost(slug, teamIds, meta, baseMatch, apiKey, ownerUserId);
+    }
+
+    return this.createMatchWithLocalServer(slug, teamIds, meta, baseMatch, apiKey, ownerUserId);
+  }
+
+  /**
+   * Local server provider: iterate candidate game_server rows and RCON into them.
+   */
+  private static async createMatchWithLocalServer(
+    slug: string,
+    teamIds: number[],
+    meta: QueueDescriptor,
+    baseMatch: any,
+    apiKey: string,
+    ownerUserId: number | null
+  ): Promise<number | null> {
     let candidates: RowDataPacket[] = [];
     try {
       if (ownerUserId && ownerUserId > 0) {
@@ -120,7 +163,7 @@ export class QueueService {
     } catch (err) {
       candidates = [];
     }
-    console.log(`Found ${candidates.length} candidates servers for match from queue ${slug}.`);
+    console.log(`Found ${candidates.length} candidate servers for match from queue ${slug}.`);
 
     for (const cand of candidates) {
       try {
@@ -209,6 +252,117 @@ export class QueueService {
       return matchId;
     } catch (err) {
       console.error("createMatchFromQueue final insert failed:", err);
+      return null;
+    }
+  }
+
+  /**
+   * DatHost server provider: provision a server via DatHost API, insert a managed
+   * game_server row, create the match, and load it onto the server.
+   */
+  private static async createMatchWithDathost(
+    slug: string,
+    teamIds: number[],
+    meta: QueueDescriptor,
+    baseMatch: any,
+    apiKey: string,
+    ownerUserId: number | null
+  ): Promise<number | null> {
+    if (!ownerUserId || ownerUserId <= 0) {
+      throw new QueueOwnerDatHostConfigMissingError();
+    }
+
+    if (!(await isDathostConfigured(ownerUserId))) {
+      throw new QueueOwnerDatHostConfigMissingError();
+    }
+
+    const rconPassword = generate({ length: 16, capitalization: "uppercase" });
+    const dathostCfg = await getDathostConfig(ownerUserId);
+    const steamToken = dathostCfg?.steamGameServerLoginToken ?? "";
+
+    let dathostResult: { id: string; ip: string; port: number; rcon: string };
+    try {
+      dathostResult = await createAndStartServer(ownerUserId, {
+        name: `G5-Queue-${Date.now()}`,
+        rcon: rconPassword,
+        steamGameServerLoginToken: steamToken,
+        game: normalizeQueueGame(meta.game)
+      });
+    } catch (e) {
+      console.error("DatHost createAndStartServer failed for queue:", e);
+      return null;
+    }
+
+    let newServerId: number | null = null;
+    const rconEncrypted = Utils.encrypt(dathostResult.rcon);
+    try {
+      const displayName = `DatHost-Queue-${dathostResult.id.slice(0, 8)}`;
+      const insertServerRes = await db.query(
+        "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server, flag, gotv_port, dathost_server_id, is_managed) VALUES (?,?,?,?,?,?,?,?,?,?)",
+        [
+          ownerUserId || 0,
+          dathostResult.ip,
+          dathostResult.port,
+          rconEncrypted,
+          displayName,
+          0,
+          "",
+          null,
+          dathostResult.id,
+          1
+        ]
+      );
+      newServerId = (insertServerRes as any).insertId;
+    } catch (e) {
+      console.error("Failed to insert managed game_server row:", e);
+      await cleanupDathostServer(dathostResult.id, ownerUserId);
+      return null;
+    }
+
+    try {
+      const newServer = new GameServer(dathostResult.ip, dathostResult.port, rconEncrypted!);
+
+      const insertSet = await db.buildUpdateStatement({ ...baseMatch, server_id: newServerId }) as any;
+      const insertRes: any = await db.query("INSERT INTO `match` SET ?", [insertSet]);
+      const matchId = (insertRes as any).insertId;
+
+      await db.query("UPDATE game_server SET in_use = 1 WHERE id = ?", [newServerId]);
+
+      try {
+        const get5Version: string = await newServer.getGet5Version();
+        await db.query("UPDATE `match` SET plugin_version = ? WHERE id = ?", [get5Version, matchId]);
+      } catch (err) {
+        // ignore version retrieval errors
+      }
+
+      const prepared = await newServer.prepareGet5Match(
+        config.get("server.apiURL") + "/matches/" + matchId + "/config",
+        apiKey
+      );
+
+      if (!prepared) {
+        await db.query("DELETE FROM match_spectator WHERE match_id = ?", [matchId]);
+        await db.query("DELETE FROM match_cvar WHERE match_id = ?", [matchId]);
+        await db.query("DELETE FROM `match` WHERE id = ?", [matchId]);
+        await db.query("DELETE FROM game_server WHERE id = ?", [newServerId]);
+        await cleanupDathostServer(dathostResult.id, ownerUserId);
+        return null;
+      }
+
+      await this.deleteQueue(slug, meta.ownerId!);
+      (GlobalEmitter as any).emit('queueUpdate', {
+        slug,
+        action: 'match_created',
+        match: { matchId, serverId: newServerId }
+      });
+      (GlobalEmitter as any).emit('match:created', { matchId, serverId: newServerId, teams: teamIds, slug });
+      return matchId;
+    } catch (err) {
+      console.error("DatHost queue match creation failed:", err);
+      try {
+        await db.query("DELETE FROM game_server WHERE id = ?", [newServerId]);
+      } catch (_) { /* ignore */ }
+      await cleanupDathostServer(dathostResult.id, ownerUserId);
       return null;
     }
   }
@@ -324,6 +478,7 @@ export class QueueService {
 
       const meta: QueueDescriptor = JSON.parse(metaRaw);
       meta.currentPlayers = await redis.lLen(`queue:${slug}`);
+      meta.game = normalizeQueueGame(meta.game);
 
       if (role === 'admin' || role === 'super_admin' || meta.ownerId === requestorSteamId || meta.isPrivate === false) {
         descriptors.push(meta);
@@ -545,6 +700,25 @@ export class QueueService {
 
 }
 
+async function cleanupDathostServer(
+  dathostServerId: string,
+  ownerUserId: number | null
+): Promise<void> {
+  if (!ownerUserId || ownerUserId <= 0) {
+    return;
+  }
+  try {
+    await stopServer(ownerUserId, dathostServerId);
+  } catch (e) {
+    console.error("DatHost stopServer cleanup error:", e);
+  }
+  try {
+    await deleteServer(ownerUserId, dathostServerId);
+  } catch (e) {
+    console.error("DatHost deleteServer cleanup error:", e);
+  }
+}
+
 async function getUserIdFromMetaSlug(slug: string): Promise<number | null> {
   const meta = await getQueueMetaOrThrow(slug);
   let ownerUserId: number | null = 0;
@@ -579,7 +753,13 @@ async function getQueueMetaOrThrow(slug: string): Promise<QueueDescriptor> {
     throw new Error(`Queue metadata missing for ${slug}.`);
   }
 
-  return JSON.parse(metaRaw);
+  const meta: QueueDescriptor = JSON.parse(metaRaw);
+  meta.game = normalizeQueueGame(meta.game);
+  return meta;
+}
+
+function normalizeQueueGame(game?: string): QueueGame {
+  return game === "csgo" ? "csgo" : DEFAULT_QUEUE_GAME;
 }
 
 export default QueueService;
