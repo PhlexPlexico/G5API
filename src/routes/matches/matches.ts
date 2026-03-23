@@ -11,6 +11,7 @@ import { db } from "../../services/db.js";
 import {
   createAndStartServer,
   isDathostConfigured,
+  getDathostConfig,
   releaseManagedServer
 } from "../../services/dathost.js";
 import { generate } from "randomstring";
@@ -110,7 +111,7 @@ import { AccessMessage } from "../../types/mapstats/AccessMessage.js";
  *           description: Boolean value representing whether to integrate a game server.
  *         use_dathost:
  *           type: boolean
- *           description: If true, provision a game server on DatHost on the fly (requires dathost_allowed, no server_id).
+ *           description: If true, provision a game server on DatHost on the fly (requires DatHost integration configured, no server_id).
  *         forfeit:
  *           type: boolean
  *           description: Whether the match was forfeited or not.
@@ -1185,7 +1186,7 @@ router.get("/:match_id/config", async (req, res, next) => {
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    // DatHost on-the-fly provisioning: require server_id null, user permission, and config.
+    // DatHost on-the-fly provisioning: require server_id null and DatHost config.
     if (req.body[0].use_dathost) {
       if (req.body[0].server_id != null) {
         res.status(400).json({
@@ -1193,29 +1194,18 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         });
         return;
       }
-      const userRows: RowDataPacket[] = await db.query(
-        "SELECT dathost_allowed FROM user WHERE id = ?",
-        [req.user!.id]
-      );
-      if (!userRows[0]?.dathost_allowed) {
-        res.status(403).json({
-          message: "You do not have permission to use DatHost provisioning."
-        });
-        return;
-      }
-      if (!isDathostConfigured()) {
+      if (!(await isDathostConfigured(req.user!.id))) {
         res.status(503).json({
-          message: "DatHost is not configured. Contact the administrator."
+          message: "DatHost is not configured on this instance of G5API."
         });
         return;
       }
       const rconPassword = generate({ length: 16, capitalization: "uppercase" });
-      const steamToken = config.get<string>(
-        "dathost.steam_game_server_login_token"
-      );
+      const dathostCfg = await getDathostConfig(req.user!.id);
+      const steamToken = dathostCfg?.steamGameServerLoginToken ?? "";
       let dathostResult: { id: string; ip: string; port: number; rcon: string };
       try {
-        dathostResult = await createAndStartServer({
+        dathostResult = await createAndStartServer(req.user!.id, {
           name: `G5-${Date.now()}`,
           rcon: rconPassword,
           steamGameServerLoginToken: steamToken || ""

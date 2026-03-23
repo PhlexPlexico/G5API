@@ -1,7 +1,12 @@
 import { agent } from 'supertest';
+import config from 'config';
+import { jest } from '@jest/globals';
 import app from '../app.js';
 import { db } from '../src/services/db.js';
-import { QueueService } from '../src/services/queue.js';
+import {
+  QueueService,
+  QueueOwnerDatHostConfigMissingError
+} from '../src/services/queue.js';
 const request = agent(app);
 
 describe('Queue routes', () => {
@@ -142,5 +147,39 @@ describe('Queue routes', () => {
 
       Math.random = realRandom;
     });
+  });
+
+  it('should throw a clear error when queue owner lacks DatHost config', async () => {
+    const originalHas = config.has.bind(config);
+    const originalGet = config.get.bind(config);
+    let descriptor;
+    try {
+      jest.spyOn(config, 'has').mockImplementation((key) => {
+        if (key === 'server.serverProvider') return true;
+        return originalHas(key);
+      });
+      jest.spyOn(config, 'get').mockImplementation((key) => {
+        if (key === 'server.serverProvider') return 'dathost';
+        return originalGet(key);
+      });
+
+      descriptor = await QueueService.createQueue(
+        '76561198025644195',
+        'OwnerNoDatHostConfig',
+        10,
+        false,
+        'cs2',
+        120
+      );
+
+      await expect(
+        QueueService.createMatchFromQueue(descriptor.name, [1, 2])
+      ).rejects.toThrow(QueueOwnerDatHostConfigMissingError);
+    } finally {
+      if (descriptor?.name) {
+        await QueueService.deleteQueue(descriptor.name, '76561198025644195');
+      }
+      jest.restoreAllMocks();
+    }
   });
 });

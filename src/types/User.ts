@@ -8,5 +8,4 @@ export interface User {
   medium_image: string
   large_image: string
   api_key: string
-  dathost_allowed?: boolean | number
 }

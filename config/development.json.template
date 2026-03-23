@@ -13,7 +13,8 @@
     "redisUrl": "redis://:super_secure@localhost:6379",
     "redisTTL": 86400,
     "queueTTL": 3600,
-    "serverPingTimeoutMs": 5000
+    "serverPingTimeoutMs": 5000,
+    "serverProvider": "local"
   },
   "development": {
     "driver": "mysql",
@@ -32,12 +33,6 @@
   "super_admins": {
     "steam_ids": "super_admins,go,here"
   },
-  "dathost": {
-    "email": "",
-    "password": "",
-    "steam_game_server_login_token": "",
-    "shutdown_delay_seconds": 0
-  }
   "defaultMaps": [
     { "map_name": "de_inferno", "map_display_name": "Inferno" },
     { "map_name": "de_ancient", "map_display_name": "Ancient" },

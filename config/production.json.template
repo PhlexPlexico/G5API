@@ -13,7 +13,8 @@
     "redisUrl": "$REDISURL",
     "redisTTL": $REDISTTL,
     "queueTTL": $QUEUETTL,
-    "serverPingTimeoutMs": $SERVERPINGTO
+    "serverPingTimeoutMs": $SERVERPINGTO,
+    "serverProvider": "$SERVERPROVIDER"
   },
   "production": {
     "driver": "mysql",
@@ -32,12 +33,6 @@
   "super_admins": {
     "steam_ids": "$SUPERADMINS"
   },
-  "dathost": {
-    "email": "$DATHOST_EMAIL",
-    "password": "$DATHOST_PASSWORD",
-    "steam_game_server_login_token": "$DATHOST_STEAM_TOKEN",
-    "shutdown_delay_seconds": 0
-  }
   "defaultMaps": [
     { "map_name": "de_inferno", "map_display_name": "Inferno" },
     { "map_name": "de_ancient", "map_display_name": "Ancient" },

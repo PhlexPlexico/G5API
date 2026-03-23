@@ -6,4 +6,5 @@ export interface QueueDescriptor {
   maxSize: number;        // Max number of players allowed in the queue
   isPrivate?: boolean;    // Optional flag for visibility
   currentPlayers: number; // Current number of players in the queue
+  game?: "cs2" | "csgo";  // Selected game for this queue
 }

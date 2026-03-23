@@ -12,6 +12,7 @@ import { releaseManagedServer } from "../../services/dathost.js";
 import Utils from "../../utility/utils.js";
 
 import GameServer from "../../utility/serverrcon.js";
+import GlobalEmitter from "../../utility/emitter.js";
 
 import config from "config";
 
@@ -149,6 +150,7 @@ router.get(
           }
         }
         await releaseManagedServer(matchRow[0].server_id);
+        GlobalEmitter.emit("matchUpdate");
         res.json({ message: "Match has been forfeitted successfully." });
         return;
       }
@@ -272,6 +274,7 @@ router.get(
           }
         }
         await releaseManagedServer(matchRow[0].server_id);
+        GlobalEmitter.emit("matchUpdate");
         res.json({ message: "Match has been cancelled successfully." });
         return;
       }
@@ -385,6 +388,7 @@ router.get(
             req.params.match_id,
           ]);
         }
+        GlobalEmitter.emit("matchUpdate");
         res.json({ message: "Match has been restarted successfully." });
         return;
       }
