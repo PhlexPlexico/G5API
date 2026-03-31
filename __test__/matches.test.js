@@ -3,6 +3,9 @@ import app from '../app.js';
 const request = agent(app);
 
 describe("Test the matches routes", () => {
+  let defaultGameMatchId;
+  let csgoGameMatchId;
+
   beforeAll(() => {
     return request.get('/auth/steam/return')
       .expect(302);
@@ -245,6 +248,137 @@ describe("Test the matches routes", () => {
       .expect(200)
       .expect((result) => {
         expect(result.body.message).toMatch(/successfully/);
+      });
+  });
+  it('Should create a match without game and default to cs2.', () => {
+    const newMatchData = [
+      {
+        server_id: 2,
+        team1_id: 4,
+        team2_id: 3,
+        max_maps: 1,
+        title: "Game default check",
+        veto_mappool: "de_vertigo, de_inferno, de_mirage",
+        skip_veto: 1,
+        ignore_server: true
+      }
+    ];
+    return request
+      .post("/matches/")
+      .set("Content-Type", "application/json")
+      .set("Accept", "application/json")
+      .send(newMatchData)
+      .expect(200)
+      .expect((result) => {
+        defaultGameMatchId = result.body.id;
+        expect(result.body.message).toMatch(/successfully/);
+      });
+  });
+  it('Should persist default game as cs2.', () => {
+    return request
+      .get(`/matches/${defaultGameMatchId}`)
+      .expect(200)
+      .expect((result) => {
+        expect(result.body.match.game).toBe("cs2");
+      });
+  });
+  it('Should create a match with game set to csgo.', () => {
+    const newMatchData = [
+      {
+        server_id: 2,
+        team1_id: 4,
+        team2_id: 3,
+        max_maps: 1,
+        title: "Game csgo check",
+        veto_mappool: "de_vertigo, de_inferno, de_mirage",
+        skip_veto: 1,
+        ignore_server: true,
+        game: "csgo"
+      }
+    ];
+    return request
+      .post("/matches/")
+      .set("Content-Type", "application/json")
+      .set("Accept", "application/json")
+      .send(newMatchData)
+      .expect(200)
+      .expect((result) => {
+        csgoGameMatchId = result.body.id;
+        expect(result.body.message).toMatch(/successfully/);
+      });
+  });
+  it('Should persist explicit game as csgo.', () => {
+    return request
+      .get(`/matches/${csgoGameMatchId}`)
+      .expect(200)
+      .expect((result) => {
+        expect(result.body.match.game).toBe("csgo");
+      });
+  });
+  it('Should reject invalid game values on create.', () => {
+    const invalidMatchData = [
+      {
+        server_id: 2,
+        team1_id: 4,
+        team2_id: 3,
+        max_maps: 1,
+        title: "Invalid game create",
+        veto_mappool: "de_vertigo, de_inferno, de_mirage",
+        skip_veto: 1,
+        ignore_server: true,
+        game: "CS2"
+      }
+    ];
+    return request
+      .post("/matches/")
+      .set("Content-Type", "application/json")
+      .set("Accept", "application/json")
+      .send(invalidMatchData)
+      .expect(400)
+      .expect((result) => {
+        expect(result.body.message).toMatch(/Invalid game value/);
+      });
+  });
+  it('Should reject invalid game values on update.', () => {
+    const invalidUpdate = [
+      {
+        match_id: defaultGameMatchId,
+        game: "CSGO"
+      }
+    ];
+    return request
+      .put("/matches/")
+      .set("Content-Type", "application/json")
+      .set("Accept", "application/json")
+      .send(invalidUpdate)
+      .expect(400)
+      .expect((result) => {
+        expect(result.body.message).toMatch(/Invalid game value/);
+      });
+  });
+  it('Should update game to csgo on an existing match.', () => {
+    const updateData = [
+      {
+        match_id: defaultGameMatchId,
+        game: "csgo"
+      }
+    ];
+    return request
+      .put("/matches/")
+      .set("Content-Type", "application/json")
+      .set("Accept", "application/json")
+      .send(updateData)
+      .expect(200)
+      .expect((result) => {
+        expect(result.body.message).toMatch(/successfully/);
+      });
+  });
+  it('Should persist updated game after match update.', () => {
+    return request
+      .get(`/matches/${defaultGameMatchId}`)
+      .expect(200)
+      .expect((result) => {
+        expect(result.body.match.game).toBe("csgo");
       });
   });
 });
