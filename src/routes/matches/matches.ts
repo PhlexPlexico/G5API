@@ -1250,20 +1250,20 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       }
       const displayName = `DatHost-${dathostResult.id.slice(0, 8)}`;
       const rconEncrypted = Utils.encrypt(dathostResult.rcon);
-      const insertServerSql =
-        "INSERT INTO game_server (user_id, ip_string, port, rcon_password, display_name, public_server, flag, gotv_port, dathost_server_id, is_managed) VALUES (?,?,?,?,?,?,?,?,?,?)";
-      const insertServerResult = await db.query(insertServerSql, [
-        req.user!.id,
-        dathostResult.ip,
-        dathostResult.port,
-        rconEncrypted,
-        displayName,
-        0,
-        "",
-        null,
-        dathostResult.id,
-        1
-      ]);
+      const insertServerSql = "INSERT INTO game_server SET ?";
+      const insertServerSet = {
+        user_id: req.user!.id,
+        ip_string: dathostResult.ip,
+        port: dathostResult.port,
+        rcon_password: rconEncrypted,
+        display_name: displayName,
+        public_server: 0,
+        flag: "",
+        gotv_port: null,
+        dathost_server_id: dathostResult.id,
+        is_managed: 1
+      };
+      const insertServerResult = await db.query(insertServerSql, [insertServerSet]);
       const newServerId = (insertServerResult as any).insertId;
       req.body[0].server_id = newServerId;
     }
@@ -1329,7 +1329,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           : 0,
       map_sides: req.body[0].map_sides !== null ? req.body[0].map_sides : null,
       wingman: req.body[0]?.wingman,
-      game
+      game: game
     };
     let sql: string = "INSERT INTO `match` SET ?";
     let cvarSql: string =
@@ -1554,7 +1554,7 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
             : 0,
         map_sides: req.body[0].map_sides !== null ? req.body[0].map_sides : null,
         wingman: req.body[0]?.wingman,
-        game
+        game: game
       };
       // Remove any values that may not be updated.
       updateStmt = await db.buildUpdateStatement(updateStmt) as MatchData;

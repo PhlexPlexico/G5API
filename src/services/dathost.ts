@@ -27,6 +27,7 @@ const STEAMWORKS_GITHUB_LATEST =
   "https://api.github.com/repos/KyleSanderson/SteamWorks/releases/latest";
 const POLL_INTERVAL_MS = 5000;
 const POLL_TIMEOUT_MS = 300000; // 5 minutes
+const isDatHostVerboseLogsEnabled = process.env.NODE_ENV !== "production";
 
 const execFileAsync = promisify(execFile);
 
@@ -73,6 +74,13 @@ const DATHOST_LOCATION_IDS = [
 
 function isValidDatHostLocationId(value: string): boolean {
   return DATHOST_LOCATION_IDS.includes(value as (typeof DATHOST_LOCATION_IDS)[number]);
+}
+
+function logDatHostVerbose(message?: unknown, ...optionalParams: unknown[]): void {
+  if (!isDatHostVerboseLogsEnabled) {
+    return;
+  }
+  console.log(message, ...optionalParams);
 }
 
 async function getDathostConfig(userId: number): Promise<DatHostConfig | null> {
@@ -124,17 +132,18 @@ async function setDathostConfig(
     [userId]
   );
   const row = Array.isArray(existing) ? existing[0] : (existing as any)?.[0];
+  const configSet = {
+    email: encEmail,
+    password: encPassword,
+    steam_game_server_login_token: encToken,
+    shutdown_delay_seconds: shutdownDelay,
+    preferred_location: preferredLocation
+  };
 
   if (row) {
-    await db.query(
-      "UPDATE dathost_config SET email = ?, password = ?, steam_game_server_login_token = ?, shutdown_delay_seconds = ?, preferred_location = ? WHERE user_id = ?",
-      [encEmail, encPassword, encToken, shutdownDelay, preferredLocation, userId]
-    );
+    await db.query("UPDATE dathost_config SET ? WHERE user_id = ?", [configSet, userId]);
   } else {
-    await db.query(
-      "INSERT INTO dathost_config (user_id, email, password, steam_game_server_login_token, shutdown_delay_seconds, preferred_location) VALUES (?, ?, ?, ?, ?, ?)",
-      [userId, encEmail, encPassword, encToken, shutdownDelay, preferredLocation]
-    );
+    await db.query("INSERT INTO dathost_config SET ?", [{ user_id: userId, ...configSet }]);
   }
 
   configCache.delete(userId);
@@ -294,9 +303,9 @@ async function installCs2Plugins(userId: number, serverId: string): Promise<void
     throw new Error("CounterStrikeSharp with-runtime-linux asset not found in latest release");
   }
 
-  console.log(`Downloading CounterStrikeSharp: ${cssAsset.name}`);
+  logDatHostVerbose(`Downloading CounterStrikeSharp: ${cssAsset.name}`);
   const cssBuf = await downloadToBuffer(cssAsset.browser_download_url);
-  console.log(`Uploading CounterStrikeSharp (${cssBuf.byteLength} bytes) to DatHost...`);
+  logDatHostVerbose(`Uploading CounterStrikeSharp (${cssBuf.byteLength} bytes) to DatHost...`);
   await uploadFileToDathost(
     userId,
     serverId,
@@ -304,7 +313,7 @@ async function installCs2Plugins(userId: number, serverId: string): Promise<void
     cssBuf,
     cssAsset.name
   );
-  console.log("Extracting CounterStrikeSharp...");
+  logDatHostVerbose("Extracting CounterStrikeSharp...");
   await unzipOnDathost(userId, serverId, "counterstrikesharp.zip", "/");
 
   const matchzyReleaseRes = await fetch(MATCHZY_GITHUB_LATEST, {
@@ -323,14 +332,14 @@ async function installCs2Plugins(userId: number, serverId: string): Promise<void
     throw new Error("MatchZy plugin-only zip asset not found in latest release");
   }
 
-  console.log(`Downloading MatchZy: ${matchzyAsset.name}`);
+  logDatHostVerbose(`Downloading MatchZy: ${matchzyAsset.name}`);
   const matchzyBuf = await downloadToBuffer(matchzyAsset.browser_download_url);
-  console.log(`Uploading MatchZy (${matchzyBuf.byteLength} bytes) to DatHost...`);
+  logDatHostVerbose(`Uploading MatchZy (${matchzyBuf.byteLength} bytes) to DatHost...`);
   await uploadFileToDathost(userId, serverId, "matchzy.zip", matchzyBuf, matchzyAsset.name);
-  console.log("Extracting MatchZy...");
+  logDatHostVerbose("Extracting MatchZy...");
   await unzipOnDathost(userId, serverId, "matchzy.zip", "/");
 
-  console.log("Plugin installation complete.");
+  logDatHostVerbose("Plugin installation complete.");
 }
 
 async function installCsgoPlugins(userId: number, serverId: string): Promise<void> {
@@ -367,17 +376,17 @@ async function installCsgoPlugins(userId: number, serverId: string): Promise<voi
     throw new Error("SteamWorks archive asset not found in latest release");
   }
 
-  console.log(`Downloading SteamWorks: ${steamworksAsset.name}`);
+  logDatHostVerbose(`Downloading SteamWorks: ${steamworksAsset.name}`);
   const steamworksBuf = await downloadToBuffer(steamworksAsset.browser_download_url);
   if (
     steamworksAsset.name.endsWith(".tgz") ||
     steamworksAsset.name.endsWith(".tar.gz")
   ) {
-    console.log("Extracting SteamWorks extension locally from tgz...");
+    logDatHostVerbose("Extracting SteamWorks extension locally from tgz...");
     const steamworksExtensionBuf = await extractSteamworksExtensionFromTgz(
       steamworksBuf
     );
-    console.log(
+    logDatHostVerbose(
       `Uploading SteamWorks.ext.so (${steamworksExtensionBuf.byteLength} bytes) to DatHost...`
     );
     await uploadFileToDathost(
@@ -388,7 +397,7 @@ async function installCsgoPlugins(userId: number, serverId: string): Promise<voi
       "SteamWorks.ext.so"
     );
   } else {
-    console.log(`Uploading SteamWorks (${steamworksBuf.byteLength} bytes) to DatHost...`);
+    logDatHostVerbose(`Uploading SteamWorks (${steamworksBuf.byteLength} bytes) to DatHost...`);
     const steamworksRemoteArchivePath = steamworksAsset.name;
     await uploadFileToDathost(
       userId,
@@ -397,18 +406,17 @@ async function installCsgoPlugins(userId: number, serverId: string): Promise<voi
       steamworksBuf,
       steamworksAsset.name
     );
-    console.log("Extracting SteamWorks...");
+    logDatHostVerbose("Extracting SteamWorks...");
     await unzipOnDathost(userId, serverId, steamworksRemoteArchivePath, "/");
   }
 
-  console.log(`Downloading get5: ${get5Asset.name}`);
+  logDatHostVerbose(`Downloading get5: ${get5Asset.name}`);
   const get5Buf = await downloadToBuffer(get5Asset.browser_download_url);
-  console.log(`Uploading get5 (${get5Buf.byteLength} bytes) to DatHost...`);
+  logDatHostVerbose(`Uploading get5 (${get5Buf.byteLength} bytes) to DatHost...`);
   await uploadFileToDathost(userId, serverId, "get5.zip", get5Buf, get5Asset.name);
-  console.log("Extracting get5...");
+  logDatHostVerbose("Extracting get5...");
   await unzipOnDathost(userId, serverId, "get5.zip", "/");
-  console.log("")
-  console.log("Plugin installation complete.");
+  logDatHostVerbose("Plugin installation complete.");
 }
 
 async function installPlugins(

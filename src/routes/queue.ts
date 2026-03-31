@@ -364,7 +364,11 @@ router.get('/:slug/players', Utils.ensureAuthenticated, async (req, res) => {
  *         $ref: '#/components/responses/Error'
  */
 router.post('/', Utils.ensureAuthenticated, async (req, res) => {
-  const payload = req.body?.[0] ?? {};
+  const payload = req.body?.[0];
+  if (!payload || payload.maxPlayers == null) {
+    return res.status(400).json({ error: "maxPlayers is required." });
+  }
+
   const maxPlayers: number = Number(payload.maxPlayers);
   const isPrivate: boolean = payload.private ? true : false;
   const requestedGame = payload.game;
