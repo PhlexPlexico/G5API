@@ -1,8 +1,13 @@
+import config from "config";
 import Utils from "./utils.js";
-import { Rcon } from "dathost-rcon-client";
 import fetch from "node-fetch";
 import { compare } from "compare-versions";
+import { createConnection, Socket } from "node:net";
 import { SteamApiResponse } from "../types/serverrcon/SteamApiResponse.js";
+
+const RCON_TIMEOUT_MS = config.has("server.serverPingTimeoutMs")
+  ? config.get<number>("server.serverPingTimeoutMs")
+  : 5000;
 
 /**
  * Creates a new server object to run various tasks.
@@ -12,7 +17,9 @@ class ServerRcon {
   host: string;
   port: number;
   password: string;
-  rcon: Rcon;
+  private static readonly AUTH_PACKET_TYPE = 3;
+  private static readonly EXEC_PACKET_TYPE = 2;
+  private static readonly COMMAND_RESPONSE_IDLE_MS = 75;
 
   /**
    * Represents a game server.
@@ -25,22 +32,231 @@ class ServerRcon {
     this.host = hostName;
     this.port = portNumber;
     this.password = Utils.decrypt(rconPassword)!;
-    this.rcon = new Rcon({
-      host: this.host,
-      port: this.port,
-      password: this.password,
-    });
   }
 
   async execute(commandString: string): Promise<string> {
     try {
-      await this.rcon.connect();
-      const response = await this.rcon.send(commandString);
-      this.rcon.disconnect();
+      const response = await this.executeWithSocket(commandString);
       return response;
     } catch (error) {
       console.error("[RCON] Got error: " + error);
       throw error;
+    }
+  }
+
+  private buildPacket(requestId: number, packetType: number, body: string): Buffer {
+    const bodyBuffer = Buffer.from(body, "utf8");
+    const size = 4 + 4 + bodyBuffer.length + 2;
+    const packet = Buffer.alloc(size + 4);
+    packet.writeInt32LE(size, 0);
+    packet.writeInt32LE(requestId, 4);
+    packet.writeInt32LE(packetType, 8);
+    bodyBuffer.copy(packet, 12);
+    packet.writeInt16LE(0, 12 + bodyBuffer.length);
+    return packet;
+  }
+
+  private executeWithSocket(commandString: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const socket: Socket = createConnection({
+        host: this.host,
+        port: this.port,
+      });
+
+      const authRequestId = Math.floor(Math.random() * 2147483647);
+      const commandRequestId = Math.floor(Math.random() * 2147483647);
+      let commandSent = false;
+      let authSucceeded = false;
+      let settled = false;
+      let receivedCommandResponse = false;
+      let readBuffer = Buffer.alloc(0);
+      const responseParts: string[] = [];
+
+      let responseIdleTimer: NodeJS.Timeout | null = null;
+      const hardTimeout = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        socket.destroy();
+        reject(new Error(`RCON timeout after ${RCON_TIMEOUT_MS}ms`));
+      }, RCON_TIMEOUT_MS);
+
+      const cleanup = () => {
+        clearTimeout(hardTimeout);
+        if (responseIdleTimer) {
+          clearTimeout(responseIdleTimer);
+          responseIdleTimer = null;
+        }
+      };
+
+      const finalizeSuccess = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        socket.end();
+        resolve(responseParts.join("").trimEnd());
+      };
+
+      const finalizeError = (err: unknown) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        socket.destroy();
+        reject(err instanceof Error ? err : new Error(String(err)));
+      };
+
+      const bumpResponseIdleWindow = () => {
+        if (responseIdleTimer) {
+          clearTimeout(responseIdleTimer);
+        }
+        responseIdleTimer = setTimeout(
+          finalizeSuccess,
+          ServerRcon.COMMAND_RESPONSE_IDLE_MS
+        );
+      };
+
+      socket.on("connect", () => {
+        socket.write(
+          this.buildPacket(
+            authRequestId,
+            ServerRcon.AUTH_PACKET_TYPE,
+            this.password
+          )
+        );
+      });
+
+      socket.on("data", (chunk: Buffer) => {
+        readBuffer = Buffer.concat([readBuffer, chunk]);
+
+        while (readBuffer.length >= 4) {
+          const packetSize = readBuffer.readInt32LE(0);
+          const fullPacketSize = packetSize + 4;
+
+          if (packetSize < 10) {
+            finalizeError(new Error("Received malformed RCON packet."));
+            return;
+          }
+
+          if (readBuffer.length < fullPacketSize) {
+            return;
+          }
+
+          const packet = readBuffer.subarray(0, fullPacketSize);
+          readBuffer = readBuffer.subarray(fullPacketSize);
+
+          const responseId = packet.readInt32LE(4);
+          const bodyLength = packetSize - 10;
+          const body = packet.toString("utf8", 12, 12 + bodyLength);
+
+          if (!authSucceeded) {
+            if (responseId === -1) {
+              finalizeError(new Error("RCON authentication error."));
+              return;
+            }
+            if (responseId === authRequestId && !commandSent) {
+              authSucceeded = true;
+              commandSent = true;
+              socket.write(
+                this.buildPacket(
+                  commandRequestId,
+                  ServerRcon.EXEC_PACKET_TYPE,
+                  commandString
+                )
+              );
+            }
+            continue;
+          }
+
+          if (responseId === commandRequestId) {
+            receivedCommandResponse = true;
+            if (body.length > 0) {
+              responseParts.push(body);
+            }
+            bumpResponseIdleWindow();
+          }
+        }
+      });
+
+      socket.on("error", (err) => {
+        finalizeError(err);
+      });
+
+      socket.on("close", () => {
+        if (settled) return;
+        if (receivedCommandResponse) {
+          finalizeSuccess();
+          return;
+        }
+        finalizeError(
+          new Error("RCON socket closed before receiving command response.")
+        );
+      });
+    });
+  }
+
+  private extractFirstJsonObject(rawResponse: string): string {
+    const trimmed = rawResponse.trim();
+    if (!trimmed) {
+      throw new Error("Received empty RCON response while JSON was expected.");
+    }
+
+    const firstBraceIdx = trimmed.indexOf("{");
+    if (firstBraceIdx === -1) {
+      throw new Error(`No JSON object found in RCON response: ${trimmed}`);
+    }
+
+    let depth = 0;
+    let inString = false;
+    let isEscaping = false;
+    let endBraceIdx = -1;
+
+    for (let i = firstBraceIdx; i < trimmed.length; i++) {
+      const ch = trimmed[i];
+
+      if (inString) {
+        if (isEscaping) {
+          isEscaping = false;
+          continue;
+        }
+        if (ch === "\\") {
+          isEscaping = true;
+          continue;
+        }
+        if (ch === "\"") {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (ch === "\"") {
+        inString = true;
+        continue;
+      }
+
+      if (ch === "{") {
+        depth++;
+      } else if (ch === "}") {
+        depth--;
+        if (depth === 0) {
+          endBraceIdx = i;
+          break;
+        }
+      }
+    }
+
+    if (endBraceIdx === -1) {
+      throw new Error(`Incomplete JSON object in RCON response: ${trimmed}`);
+    }
+
+    return trimmed.slice(firstBraceIdx, endBraceIdx + 1);
+  }
+
+  private parseRconJsonResponse<T = any>(rawResponse: string): T {
+    const normalized = rawResponse.trim();
+    try {
+      return JSON.parse(normalized) as T;
+    } catch (_) {
+      const extracted = this.extractFirstJsonObject(normalized);
+      return JSON.parse(extracted) as T;
     }
   }
 
@@ -56,7 +272,7 @@ class ServerRcon {
     if (get5Status.includes("Unknown command")) {
       return "unknown";
     }
-    let get5JsonStatus = await JSON.parse(get5Status);
+    let get5JsonStatus = this.parseRconJsonResponse<{ plugin_version: string }>(get5Status);
     return get5JsonStatus.plugin_version;
   }
 
@@ -75,13 +291,13 @@ class ServerRcon {
         if (compare(get5Version, "0.13.1", ">=")) {
           return true;
         } else {
-          console.log("Either get5 or G5WS plugin is missing.");
+          console.log("Either get5, MatchZy, or PugSharp plugin is missing.");
           return false;
         }
       }
-      let get5JsonStatus = await JSON.parse(get5Status);
+      let get5JsonStatus = this.parseRconJsonResponse<{ gamestate: number | string }>(get5Status);
       if (get5JsonStatus.gamestate != 0) {
-        console.log("Server already has a get5 match setup.");
+        console.log("Server already has a match setup.");
         return false;
       } else {
         return true;

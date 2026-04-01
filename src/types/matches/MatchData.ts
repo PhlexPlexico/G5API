@@ -30,6 +30,8 @@ export interface MatchData {
     min_spectators_to_ready?: number,
     map_sides?: string | null,
     wingman?: boolean,
+    game?: "cs2" | "csgo",
     team1_series_score?: number,
     team2_series_score?: number,
+    use_dathost?: boolean,
 }

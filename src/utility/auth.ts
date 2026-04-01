@@ -13,6 +13,7 @@ import {db} from "../services/db.js";
 import { generate } from "randomstring";
 import Utils from "./utils.js";
 import User from "steamapi/dist/src/structures/User.js";
+import type { User as SessionUser } from "../types/User.js";
 
 passport.serializeUser((user, done) => {
   done(null, user);
@@ -49,7 +50,6 @@ async function returnStrategy(identifier: any, profile: any, done: any) {
   process.nextTick(async () => {
     profile.identifier = identifier;
     try {
-      let defaultMaps = [];
       let isAdmin = 0;
       let isSuperAdmin = 0;
       let superAdminList = (config.get("super_admins.steam_ids") as String).split(",");
@@ -84,13 +84,8 @@ async function returnStrategy(identifier: any, profile: any, done: any) {
         curUser = await db.query(sql, [newUser]);
         sql = "SELECT * FROM user WHERE steam_id = ?";
         curUser = await db.query(sql, [profile.id]);
-        defaultMaps.push(['de_inferno', 'Inferno', curUser[0].id]);
-        defaultMaps.push(['de_ancient', 'Ancient', curUser[0].id]);
-        defaultMaps.push(['de_mirage', 'Mirage', curUser[0].id]);
-        defaultMaps.push(['de_nuke', 'Nuke', curUser[0].id]);
-        defaultMaps.push(['de_anubis', 'Anubis', curUser[0].id]);
-        defaultMaps.push(['de_dust2', 'Dust II', curUser[0].id]);
-        defaultMaps.push(['de_vertigo', 'Vertigo', curUser[0].id]);
+        const defaultMapsConfig = config.get("defaultMaps") as { map_name: string; map_display_name: string }[];
+        const defaultMaps = defaultMapsConfig.map(m => [m.map_name, m.map_display_name, curUser[0].id]);
         sql = "INSERT INTO map_list (map_name, map_display_name, user_id) VALUES ?";
         await db.query(sql, [defaultMaps]);
       } else {
@@ -107,14 +102,8 @@ async function returnStrategy(identifier: any, profile: any, done: any) {
         sql = "SELECT * FROM map_list WHERE user_id = ?";
         let checkMaps = await db.query(sql, [curUser[0].id]);
         if (checkMaps.length < 1) {
-          let defaultMaps = [];
-          defaultMaps.push(['de_inferno', 'Inferno', curUser[0].id]);
-          defaultMaps.push(['de_ancient', 'Ancient', curUser[0].id]);
-          defaultMaps.push(['de_mirage', 'Mirage', curUser[0].id]);
-          defaultMaps.push(['de_nuke', 'Nuke', curUser[0].id]);
-          defaultMaps.push(['de_anubis', 'Anubis', curUser[0].id]);
-          defaultMaps.push(['de_dust2', 'Dust II', curUser[0].id]);
-          defaultMaps.push(['de_vertigo', 'Vertigo', curUser[0].id]);
+          const defaultMapsConfig = config.get("defaultMaps") as { map_name: string; map_display_name: string }[];
+          const defaultMaps = defaultMapsConfig.map(m => [m.map_name, m.map_display_name, curUser[0].id]);
           sql = "INSERT INTO map_list (map_name, map_display_name, user_id) VALUES ?";
           await db.query(sql, [defaultMaps]);
         }
@@ -129,7 +118,7 @@ async function returnStrategy(identifier: any, profile: any, done: any) {
         medium_image: profile.photos[1].value,
         large_image: profile.photos[2].value,
         api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key),
-      });
+      } as SessionUser);
     } catch (err) {
       console.log(profile.toString());
       console.log(
@@ -164,8 +153,8 @@ passport.use('local-login', new LocalStrategy(async (username, password, done) =
           small_image: curUser[0].small_image,
           medium_image: curUser[0].medium_image,
           large_image: curUser[0].large_image,
-          api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key)
-        });
+          api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key),
+        } as SessionUser);
       } else {
         return done(null, false, {message: "Invalid username or password."});
       }
@@ -185,7 +174,6 @@ passport.use('local-register',
         return done(null, false, {message: "Sorry, local logins are disabled for this instance."});
       }
       let sql = "SELECT * FROM user WHERE username = ? OR steam_id = ?";
-      let defaultMaps = [];
       let superAdminList = (config.get("super_admins.steam_ids") as String).split(",");
       let adminList = (config.get("admins.steam_ids") as String).split(",");
       let isAdmin, isSuperAdmin = 0;
@@ -225,13 +213,8 @@ passport.use('local-register',
         await db.query(sql, newUser);
         sql = "SELECT * FROM user WHERE steam_id = ?";
         curUser = await db.query(sql, [req.body.steam_id]);
-        defaultMaps.push(['de_inferno', 'Inferno', curUser[0].id]);
-        defaultMaps.push(['de_ancient', 'Ancient', curUser[0].id]);
-        defaultMaps.push(['de_mirage', 'Mirage', curUser[0].id]);
-        defaultMaps.push(['de_nuke', 'Nuke', curUser[0].id]);
-        defaultMaps.push(['de_anubis', 'Anubis', curUser[0].id]);
-        defaultMaps.push(['de_dust2', 'Dust II', curUser[0].id]);
-        defaultMaps.push(['de_vertigo', 'Vertigo', curUser[0].id]);
+        const defaultMapsConfig = config.get("defaultMaps") as { map_name: string; map_display_name: string }[];
+        const defaultMaps = defaultMapsConfig.map(m => [m.map_name, m.map_display_name, curUser[0].id]);
         sql = "INSERT INTO map_list (map_name, map_display_name, user_id) VALUES ?";
         await db.query(sql, [defaultMaps]);
         return done(null, {
@@ -243,8 +226,8 @@ passport.use('local-register',
           small_image: curUser[0].small_image,
           medium_image: curUser[0].medium_image,
           large_image: curUser[0].large_image,
-          api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key)
-        });
+          api_key: curUser[0].id + ":" + Utils.decrypt(curUser[0].api_key),
+        } as SessionUser);
       }
     } catch (e) {
       console.error(e);

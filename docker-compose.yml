@@ -71,6 +71,9 @@ services:
       - USEREDIS=true
       - UPLOADDEMOS=true
       - LOCALLOGINS=false
+      - QUEUETTL=3600
+      - SERVERPINGTO=5000
+      - SERVERPROVIDER=local
     restart: always
 
   g5v:

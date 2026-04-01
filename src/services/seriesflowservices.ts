@@ -1,4 +1,5 @@
 import { db } from "./db.js";
+import { releaseManagedServer } from "./dathost.js";
 import { Get5_OnSeriesResult } from "../types/series_flow/Get5_OnSeriesResult.js";
 import { Get5_OnMapVetoed } from "../types/series_flow/veto/Get5_OnMapVetoed.js";
 import { Get5_OnMapPicked } from "../types/series_flow/veto/Get5_OnMapPicked.js";
@@ -55,9 +56,8 @@ class SeriesFlowService {
       updateObject = await db.buildUpdateStatement(updateObject);
       let updateSql: string = "UPDATE `match` SET ? WHERE id = ?";
       await db.query(updateSql, [updateObject, event.matchid]);
-      // Set server to not be in use.
-      updateSql = "UPDATE game_server SET in_use = 0 WHERE id = ?";
-      await db.query(updateSql, [matchInfo[0].server_id]);
+      // Release server (in_use=0 for normal, or stop/delete DatHost managed server).
+      await releaseManagedServer(matchInfo[0].server_id);
 
       // Check if we are pugging.
       if (matchInfo[0].is_pug != null && matchInfo[0].is_pug == 1) {

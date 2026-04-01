@@ -1,4 +1,4 @@
-export interface UserObject { 
+export interface UserObject {
     steam_id?: string,
     name?: string,
     admin?: number,

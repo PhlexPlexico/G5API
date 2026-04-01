@@ -8,7 +8,12 @@ import { Router } from "express";
 const router = Router();
 
 import { db } from "../../services/db.js";
-
+import {
+  createAndStartServer,
+  isDathostConfigured,
+  getDathostConfig,
+  releaseManagedServer
+} from "../../services/dathost.js";
 import { generate } from "randomstring";
 
 import Utils from "../../utility/utils.js";
@@ -26,6 +31,18 @@ import { TeamData } from "../../types/teams/TeamData.js";
 import { RowDataPacket } from "mysql2";
 import { AccessMessage } from "../../types/mapstats/AccessMessage.js";
 
+type MatchGame = "cs2" | "csgo";
+const DEFAULT_MATCH_GAME: MatchGame = "cs2";
+
+function normalizeMatchGame(game: unknown): MatchGame {
+  if (game == null || game === "") {
+    return DEFAULT_MATCH_GAME;
+  }
+  if (game === "cs2" || game === "csgo") {
+    return game;
+  }
+  throw new Error("Invalid game value. Expected one of: cs2, csgo.");
+}
 
 /**
  * @swagger
@@ -104,6 +121,14 @@ import { AccessMessage } from "../../types/mapstats/AccessMessage.js";
  *         ignore_server:
  *           type: boolean
  *           description: Boolean value representing whether to integrate a game server.
+ *         use_dathost:
+ *           type: boolean
+ *           description: If true, provision a game server on DatHost on the fly (requires DatHost integration configured, no server_id).
+ *         game:
+ *           type: string
+ *           enum: [cs2, csgo]
+ *           default: cs2
+ *           description: Game used when provisioning a DatHost server. Defaults to cs2 when omitted.
  *         forfeit:
  *           type: boolean
  *           description: Whether the match was forfeited or not.
@@ -282,6 +307,10 @@ import { AccessMessage } from "../../types/mapstats/AccessMessage.js";
  *         season_id:
  *           type: integer
  *           description: The ID of the season. NULL if no season.
+ *         game:
+ *           type: string
+ *           enum: [cs2, csgo]
+ *           description: Match game mode (cs2 or csgo).
  *     BombInfo:
  *       type: object
  *       properties:
@@ -373,7 +402,7 @@ router.get("/", async (req, res, next) => {
       "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, mtch.team1_score, " +
       "mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, mtch.team1_string, mtch.team2_string, " +
       "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, " +
-      "mtch.enforce_teams, mtch.min_player_ready, mtch.season_id, mtch.is_pug, usr.name as owner, mp.team1_score as team1_mapscore, mp.team2_score as team2_mapscore " +
+      "mtch.enforce_teams, mtch.min_player_ready, mtch.season_id, mtch.is_pug, mtch.game, usr.name as owner, mp.team1_score as team1_mapscore, mp.team2_score as team2_mapscore " +
       "FROM `match` mtch JOIN user usr ON mtch.user_id = usr.id LEFT JOIN map_stats mp ON mp.match_id = mtch.id " +
       "WHERE cancelled = 0 " +
       "OR cancelled IS NULL " +
@@ -440,7 +469,7 @@ router.get("/mymatches", Utils.ensureAuthenticated, async (req, res, next) => {
       "SELECT mtch.id, mtch.user_id, mtch.server_id, mtch.team1_id, mtch.team2_id, mtch.winner, mtch.team1_score, " +
       "mtch.team2_score, mtch.team1_series_score, mtch.team2_series_score, mtch.team1_string, mtch.team2_string, " +
       "mtch.cancelled, mtch.forfeit, mtch.start_time, mtch.end_time, mtch.max_maps, mtch.title, mtch.skip_veto, mtch.private_match, " +
-      "mtch.enforce_teams, mtch.min_player_ready, mtch.season_id, mtch.is_pug, usr.name as owner, mp.team1_score as team1_mapscore, mp.team2_score as team2_mapscore " +
+      "mtch.enforce_teams, mtch.min_player_ready, mtch.season_id, mtch.is_pug, mtch.game, usr.name as owner, mp.team1_score as team1_mapscore, mp.team2_score as team2_mapscore " +
       "FROM `match` mtch JOIN user usr ON mtch.user_id = usr.id LEFT JOIN map_stats mp ON mp.match_id = mtch.id " +
       "WHERE mtch.user_id = ? " +
       "OR cancelled IS NULL " +
@@ -511,7 +540,7 @@ router.get("/:match_id", async (req, res, next) => {
         "team1_score, team2_score, team1_series_score, team2_series_score, " +
         "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
         "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug, map_sides FROM `match` where id = ?";
+        "season_id, is_pug, map_sides, game FROM `match` where id = ?";
     }
     let matchID: string = req.params.match_id;
     const matches: RowDataPacket[] = await db.query(sql, [matchID]);
@@ -576,7 +605,7 @@ router.get("/:match_id/stream", async (req, res, next) => {
         "team1_score, team2_score, team1_series_score, team2_series_score, " +
         "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
         "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug, map_sides FROM `match` where id = ?";
+        "season_id, is_pug, map_sides, game FROM `match` where id = ?";
     }
 
     let matchID: string = req.params.match_id;
@@ -918,7 +947,7 @@ router.get("/limit/:limiter", async (req, res, next) => {
         "team1_score, team2_score, team1_series_score, team2_series_score, " +
         "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
         "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug, map_sides FROM `match` WHERE cancelled = 0 " +
+        "season_id, is_pug, map_sides, game FROM `match` WHERE cancelled = 0 " +
         "OR cancelled IS NULL ORDER BY end_time DESC LIMIT ?";
     }
     const matches: RowDataPacket[] = await db.query(sql, [lim]);
@@ -979,7 +1008,7 @@ router.get("/page/:firstvalue&:lastvalue", async (req, res, next) => {
         "team1_score, team2_score, team1_series_score, team2_series_score, " +
         "team1_string, team2_string, cancelled, forfeit, start_time, end_time, " +
         "max_maps, title, skip_veto, private_match, enforce_teams, min_player_ready, " +
-        "season_id, is_pug, map_sides FROM `match` WHERE cancelled = 0 " +
+        "season_id, is_pug, map_sides, game FROM `match` WHERE cancelled = 0 " +
         "OR cancelled IS NULL ORDER BY id DESC LIMIT ?,?";
     }
     const matches: RowDataPacket[] = await db.query(sql, [firstVal, secondVal]);
@@ -1178,6 +1207,67 @@ router.get("/:match_id/config", async (req, res, next) => {
  */
 router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
+    let game: MatchGame;
+    try {
+      game = normalizeMatchGame(req.body[0].game);
+    } catch (err) {
+      res.status(400).json({ message: (err as Error).message });
+      return;
+    }
+
+    // DatHost on-the-fly provisioning: require server_id null and DatHost config.
+    if (req.body[0].use_dathost) {
+      if (req.body[0].server_id != null) {
+        res.status(400).json({
+          message: "use_dathost cannot be used together with server_id."
+        });
+        return;
+      }
+      if (!(await isDathostConfigured(req.user!.id))) {
+        res.status(503).json({
+          message: "DatHost is not configured on this instance of G5API."
+        });
+        return;
+      }
+      const rconPassword = generate({ length: 16, capitalization: "uppercase" });
+      const dathostCfg = await getDathostConfig(req.user!.id);
+      const steamToken = dathostCfg?.steamGameServerLoginToken ?? "";
+      let dathostResult: { id: string; ip: string; port: number; rcon: string };
+      try {
+        dathostResult = await createAndStartServer(req.user!.id, {
+          name: `G5-${Date.now()}`,
+          rcon: rconPassword,
+          steamGameServerLoginToken: steamToken || "",
+          game
+        });
+      } catch (e) {
+        console.error("DatHost createAndStartServer failed:", e);
+        res.status(502).json({
+          message:
+            "Failed to provision a game server on DatHost. Please try again or use a different server."
+        });
+        return;
+      }
+      const displayName = `DatHost-${dathostResult.id.slice(0, 8)}`;
+      const rconEncrypted = Utils.encrypt(dathostResult.rcon);
+      const insertServerSql = "INSERT INTO game_server SET ?";
+      const insertServerSet = {
+        user_id: req.user!.id,
+        ip_string: dathostResult.ip,
+        port: dathostResult.port,
+        rcon_password: rconEncrypted,
+        display_name: displayName,
+        public_server: 0,
+        flag: "",
+        gotv_port: null,
+        dathost_server_id: dathostResult.id,
+        is_managed: 1
+      };
+      const insertServerResult = await db.query(insertServerSql, [insertServerSet]);
+      const newServerId = (insertServerResult as any).insertId;
+      req.body[0].server_id = newServerId;
+    }
+
     // Check if server available, if we are given a server.
     let serverSql: string =
       "SELECT in_use, user_id, public_server FROM game_server WHERE id = ?";
@@ -1238,7 +1328,8 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           ? req.body[0].min_spectators_to_ready
           : 0,
       map_sides: req.body[0].map_sides !== null ? req.body[0].map_sides : null,
-      wingman: req.body[0]?.wingman 
+      wingman: req.body[0]?.wingman,
+      game: game
     };
     let sql: string = "INSERT INTO `match` SET ?";
     let cvarSql: string =
@@ -1307,9 +1398,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
           await db.query(sql, [insertMatch.insertId]);
           sql = "DELETE FROM `match` WHERE id = ?";
           await db.query(sql, [insertMatch.insertId]);
-
-          sql = "UPDATE game_server SET in_use = 0 WHERE id = ?";
-          await db.query(sql, [req.body[0].server_id]);
+          await releaseManagedServer(req.body[0].server_id);
           throw "Please check server logs, as something was not set properly. You may cancel the match and server status is not updated.";
         }
       }
@@ -1363,6 +1452,16 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
+    let game: MatchGame | undefined = undefined;
+    if (req.body[0].game !== undefined) {
+      try {
+        game = normalizeMatchGame(req.body[0].game);
+      } catch (err) {
+        res.status(400).json({ message: (err as Error).message });
+        return;
+      }
+    }
+
     let diffServer: boolean = false;
     let vetoList: any = null;
     let ourServerSql: string =
@@ -1454,7 +1553,8 @@ router.put("/", Utils.ensureAuthenticated, async (req, res, next) => {
             ? req.body[0].min_spectators_to_ready
             : 0,
         map_sides: req.body[0].map_sides !== null ? req.body[0].map_sides : null,
-        wingman: req.body[0]?.wingman
+        wingman: req.body[0]?.wingman,
+        game: game
       };
       // Remove any values that may not be updated.
       updateStmt = await db.buildUpdateStatement(updateStmt) as MatchData;

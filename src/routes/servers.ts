@@ -291,7 +291,11 @@ router.get("/myservers", Utils.ensureAuthenticated, async (req, res, next) => {
  */
 router.get("/:server_id", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
-    let serverID: number = parseInt(req.params.server_id);
+    let serverID: number = parseInt(req.params.server_id, 10);
+    if (Number.isNaN(serverID) || serverID < 1) {
+      res.status(400).json({ message: "Invalid server ID." });
+      return;
+    }
     let sql: string;
     let server: RowDataPacket[];
     if (req.user && Utils.superAdminCheck(req.user)) {
@@ -358,10 +362,15 @@ router.get(
   Utils.ensureAuthenticated,
   async (req, res, next) => {
     try {
+      const serverID = parseInt(req.params.server_id, 10);
+      if (Number.isNaN(serverID) || serverID < 1) {
+        res.status(400).json({ message: "Invalid server ID." });
+        return;
+      }
       let userCheckSql: string =
         "SELECT user_id, ip_string, port, rcon_password FROM game_server WHERE id=?";
       let userId: number = req.user!.id;
-      let serverInfo: RowDataPacket[] = await db.query(userCheckSql, [req.params.server_id]);
+      let serverInfo: RowDataPacket[] = await db.query(userCheckSql, [serverID]);
       if (!serverInfo.length) {
         res.status(404).json({ message: "Server does not exist." });
         return;
