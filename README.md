@@ -86,6 +86,9 @@ docker container run --name g5api \
 -e USEREDIS="true" \
 -e UPLOADDEMOS="" \
 -e LOCALLOGINS="" \
+-e QUEUETTL="" \
+-e SERVERPINGTO="" \
+-e SERVERPROVIDER="local"
 yourname\g5api:latest
 ```
 
