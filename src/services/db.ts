@@ -1,7 +1,7 @@
 /*Database driver.*/
 import { createPool } from 'mysql2/promise';
 import config from 'config';
-import { FieldPacket, PoolOptions, RowDataPacket } from 'mysql2/typings/mysql';
+import { FieldPacket, PoolOptions, QueryValues, RowDataPacket } from 'mysql2/typings/mysql';
 interface IStringIndex {
   [key: string]: any;
 }
@@ -23,7 +23,7 @@ class Database {
   async query(sql: string, args?: object): Promise<RowDataPacket[]> {
     try {
       let result: [RowDataPacket[], FieldPacket[]];
-      result = await connPool.query<RowDataPacket[]>(sql, args);
+      result = await connPool.query<RowDataPacket[]>(sql, args as QueryValues);
       return result[0];
     } catch (error) {
       console.error("SQL ERROR SQL ERROR SQL ERROR SQL ERROR SQL ERROR\n" + error);
