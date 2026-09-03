@@ -21,7 +21,8 @@ import { generate } from "randomstring";
 
 import { writeFile, unlink } from "fs";
 
-import fetch from "node-fetch";
+import { Challonge, importChallongeTeams } from "../services/challonge.js";
+import { ChallongeParticipant } from "../types/challonge/ChallongeParticipant.js";
 import { RowDataPacket } from "mysql2";
 import { TeamData } from "../types/teams/TeamData.js";
 import { AuthData } from "../types/teams/AuthData.js";
@@ -860,7 +861,7 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
  *              properties:
  *                tournament_id:
  *                  type: string
- *                  description: The tournament ID or URL of the Challonge tournament, as explained in their [API](https://api.challonge.com/v1/documents/participants/index).
+ *                  description: The tournament ID or URL of the Challonge tournament, as explained in their [API](https://challonge.apidog.io/list-participants-23619749e0).
  *     tags:
  *       - teams
  *     responses:
@@ -874,40 +875,24 @@ router.get("/:team_id/result/:match_id", async (req, res) => {
  *         $ref: '#/components/responses/Error'
  */
 router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
-
   try {
     let userID: number = req.user!.id;
-    const userInfo: RowDataPacket[] = await db.query("SELECT challonge_api_key FROM user WHERE id = ?", [userID]);
-    let challongeAPIKey: string | undefined | null = Utils.decrypt(userInfo[0].challonge_api_key);
+    const challonge: Challonge = await Challonge.forUser(userID);
     let tournamentId: string = req.body[0].tournament_id;
-    let challongeResponse: any = await fetch("https://api.challonge.com/v1/tournaments/" + tournamentId + "/participants.json?api_key=" + challongeAPIKey);
-    let challongeData: any = await challongeResponse.json();
-    if (!challongeData) {
-      throw "No teams found for Tournament " + tournamentId + "."
+    const participants: ChallongeParticipant[] = await challonge.listParticipants(
+      tournamentId
+    );
+    if (!participants.length) {
+      throw "No teams found for Tournament " + tournamentId + ".";
     }
-    let sqlString = "INSERT INTO team (user_id, name, tag, challonge_team_id) VALUES ?";
-    if (!challongeAPIKey) {
-      throw "No challonge API key provided for user.";
-    }
-    let teamArray: Array<Array<any>> = [];
-    challongeData.forEach(async (team: { participant: { display_name: string; id: any, custom_field_response: {key: string, value: string}; }; }) => {
-      teamArray.push([
-        req.user?.id,
-        team.participant.display_name.substring(0, 40),
-        team.participant.display_name.substring(0, 40),
-        team.participant.id
-      ]);
 
-      const teamInfo: RowDataPacket[] = await db.query(sqlString, [teamArray]);
-      //@ts-ignore
-      await Utils.addChallongeTeamAuthsToArray(teamInfo.insertId!, team.participant.custom_field_response);
-    });  
-    
+    const imported: number = await importChallongeTeams(userID, participants);
 
     res.json({
-      message: "Challonge teams imported successfully!"
+      message: imported
+        ? "Challonge teams imported successfully!"
+        : "All Challonge teams for this tournament were already imported."
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: (err as Error).toString() });

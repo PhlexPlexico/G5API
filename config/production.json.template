@@ -14,7 +14,8 @@
     "redisTTL": $REDISTTL,
     "queueTTL": $QUEUETTL,
     "serverPingTimeoutMs": $SERVERPINGTO,
-    "serverProvider": "$SERVERPROVIDER"
+    "serverProvider": "$SERVERPROVIDER",
+    "challongeApiVersion": "v2.1"
   },
   "production": {
     "driver": "mysql",

@@ -14,7 +14,8 @@
     "redisTTL": 86400,
     "queueTTL": 3600,
     "serverPingTimeoutMs": 5000,
-    "serverProvider": "local"
+    "serverProvider": "local",
+    "challongeApiVersion": "v2.1"
   },
   "development": {
     "driver": "mysql",
