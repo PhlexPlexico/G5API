@@ -1,4 +1,5 @@
 dist/
+release-notes.md
 node_modules/
 config/production.json*
 config/development.json*

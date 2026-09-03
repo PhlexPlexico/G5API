@@ -12,6 +12,10 @@ jobs:
   push:
     name: Create build and push to GHCR
     runs-on: ubuntu-latest
+    permissions:
+      # packages: publish the image. contents: create the release on a tag.
+      packages: write
+      contents: write
     strategy:
       fail-fast: false
     steps:
@@ -62,3 +66,43 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:latest,ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:${{ steps.version.outputs.number }}
+      # Pull this version's section out of CHANGELOG.md to use as release notes.
+      # Runs after the image push so a failed build never produces a release.
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.number }}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { flag=1; next }
+            flag && /^## / { exit }
+            flag && /^\[.*\]: http/ { next }
+            flag { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ -s release-notes.md ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "Release notes for $VERSION:"
+            cat release-notes.md
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No '## [$VERSION]' section in CHANGELOG.md; \
+              falling back to auto-generated notes."
+          fi
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.notes.outputs.found }}" = "true" ]; then
+            gh release create "$GITHUB_REF_NAME" \
+              --title "$GITHUB_REF_NAME" \
+              --notes-file release-notes.md \
+              --verify-tag
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --title "$GITHUB_REF_NAME" \
+              --generate-notes \
+              --verify-tag
+          fi
