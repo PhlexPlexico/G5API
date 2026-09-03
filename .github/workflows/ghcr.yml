@@ -3,7 +3,11 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - '**'
+      - master
+    tags:
+      # Release tags, e.g. V2.3.0.0. The leading V is stripped from image tags.
+      - '[Vv][0-9]+.[0-9]+.[0-9]+.[0-9]+'
+      - '[Vv][0-9]+.[0-9]+.[0-9]+'
 jobs:
   push:
     name: Create build and push to GHCR
@@ -30,18 +34,15 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - id: getversion
-        uses: Saionaro/extract-package-version@v1.2.1
-      - uses: docker/build-push-action@v3.2.0
-        if: github.ref != 'refs/heads/master'
-        with:
-          context: .
-          file: Dockerfile
-          platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
-          push: true
-          tags: |
-            ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:next
-      - uses: docker/build-push-action@v3.2.0
+      # Release version comes from the tag itself, so the image tag can never
+      # drift from the ref that produced it.
+      - id: version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: echo "number=${GITHUB_REF_NAME#[Vv]}" >> "$GITHUB_OUTPUT"
+      # Every push to master publishes :next -- the rolling build, which is
+      # master plus whatever dependency and security updates have landed.
+      - name: Push :next (master)
+        uses: docker/build-push-action@v3.2.0
         if: github.ref == 'refs/heads/master'
         with:
           context: .
@@ -49,4 +50,15 @@ jobs:
           platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
           push: true
           tags: |
-            ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:latest,ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:${{ steps.getversion.outputs.version }}
+            ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:next
+      # A release tag publishes the version and moves :latest onto it.
+      - name: Push :latest and :<version> (tag)
+        uses: docker/build-push-action@v3.2.0
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
+          push: true
+          tags: |
+            ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:latest,ghcr.io/${{ steps.string.outputs.lowercase }}/g5api:${{ steps.version.outputs.number }}

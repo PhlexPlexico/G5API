@@ -662,22 +662,22 @@ static async getRatingFromSteamId(steamId: string): Promise<number | null> {
     return `${adj}-${noun}`;
   }
 
-  public static addChallongeTeamAuthsToArray: (teamId: number, custom_field_response: { key: string; value: string; }) => Promise<void> = async (teamId: number, custom_field_response: { key: string, value: string }) => {
-    let teamAuthArray: Array<Array<any>> = [];
-    let key: keyof typeof custom_field_response;
-    for (key in custom_field_response) {
-      let value: string = custom_field_response[key];
-      let firstPlayer: boolean = true;
-      if (value !== null) {
-        let isCaptain: boolean = firstPlayer;
-        firstPlayer = false;
-        teamAuthArray.push([teamId, value, +isCaptain, '']);
-      }
-    }
-    if (teamAuthArray.length > 0) {
-      let sqlString: string = "INSERT INTO team_auth_names (team_id, auth, captain, name) VALUES ?";
-      await db.query(sqlString, [teamAuthArray]);
-    }
+  /** Attaches a roster of Steam IDs to a team imported from Challonge.
+   * @function
+   * @memberof module:utils
+   * @param {number} teamId - The internal team ID to attach the players to.
+   * @param {string[]} steamIds - The players' Steam IDs; the first becomes captain.
+   */
+  public static addChallongeTeamAuthsToArray: (teamId: number, steamIds: string[]) => Promise<void> = async (teamId: number, steamIds: string[]) => {
+    if (!steamIds?.length) return;
+    let teamAuthArray: Array<Array<any>> = steamIds.map((auth: string, index: number) => [
+      teamId,
+      auth,
+      index === 0 ? 1 : 0,
+      ''
+    ]);
+    let sqlString: string = "INSERT INTO team_auth_names (team_id, auth, captain, name) VALUES ?";
+    await db.query(sqlString, [teamAuthArray]);
   }
 
 }
