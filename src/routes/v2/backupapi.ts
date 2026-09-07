@@ -102,6 +102,18 @@ router.post("/", async (req: Request, res: Response) => {
       });
       return;
     }
+    // All three identifiers are interpolated into the path below, so reject
+    // anything that is not a plain integer before going any further.
+    if (
+      !Utils.isNumericId(matchId) ||
+      !Utils.isNumericId(mapNumber) ||
+      !Utils.isNumericId(roundNumber)
+    ) {
+      res.status(400).send({
+        message: "Match ID, Map Number, and Round Number must be integers."
+      });
+      return;
+    }
     // Check if our API key is correct.
     const matchApiCheck: number = await Utils.checkApiKey(apiKey, matchId);
     if (matchApiCheck == 1 || matchApiCheck == 2) {
@@ -110,19 +122,28 @@ router.post("/", async (req: Request, res: Response) => {
       });
       return;
     }
-    if (!existsSync(`public/backups/${matchId}/`))
-      mkdirSync(`public/backups/${matchId}/`, { recursive: true });
-
-    writeFile(
-      `public/backups/${matchId}/get5_backup_match${matchId}_map${mapNumber}_round${roundNumber}.cfg`,
-      req.body,
-      function (err) {
-        if (err) {
-          console.error(err);
-          throw err;
-        }
-      }
+    const backupDir: string | null = Utils.resolveInside(
+      "public/backups",
+      matchId
     );
+    const backupPath: string | null =
+      backupDir &&
+      Utils.resolveInside(
+        backupDir,
+        `get5_backup_match${matchId}_map${mapNumber}_round${roundNumber}.cfg`
+      );
+    if (!backupDir || !backupPath) {
+      res.status(400).send({ message: "Invalid backup path." });
+      return;
+    }
+    if (!existsSync(backupDir)) mkdirSync(backupDir, { recursive: true });
+
+    writeFile(backupPath, req.body, function (err) {
+      if (err) {
+        console.error(err);
+        throw err;
+      }
+    });
     res.status(200).send({ message: "Success" });
   } catch (error) {
     console.error(error);

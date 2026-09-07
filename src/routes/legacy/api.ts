@@ -1152,7 +1152,7 @@ router.put(
       // SO therefore we cannot use this, but need to check when the map is finished
       // and compare based on that if we kick out or not.
       // await check_api_key(matchValues[0].api_key, apiKey, false);
-      if (matchValues[0].api_key.localeCompare(apiKey) !== 0)
+      if (!Utils.secretsMatch(apiKey, matchValues[0]?.api_key))
         throw "Not a correct API Key.";
 
       sql =
@@ -1171,12 +1171,25 @@ router.put(
         return;
       }
 
-      zip.file(mapStatValues[0].demoFile.replace(".zip", "") + ".dem", req.body, { binary: true });
+      // demoFile comes from the database, but rows written before filenames were
+      // validated may still hold a traversal sequence, so re-check it here.
+      const storedDemoName: string | null = Utils.safeFileName(
+        mapStatValues[0].demoFile,
+        /^[A-Za-z0-9._-]{1,120}\.zip$/
+      );
+      const storedDemoPath: string | null =
+        storedDemoName && Utils.resolveInside("public/demos", storedDemoName);
+      if (!storedDemoName || !storedDemoPath) {
+        res.status(400).json({ message: "Invalid demo file name on record." });
+        return;
+      }
+
+      zip.file(storedDemoName.replace(".zip", "") + ".dem", req.body, { binary: true });
       zip
         .generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
         .then((buf) => {
           writeFile(
-            "public/demos/" + mapStatValues[0].demoFile,
+            storedDemoPath,
             buf,
             "binary",
             function (err) {
@@ -1641,6 +1654,18 @@ router.put(
   async (req, res, next) => {
     try {
       let matchID: string = req.params.match_id;
+      // These are interpolated into a path on disk. Route params are URL
+      // decoded, so a separator can survive into them; require plain integers.
+      if (
+        !Utils.isNumericId(matchID) ||
+        !Utils.isNumericId(req.params.map_number) ||
+        !Utils.isNumericId(req.params.round_number)
+      ) {
+        res.status(400).json({
+          message: "Match ID, map number, and round number must be integers."
+        });
+        return;
+      }
       let mapNumber: number = parseInt(req.params.map_number);
       // This is required since we're sending an octet stream.
       let apiKey: string = keyCheck(req);
@@ -1649,6 +1674,10 @@ router.put(
       let sql: string = "SELECT * FROM `match` WHERE id = ?";
       let matchFinalized: boolean = true;
       const matchValues: RowDataPacket[] = await db.query(sql, [matchID]);
+      if (!matchValues[0]) {
+        res.status(404).json({ message: "Match not found." });
+        return;
+      }
 
       if (
         matchValues[0].end_time == null &&
@@ -1658,10 +1687,21 @@ router.put(
       // Throw error if wrong key. Match finish doesn't matter.
       await check_api_key(matchValues[0].api_key, apiKey, matchFinalized);
 
-      if (!existsSync(`public/backups/${matchID}/`)) mkdirSync(`public/backups/${matchID}/`, {recursive: true});
+      const backupDir: string | null = Utils.resolveInside("public/backups", matchID);
+      const backupPath: string | null =
+        backupDir &&
+        Utils.resolveInside(
+          backupDir,
+          `get5_backup_match${matchID}_map${mapNumber}_round${roundNumber}.cfg`
+        );
+      if (!backupDir || !backupPath) {
+        res.status(400).json({ message: "Invalid backup path." });
+        return;
+      }
+      if (!existsSync(backupDir)) mkdirSync(backupDir, {recursive: true});
 
       writeFile(
-        `public/backups/${matchID}/get5_backup_match${matchID}_map${mapNumber}_round${roundNumber}.cfg`,
+        backupPath,
         req.body,
         function (err) {
           if (err) {
@@ -1689,7 +1729,7 @@ router.put(
  * @param {number} match_finished - Whether the match is finished or not.
  */
 async function check_api_key(match_api_key: string, given_api_key: string, match_finished: boolean) {
-  if (match_api_key.localeCompare(given_api_key) !== 0)
+  if (!Utils.secretsMatch(given_api_key, match_api_key))
     throw "Not a correct API Key.";
   if (match_finished == true) throw "Match is already finalized.";
   return;

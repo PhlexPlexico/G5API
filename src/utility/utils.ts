@@ -9,7 +9,8 @@ import pkg from 'aes-js';
 const { utils, ModeOfOperation } = pkg;
 
 /** Crypto for assigning random  */
-import { randomBytes } from "crypto";
+import { randomBytes, timingSafeEqual } from "crypto";
+import { basename, resolve, sep } from "path";
 
 /** Config to get database key.
  * @const
@@ -539,6 +540,11 @@ static async getRatingFromSteamId(steamId: string): Promise<number | null> {
 
   /**
    * Performs a check on the server to see if the provided API key is correct, and if the match has not been finalized.
+   *
+   * A missing match, or a match with no key, is a failure rather than a match:
+   * comparing against an absent key used to coerce it to the string
+   * "undefined", so the literal key "undefined" authenticated against any
+   * non-existent match ID.
    * @param {String} providedKey The API key sent by a user/game server.
    * @param {String|Number} matchId The match ID sent by the user/game server.
    * @returns 0 if successful, 1 if provided API key does not match, and 2 if the match has been finalized.
@@ -551,13 +557,86 @@ static async getRatingFromSteamId(steamId: string): Promise<number | null> {
       "SELECT api_key, cancelled, end_time FROM `match` WHERE id = ?",
       [matchId]
     );
-    if (providedKey.localeCompare(matchInformation[0]?.api_key) !== 0) return 1;
-    else if (
-      matchInformation[0]?.cancelled === 1 ||
-      matchInformation[0]?.end_time != null
-    )
-      return 2;
+    const match: RowDataPacket | undefined = matchInformation[0];
+    if (!match?.api_key) return 1;
+    if (!Utils.secretsMatch(providedKey, match.api_key)) return 1;
+    else if (match.cancelled === 1 || match.end_time != null) return 2;
     else return 0;
+  }
+
+  /** Checks that a value is a plain non-negative integer.
+   *
+   * Identifiers arriving in headers are interpolated into filesystem paths, so
+   * anything that is not strictly digits is rejected before it gets there.
+   * @function
+   * @memberof module:utils
+   * @param {string | undefined} value - The value to check.
+   */
+  static isNumericId(value: string | undefined | null): boolean {
+    return typeof value === "string" && /^\d{1,19}$/.test(value);
+  }
+
+  /** Validates that an untrusted filename is a single safe path segment.
+   *
+   * Rejects rather than sanitises: silently reducing "../../etc/passwd.dem" to
+   * "passwd.dem" is safe from traversal but hides a hostile request and lets
+   * two different uploads collide on one name. A get5 server never sends a
+   * path, so anything containing a separator is refused outright.
+   * @function
+   * @memberof module:utils
+   * @param {string} value - The untrusted filename.
+   * @param {RegExp} pattern - The shape the name must match.
+   * @returns The name, or null if it is not a safe single segment.
+   */
+  static safeFileName(
+    value: string | undefined | null,
+    pattern: RegExp = /^[A-Za-z0-9._-]{1,120}$/
+  ): string | null {
+    if (typeof value !== "string" || !value) return null;
+    // Any separator at all -- POSIX or Windows -- disqualifies the name, as
+    // does a NUL byte, which can truncate the path in downstream syscalls.
+    if (/[\/\\\0]/.test(value)) return null;
+    if (value === "." || value === "..") return null;
+    // Belt and braces: the value must already be its own basename.
+    if (basename(value) !== value) return null;
+    return pattern.test(value) ? value : null;
+  }
+
+  /** Resolves a path and confirms it has not escaped its base directory.
+   *
+   * A second line of defence behind the input checks, so a future caller that
+   * forgets to validate still cannot write outside the intended tree.
+   * @function
+   * @memberof module:utils
+   * @param {string} baseDir - The directory the result must stay inside.
+   * @param {string} candidate - The path being written to, relative or absolute.
+   * @returns The resolved absolute path, or null if it escapes the base.
+   */
+  static resolveInside(baseDir: string, candidate: string): string | null {
+    const base: string = resolve(baseDir);
+    const target: string = resolve(baseDir, candidate);
+    return target === base || target.startsWith(base + sep) ? target : null;
+  }
+
+  /** Compares two secrets without leaking their contents through timing.
+   * @function
+   * @memberof module:utils
+   * @param {string} provided - The value supplied by the caller.
+   * @param {string} expected - The value on record.
+   */
+  static secretsMatch(provided: string, expected: string): boolean {
+    if (typeof provided !== "string" || typeof expected !== "string") return false;
+    const providedBytes: Buffer = Buffer.from(provided, "utf8");
+    const expectedBytes: Buffer = Buffer.from(expected, "utf8");
+    // timingSafeEqual throws on a length mismatch, which would leak the length
+    // through the exception; compare against a same-length copy instead and
+    // fold the length check into the result.
+    const padded: Buffer = Buffer.alloc(expectedBytes.length);
+    providedBytes.copy(padded);
+    return (
+      timingSafeEqual(padded, expectedBytes) &&
+      providedBytes.length === expectedBytes.length
+    );
   }
 
   /**

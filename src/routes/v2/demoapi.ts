@@ -115,6 +115,25 @@ router.post("/", async (req: Request, res: Response) => {
         .status(401)
         .send({ message: "API key, Match ID, or Map Number not provided." });
     }
+    if (!Utils.isNumericId(matchId) || !Utils.isNumericId(mapNumber)) {
+      return res
+        .status(400)
+        .send({ message: "Match ID and Map Number must be integers." });
+    }
+    // The filename lands in a path on disk and is persisted to map_stats for
+    // later writes, so flatten it to a single safe segment up front.
+    const safeDemoName: string | null = Utils.safeFileName(
+      demoFilename,
+      /^[A-Za-z0-9._-]{1,120}\.dem$/
+    );
+    if (!safeDemoName) {
+      return res.status(400).send({ message: "Invalid demo file name." });
+    }
+    const zipName: string = safeDemoName.replace(/\.dem$/, ".zip");
+    const demoPath: string | null = Utils.resolveInside("public/demos", zipName);
+    if (!demoPath) {
+      return res.status(400).send({ message: "Invalid demo file name." });
+    }
     // Check if our API key is correct.
     const matchApiCheck: number = await Utils.checkApiKey(apiKey, matchId);
     if (matchApiCheck == 1) {
@@ -144,11 +163,11 @@ router.post("/", async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Demo can no longer be uploaded." });
     }
 
-    zip.file(demoFilename, req.body, { binary: true });
+    zip.file(safeDemoName, req.body, { binary: true });
     zip
       .generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
       .then((buf) => {
-        writeFile("public/demos/" + demoFilename.replace(".dem", ".zip"), buf, "binary", function (err) {
+        writeFile(demoPath, buf, "binary", function (err) {
           if (err) {
             console.error(err);
             throw err;
@@ -157,7 +176,7 @@ router.post("/", async (req: Request, res: Response) => {
       });
     // Update map stats object to include the link to the demo.
     updateStmt = {
-      demoFile: demoFilename.replace(".dem", ".zip")
+      demoFile: zipName
     };
     updateStmt = await db.buildUpdateStatement(updateStmt);
 
