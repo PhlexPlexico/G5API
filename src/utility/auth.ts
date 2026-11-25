@@ -19,7 +19,21 @@ passport.serializeUser((user, done) => {
   done(null, user);
 });
 
-passport.deserializeUser((obj: User, done) => {
+// Roles live in the database: refresh them on every request so that a
+// promotion/demotion made from the UI applies without requiring a re-login.
+passport.deserializeUser(async (obj: any, done) => {
+  try {
+    if (obj?.id != null) {
+      const rows = await db.query("SELECT admin, super_admin, theme FROM user WHERE id = ?", [obj.id]);
+      if (rows.length > 0) {
+        obj.admin = rows[0].admin;
+        obj.super_admin = rows[0].super_admin;
+        obj.theme = rows[0].theme;
+      }
+    }
+  } catch (err) {
+    console.error(err);
+  }
   done(null, obj as any);
 });
 
@@ -52,16 +66,23 @@ async function returnStrategy(identifier: any, profile: any, done: any) {
     try {
       let isAdmin = 0;
       let isSuperAdmin = 0;
-      let superAdminList = (config.get("super_admins.steam_ids") as String).split(",");
-      let adminList = (config.get("admins.steam_ids") as String).split(",");
       let sql = "SELECT * FROM user WHERE steam_id = ?";
-      // If we are an admin, check!
-      if (superAdminList.indexOf(profile.id!.toString()) >= 0) {
-        isSuperAdmin = 1;
-      } else if (adminList.indexOf(profile.id!.toString()) >= 0) {
-        isAdmin = 1;
-      }
       let curUser = await db.query(sql, profile.id);
+      if (curUser.length > 0) {
+        // Roles are managed from the UI, the database is the source of truth.
+        isAdmin = curUser[0].admin;
+        isSuperAdmin = curUser[0].super_admin;
+      }
+      // The config lists only bootstrap the very first super admin.
+      if (!isSuperAdmin && !(await db.hasSuperAdmin())) {
+        const superAdminList = (config.get("super_admins.steam_ids") as String).split(",");
+        const adminList = (config.get("admins.steam_ids") as String).split(",");
+        if (superAdminList.indexOf(profile.id!.toString()) >= 0) {
+          isSuperAdmin = 1;
+        } else if (adminList.indexOf(profile.id!.toString()) >= 0) {
+          isAdmin = 1;
+        }
+      }
       if (curUser.length < 1) {
         //Generate API key in user session to allow posting/getting/etc with
         //an account that's not in a session.
@@ -93,6 +114,7 @@ async function returnStrategy(identifier: any, profile: any, done: any) {
           small_image: profile.photos[0].value,
           medium_image: profile.photos[1].value,
           large_image: profile.photos[2].value,
+          name: profile.displayName,
           super_admin: isSuperAdmin,
           admin: isAdmin
         };
@@ -176,7 +198,8 @@ passport.use('local-register',
       let sql = "SELECT * FROM user WHERE username = ? OR steam_id = ?";
       let superAdminList = (config.get("super_admins.steam_ids") as String).split(",");
       let adminList = (config.get("admins.steam_ids") as String).split(",");
-      let isAdmin, isSuperAdmin = 0;
+      let isAdmin = 0, isSuperAdmin = 0;
+      const canBootstrap = !(await db.hasSuperAdmin());
       if (!req.body.steam_id) {
         return done(null, false, {message: "Steam ID was not provided"});
       }
@@ -188,9 +211,9 @@ passport.use('local-register',
         if(await Utils.convertToSteam64(req.body.steam_id) == "") {
           return done(null, false, {message: "Not a valid Steam64 ID."});
         }
-        if (superAdminList.indexOf(req.body.steam_id) >= 0) {
+        if (canBootstrap && superAdminList.indexOf(req.body.steam_id) >= 0) {
           isSuperAdmin = 1;
-        } else if (adminList.indexOf(req.body.steam_id) >= 0) {
+        } else if (canBootstrap && adminList.indexOf(req.body.steam_id) >= 0) {
           isAdmin = 1;
         }
         let apiKey = generate({

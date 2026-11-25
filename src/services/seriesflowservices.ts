@@ -10,7 +10,7 @@ import GlobalEmitter from "../utility/emitter.js";
 import { RowDataPacket } from "mysql2";
 import { Response } from "express";
 import Utils from "../utility/utils.js";
-import update_challonge_match from "../services/challonge.js";
+import update_tournament_match from "../services/tournament.js";
 
 class SeriesFlowService {
   static async OnSeriesResult(event: Get5_OnSeriesResult, res: Response) {
@@ -92,7 +92,8 @@ class SeriesFlowService {
 
       // Check if a match has a season ID and we're not cancelled.
       if (matchInfo[0].season_id && !cancelled) {
-        await update_challonge_match(
+        await update_tournament_match(
+          "series_end",
           event.matchid,
           matchInfo[0].season_id,
           matchInfo[0].team1_id,
@@ -125,7 +126,7 @@ class SeriesFlowService {
         .replace("T", " ");
       let winnerId: number | null | string = null;
       sqlString =
-        "SELECT is_pug, max_maps, season_id FROM `match` WHERE id = ?";
+        "SELECT is_pug, max_maps, season_id, team1_id, team2_id FROM `match` WHERE id = ?";
       matchInfo = await db.query(sqlString, [event.matchid]);
       sqlString =
         "SELECT id FROM `map_stats` WHERE match_id = ? AND map_number = ?";
@@ -167,6 +168,17 @@ class SeriesFlowService {
           +event.team2.id,
           +winnerId!,
           false
+        );
+      }
+
+      if (matchInfo[0].season_id) {
+        await update_tournament_match(
+          "map_end",
+          event.matchid,
+          matchInfo[0].season_id,
+          matchInfo[0].team1_id,
+          matchInfo[0].team2_id,
+          matchInfo[0].max_maps
         );
       }
 

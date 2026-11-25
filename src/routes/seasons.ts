@@ -12,6 +12,20 @@ import {db} from "../services/db.js";
 
 import Utils from "../utility/utils.js";
 import { Challonge, importChallongeTeams } from "../services/challonge.js";
+import {
+  Toornament,
+  ToornamentApiError,
+  importToornamentTeams,
+  isCs2Discipline,
+  parseToornamentId
+} from "../services/toornament.js";
+import { ToornamentTournament } from "../types/toornament/ToornamentTypes.js";
+import {
+  SeasonBoardError,
+  getSeasonBoard,
+  getSeasonMatchGames,
+  prepareSeasonMatch
+} from "../services/toornamentSeason.js";
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 import { SeasonObject } from "../types/seasons/SeasonObject.js";
 import { SeasonCvarObject } from "../types/seasons/SeasonCvarObject.js";
@@ -89,11 +103,11 @@ import { ChallongeTournament } from "../types/challonge/ChallongeTournament.js";
 router.get("/", async (req, res, next) => {
   try {
     let sql: string =
-      "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
+      "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, s.is_challonge, s.is_toornament, " +
       "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\": \"',sc.cvar_value,'\"')),'}') as cvars " +
       "FROM season s LEFT OUTER JOIN season_cvar sc " +
       "ON s.id = sc.season_id " +
-      "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
+      "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date, s.is_challonge, s.is_toornament";
     let seasons: RowDataPacket[] = await db.query(sql);
     if (!seasons.length) {
       res.status(404).json({ message: "No seasons found." });
@@ -140,12 +154,12 @@ router.get("/", async (req, res, next) => {
 router.get("/myseasons", Utils.ensureAuthenticated, async (req, res, next) => {
   try {
     let sql: string =
-      "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
+      "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, s.is_challonge, s.is_toornament, " +
       "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
       "FROM season s LEFT OUTER JOIN season_cvar sc " +
       "ON s.id = sc.season_id " +
       "WHERE s.user_id = ? " +
-      "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
+      "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date, s.is_challonge, s.is_toornament";
     let seasons: RowDataPacket[] = await db.query(sql, [req.user?.id]);
     if (!seasons.length) {
       res.status(404).json({ message: "No seasons found." });
@@ -199,24 +213,24 @@ router.get(
       // Check if super admin, if they are use this query.
       if (req.user && Utils.superAdminCheck(req.user)) {
         sql =
-          "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
+          "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, s.is_challonge, s.is_toornament, " +
           "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
           "FROM season s LEFT OUTER JOIN season_cvar sc " +
           "ON s.id = sc.season_id " +
           "WHERE s.end_date >= CURDATE() " +
           "OR s.end_date IS NULL " +
-          "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
+          "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date, s.is_challonge, s.is_toornament";
         seasons = await db.query(sql, [req.user.id]);
       } else {
         sql =
-          "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, " +
+          "SELECT s.id, s.user_id, s.name, s.start_date, s.end_date, s.is_challonge, s.is_toornament, " +
           "CONCAT('{', GROUP_CONCAT(DISTINCT CONCAT('\"',sc.cvar_name,'\"',': \"',sc.cvar_value,'\"')),'}') as cvars " +
           "FROM season s LEFT OUTER JOIN season_cvar sc " +
           "ON s.id = sc.season_id " +
           "WHERE s.user_id = ? " +
           "AND (s.end_date >= CURDATE() " +
           "OR s.end_date IS NULL) " +
-          "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date";
+          "GROUP BY s.id, s.user_id, s.name, s.start_date, s.end_date, s.is_challonge, s.is_toornament";
         seasons = await db.query(sql, [req.user?.id]);
       }
       if (!seasons.length) {
@@ -646,5 +660,268 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res, next) => {
     res.status(500).json({ message: (err as Error).toString() });
   }
 });
+
+/**
+ * @swagger
+ *
+ * /seasons/toornament/tournaments:
+ *   get:
+ *     description: Lists the tournaments of the user's Toornament application. Only Counter-Strike 2 tournaments are returned unless `all=1`.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: all
+ *         in: query
+ *         required: false
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: Tournaments, with whether each one was already imported.
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ */
+router.get("/toornament/tournaments", Utils.ensureAuthenticated, Utils.ensureAdmin, async (req, res) => {
+  try {
+    const toornament: Toornament = await Toornament.forUser(req.user!.id);
+    const showAll: boolean = req.query.all === "1" || req.query.all === "true";
+    let tournaments: ToornamentTournament[] = await toornament.listTournaments();
+    if (!showAll) tournaments = tournaments.filter((t) => isCs2Discipline(t.discipline));
+    const imported: RowDataPacket[] = tournaments.length
+      ? await db.query(
+          "SELECT DISTINCT toornament_id FROM season WHERE is_toornament = 1 AND toornament_id IN (?)",
+          [tournaments.map((t) => t.id)]
+        )
+      : [];
+    const importedIds: Set<string> = new Set(imported.map((row) => String(row.toornament_id)));
+    res.json({
+      tournaments: tournaments.map((t) => ({
+        id: t.id,
+        name: t.full_name || t.name,
+        discipline: t.discipline ?? null,
+        status: t.status ?? null,
+        scheduled_date_start: t.scheduled_date_start ?? null,
+        logo: t.logo?.logo_small ?? null,
+        imported: importedIds.has(String(t.id))
+      }))
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ message: (err as Error).message });
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /seasons/toornament:
+ *   post:
+ *     description: Create a new season from a Toornament tournament, using the Toornament credentials of the user.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                tournament_id:
+ *                  type: string
+ *                  description: The ID or URL of the Toornament tournament.
+ *                import_teams:
+ *                  type: boolean
+ *                  description: Whether or not to import the participants of the tournament as teams.
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: New season inserted successsfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.post("/toornament", Utils.ensureAuthenticated, Utils.ensureAdmin, async (req, res, next) => {
+  let tournamentId: string;
+  try {
+    tournamentId = parseToornamentId(req.body[0]?.tournament_id);
+  } catch (err) {
+    res.status(400).json({ message: (err as Error).message });
+    return;
+  }
+  try {
+    const toornament: Toornament = await Toornament.forUser(req.user!.id);
+    const importTeams: boolean = Boolean(req.body[0]?.import_teams);
+    const tournament: ToornamentTournament = await toornament.getTournament(tournamentId);
+
+    const seasonData: SeasonObject = {
+      user_id: req.user?.id,
+      name: (tournament.full_name || tournament.name || "Toornament").substring(0, 40),
+      start_date: tournament.scheduled_date_start
+        ? new Date(tournament.scheduled_date_start)
+        : new Date(),
+      is_toornament: true,
+      toornament_id: tournament.id,
+      toornament_logo: tournament.logo?.logo_medium ?? tournament.logo?.original ?? null
+    };
+    const insertSeason = (await db.query(
+      "INSERT INTO season SET ?",
+      seasonData
+    )) as unknown as ResultSetHeader;
+
+    let importedTeams: number = 0;
+    if (importTeams) {
+      importedTeams = await importToornamentTeams(
+        req.user!.id,
+        await toornament.listParticipants(tournament.id)
+      );
+    }
+
+    res.json({
+      message: "Toornament season imported successfully!",
+      id: insertSeason.insertId,
+      imported_teams: importedTeams
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: (err as Error).toString() });
+  }
+});
+
+const sendBoardError = (res: any, err: unknown) => {
+  if (err instanceof SeasonBoardError) {
+    res.status(err.status).json({ message: err.message });
+    return;
+  }
+  if (err instanceof ToornamentApiError && err.status === 404) {
+    res.status(404).json({ message: "Toornament match not found." });
+    return;
+  }
+  console.error(err);
+  res.status(500).json({ message: (err as Error).toString() });
+};
+
+/**
+ * @swagger
+ *
+ * /seasons/{season_id}/toornament/matches:
+ *   get:
+ *     description: Toornament matches of a season, split into finished (old), in progress (current) and ready to be created in G5 (to_launch).
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: season_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: The season board.
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.get("/:season_id/toornament/matches", Utils.ensureAuthenticated, Utils.ensureAdmin, async (req, res) => {
+  try {
+    res.json(await getSeasonBoard(parseInt(req.params.season_id)));
+  } catch (err) {
+    sendBoardError(res, err);
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /seasons/{season_id}/toornament/matches/{match_id}/games:
+ *   get:
+ *     description: Games (maps and scores) of a Toornament match of the season.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: season_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *       - name: match_id
+ *         required: true
+ *         schema:
+ *          type: string
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: The match games.
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.get("/:season_id/toornament/matches/:match_id/games", Utils.ensureAuthenticated, Utils.ensureAdmin, async (req, res) => {
+  try {
+    const games = await getSeasonMatchGames(
+      parseInt(req.params.season_id),
+      String(req.params.match_id)
+    );
+    res.json({ games });
+  } catch (err) {
+    sendBoardError(res, err);
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /seasons/{season_id}/toornament/matches/{match_id}/prepare:
+ *   post:
+ *     description: Builds the body of POST /matches for a Toornament match (teams, format, title, map pool and season settings). Missing teams are created. Only the season owner or an admin may call it.
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: season_id
+ *         required: true
+ *         schema:
+ *          type: integer
+ *       - name: match_id
+ *         required: true
+ *         schema:
+ *          type: string
+ *     tags:
+ *       - seasons
+ *     responses:
+ *       200:
+ *         description: The prepared match.
+ *       403:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       409:
+ *         description: The match already exists or cannot be played yet.
+ */
+router.post(
+  "/:season_id/toornament/matches/:match_id/prepare",
+  Utils.ensureAuthenticated,
+  Utils.ensureAdmin,
+  async (req, res) => {
+    try {
+      const seasonId: number = parseInt(req.params.season_id);
+      const match = await prepareSeasonMatch(
+        seasonId,
+        String(req.params.match_id),
+        req.user!.id
+      );
+      res.json({ match });
+    } catch (err) {
+      sendBoardError(res, err);
+    }
+  }
+);
 
 export default router;

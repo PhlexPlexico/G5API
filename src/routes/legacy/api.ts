@@ -109,10 +109,10 @@ const playerStatRateLimit = rateLimit({
   },
 });
 
-/** Challonge API integration.
+/** Challonge / Toornament API integration.
  * @const
  */
-import update_challonge_match from "../../services/challonge.js";
+import update_tournament_match from "../../services/tournament.js";
 import Utils from "../../utility/utils.js";
 import { Request, ParamsDictionary } from "express-serve-static-core";
 import { ParsedQs } from "qs";
@@ -292,7 +292,8 @@ router.post("/:match_id/finish", basicRateLimit, async (req, res, next) => {
     }
     // Check if a match has a season ID and we're not cancelled.
     if (matchValues[0].season_id && !cancelled) {
-      await update_challonge_match(
+      await update_tournament_match(
+        "series_end",
         matchID,
         matchValues[0].season_id,
         matchValues[0].team1_id,
@@ -743,9 +744,9 @@ router.post(
           updateSql =
             "UPDATE map_stats SET ? WHERE match_id = ? AND map_number = ?";
           await db.query(updateSql, [updateStmt, matchID, mapNumber]);
-          if (matchValues[0].max_maps == 1 && matchValues[0].season_id != null) {
+          if (matchValues[0].season_id != null) {
             // Live update the score.
-            await update_challonge_match(matchID,
+            await update_tournament_match("live", matchID,
               matchValues[0].season_id,
               matchValues[0].team1_id,
               matchValues[0].team2_id,
@@ -1328,9 +1329,9 @@ router.post(
           false
         );
       }
-      if (matchValues[0].max_maps != 1 && matchValues[0].season_id != null) {
+      if (matchValues[0].season_id != null) {
         // Live update the score.
-        await update_challonge_match(matchID,
+        await update_tournament_match("map_end", matchID,
           matchValues[0].season_id,
           matchValues[0].team1_id,
           matchValues[0].team2_id,

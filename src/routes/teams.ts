@@ -22,6 +22,11 @@ import { generate } from "randomstring";
 import { writeFile, unlink } from "fs";
 
 import { Challonge, importChallongeTeams } from "../services/challonge.js";
+import {
+  Toornament,
+  importToornamentTeams,
+  parseToornamentId
+} from "../services/toornament.js";
 import { ChallongeParticipant } from "../types/challonge/ChallongeParticipant.js";
 import { RowDataPacket } from "mysql2";
 import { TeamData } from "../types/teams/TeamData.js";
@@ -892,6 +897,69 @@ router.post("/challonge", Utils.ensureAuthenticated, async (req, res) => {
       message: imported
         ? "Challonge teams imported successfully!"
         : "All Challonge teams for this tournament were already imported."
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: (err as Error).toString() });
+  }
+});
+
+/**
+ * @swagger
+ *
+ * /teams/toornament:
+ *   post:
+ *     description: Bulk create blank teams from the participants of a Toornament tournament.
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: array
+ *            items:
+ *              type: object
+ *              properties:
+ *                tournament_id:
+ *                  type: string
+ *                  description: The ID or URL of the Toornament tournament.
+ *     tags:
+ *       - teams
+ *     responses:
+ *       200:
+ *         description: Teams created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/Error'
+ */
+router.post("/toornament", Utils.ensureAuthenticated, Utils.ensureAdmin, async (req, res) => {
+  let tournamentId: string;
+  try {
+    tournamentId = parseToornamentId(req.body[0]?.tournament_id);
+  } catch (err) {
+    res.status(400).json({ message: (err as Error).message });
+    return;
+  }
+  try {
+    const userID: number = req.user!.id;
+    const toornament: Toornament = await Toornament.forUser(userID);
+    const participants = await toornament.listParticipants(tournamentId);
+    if (!participants.length) {
+      res.status(404).json({ message: "No teams found for tournament " + tournamentId + "." });
+      return;
+    }
+    const imported: number = await importToornamentTeams(userID, participants);
+    res.json({
+      message: imported
+        ? "Toornament teams imported successfully!"
+        : "All Toornament teams for this tournament were already imported.",
+      imported_teams: imported
     });
   } catch (err) {
     console.error(err);

@@ -24,7 +24,7 @@ import { Get5_OnPlayerDeath } from "../types/map_flow/Get5_OnPlayerDeath.js";
 import { Get5_OnBombEvent } from "../types/map_flow/Get5_OnBombEvent.js";
 import { Get5_OnRoundEnd } from "../types/map_flow/Get5_OnRoundEnd.js";
 import { Get5_OnRoundStart } from "../types/map_flow/Get5_OnRoundStart.js";
-import update_challonge_match from "./challonge.js";
+import update_tournament_match from "./tournament.js";
 
 /**
  * @class
@@ -301,11 +301,12 @@ class MapFlowService {
         team2_score: event.team2.score
       }
       await db.query(sqlString, [insUpdStatement, mapStatInfo[0].id]);
-      // Update Challonge info if needed.
+      // Live update the bracket provider if needed.
       sqlString = "SELECT max_maps, season_id FROM `match` WHERE id = ?";
       matchSeasonInfo = await db.query(sqlString, [event.matchid]);
-      if (matchSeasonInfo[0]?.season_id && matchSeasonInfo[0].max_maps == 1) {
-        await update_challonge_match(
+      if (matchSeasonInfo[0]?.season_id) {
+        await update_tournament_match(
+          "live",
           event.matchid,
           matchSeasonInfo[0].season_id,
           +event.team1.id,

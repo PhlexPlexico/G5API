@@ -5,6 +5,7 @@ export interface MatchData {
     team1_id?: number,
     team2_id?: number,
     season_id?: number,
+    toornament_match_id?: string | null,
     start_time?: Date | string,
     end_time?: Date | string | null,
     forfeit?: number | null,

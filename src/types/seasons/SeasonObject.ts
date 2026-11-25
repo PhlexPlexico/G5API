@@ -7,5 +7,7 @@ export interface SeasonObject {
     is_challonge?: boolean | null;
     challonge_svg?: string | null;
     challonge_url?: string | null;
-
+    is_toornament?: boolean | null;
+    toornament_id?: string | null;
+    toornament_logo?: string | null;
 }

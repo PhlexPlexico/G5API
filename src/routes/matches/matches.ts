@@ -30,6 +30,10 @@ import { MatchData } from "../../types/matches/MatchData.js";
 import { TeamData } from "../../types/teams/TeamData.js";
 import { RowDataPacket } from "mysql2";
 import { AccessMessage } from "../../types/mapstats/AccessMessage.js";
+import {
+  assertNoActiveG5Match,
+  invalidateSeasonBoard
+} from "../../services/toornamentSeason.js";
 
 type MatchGame = "cs2" | "csgo";
 const DEFAULT_MATCH_GAME: MatchGame = "cs2";
@@ -1288,6 +1292,31 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       }
     }
     let teamNameSql: string = "SELECT name FROM team WHERE id = ?";
+    let toornamentMatchId: string | null = req.body[0].toornament_match_id
+      ? String(req.body[0].toornament_match_id)
+      : null;
+    if (toornamentMatchId) {
+      if (!(req.user && (req.user.admin == 1 || req.user.super_admin == 1))) {
+        res.status(403).json({ message: "This feature is restricted to admins." });
+        return;
+      }
+      const season: RowDataPacket[] = await db.query(
+        "SELECT is_toornament FROM season WHERE id = ?",
+        [req.body[0].season_id]
+      );
+      if (!season[0]?.is_toornament) {
+        res.status(400).json({
+          message: "toornament_match_id requires a season imported from Toornament."
+        });
+        return;
+      }
+      try {
+        await assertNoActiveG5Match(toornamentMatchId);
+      } catch (err) {
+        res.status(409).json({ message: (err as Error).message });
+        return;
+      }
+    }
     let teamOneName: RowDataPacket[] = await db.query(teamNameSql, [req.body[0].team1_id]);
     let teamTwoName: RowDataPacket[] = await db.query(teamNameSql, [req.body[0].team2_id]);
     let apiKey: string = generate({
@@ -1303,6 +1332,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
       team1_id: req.body[0].team1_id,
       team2_id: req.body[0].team2_id,
       season_id: req.body[0].season_id,
+      toornament_match_id: toornamentMatchId,
       start_time: req.body[0].start_time,
       max_maps: req.body[0].max_maps,
       title: req.body[0].title,
@@ -1403,6 +1433,7 @@ router.post("/", Utils.ensureAuthenticated, async (req, res, next) => {
         }
       }
     }
+    if (req.body[0].season_id) invalidateSeasonBoard(+req.body[0].season_id);
     res.json({
       message: "Match inserted successfully!",
       id: insertMatch.insertId

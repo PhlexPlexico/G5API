@@ -207,6 +207,17 @@ static async getRatingFromSteamId(steamId: string): Promise<number | null> {
     res.redirect("/auth/steam");
   }
 
+  /** Route guard: the user must be authenticated and be an admin or super admin.
+   * Use after ensureAuthenticated.
+   * @function
+   * @memberof module:utils
+   * @inner */
+  static ensureAdmin(req: Request, res: Response, next: NextFunction) {
+    const user: any = req.user;
+    if (user && (user.admin == 1 || user.super_admin == 1)) return next();
+    res.status(403).json({ message: "This feature is restricted to admins." });
+  }
+
   /** Checks if a user is an admin in the system during their session.
    * @function
    * @memberof module:utils
